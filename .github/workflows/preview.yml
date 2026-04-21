@@ -21,7 +21,7 @@ jobs:
       - name: Build Web
         run: |
           flutter pub get
-          flutter build web --release --wasm
+          flutter build web --release --wasm --no-tree-shake-icons
           
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
