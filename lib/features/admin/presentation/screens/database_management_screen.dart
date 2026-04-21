@@ -73,26 +73,11 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   void _goBack() {
     setState(() {
       switch (_currentLevel) {
-        case ManagementLevel.college:
-          _currentLevel = ManagementLevel.university;
-          _uniId = null; _uniName = null;
-          break;
-        case ManagementLevel.department:
-          _currentLevel = ManagementLevel.college;
-          _collegeId = null; _collegeName = null;
-          break;
-        case ManagementLevel.year:
-          _currentLevel = ManagementLevel.department;
-          _deptId = null; _deptName = null;
-          break;
-        case ManagementLevel.semester:
-          _currentLevel = ManagementLevel.year;
-          _yearId = null; _yearName = null;
-          break;
-        case ManagementLevel.subject:
-          _currentLevel = ManagementLevel.semester;
-          _semesterId = null; _semesterName = null;
-          break;
+        case ManagementLevel.college: _currentLevel = ManagementLevel.university; _uniId = null; _uniName = null; break;
+        case ManagementLevel.department: _currentLevel = ManagementLevel.college; _collegeId = null; _collegeName = null; break;
+        case ManagementLevel.year: _currentLevel = ManagementLevel.department; _deptId = null; _deptName = null; break;
+        case ManagementLevel.semester: _currentLevel = ManagementLevel.year; _yearId = null; _yearName = null; break;
+        case ManagementLevel.subject: _currentLevel = ManagementLevel.semester; _semesterId = null; _semesterName = null; break;
         default: break;
       }
     });
@@ -114,7 +99,6 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        reverse: true, // RTL context
         child: Row(
           children: path.asMap().entries.map((entry) {
             return Row(
@@ -157,7 +141,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _emptyState('لا توجد بيانات متاحة حالياً', isDark);
 
         final docs = snapshot.data!.docs;
-        return ListView.builder(
+        
+        return ReorderableListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: docs.length,
           itemBuilder: (context, index) {
@@ -165,16 +150,31 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             final id = docs[index].id;
             final name = data['name'] ?? '';
             return _buildManagementCard(
+              key: ValueKey(id),
               title: name,
               subtitle: data['description'] ?? data['subtitle'] ?? '',
               isDark: isDark,
               onTap: () => _onItemTap(id, name, _currentLevel),
-              onDelete: () {}, // Implementation later
+              onEdit: () => _showEditDialog(id, data),
+              onDelete: () => _confirmDelete(id, name),
             );
           },
+          onReorder: (oldIndex, newIndex) => _handleReorder(docs, oldIndex, newIndex),
         );
       },
     );
+  }
+
+  Future<void> _handleReorder(List<QueryDocumentSnapshot> docs, int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    
+    // Create a local list of paths to update
+    final List<String> paths = docs.map((d) => _getCurrentPath(d.id)).toList();
+    final item = paths.removeAt(oldIndex);
+    paths.insert(newIndex, item);
+
+    // Call batch update in service
+    await _dbService.updateOrder(paths);
   }
 
   void _onItemTap(String id, String name, ManagementLevel fromLevel) {
@@ -190,8 +190,9 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     });
   }
 
-  Widget _buildManagementCard({required String title, required String subtitle, required bool isDark, required VoidCallback onTap, required VoidCallback onDelete}) {
+  Widget _buildManagementCard({required Key key, required String title, required String subtitle, required bool isDark, required VoidCallback onTap, required VoidCallback onEdit, required VoidCallback onDelete}) {
     return Container(
+      key: key,
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
@@ -207,9 +208,9 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 20), onPressed: () {}),
-            IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20), onPressed: onDelete),
-            const Icon(Icons.chevron_left_rounded, color: Colors.grey, size: 20),
+            IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 22), onPressed: onEdit),
+            IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22), onPressed: onDelete),
+            const Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
           ],
         ),
       ),
@@ -229,18 +230,178 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     );
   }
 
+  String _getCurrentPath(String id) {
+    switch (_currentLevel) {
+      case ManagementLevel.university: return _dbService.getUniPath(id);
+      case ManagementLevel.college: return _dbService.getCollegePath(_uniId!, id);
+      case ManagementLevel.department: return _dbService.getDeptPath(_uniId!, _collegeId!, id);
+      case ManagementLevel.year: return _dbService.getYearPath(_uniId!, _collegeId!, _deptId!, id);
+      case ManagementLevel.semester: return _dbService.getSemesterPath(_uniId!, _collegeId!, _deptId!, _yearId!, id);
+      case ManagementLevel.subject: return _dbService.getSubjectPath(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, id);
+    }
+  }
+
+  void _showEditDialog(String id, Map<String, dynamic> currentData) {
+    if (_currentLevel == ManagementLevel.subject) {
+      _showSubjectDetailsDialog(id, currentData);
+      return;
+    }
+    final nameController = TextEditingController(text: currentData['name']);
+    final descController = TextEditingController(text: currentData['description'] ?? currentData['subtitle']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('تعديل ${_getAddLabel()}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
+            const SizedBox(height: 16),
+            TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final path = _getCurrentPath(id);
+              final updatedData = {
+                'name': nameController.text.trim(),
+                if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
+                else 'description': descController.text.trim(),
+              };
+              await _dbService.updateDoc(path, updatedData);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text('حفظ التغييرات'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSubjectDetailsDialog(String id, Map<String, dynamic> data) {
+    String selectedType = data['type'] ?? 'theory';
+    final nameController = TextEditingController(text: data['name']);
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('تفاصيل المادة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: InputDecoration(labelText: 'اسم المادة', labelStyle: GoogleFonts.cairo())),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: Text('نظري', style: GoogleFonts.cairo()),
+                      selected: selectedType == 'theory',
+                      onSelected: (val) => setDialogState(() => selectedType = 'theory'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: Text('عملي', style: GoogleFonts.cairo()),
+                      selected: selectedType == 'practice',
+                      onSelected: (val) => setDialogState(() => selectedType = 'practice'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+            ElevatedButton(
+              onPressed: () async {
+                final path = _getCurrentPath(id);
+                await _dbService.updateDoc(path, {
+                  'name': nameController.text.trim(),
+                  'type': selectedType,
+                });
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(String id, String name) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('تأكيد الحذف', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text('هل أنت متأكد من حذف ($name)؟\nسيتم حذف جميع البيانات المرتبطة بها نهائياً.', style: GoogleFonts.cairo()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+          TextButton(
+            onPressed: () async {
+              final path = _getCurrentPath(id);
+              await _dbService.deleteDoc(path);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text('حذف نهائي', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSemesterSelectionDialog() {
+    final semesters = ['الفصل الأول', 'الفصل الثاني', 'الفصل الثالث'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('إضافة فصل جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: semesters.map((sem) => ListTile(
+            title: Text(sem, style: GoogleFonts.cairo()),
+            onTap: () async {
+              await _dbService.addSemester(_uniId!, _collegeId!, _deptId!, _yearId!, {'name': sem});
+              if (context.mounted) Navigator.pop(context);
+            },
+            trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue),
+          )).toList(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+        ],
+      ),
+    );
+  }
+
   void _showAddDialog(BuildContext context) {
+    if (_currentLevel == ManagementLevel.semester) {
+      _showSemesterSelectionDialog();
+      return;
+    }
     final nameController = TextEditingController();
     final descController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('إضافة ${_getAddLabel()} جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم/رقم السنة', labelStyle: GoogleFonts.cairo())),
+            TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
             const SizedBox(height: 16),
             TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف (اختياري)', labelStyle: GoogleFonts.cairo())),
           ],
@@ -278,10 +439,10 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     switch (_currentLevel) {
       case ManagementLevel.university: await _dbService.addUniversity({'name': name, 'description': desc}); break;
       case ManagementLevel.college: await _dbService.addCollege(_uniId!, {'name': name, 'subtitle': desc}); break;
-      case ManagementLevel.department: await _dbService.addDepartment(_uniId!, _collegeId!, {'name': name}); break;
-      case ManagementLevel.year: await _dbService.addYear(_uniId!, _collegeId!, _deptId!, {'name': name}); break;
-      case ManagementLevel.semester: await _dbService.addSemester(_uniId!, _collegeId!, _deptId!, _yearId!, {'name': name}); break;
-      case ManagementLevel.subject: await _dbService.addSubject(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, {'name': name, 'type': 'theory'}); break;
+      case ManagementLevel.department: await _dbService.addDepartment(_uniId!, _collegeId!, {'name': name, 'description': desc}); break;
+      case ManagementLevel.year: await _dbService.addYear(_uniId!, _collegeId!, _deptId!, {'name': name, 'description': desc}); break;
+      case ManagementLevel.semester: await _dbService.addSemester(_uniId!, _collegeId!, _deptId!, _yearId!, {'name': name, 'description': desc}); break;
+      case ManagementLevel.subject: await _dbService.addSubject(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, {'name': name, 'type': 'theory', 'description': desc}); break;
     }
   }
 }
