@@ -3,88 +3,203 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // --- Generic Helpers ---
-  Future<void> updateDoc(String path, Map<String, dynamic> data) => 
-      _db.doc(path).update(data);
-  
-  Future<void> deleteDoc(String path) => 
-      _db.doc(path).delete();
+  // --- Collection Constants ---
+  static const String colUniversities = 'universities';
+  static const String colColleges = 'colleges';
+  static const String colDepartments = 'departments';
+  static const String colYears = 'academic_years';
+  static const String colSemesters = 'semesters';
+  static const String colSubjects = 'subjects';
+  static const String colSections = 'sections';
+  static const String colQuestions = 'questions';
+  static const String colTopics = 'topics';
+  static const String colExams = 'exams';
 
-  // New: Batch order update
-  Future<void> updateOrder(List<String> paths) async {
+  // --- Generic Helpers ---
+  Future<void> updateDoc(String collection, String id, Map<String, dynamic> data) => 
+      _db.collection(collection).doc(id).update(data);
+  
+  Future<void> deleteDoc(String collection, String id) => 
+      _db.collection(collection).doc(id).delete();
+
+  Future<void> updateOrder(String collection, List<String> ids) async {
     final batch = _db.batch();
-    for (int i = 0; i < paths.length; i++) {
-      batch.update(_db.doc(paths[i]), {'order': i});
+    for (int i = 0; i < ids.length; i++) {
+      batch.update(_db.collection(collection).doc(ids[i]), {'order': i});
     }
     await batch.commit();
   }
 
-  // Paths Construction
-  String getUniPath(String id) => 'universities/$id';
-  String getCollegePath(String uniId, String id) => '${getUniPath(uniId)}/colleges/$id';
-  String getDeptPath(String uniId, String collId, String id) => '${getCollegePath(uniId, collId)}/departments/$id';
-  String getYearPath(String uniId, String collId, String deptId, String id) => '${getDeptPath(uniId, collId, deptId)}/years/$id';
-  String getSemesterPath(String uniId, String collId, String deptId, String yearId, String id) => '${getYearPath(uniId, collId, deptId, yearId)}/semesters/$id';
-  String getSubjectPath(String uniId, String collId, String deptId, String yearId, String semId, String id) => '${getSemesterPath(uniId, collId, deptId, yearId, semId)}/subjects/$id';
-  String getSectionPath(String uniId, String collId, String deptId, String yearId, String semId, String subId, String id) => '${getSubjectPath(uniId, collId, deptId, yearId, semId, subId)}/sections/$id';
-
-  // --- Streams and Adders (Sorted by 'order') ---
-  Stream<QuerySnapshot> getUniversities() => _db.collection('universities').orderBy('order').snapshots();
-  Future<DocumentReference> addUniversity(Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').count().get();
-    return _db.collection('universities').add({...data, 'order': count.count});
-  }
-
-  Stream<QuerySnapshot> getColleges(String uniId) => 
-      _db.collection('universities').doc(uniId).collection('colleges').orderBy('order').snapshots();
-  Future<DocumentReference> addCollege(String uniId, Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').doc(uniId).collection('colleges').count().get();
-    return _db.collection('universities').doc(uniId).collection('colleges').add({...data, 'order': count.count});
-  }
-
-  Stream<QuerySnapshot> getDepartments(String uniId, String collegeId) => 
-      _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').orderBy('order').snapshots();
-  Future<DocumentReference> addDepartment(String uniId, String collegeId, Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').count().get();
-    return _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').add({...data, 'order': count.count});
-  }
-
-  Stream<QuerySnapshot> getYears(String uniId, String collegeId, String deptId) => 
-      _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').orderBy('order').snapshots();
-  Future<DocumentReference> addYear(String uniId, String collegeId, String deptId, Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').count().get();
-    return _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').add({...data, 'order': count.count});
-  }
-
-  Stream<QuerySnapshot> getSemesters(String uniId, String collegeId, String deptId, String yearId) => 
-      _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').orderBy('order').snapshots();
-  Future<DocumentReference> addSemester(String uniId, String collegeId, String deptId, String yearId, Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').count().get();
-    return _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').add({...data, 'order': count.count});
-  }
-
-  Stream<QuerySnapshot> getSubjects(String uniId, String collegeId, String deptId, String yearId, String semesterId) => 
-      _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').orderBy('order').snapshots();
-  Future<DocumentReference> addSubject(String uniId, String collegeId, String deptId, String yearId, String semesterId, Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').count().get();
-    return _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').add({...data, 'order': count.count});
-  }
-
-  // --- Sections (New Level) ---
-  Stream<QuerySnapshot> getSections(String uniId, String collegeId, String deptId, String yearId, String semesterId, String subjectId) => 
-      _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').doc(subjectId).collection('sections').orderBy('order').snapshots();
+  // --- Hierarchical Queries (Flat Structure) ---
   
-  Future<DocumentReference> addSection(String uniId, String collegeId, String deptId, String yearId, String semesterId, String subjectId, Map<String, dynamic> data) async {
-    final count = await _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').doc(subjectId).collection('sections').count().get();
-    return _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').doc(subjectId).collection('sections').add({...data, 'order': count.count});
+  // Universities (No parent)
+  Stream<QuerySnapshot> getUniversities() => 
+      _db.collection(colUniversities).orderBy('order').snapshots();
+
+  Future<DocumentReference> addUniversity(Map<String, dynamic> data) async {
+    final count = await _db.collection(colUniversities).count().get();
+    return _db.collection(colUniversities).add({
+      ...data, 
+      'order': count.count,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
-  // --- Questions (Question Bank for a section) ---
-  Stream<QuerySnapshot> getQuestions(String sectionPath) => 
-      _db.doc(sectionPath).collection('questions').orderBy('order').snapshots();
+  // Generic child query
+  Stream<QuerySnapshot> getChildren(String collection, String parentId) => 
+      _db.collection(collection)
+          .where('parentId', isEqualTo: parentId)
+          .orderBy('order')
+          .snapshots();
 
-  Future<DocumentReference> addQuestion(String sectionPath, Map<String, dynamic> data) async {
-    final count = await _db.doc(sectionPath).collection('questions').count().get();
-    return _db.doc(sectionPath).collection('questions').add({...data, 'order': count.count});
+  Future<DocumentReference> addChild(String collection, String parentId, Map<String, dynamic> data) async {
+    final count = await _db.collection(collection)
+        .where('parentId', isEqualTo: parentId)
+        .count().get();
+    return _db.collection(collection).add({
+      ...data, 
+      'parentId': parentId,
+      'order': count.count,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // --- Specialized Adders (Wrappers for clarity) ---
+  Future<DocumentReference> addCollege(String uniId, Map<String, dynamic> data) => addChild(colColleges, uniId, data);
+  Future<DocumentReference> addDepartment(String collegeId, Map<String, dynamic> data) => addChild(colDepartments, collegeId, data);
+  Future<DocumentReference> addYear(String deptId, Map<String, dynamic> data) => addChild(colYears, deptId, data);
+  Future<DocumentReference> addSemester(String yearId, Map<String, dynamic> data) => addChild(colSemesters, yearId, data);
+  Future<DocumentReference> addSubject(String semesterId, Map<String, dynamic> data) => addChild(colSubjects, semesterId, data);
+  Future<DocumentReference> addSection(String subjectId, Map<String, dynamic> data) => addChild(colSections, subjectId, data);
+  Future<DocumentReference> addQuestion(String sectionId, Map<String, dynamic> data) => addChild(colQuestions, sectionId, data);
+
+  // --- Topics (Nested Structure) ---
+  Stream<QuerySnapshot> getTopics(String subjectId, {String? parentId}) {
+    var query = _db.collection(colTopics)
+        .where('subjectId', isEqualTo: subjectId)
+        .where('parentId', isEqualTo: parentId);
+    return query.orderBy('order').snapshots();
+  }
+
+  Future<DocumentReference> addTopic(String subjectId, String? parentId, Map<String, dynamic> data) async {
+    final count = await _db.collection(colTopics)
+        .where('subjectId', isEqualTo: subjectId)
+        .where('parentId', isEqualTo: parentId)
+        .count().get();
+
+    List<String> ancestors = [];
+    if (parentId != null) {
+      final parentDoc = await _db.collection(colTopics).doc(parentId).get();
+      if (parentDoc.exists) {
+        final parentData = parentDoc.data() as Map<String, dynamic>;
+        ancestors = List<String>.from(parentData['ancestors'] ?? []);
+        ancestors.add(parentId);
+      }
+    }
+
+    return _db.collection(colTopics).add({
+      ...data,
+      'subjectId': subjectId,
+      'parentId': parentId,
+      'ancestors': ancestors,
+      'order': count.count,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // --- Specialized Getters ---
+  Stream<QuerySnapshot> getColleges(String uniId) => getChildren(colColleges, uniId);
+  Stream<QuerySnapshot> getDepartments(String collegeId) => getChildren(colDepartments, collegeId);
+  Stream<QuerySnapshot> getYears(String deptId) => getChildren(colYears, deptId);
+  Stream<QuerySnapshot> getSemesters(String yearId) => getChildren(colSemesters, yearId);
+  Stream<QuerySnapshot> getSubjects(String semesterId) => getChildren(colSubjects, semesterId);
+  Stream<QuerySnapshot> getSections(String subjectId) => getChildren(colSections, subjectId);
+  Stream<QuerySnapshot> getQuestions(String sectionId) => getChildren(colQuestions, sectionId);
+
+  // --- Exams ---
+  Stream<QuerySnapshot> getExams(String subjectId) {
+    return _db.collection(colExams)
+        .where('subjectId', isEqualTo: subjectId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<DocumentReference> addExam(Map<String, dynamic> data) async {
+    return _db.collection(colExams).add({
+      ...data,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // --- Analytics Tracking ---
+  Future<void> submitQuizAttempt(String userId, String quizId, List<Map<String, dynamic>> answers) async {
+    // 1. Save the attempt record
+    final attemptRef = _db.collection('quiz_attempts').doc();
+    final batch = _db.batch();
+
+    batch.set(attemptRef, {
+      'userId': userId,
+      'quizId': quizId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'answers': answers,
+    });
+
+    // 2. Aggregate analytics for each question
+    for (var answer in answers) {
+      final questionId = answer['questionId'] as String;
+      final isCorrect = answer['isCorrect'] as bool;
+      final timeSpent = answer['timeSpent'] as int;
+
+      final questionRef = _db.collection(colQuestions).doc(questionId);
+      batch.set(
+        questionRef,
+        {
+          'analytics': {
+            'timesAnswered': FieldValue.increment(1),
+            'correctAnswers': FieldValue.increment(isCorrect ? 1 : 0),
+            'totalTimeSpent': FieldValue.increment(timeSpent),
+          }
+        },
+        SetOptions(merge: true),
+      );
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> updateUserHistory(String userId, List<Map<String, dynamic>> answers) async {
+    final historyRef = _db.collection('user_history').doc(userId);
+    
+    List<String> seenIds = [];
+    List<String> wrongIds = [];
+    
+    for (var answer in answers) {
+      final qId = answer['questionId'] as String;
+      seenIds.add(qId);
+      if (!(answer['isCorrect'] as bool)) {
+        wrongIds.add(qId);
+      }
+    }
+
+    await historyRef.set({
+      'seenQuestions': FieldValue.arrayUnion(seenIds),
+      'wrongAnswers': FieldValue.arrayUnion(wrongIds),
+      'lastActive': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // Optional: We can also remove newly correct answers from wrongAnswers array
+    // if the user got them right this time.
+    List<String> newlyCorrectIds = [];
+    for (var answer in answers) {
+      if (answer['isCorrect'] as bool) {
+        newlyCorrectIds.add(answer['questionId'] as String);
+      }
+    }
+
+    if (newlyCorrectIds.isNotEmpty) {
+      await historyRef.update({
+        'wrongAnswers': FieldValue.arrayRemove(newlyCorrectIds),
+      });
+    }
   }
 }

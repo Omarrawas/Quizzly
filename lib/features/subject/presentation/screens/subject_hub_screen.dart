@@ -11,10 +11,7 @@ import 'package:quizzly/features/training/presentation/screens/training_sessions
 class SubjectHubScreen extends StatefulWidget {
   final String subjectName;
 
-  const SubjectHubScreen({
-    super.key,
-    this.subjectName = 'الكيمياء',
-  });
+  const SubjectHubScreen({super.key, this.subjectName = 'الكيمياء'});
 
   @override
   State<SubjectHubScreen> createState() => _SubjectHubScreenState();
@@ -144,7 +141,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
             onPressed: _onSync,
             icon: Icon(
               Icons.sync_rounded,
-              color: _isSyncing ? AppColors.primaryBlue : AppColors.textSecondary,
+              color: _isSyncing
+                  ? AppColors.primaryBlue
+                  : AppColors.textSecondary,
               size: 26,
             ),
             tooltip: 'مزامنة',
@@ -264,7 +263,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => TrainingSessionsScreen(subjectName: widget.subjectName),
+            builder: (_) =>
+                TrainingSessionsScreen(subjectName: widget.subjectName),
           ),
         );
         break;
@@ -288,7 +288,6 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         );
         break;
       default:
-        // TODO: Navigate to remaining sections
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -297,7 +296,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
               textAlign: TextAlign.center,
             ),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 1),
             backgroundColor: AppColors.textPrimary,

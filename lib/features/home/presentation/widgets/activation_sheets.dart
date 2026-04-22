@@ -125,9 +125,7 @@ class _ActivationStep2SheetState extends State<ActivationStep2Sheet> {
                 ),
                 // QR Icon
                 IconButton(
-                  onPressed: () {
-                    // TODO: Implement QR scanner
-                  },
+                  onPressed: () {},
                   icon: const Icon(
                     Icons.qr_code_scanner_rounded,
                     color: AppColors.iconBlue,
@@ -202,9 +200,9 @@ class _ActivationStep3SheetState extends State<ActivationStep3Sheet> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              
+
               final colleges = snapshot.data ?? [];
-              
+
               if (colleges.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
@@ -220,7 +218,7 @@ class _ActivationStep3SheetState extends State<ActivationStep3Sheet> {
                   // Initialize selection state for new colleges
                   _selected.putIfAbsent(college.id, () => false);
                   final isSelected = _selected[college.id]!;
-                  
+
                   return GestureDetector(
                     onTap: () =>
                         setState(() => _selected[college.id] = !isSelected),
@@ -260,8 +258,11 @@ class _ActivationStep3SheetState extends State<ActivationStep3Sheet> {
                               ),
                             ),
                             child: isSelected
-                                ? const Icon(Icons.check_rounded,
-                                    size: 16, color: Colors.white)
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  )
                                 : null,
                           ),
                           const SizedBox(width: 14),

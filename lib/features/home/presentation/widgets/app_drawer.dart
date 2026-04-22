@@ -145,7 +145,7 @@ class AppDrawer extends StatelessWidget {
                   final bool? confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      backgroundColor: theme.dialogBackgroundColor,
+                      backgroundColor: Theme.of(context).dialogTheme.backgroundColor ?? theme.colorScheme.surface,
                       title: Text('تسجيل الخروج', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary)),
                       content: Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟', style: GoogleFonts.cairo(color: isDark ? Colors.white70 : AppColors.textSecondary)),
                       actions: [

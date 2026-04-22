@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/topic_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/exam_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 
 enum ManagementLevel { university, college, department, year, semester, subject, section }
 
@@ -18,13 +21,9 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   final DatabaseService _dbService = DatabaseService();
   ManagementLevel _currentLevel = ManagementLevel.university;
 
-  // Hierarchical IDs and Names
-  String? _uniId, _uniName;
-  String? _collegeId, _collegeName;
-  String? _deptId, _deptName;
-  String? _yearId, _yearName;
-  String? _semesterId, _semesterName;
-  String? _subjectId, _subjectName;
+  // Track parent IDs and names for the current view
+  final Map<ManagementLevel, String> _parentIds = {};
+  final Map<ManagementLevel, String> _levelNames = {};
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +45,15 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
           _getPageTitle(),
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'لوحة التحليلات الذكية',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsDashboardScreen()));
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -76,12 +84,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   void _goBack() {
     setState(() {
       switch (_currentLevel) {
-        case ManagementLevel.college: _currentLevel = ManagementLevel.university; _uniId = null; _uniName = null; break;
-        case ManagementLevel.department: _currentLevel = ManagementLevel.college; _collegeId = null; _collegeName = null; break;
-        case ManagementLevel.year: _currentLevel = ManagementLevel.department; _deptId = null; _deptName = null; break;
-        case ManagementLevel.semester: _currentLevel = ManagementLevel.year; _yearId = null; _yearName = null; break;
-        case ManagementLevel.subject: _currentLevel = ManagementLevel.semester; _semesterId = null; _semesterName = null; break;
-        case ManagementLevel.section: _currentLevel = ManagementLevel.subject; _subjectId = null; _subjectName = null; break;
+        case ManagementLevel.college: _currentLevel = ManagementLevel.university; break;
+        case ManagementLevel.department: _currentLevel = ManagementLevel.college; break;
+        case ManagementLevel.year: _currentLevel = ManagementLevel.department; break;
+        case ManagementLevel.semester: _currentLevel = ManagementLevel.year; break;
+        case ManagementLevel.subject: _currentLevel = ManagementLevel.semester; break;
+        case ManagementLevel.section: _currentLevel = ManagementLevel.subject; break;
         default: break;
       }
     });
@@ -89,12 +97,11 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
   Widget _buildBreadcrumbs(bool isDark) {
     List<String> path = [];
-    if (_uniName != null) path.add(_uniName!);
-    if (_collegeName != null) path.add(_collegeName!);
-    if (_deptName != null) path.add(_deptName!);
-    if (_yearName != null) path.add(_yearName!);
-    if (_semesterName != null) path.add(_semesterName!);
-    if (_subjectName != null) path.add(_subjectName!);
+    for (var level in ManagementLevel.values) {
+      if (level.index < _currentLevel.index && _levelNames.containsKey(level)) {
+        path.add(_levelNames[level]!);
+      }
+    }
 
     if (path.isEmpty) return const SizedBox.shrink();
 
@@ -132,12 +139,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     Stream<QuerySnapshot> stream;
     switch (_currentLevel) {
       case ManagementLevel.university: stream = _dbService.getUniversities(); break;
-      case ManagementLevel.college: stream = _dbService.getColleges(_uniId!); break;
-      case ManagementLevel.department: stream = _dbService.getDepartments(_uniId!, _collegeId!); break;
-      case ManagementLevel.year: stream = _dbService.getYears(_uniId!, _collegeId!, _deptId!); break;
-      case ManagementLevel.semester: stream = _dbService.getSemesters(_uniId!, _collegeId!, _deptId!, _yearId!); break;
-      case ManagementLevel.subject: stream = _dbService.getSubjects(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!); break;
-      case ManagementLevel.section: stream = _dbService.getSections(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, _subjectId!); break;
+      case ManagementLevel.college: stream = _dbService.getColleges(_parentIds[ManagementLevel.university]!); break;
+      case ManagementLevel.department: stream = _dbService.getDepartments(_parentIds[ManagementLevel.college]!); break;
+      case ManagementLevel.year: stream = _dbService.getYears(_parentIds[ManagementLevel.department]!); break;
+      case ManagementLevel.semester: stream = _dbService.getSemesters(_parentIds[ManagementLevel.year]!); break;
+      case ManagementLevel.subject: stream = _dbService.getSubjects(_parentIds[ManagementLevel.semester]!); break;
+      case ManagementLevel.section: stream = _dbService.getSections(_parentIds[ManagementLevel.subject]!); break;
     }
 
     return StreamBuilder<QuerySnapshot>(
@@ -173,38 +180,92 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
   Future<void> _handleReorder(List<QueryDocumentSnapshot> docs, int oldIndex, int newIndex) async {
     if (newIndex > oldIndex) newIndex -= 1;
-    final List<String> paths = docs.map((d) => _getCurrentPath(d.id)).toList();
-    final item = paths.removeAt(oldIndex);
-    paths.insert(newIndex, item);
-    await _dbService.updateOrder(paths);
+    final List<String> ids = docs.map((d) => d.id).toList();
+    final item = ids.removeAt(oldIndex);
+    ids.insert(newIndex, item);
+    await _dbService.updateOrder(_getCollectionName(_currentLevel), ids);
   }
 
   void _onItemTap(String id, String name, ManagementLevel fromLevel) {
-    setState(() {
-      switch (fromLevel) {
-        case ManagementLevel.university: _uniId = id; _uniName = name; _currentLevel = ManagementLevel.college; break;
-        case ManagementLevel.college: _collegeId = id; _collegeName = name; _currentLevel = ManagementLevel.department; break;
-        case ManagementLevel.department: _deptId = id; _deptName = name; _currentLevel = ManagementLevel.year; break;
-        case ManagementLevel.year: _yearId = id; _yearName = name; _currentLevel = ManagementLevel.semester; break;
-        case ManagementLevel.semester: _semesterId = id; _semesterName = name; _currentLevel = ManagementLevel.subject; break;
-        case ManagementLevel.subject: _subjectId = id; _subjectName = name; _currentLevel = ManagementLevel.section; break;
-        case ManagementLevel.section:
-          final path = _dbService.getSectionPath(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, _subjectId!, id);
-          List<String> breadcrumbs = [_uniName!, _collegeName!, _deptName!, _yearName!, _semesterName!, _subjectName!];
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TheoreticalSectionManagementScreen(
-                sectionPath: path,
-                sectionName: name,
-                breadcrumbs: breadcrumbs,
-              ),
-            ),
-          );
-          break;
-        default: break;
+    if (fromLevel == ManagementLevel.section) {
+      List<String> breadcrumbs = [];
+      for (var level in ManagementLevel.values) {
+        if (level.index <= ManagementLevel.subject.index && _levelNames.containsKey(level)) {
+          breadcrumbs.add(_levelNames[level]!);
+        }
       }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TheoreticalSectionManagementScreen(
+            sectionId: id,
+            sectionName: name,
+            subjectId: _parentIds[ManagementLevel.subject]!,
+            breadcrumbs: breadcrumbs,
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _parentIds[fromLevel] = id;
+      _levelNames[fromLevel] = name;
+      _currentLevel = ManagementLevel.values[fromLevel.index + 1];
     });
+  }
+
+  void _goToTopics(String id, String name) {
+    List<String> breadcrumbs = [];
+    for (var level in ManagementLevel.values) {
+      if (level.index <= ManagementLevel.subject.index && _levelNames.containsKey(level)) {
+        breadcrumbs.add(_levelNames[level]!);
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TopicManagementScreen(
+          subjectId: id,
+          subjectName: name,
+          breadcrumbs: breadcrumbs,
+        ),
+      ),
+    );
+  }
+
+  void _goToExams(String id, String name) {
+    List<String> breadcrumbs = [];
+    for (var level in ManagementLevel.values) {
+      if (level.index <= ManagementLevel.subject.index && _levelNames.containsKey(level)) {
+        breadcrumbs.add(_levelNames[level]!);
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExamManagementScreen(
+          subjectId: id,
+          subjectName: name,
+          breadcrumbs: breadcrumbs,
+        ),
+      ),
+    );
+  }
+
+  String _getCollectionName(ManagementLevel level) {
+    switch (level) {
+      case ManagementLevel.university: return DatabaseService.colUniversities;
+      case ManagementLevel.college: return DatabaseService.colColleges;
+      case ManagementLevel.department: return DatabaseService.colDepartments;
+      case ManagementLevel.year: return DatabaseService.colYears;
+      case ManagementLevel.semester: return DatabaseService.colSemesters;
+      case ManagementLevel.subject: return DatabaseService.colSubjects;
+      case ManagementLevel.section: return DatabaseService.colSections;
+    }
   }
 
   Widget _buildManagementCard({required Key key, required String title, required String subtitle, required bool isDark, required VoidCallback onTap, required VoidCallback onEdit, required VoidCallback onDelete}) {
@@ -225,6 +286,18 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_currentLevel == ManagementLevel.subject) ...[
+              IconButton(
+                icon: const Icon(Icons.assignment_outlined, color: Colors.purple, size: 22),
+                onPressed: () => _goToExams((key as ValueKey<String>).value, title),
+                tooltip: 'إدارة الاختبارات',
+              ),
+              IconButton(
+                icon: const Icon(Icons.account_tree_rounded, color: AppColors.primaryBlue, size: 22),
+                onPressed: () => _goToTopics((key as ValueKey<String>).value, title),
+                tooltip: 'إدارة المواضيع',
+              ),
+            ],
             IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 22), onPressed: onEdit),
             IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22), onPressed: onDelete),
             const Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
@@ -245,18 +318,6 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         ],
       ),
     );
-  }
-
-  String _getCurrentPath(String id) {
-    switch (_currentLevel) {
-      case ManagementLevel.university: return _dbService.getUniPath(id);
-      case ManagementLevel.college: return _dbService.getCollegePath(_uniId!, id);
-      case ManagementLevel.department: return _dbService.getDeptPath(_uniId!, _collegeId!, id);
-      case ManagementLevel.year: return _dbService.getYearPath(_uniId!, _collegeId!, _deptId!, id);
-      case ManagementLevel.semester: return _dbService.getSemesterPath(_uniId!, _collegeId!, _deptId!, _yearId!, id);
-      case ManagementLevel.subject: return _dbService.getSubjectPath(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, id);
-      case ManagementLevel.section: return _dbService.getSectionPath(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, _subjectId!, id);
-    }
   }
 
   void _showEditDialog(String id, Map<String, dynamic> currentData) {
@@ -280,13 +341,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           ElevatedButton(
             onPressed: () async {
-              final path = _getCurrentPath(id);
               final updatedData = {
                 'name': nameController.text.trim(),
                 if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
                 else 'description': descController.text.trim(),
               };
-              await _dbService.updateDoc(path, updatedData);
+              await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
               if (context.mounted) Navigator.pop(context);
             },
             child: Text('حفظ التغييرات'),
@@ -302,13 +362,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('تأكيد الحذف', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
-        content: Text('هل أنت متأكد من حذف ($name)؟\nسيتم حذف جميع البيانات المرتبطة بها نهائياً.', style: GoogleFonts.cairo()),
+        content: Text('هل أنت متأكد من حذف ($name)؟\nسيتم حذف البيانات المرتبطة بها نهائياً.', style: GoogleFonts.cairo()),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
             onPressed: () async {
-              final path = _getCurrentPath(id);
-              await _dbService.deleteDoc(path);
+              await _dbService.deleteDoc(_getCollectionName(_currentLevel), id);
               if (context.mounted) Navigator.pop(context);
             },
             child: Text('حذف نهائي', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -330,7 +389,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
           children: semesters.map((sem) => ListTile(
             title: Text(sem, style: GoogleFonts.cairo()),
             onTap: () async {
-              await _dbService.addSemester(_uniId!, _collegeId!, _deptId!, _yearId!, {'name': sem});
+              await _performAdd(sem, '');
               if (context.mounted) Navigator.pop(context);
             },
             trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue),
@@ -355,7 +414,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
           children: sections.map((sec) => ListTile(
             title: Text(sec, style: GoogleFonts.cairo()),
             onTap: () async {
-              await _dbService.addSection(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, _subjectId!, {'name': sec, 'type': sec.contains('نظري') ? 'theory' : 'practice'});
+              await _performAdd(sec, '');
               if (context.mounted) Navigator.pop(context);
             },
             trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue),
@@ -372,11 +431,6 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     if (_currentLevel == ManagementLevel.semester) {
       _showSemesterSelectionDialog();
       return;
-    }
-    if (_currentLevel == ManagementLevel.subject) {
-      // Actually when at level subject, tapping + should let you click a subject to drill in?
-      // No, tapping + at subject level means adding a new subject.
-      // Drilling happens on ListTile Tap.
     }
     if (_currentLevel == ManagementLevel.section) {
       _showSectionSelectionDialog();
@@ -430,14 +484,22 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   }
 
   Future<void> _performAdd(String name, String desc) async {
+    final Map<String, dynamic> data = {
+      'name': name,
+      _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
+    };
+
     switch (_currentLevel) {
-      case ManagementLevel.university: await _dbService.addUniversity({'name': name, 'description': desc}); break;
-      case ManagementLevel.college: await _dbService.addCollege(_uniId!, {'name': name, 'subtitle': desc}); break;
-      case ManagementLevel.department: await _dbService.addDepartment(_uniId!, _collegeId!, {'name': name, 'description': desc}); break;
-      case ManagementLevel.year: await _dbService.addYear(_uniId!, _collegeId!, _deptId!, {'name': name, 'description': desc}); break;
-      case ManagementLevel.semester: await _dbService.addSemester(_uniId!, _collegeId!, _deptId!, _yearId!, {'name': name, 'description': desc}); break;
-      case ManagementLevel.subject: await _dbService.addSubject(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, {'name': name, 'description': desc}); break;
-      default: break;
+      case ManagementLevel.university: await _dbService.addUniversity(data); break;
+      case ManagementLevel.college: await _dbService.addCollege(_parentIds[ManagementLevel.university]!, data); break;
+      case ManagementLevel.department: await _dbService.addDepartment(_parentIds[ManagementLevel.college]!, data); break;
+      case ManagementLevel.year: await _dbService.addYear(_parentIds[ManagementLevel.department]!, data); break;
+      case ManagementLevel.semester: await _dbService.addSemester(_parentIds[ManagementLevel.year]!, data); break;
+      case ManagementLevel.subject: await _dbService.addSubject(_parentIds[ManagementLevel.semester]!, data); break;
+      case ManagementLevel.section: 
+        data['type'] = name.contains('نظري') ? 'theory' : 'practice';
+        await _dbService.addSection(_parentIds[ManagementLevel.subject]!, data); 
+        break;
     }
   }
 }

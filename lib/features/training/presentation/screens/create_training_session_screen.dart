@@ -5,18 +5,19 @@ import 'package:quizzly/core/theme/app_colors.dart';
 class CreateTrainingSessionScreen extends StatefulWidget {
   final String subjectName;
 
-  const CreateTrainingSessionScreen({
-    super.key,
-    required this.subjectName,
-  });
+  const CreateTrainingSessionScreen({super.key, required this.subjectName});
 
   @override
-  State<CreateTrainingSessionScreen> createState() => _CreateTrainingSessionScreenState();
+  State<CreateTrainingSessionScreen> createState() =>
+      _CreateTrainingSessionScreenState();
 }
 
-class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScreen> {
+class _CreateTrainingSessionScreenState
+    extends State<CreateTrainingSessionScreen> {
   // للتبسيط، نستخدم controllers وعدة متغيرات حالة للواجهة
-  final TextEditingController _nameController = TextEditingController(text: 'جلسة تدريب جديدة');
+  final TextEditingController _nameController = TextEditingController(
+    text: 'جلسة تدريب جديدة',
+  );
   final TextEditingController _maxQuestionsController = TextEditingController();
   final TextEditingController _maxTimeController = TextEditingController();
 
@@ -57,7 +58,9 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -70,7 +73,11 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
                     color: Color(0xFFF0FDF4),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded, color: Color(0xFF16A34A), size: 30),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: Color(0xFF16A34A),
+                    size: 30,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -97,7 +104,10 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
                       child: TextButton(
                         onPressed: () {
                           Navigator.pop(context); // Close dialog
-                          Navigator.pop(context, true); // Return to training list with true
+                          Navigator.pop(
+                            context,
+                            true,
+                          ); // Return to training list with true
                         },
                         child: Text(
                           'لاحقاً',
@@ -122,8 +132,10 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
                         ),
                         onPressed: () {
                           Navigator.pop(context); // Close dialog
-                          Navigator.pop(context, true); // Return to training list
-                          // TODO: Navigate directly to QuizScreen
+                          Navigator.pop(
+                            context,
+                            true,
+                          ); // Return to training list
                         },
                         child: Text(
                           'ابدأ',
@@ -156,10 +168,7 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Text Fields
-            _buildTextField(
-              label: 'اسم الجلسة',
-              controller: _nameController,
-            ),
+            _buildTextField(label: 'اسم الجلسة', controller: _nameController),
             const SizedBox(height: 16),
             _buildTextField(
               label: 'الحد الأقصى لعدد الأسئلة',
@@ -181,9 +190,13 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
             _buildCheckboxRow('ترتيب الأسئلة عشوائياً', _randomize, (v) {
               setState(() => _randomize = v ?? false);
             }),
-            _buildCheckboxRow('إخفاء المعلومات الإضافية (وضع الامتحان)', _examMode, (v) {
-              setState(() => _examMode = v ?? false);
-            }),
+            _buildCheckboxRow(
+              'إخفاء المعلومات الإضافية (وضع الامتحان)',
+              _examMode,
+              (v) {
+                setState(() => _examMode = v ?? false);
+              },
+            ),
             const SizedBox(height: 24),
 
             // ── Accordions
@@ -299,7 +312,10 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
           style: GoogleFonts.cairo(fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 13),
+            hintStyle: GoogleFonts.cairo(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
@@ -314,14 +330,21 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.primaryBlue),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCheckboxRow(String title, bool value, void Function(bool?) onChanged) {
+  Widget _buildCheckboxRow(
+    String title,
+    bool value,
+    void Function(bool?) onChanged,
+  ) {
     return Theme(
       data: ThemeData(
         unselectedWidgetColor: AppColors.borderLight,
@@ -372,7 +395,9 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
               child: Row(
                 children: [
                   Icon(
-                    isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
                     color: AppColors.primaryBlue,
                   ),
                   const SizedBox(width: 8),
@@ -394,20 +419,16 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
                         value: false, // مكدس للتوضيح
                         onChanged: (v) {},
                         activeColor: AppColors.primaryBlue,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
           ),
-          if (isExpanded)
-            Column(
-              children: [
-                const Divider(height: 1),
-                body,
-              ],
-            ),
+          if (isExpanded) Column(children: [const Divider(height: 1), body]),
         ],
       ),
     );
@@ -439,9 +460,15 @@ class _CreateTrainingSessionScreenState extends State<CreateTrainingSessionScree
           // Rows
           _buildSummaryRow('الأوراق المحددة', '$_selectedExams امتحان'),
           const SizedBox(height: 8),
-          _buildSummaryRow('إجمالي أسئلة المادة', '$_totalSubjectQuestions أسئلة'),
+          _buildSummaryRow(
+            'إجمالي أسئلة المادة',
+            '$_totalSubjectQuestions أسئلة',
+          ),
           const SizedBox(height: 8),
-          _buildSummaryRow('إجمالي الأسئلة المتاحة', '$_availableQuestions أسئلة'),
+          _buildSummaryRow(
+            'إجمالي الأسئلة المتاحة',
+            '$_availableQuestions أسئلة',
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(color: AppColors.borderLight, height: 1),

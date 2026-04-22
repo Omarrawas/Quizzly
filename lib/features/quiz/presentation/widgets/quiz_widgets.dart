@@ -168,18 +168,32 @@ class QuizExamHeader extends StatelessWidget {
           // Classification row
           Row(
             children: [
-              const Icon(Icons.folder_rounded, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.folder_rounded,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 5),
               Text(
                 'التصنيف: ${exam.classification}',
-                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const Spacer(),
-              const Icon(Icons.edit_calendar_rounded, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.edit_calendar_rounded,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 5),
               Text(
                 'آخر تعديل: ${exam.lastUpdated}',
-                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -191,7 +205,10 @@ class QuizExamHeader extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
@@ -200,17 +217,28 @@ class QuizExamHeader extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.filter_list_rounded, size: 14, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.filter_list_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'الفلاتر',
-                      style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.insert_drive_file_rounded, size: 14, color: AppColors.primaryBlue),
+              const Icon(
+                Icons.insert_drive_file_rounded,
+                size: 14,
+                color: AppColors.primaryBlue,
+              ),
               const SizedBox(width: 5),
               Text(
                 '${exam.totalQuestions} أسئلة',
@@ -290,18 +318,20 @@ class QuestionCard extends StatelessWidget {
           ),
           // ── Options
           if (question.options != null)
-            ...question.options!.map((option) => _OptionTile(
-                  option: option,
-                  isSelected: selectedOptionId == option.id,
-                  isCorrect: option.id == question.correctOptionId,
-                  answerState: answerState,
-                  showCorrect: showCorrect,
-                  onTap: () {
-                    if (answerState == AnswerState.unanswered) {
-                      onOptionSelected(option.id);
-                    }
-                  },
-                )),
+            ...question.options!.map(
+              (option) => _OptionTile(
+                option: option,
+                isSelected: selectedOptionId == option.id,
+                isCorrect: option.id == question.correctOptionId,
+                answerState: answerState,
+                showCorrect: showCorrect,
+                onTap: () {
+                  if (answerState == AnswerState.unanswered) {
+                    onOptionSelected(option.id);
+                  }
+                },
+              ),
+            ),
           const SizedBox(height: 12),
           // ── Tag chip
           if (question.tagLabel != null)
@@ -340,8 +370,12 @@ class _OptionTile extends StatelessWidget {
       return isSelected ? const Color(0xFFEFF6FF) : Colors.transparent;
     }
     if (showCorrect && isCorrect) return const Color(0xFFF0FDF4);
-    if (isSelected && answerState == AnswerState.wrong) return const Color(0xFFFEF2F2);
-    if (isSelected && answerState == AnswerState.correct) return const Color(0xFFF0FDF4);
+    if (isSelected && answerState == AnswerState.wrong) {
+      return const Color(0xFFFEF2F2);
+    }
+    if (isSelected && answerState == AnswerState.correct) {
+      return const Color(0xFFF0FDF4);
+    }
     return Colors.transparent;
   }
 
@@ -350,8 +384,12 @@ class _OptionTile extends StatelessWidget {
       return isSelected ? AppColors.primaryBlue : AppColors.borderLight;
     }
     if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected && answerState == AnswerState.wrong) return const Color(0xFFDC2626);
-    if (isSelected && answerState == AnswerState.correct) return const Color(0xFF16A34A);
+    if (isSelected && answerState == AnswerState.wrong) {
+      return const Color(0xFFDC2626);
+    }
+    if (isSelected && answerState == AnswerState.correct) {
+      return const Color(0xFF16A34A);
+    }
     return AppColors.borderLight;
   }
 
@@ -360,8 +398,12 @@ class _OptionTile extends StatelessWidget {
       return isSelected ? AppColors.primaryBlue : AppColors.borderLight;
     }
     if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected && answerState == AnswerState.wrong) return const Color(0xFFDC2626);
-    if (isSelected && answerState == AnswerState.correct) return const Color(0xFF16A34A);
+    if (isSelected && answerState == AnswerState.wrong) {
+      return const Color(0xFFDC2626);
+    }
+    if (isSelected && answerState == AnswerState.correct) {
+      return const Color(0xFF16A34A);
+    }
     return AppColors.borderLight;
   }
 
@@ -401,18 +443,25 @@ class _OptionTile extends StatelessWidget {
                 style: GoogleFonts.cairo(
                   fontSize: 14,
                   color: AppColors.textPrimary,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
             // Show result icon after reveal
-            if (answerState != AnswerState.unanswered && showCorrect && isCorrect)
-              const Icon(Icons.check_circle_rounded,
-                  color: Color(0xFF16A34A), size: 18),
+            if (answerState != AnswerState.unanswered &&
+                showCorrect &&
+                isCorrect)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF16A34A),
+                size: 18,
+              ),
             if (isSelected && answerState == AnswerState.wrong)
-              const Icon(Icons.cancel_rounded,
-                  color: Color(0xFFDC2626), size: 18),
+              const Icon(
+                Icons.cancel_rounded,
+                color: Color(0xFFDC2626),
+                size: 18,
+              ),
           ],
         ),
       ),
@@ -482,8 +531,12 @@ class QuestionBottomBar extends StatelessWidget {
           const Spacer(),
           // ── Favorite
           _BarIconButton(
-            icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            color: isFavorite ? const Color(0xFFDC2626) : AppColors.textSecondary,
+            icon: isFavorite
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            color: isFavorite
+                ? const Color(0xFFDC2626)
+                : AppColors.textSecondary,
             onTap: onFavoriteTap,
           ),
           const SizedBox(width: 12),
@@ -539,8 +592,11 @@ class _QuestionMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded,
-          color: AppColors.textSecondary, size: 22),
+      icon: const Icon(
+        Icons.more_vert_rounded,
+        color: AppColors.textSecondary,
+        size: 22,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) {
         if (value == 'note') {
@@ -552,8 +608,11 @@ class _QuestionMenuButton extends StatelessWidget {
           value: 'note',
           child: Row(
             children: [
-              const Icon(Icons.note_add_rounded,
-                  color: AppColors.primaryBlue, size: 18),
+              const Icon(
+                Icons.note_add_rounded,
+                color: AppColors.primaryBlue,
+                size: 18,
+              ),
               const SizedBox(width: 10),
               Text('إضافة ملاحظة', style: GoogleFonts.cairo(fontSize: 14)),
             ],
@@ -563,8 +622,11 @@ class _QuestionMenuButton extends StatelessWidget {
           value: 'report',
           child: Row(
             children: [
-              const Icon(Icons.flag_rounded,
-                  color: Color(0xFFDC2626), size: 18),
+              const Icon(
+                Icons.flag_rounded,
+                color: Color(0xFFDC2626),
+                size: 18,
+              ),
               const SizedBox(width: 10),
               Text('إبلاغ عن خطأ', style: GoogleFonts.cairo(fontSize: 14)),
             ],
@@ -612,16 +674,19 @@ void showNoteDialog(BuildContext context, int questionNumber) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('إلغاء',
-              style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+          child: Text(
+            'إلغاء',
+            style: GoogleFonts.cairo(color: AppColors.textSecondary),
+          ),
         ),
         ElevatedButton(
           onPressed: () {
-            // TODO: Save note
             Navigator.pop(context);
           },
           style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           child: Text('حفظ', style: GoogleFonts.cairo()),
         ),

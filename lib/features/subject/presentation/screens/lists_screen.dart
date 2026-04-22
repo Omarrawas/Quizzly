@@ -9,10 +9,7 @@ import 'package:quizzly/features/quiz/presentation/screens/quiz_screen.dart';
 class ExamsListScreen extends StatefulWidget {
   final String subjectName;
 
-  const ExamsListScreen({
-    super.key,
-    this.subjectName = 'الكيمياء',
-  });
+  const ExamsListScreen({super.key, this.subjectName = 'الكيمياء'});
 
   @override
   State<ExamsListScreen> createState() => _ExamsListScreenState();
@@ -22,17 +19,13 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
   final List<ExamItem> _exams = mockExams;
   int _selectedFilter = 0;
 
-  final List<String> _filters = [
-    'الدورات الوزارية',
-    'التجريبية',
-    'الكل',
-  ];
+  final List<String> _filters = ['الدورات الوزارية', 'التجريبية', 'الكل'];
 
   List<ExamItem> get _filtered => _selectedFilter == 2
       ? _exams
       : _selectedFilter == 1
-          ? _exams.where((e) => e.title.contains('التجريبية')).toList()
-          : _exams.where((e) => !e.title.contains('التجريبية')).toList();
+      ? _exams.where((e) => e.title.contains('التجريبية')).toList()
+      : _exams.where((e) => !e.title.contains('التجريبية')).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +66,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => QuizScreen(
-                                exam: mockQuizExam,
-                              ),
+                              builder: (_) => QuizScreen(exam: mockQuizExam),
                             ),
                           );
                         }
@@ -152,10 +143,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 class TagsListScreen extends StatelessWidget {
   final String subjectName;
 
-  const TagsListScreen({
-    super.key,
-    this.subjectName = 'الكيمياء',
-  });
+  const TagsListScreen({super.key, this.subjectName = 'الكيمياء'});
 
   @override
   Widget build(BuildContext context) {
@@ -167,12 +155,8 @@ class TagsListScreen extends StatelessWidget {
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               itemCount: mockTags.length,
-              itemBuilder: (context, index) => TagListTile(
-                tag: mockTags[index],
-                onTap: () {
-                  // TODO: Navigate to tag question list
-                },
-              ),
+              itemBuilder: (context, index) =>
+                  TagListTile(tag: mockTags[index], onTap: () {}),
             ),
     );
   }
@@ -234,9 +218,7 @@ class _FilterChip extends StatelessWidget {
           color: isSelected ? AppColors.primaryBlue : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected
-                ? AppColors.primaryBlue
-                : AppColors.borderLight,
+            color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
           ),
           boxShadow: isSelected
               ? [
@@ -244,7 +226,7 @@ class _FilterChip extends StatelessWidget {
                     color: AppColors.primaryBlue.withValues(alpha: 0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : [],
         ),
@@ -252,8 +234,11 @@ class _FilterChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected) ...[
-              const Icon(Icons.filter_list_rounded,
-                  size: 14, color: Colors.white),
+              const Icon(
+                Icons.filter_list_rounded,
+                size: 14,
+                color: Colors.white,
+              ),
               const SizedBox(width: 5),
             ],
             Text(

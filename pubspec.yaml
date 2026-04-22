@@ -20,6 +20,8 @@ dependencies:
   provider: ^6.1.5+1
   shared_preferences: ^2.5.2
   cloud_firestore: ^6.3.0
+  csv: ^6.0.0
+  file_picker: ^8.1.4
 
 dev_dependencies:
   flutter_test:

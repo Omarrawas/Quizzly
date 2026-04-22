@@ -14,16 +14,30 @@ class SubjectSelectionScreen extends StatefulWidget {
 
 class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   String _selectedUniversity = 'الجامعة';
   String _selectedCollege = 'الكلية';
   String _selectedSemester = 'الفصل';
   String _selectedSubject = 'المادة';
   bool _isAllSelected = true;
 
-  final List<String> _universities = ['جامعة دمشق', 'جامعة حلب', 'جامعة تشرين', 'جامعة البعث'];
-  final List<String> _colleges = ['الهندسة المعلوماتية', 'الطب البشري', 'الصيدلة', 'الهندسة المدنية'];
-  final List<String> _semesters = ['الفصل الأول', 'الفصل الثاني', 'الفصل الثالث (تكميلي)'];
+  final List<String> _universities = [
+    'جامعة دمشق',
+    'جامعة حلب',
+    'جامعة تشرين',
+    'جامعة البعث',
+  ];
+  final List<String> _colleges = [
+    'الهندسة المعلوماتية',
+    'الطب البشري',
+    'الصيدلة',
+    'الهندسة المدنية',
+  ];
+  final List<String> _semesters = [
+    'الفصل الأول',
+    'الفصل الثاني',
+    'الفصل الثالث (تكميلي)',
+  ];
   final List<String> _subjects = ['رياضيات', 'برمجة', 'قواعد بيانات', 'شبكات'];
 
   @override
@@ -45,7 +59,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -78,10 +92,18 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                 style: GoogleFonts.cairo(fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'ابحث عن مادة...',
-                  hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary.withValues(alpha: 0.5)),
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBlue),
+                  hintStyle: GoogleFonts.cairo(
+                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.primaryBlue,
+                  ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -149,9 +171,9 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+
                 final colleges = snapshot.data ?? [];
-                
+
                 if (colleges.isEmpty) {
                   return SingleChildScrollView(
                     child: Column(
@@ -195,18 +217,32 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                     final college = colleges[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
-                          child: Icon(college.icon, color: AppColors.primaryBlue),
+                          backgroundColor: AppColors.primaryBlue.withValues(
+                            alpha: 0.1,
+                          ),
+                          child: Icon(
+                            college.icon,
+                            color: AppColors.primaryBlue,
+                          ),
                         ),
-                        title: Text(college.name, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                        subtitle: Text(college.subtitle, style: GoogleFonts.cairo(fontSize: 12)),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                        onTap: () {
-                          // TODO: Navigate to Subject Hub for Trial
-                        },
+                        title: Text(
+                          college.name,
+                          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          college.subtitle,
+                          style: GoogleFonts.cairo(fontSize: 12),
+                        ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                        ),
+                        onTap: () {},
                       ),
                     );
                   },
@@ -259,10 +295,12 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
       child: PopupMenuButton<String>(
         onSelected: onSelected,
         itemBuilder: (context) => items
-            .map((item) => PopupMenuItem<String>(
-                  value: item,
-                  child: Text(item, style: GoogleFonts.cairo(fontSize: 14)),
-                ))
+            .map(
+              (item) => PopupMenuItem<String>(
+                value: item,
+                child: Text(item, style: GoogleFonts.cairo(fontSize: 14)),
+              ),
+            )
             .toList(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
