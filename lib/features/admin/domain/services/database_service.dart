@@ -78,4 +78,13 @@ class DatabaseService {
     final count = await _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').doc(subjectId).collection('sections').count().get();
     return _db.collection('universities').doc(uniId).collection('colleges').doc(collegeId).collection('departments').doc(deptId).collection('years').doc(yearId).collection('semesters').doc(semesterId).collection('subjects').doc(subjectId).collection('sections').add({...data, 'order': count.count});
   }
+
+  // --- Questions (Question Bank for a section) ---
+  Stream<QuerySnapshot> getQuestions(String sectionPath) => 
+      _db.doc(sectionPath).collection('questions').orderBy('order').snapshots();
+
+  Future<DocumentReference> addQuestion(String sectionPath, Map<String, dynamic> data) async {
+    final count = await _db.doc(sectionPath).collection('questions').count().get();
+    return _db.doc(sectionPath).collection('questions').add({...data, 'order': count.count});
+  }
 }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 
 enum ManagementLevel { university, college, department, year, semester, subject, section }
 
@@ -187,6 +188,20 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         case ManagementLevel.year: _yearId = id; _yearName = name; _currentLevel = ManagementLevel.semester; break;
         case ManagementLevel.semester: _semesterId = id; _semesterName = name; _currentLevel = ManagementLevel.subject; break;
         case ManagementLevel.subject: _subjectId = id; _subjectName = name; _currentLevel = ManagementLevel.section; break;
+        case ManagementLevel.section:
+          final path = _dbService.getSectionPath(_uniId!, _collegeId!, _deptId!, _yearId!, _semesterId!, _subjectId!, id);
+          List<String> breadcrumbs = [_uniName!, _collegeName!, _deptName!, _yearName!, _semesterName!, _subjectName!];
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TheoreticalSectionManagementScreen(
+                sectionPath: path,
+                sectionName: name,
+                breadcrumbs: breadcrumbs,
+              ),
+            ),
+          );
+          break;
         default: break;
       }
     });

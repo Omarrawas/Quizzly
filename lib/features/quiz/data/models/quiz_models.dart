@@ -6,20 +6,28 @@ class QuizOption {
   const QuizOption({required this.id, required this.text});
 }
 
+enum QuestionType { mcq, essay }
+
 /// نموذج سؤال
 class QuizQuestion {
+  final String? id; // Added ID for Firestore
   final int number;
   final String text;
-  final List<QuizOption> options;
-  final String correctOptionId;
+  final QuestionType type;
+  final List<QuizOption>? options; // Nullable for Essay
+  final String? correctOptionId;   // Nullable for Essay
+  final String? essayAnswer;       // For Essay type
   final String? tagLabel;
   final String? imageUrl;
 
   const QuizQuestion({
+    this.id,
     required this.number,
     required this.text,
-    required this.options,
-    required this.correctOptionId,
+    required this.type,
+    this.options,
+    this.correctOptionId,
+    this.essayAnswer,
     this.tagLabel,
     this.imageUrl,
   });
@@ -55,6 +63,7 @@ final QuizExam mockQuizExam = QuizExam(
     QuizQuestion(
       number: 1,
       text: 'يستخدم قانون هس لقياس تغيرات الانثالبية:',
+      type: QuestionType.mcq,
       options: [
         QuizOption(id: 'a', text: 'المعقدة'),
         QuizOption(id: 'b', text: 'البسيطة'),
@@ -67,6 +76,7 @@ final QuizExam mockQuizExam = QuizExam(
     QuizQuestion(
       number: 2,
       text: 'الذرة الأكثر كهرسلبية هي:',
+      type: QuestionType.mcq,
       options: [
         QuizOption(id: 'a', text: 'فلور'),
         QuizOption(id: 'b', text: 'كلور'),
@@ -79,6 +89,7 @@ final QuizExam mockQuizExam = QuizExam(
     QuizQuestion(
       number: 3,
       text: 'ما وحدة قياس الضغط في النظام الدولي SI؟',
+      type: QuestionType.mcq,
       options: [
         QuizOption(id: 'a', text: 'atm'),
         QuizOption(id: 'b', text: 'bar'),
