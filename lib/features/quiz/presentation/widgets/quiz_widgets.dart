@@ -289,18 +289,19 @@ class QuestionCard extends StatelessWidget {
             ),
           ),
           // ── Options
-          ...question.options.map((option) => _OptionTile(
-                option: option,
-                isSelected: selectedOptionId == option.id,
-                isCorrect: option.id == question.correctOptionId,
-                answerState: answerState,
-                showCorrect: showCorrect,
-                onTap: () {
-                  if (answerState == AnswerState.unanswered) {
-                    onOptionSelected(option.id);
-                  }
-                },
-              )),
+          if (question.options != null)
+            ...question.options!.map((option) => _OptionTile(
+                  option: option,
+                  isSelected: selectedOptionId == option.id,
+                  isCorrect: option.id == question.correctOptionId,
+                  answerState: answerState,
+                  showCorrect: showCorrect,
+                  onTap: () {
+                    if (answerState == AnswerState.unanswered) {
+                      onOptionSelected(option.id);
+                    }
+                  },
+                )),
           const SizedBox(height: 12),
           // ── Tag chip
           if (question.tagLabel != null)
