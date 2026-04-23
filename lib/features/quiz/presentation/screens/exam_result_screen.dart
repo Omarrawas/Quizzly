@@ -230,6 +230,6 @@ class ExamResultScreen extends StatelessWidget {
   String _formatDuration(int seconds) {
     final m = seconds ~/ 60;
     final s = seconds % 60;
-    return '${m}د ${s}ث';
+    return '$mد $sث';
   }
 }

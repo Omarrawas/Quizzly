@@ -71,6 +71,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   Future<void> _submitExam({bool auto = false}) async {
     _timer?.cancel();
     
+    final authService = context.read<AuthService>();
+    final navigator = Navigator.of(context);
+
     if (!auto) {
       final confirm = await showDialog<bool>(
         context: context,
@@ -110,8 +113,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     final score = (correctCount / widget.questions.length) * 100;
     final timeSpent = widget.config.durationSeconds - _timeLeft;
 
-    // Save to DB
-    final userId = context.read<AuthService>().user?.uid;
+    final userId = authService.user?.uid;
     if (userId != null && widget.config.id != null) {
       await _examService.recordExamAttempt(
         userId: userId,
@@ -122,10 +124,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
       );
     }
 
-    if (!mounted) return;
-    
-    Navigator.pushReplacement(
-      context,
+    navigator.pushReplacement(
       MaterialPageRoute(
         builder: (_) => ExamResultScreen(
           config: widget.config,

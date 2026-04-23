@@ -198,4 +198,59 @@ class BulkUploadService {
     }
     await batch.commit();
   }
+
+  String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, String> topicIdToName) {
+    List<List<dynamic>> rows = [];
+    
+    // Header
+    rows.add([
+      'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
+      'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
+      'TopicName', 'Explanation'
+    ]);
+
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final type = data['type'] ?? 'mcq';
+      final options = data['options'] as List? ?? [];
+      
+      String optA = options.isNotEmpty ? options[0]['text'].toString() : '';
+      String optB = options.length > 1 ? options[1]['text'].toString() : '';
+      String optC = options.length > 2 ? options[2]['text'].toString() : '';
+      String optD = options.length > 3 ? options[3]['text'].toString() : '';
+
+      String correctAns = '';
+      if (type == 'mcq') {
+        final correctId = data['correctOptionId'];
+        int idx = options.indexWhere((o) => o['id'].toString() == correctId.toString());
+        if (idx != -1) {
+          correctAns = String.fromCharCode(97 + idx); // a, b, c, d
+        }
+      } else if (type == 'tf') {
+        correctAns = data['correctOptionId'].toString() == 'true' || data['correctOptionId'].toString() == 'صح' ? 'صح' : 'خطأ';
+      } else {
+        correctAns = data['essayAnswer'] ?? '';
+      }
+
+      String topicName = '';
+      final topicId = data['topicId'];
+      if (topicId != null) {
+        topicName = topicIdToName[topicId] ?? '';
+      }
+
+      rows.add([
+        data['text'] ?? '',
+        type,
+        optA, optB, optC, optD,
+        correctAns,
+        data['difficulty'] ?? 'medium',
+        data['cognitiveLevel'] ?? 'understanding',
+        data['estimatedTime'] ?? 60,
+        topicName,
+        data['explanation'] ?? ''
+      ]);
+    }
+
+    return const ListToCsvConverter().convert(rows);
+  }
 }

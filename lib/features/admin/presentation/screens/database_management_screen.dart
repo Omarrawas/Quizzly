@@ -7,6 +7,7 @@ import 'package:quizzly/features/admin/presentation/screens/theoretical_section_
 import 'package:quizzly/features/admin/presentation/screens/topic_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/exam_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/subject_dashboard_screen.dart';
 
 enum ManagementLevel { university, college, department, year, semester, subject, section }
 
@@ -197,6 +198,27 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   }
 
   void _onItemTap(String id, String name, ManagementLevel fromLevel) {
+    if (fromLevel == ManagementLevel.subject) {
+      List<String> breadcrumbs = [];
+      for (var level in ManagementLevel.values) {
+        if (level.index < ManagementLevel.subject.index && _levelNames.containsKey(level)) {
+          breadcrumbs.add(_levelNames[level]!);
+        }
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SubjectDashboardScreen(
+            subjectId: id,
+            subjectName: name,
+            breadcrumbs: breadcrumbs,
+          ),
+        ),
+      );
+      return;
+    }
+
     if (fromLevel == ManagementLevel.section) {
       List<String> breadcrumbs = [];
       for (var level in ManagementLevel.values) {
@@ -388,12 +410,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               };
               try {
                 await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   _showStatusSnackBar('تم التعديل بنجاح', isError: false);
                 }
               } catch (e) {
-                if (mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+                if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
               }
             },
             child: Text('حفظ التغييرات'),
@@ -416,12 +438,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             onPressed: () async {
               try {
                 await _dbService.deleteDoc(_getCollectionName(_currentLevel), id);
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   _showStatusSnackBar('تم الحذف بنجاح', isError: false);
                 }
               } catch (e) {
-                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+                if (context.mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
               }
             },
             child: Text('حذف نهائي', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),

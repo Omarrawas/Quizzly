@@ -5,6 +5,8 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/admin/presentation/screens/bulk_upload_screen.dart';
+import 'package:quizzly/features/admin/domain/services/bulk_upload_service.dart';
+import 'package:flutter/services.dart';
 
 class TheoreticalSectionManagementScreen extends StatefulWidget {
   final String sectionId;
@@ -47,12 +49,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'تصدير الأسئلة (CSV)',
+            onPressed: _exportCSV,
+          ),
+          IconButton(
             icon: const Icon(Icons.upload_file_rounded),
             tooltip: 'رفع أسئلة (CSV)',
             onPressed: () {
-              // Note: widget.subjectId is technically not directly available here, we need the subjectId.
-              // Actually, the questions belong to a subjectId, but here we have sectionId. 
-              // Wait, the model uses subjectId. Let me check the constructor of this widget.
               Navigator.push(context, MaterialPageRoute(builder: (_) => BulkUploadScreen(subjectId: widget.subjectId)));
             },
           ),
@@ -550,6 +554,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   'text': textController.text.trim(),
                   'type': selectedType == QuestionType.mcq ? 'mcq' : (selectedType == QuestionType.trueFalse ? 'tf' : 'essay'),
                   'topicId': selectedTopicId,
+                  'subjectId': widget.subjectId,
                   'explanation': explanationController.text.trim(),
                   'difficulty': selectedDifficulty.name,
                   'cognitiveLevel': selectedLevel.name,
@@ -570,12 +575,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   } else {
                     await _dbService.addQuestion(widget.sectionId, questionData);
                   }
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pop(context);
                     _showStatusSnackBar(isEdit ? 'تم تحديث السؤال بنجاح' : 'تم إضافة السؤال بنجاح', isError: false);
                   }
                 } catch (e) {
-                  if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
+                  if (context.mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
                 }
               },
               child: Text(isEdit ? 'حفظ' : 'إضافة', style: GoogleFonts.cairo()),
@@ -599,12 +604,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             onPressed: () async {
               try {
                 await _dbService.deleteDoc(DatabaseService.colQuestions, id);
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   _showStatusSnackBar('تم حذف السؤال بنجاح', isError: false);
                 }
               } catch (e) {
-                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+                if (context.mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
               }
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -613,6 +618,95 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       ),
     );
   }
+  Future<void> _exportCSV() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // 1. Fetch topics
+      final topicsSnap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colTopics)
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      
+      Map<String, String> topicIdToName = {};
+      for (var doc in topicsSnap.docs) {
+        topicIdToName[doc.id] = doc.data()['name'] ?? '';
+      }
+
+      // 2. Fetch questions for this section
+      final questionsSnap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colQuestions)
+          .where('parentId', isEqualTo: widget.sectionId)
+          .get();
+
+      if (questionsSnap.docs.isEmpty) {
+        if (mounted) {
+          Navigator.pop(context);
+          _showStatusSnackBar('لا توجد أسئلة لتصديرها', isError: true);
+        }
+        return;
+      }
+
+      // 3. Generate CSV
+      final csv = BulkUploadService().exportQuestionsToCSV(questionsSnap.docs, topicIdToName);
+
+      if (mounted) {
+        Navigator.pop(context);
+        _showCSVDialog(csv);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        _showStatusSnackBar('خطأ أثناء التصدير: $e', isError: true);
+      }
+    }
+  }
+
+  void _showCSVDialog(String csv) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('تصدير الأسئلة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('تم توليد ملف CSV بنجاح. يمكنك نسخ النص أدناه وحفظه في ملف csv.', style: GoogleFonts.cairo(fontSize: 14)),
+            const SizedBox(height: 16),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(csv, style: const TextStyle(fontFamily: 'monospace', fontSize: 10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: csv));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ النص إلى الحافظة')));
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.copy_rounded, size: 18),
+            label: Text('نسخ الكل', style: GoogleFonts.cairo()),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _emptyState(String message, bool isDark, {bool isError = false}) {
     return Center(
       child: Padding(

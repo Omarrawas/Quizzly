@@ -285,12 +285,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                     'description': descController.text.trim(),
                     'type': _currentLevel.name,
                   });
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pop(context);
                     _showStatusSnackBar('تمت إضافة ${_getAddLabel()} بنجاح', isError: false);
                   }
                 } catch (e) {
-                  if (mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
+                  if (context.mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
                 }
               }
             },
@@ -327,12 +327,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                   'name': nameController.text.trim(),
                   'description': descController.text.trim(),
                 });
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   _showStatusSnackBar('تمت عملية التعديل بنجاح', isError: false);
                 }
               } catch (e) {
-                if (mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+                if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
               }
             },
             child: Text('حفظ'),
@@ -355,12 +355,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             onPressed: () async {
               try {
                 await _dbService.deleteDoc(DatabaseService.colTopics, id);
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   _showStatusSnackBar('تم حذف الموضوع بنجاح', isError: false);
                 }
               } catch (e) {
-                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+                if (context.mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
               }
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),

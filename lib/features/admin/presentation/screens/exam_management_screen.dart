@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
+import 'package:quizzly/features/admin/presentation/screens/static_exam_question_selector.dart';
 
 class ExamManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -126,50 +127,95 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: isGenerated ? Colors.purple.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                isGenerated ? 'مُولد' : 'ثابت',
-                style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: isGenerated ? Colors.purple : Colors.blue),
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isGenerated ? Colors.purple.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isGenerated ? 'مُولد' : 'ثابت',
+                    style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: isGenerated ? Colors.purple : Colors.blue),
+                  ),
+                ),
+                if (config.category != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      config.category!,
+                      style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    config.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.help_outline_rounded, size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text('${config.totalQuestions} سؤال', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+                  const SizedBox(width: 16),
+                  Icon(Icons.timer_outlined, size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text('${config.durationSeconds ~/ 60} دقيقة', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                config.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              onPressed: () => _confirmDelete(id, config.title),
             ),
-          ],
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: Row(
-            children: [
-              Icon(Icons.help_outline_rounded, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 4),
-              Text('${config.totalQuestions} سؤال', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
-              const SizedBox(width: 16),
-              Icon(Icons.timer_outlined, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 4),
-              Text('${config.durationSeconds ~/ 60} دقيقة', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
-            ],
           ),
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-          onPressed: () => _confirmDelete(id, config.title),
-        ),
+          if (!isGenerated)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StaticExamQuestionSelector(
+                          examId: id,
+                          examTitle: config.title,
+                          subjectId: widget.subjectId,
+                          initialSelectedIds: config.staticQuestionIds,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
+                  label: Text('تحديد الأسئلة الثابتة (${config.staticQuestionIds.length})', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -212,6 +258,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
 
   void _showAddExamDialog(BuildContext context) {
     final titleController = TextEditingController();
+    final categoryController = TextEditingController();
     final durationController = TextEditingController(text: '60');
     final questionsCountController = TextEditingController(text: '20');
     final scoreController = TextEditingController(text: '60');
@@ -241,6 +288,11 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   TextField(
                     controller: titleController,
                     decoration: InputDecoration(labelText: 'عنوان الاختبار', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: categoryController,
+                    decoration: InputDecoration(labelText: 'التصنيف / الوسم (مثال: دورة 2023)', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -335,6 +387,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
 
                 final config = ExamConfig(
                   title: titleController.text.trim(),
+                  category: categoryController.text.trim().isEmpty ? null : categoryController.text.trim(),
                   type: selectedType,
                   durationSeconds: duration,
                   totalQuestions: totalQ,
@@ -352,12 +405,12 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
 
                 try {
                   await _dbService.addExam(config.toMap());
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pop(context);
                     _showStatusSnackBar('تمت إضافة الاختبار بنجاح', isError: false);
                   }
                 } catch (e) {
-                  if (mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
+                  if (context.mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
                 }
               },
               child: Text('إضافة', style: GoogleFonts.cairo()),
@@ -400,12 +453,12 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
             onPressed: () async {
               try {
                 await _dbService.deleteDoc(DatabaseService.colExams, id);
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                   _showStatusSnackBar('تم حذف الاختبار بنجاح', isError: false);
                 }
               } catch (e) {
-                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+                if (context.mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
               }
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
