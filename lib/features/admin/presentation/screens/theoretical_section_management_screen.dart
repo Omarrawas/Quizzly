@@ -14,12 +14,17 @@ class TheoreticalSectionManagementScreen extends StatefulWidget {
   final String subjectId;
   final List<String> breadcrumbs;
 
+  final String? lessonId;
+  final String? lessonName;
+
   const TheoreticalSectionManagementScreen({
     super.key,
     required this.sectionId,
     required this.sectionName,
     required this.subjectId,
     required this.breadcrumbs,
+    this.lessonId,
+    this.lessonName,
   });
 
   @override
@@ -44,7 +49,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.sectionName,
+          widget.lessonName != null ? 'أسئلة: ${widget.lessonName}' : widget.sectionName,
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -109,8 +114,18 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   }
 
   Widget _buildQuestionsList(bool isDark) {
+    Query query = FirebaseFirestore.instance
+        .collection(DatabaseService.colQuestions)
+        .where('subjectId', isEqualTo: widget.subjectId);
+
+    if (widget.lessonId != null) {
+      query = query.where('topicIds', arrayContains: widget.lessonId);
+    } else {
+      query = query.where('parentId', isEqualTo: widget.sectionId);
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: _dbService.getQuestions(widget.sectionId),
+      stream: query.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (snapshot.hasError) {
@@ -559,7 +574,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   'difficulty': selectedDifficulty.name,
                   'cognitiveLevel': selectedLevel.name,
                   'estimatedTime': int.tryParse(timeController.text) ?? 60,
-                  'topicIds': selectedTopicId != null ? [selectedTopicId!] : [],
+                  'topicIds': widget.lessonId != null ? [widget.lessonId!] : (selectedTopicId != null ? [selectedTopicId!] : []),
+                  'parentId': widget.sectionId,
                 };
 
                 if (selectedType == QuestionType.mcq || selectedType == QuestionType.trueFalse) {

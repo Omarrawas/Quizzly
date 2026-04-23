@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
-import 'package:quizzly/features/admin/presentation/screens/topic_management_screen.dart';
+
 import 'package:quizzly/features/admin/presentation/screens/exam_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/subject_dashboard_screen.dart';
@@ -259,7 +259,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TopicManagementScreen(
+        builder: (context) => SubjectDashboardScreen(
           subjectId: id,
           subjectName: name,
           breadcrumbs: breadcrumbs,

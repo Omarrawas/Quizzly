@@ -70,38 +70,45 @@ class SubjectDashboardScreen extends StatelessWidget {
           );
         }
 
+        final List<Widget> cards = docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = data['name'] ?? '';
+          final isTheory = name.contains('نظري');
+
+          return _buildDashboardCard(
+            context,
+            title: name,
+            subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
+            icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
+            color: isTheory ? Colors.blue : Colors.teal,
+            isDark: isDark,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SubjectDashboardScreen(
+                  subjectId: subjectId,
+                  subjectName: subjectName,
+                  breadcrumbs: [...breadcrumbs, subjectName],
+                  sectionId: doc.id,
+                  sectionName: name,
+                ),
+              ),
+            ),
+          );
+        }).toList();
+
+        // Add "Add Section" card
+        cards.add(
+          _buildAddSectionCard(context, isDark),
+        );
+
         return GridView.count(
           padding: const EdgeInsets.all(24),
           crossAxisCount: 2,
           mainAxisSpacing: 20,
           crossAxisSpacing: 20,
           childAspectRatio: 1.2,
-          children: docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final name = data['name'] ?? '';
-            final isTheory = name.contains('نظري');
-
-            return _buildDashboardCard(
-              context,
-              title: name,
-              subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
-              icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
-              color: isTheory ? Colors.blue : Colors.teal,
-              isDark: isDark,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SubjectDashboardScreen(
-                    subjectId: subjectId,
-                    subjectName: subjectName,
-                    breadcrumbs: [...breadcrumbs, subjectName],
-                    sectionId: doc.id,
-                    sectionName: name,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+          children: cards,
         );
       },
     );
@@ -166,6 +173,8 @@ class SubjectDashboardScreen extends StatelessWidget {
                 subjectId: subjectId,
                 subjectName: subjectName,
                 breadcrumbs: [...breadcrumbs, subjectName, sectionName!],
+                sectionId: sectionId!,
+                sectionName: sectionName!,
               ),
             ),
           ),
@@ -253,6 +262,71 @@ class SubjectDashboardScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAddSectionCard(BuildContext context, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey[50],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight, style: BorderStyle.solid),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showAddSectionDialog(context),
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle_outline_rounded, color: Colors.grey[400], size: 32),
+              const SizedBox(height: 12),
+              Text('إضافة قسم جديد', style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSectionDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('إضافة قسم جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('أمثلة: القسم النظري، القسم العملي', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'اسم القسم',
+                labelStyle: GoogleFonts.cairo(),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                await DatabaseService().addSection(subjectId, {
+                  'name': name,
+                });
+                if (context.mounted) Navigator.pop(context);
+              }
+            },
+            child: Text('إضافة'),
+          ),
+        ],
       ),
     );
   }
