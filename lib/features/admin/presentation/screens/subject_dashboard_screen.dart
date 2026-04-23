@@ -11,12 +11,16 @@ class SubjectDashboardScreen extends StatelessWidget {
   final String subjectId;
   final String subjectName;
   final List<String> breadcrumbs;
+  final String? sectionId;
+  final String? sectionName;
 
   const SubjectDashboardScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
     required this.breadcrumbs,
+    this.sectionId,
+    this.sectionName,
   });
 
   @override
@@ -27,7 +31,10 @@ class SubjectDashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(subjectName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text(
+          sectionName != null ? '$subjectName - $sectionName' : subjectName,
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
@@ -37,62 +44,133 @@ class SubjectDashboardScreen extends StatelessWidget {
         children: [
           _buildBreadcrumbs(isDark),
           Expanded(
-            child: GridView.count(
-              padding: const EdgeInsets.all(20),
-              crossAxisCount: 1,
-              mainAxisSpacing: 16,
-              childAspectRatio: 2.5,
-              children: [
-                _buildDashboardCard(
-                  context,
-                  title: 'بنك الأسئلة',
-                  subtitle: 'إضافة وتعديل الأسئلة (نظري وعملي)',
-                  icon: Icons.quiz_rounded,
-                  color: Colors.blue,
-                  isDark: isDark,
-                  onTap: () => _showSectionChoice(context),
-                ),
-                _buildDashboardCard(
-                  context,
-                  title: 'إدارة الاختبارات',
-                  subtitle: 'الدورات السابقة والاختبارات التجريبية',
-                  icon: Icons.assignment_rounded,
-                  color: Colors.purple,
-                  isDark: isDark,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ExamManagementScreen(
-                        subjectId: subjectId,
-                        subjectName: subjectName,
-                        breadcrumbs: [...breadcrumbs, subjectName],
-                      ),
-                    ),
-                  ),
-                ),
-                _buildDashboardCard(
-                  context,
-                  title: 'تصنيف المادة',
-                  subtitle: 'إدارة الفصول والدروس والفقرات',
-                  icon: Icons.account_tree_rounded,
-                  color: Colors.orange,
-                  isDark: isDark,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TopicManagementScreen(
-                        subjectId: subjectId,
-                        subjectName: subjectName,
-                        breadcrumbs: [...breadcrumbs, subjectName],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: sectionId == null
+                ? _buildSectionSelector(context, isDark)
+                : _buildDashboardGrid(context, isDark),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionSelector(BuildContext context, bool isDark) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(DatabaseService.colSections)
+          .where('parentId', isEqualTo: subjectId)
+          .orderBy('order')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final docs = snapshot.data!.docs;
+
+        if (docs.isEmpty) {
+          return Center(
+            child: Text('لا توجد أقسام مضافة لهذه المادة', style: GoogleFonts.cairo()),
+          );
+        }
+
+        return GridView.count(
+          padding: const EdgeInsets.all(24),
+          crossAxisCount: 2,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 1.2,
+          children: docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final name = data['name'] ?? '';
+            final isTheory = name.contains('نظري');
+
+            return _buildDashboardCard(
+              context,
+              title: name,
+              subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
+              icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
+              color: isTheory ? Colors.blue : Colors.teal,
+              isDark: isDark,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SubjectDashboardScreen(
+                    subjectId: subjectId,
+                    subjectName: subjectName,
+                    breadcrumbs: [...breadcrumbs, subjectName],
+                    sectionId: doc.id,
+                    sectionName: name,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildDashboardGrid(BuildContext context, bool isDark) {
+    return GridView.count(
+      padding: const EdgeInsets.all(24),
+      crossAxisCount: 3,
+      mainAxisSpacing: 20,
+      crossAxisSpacing: 20,
+      childAspectRatio: 0.85,
+      children: [
+        _buildDashboardCard(
+          context,
+          title: 'بنك الأسئلة',
+          subtitle: 'إدارة الأسئلة',
+          icon: Icons.quiz_rounded,
+          color: Colors.blue,
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TheoreticalSectionManagementScreen(
+                sectionId: sectionId!,
+                sectionName: sectionName!,
+                subjectId: subjectId,
+                breadcrumbs: [...breadcrumbs, subjectName, sectionName!],
+              ),
+            ),
+          ),
+        ),
+        _buildDashboardCard(
+          context,
+          title: 'إدارة الاختبارات',
+          subtitle: 'الدورات والاختبارات',
+          icon: Icons.assignment_rounded,
+          color: Colors.purple,
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ExamManagementScreen(
+                subjectId: subjectId,
+                subjectName: subjectName,
+                breadcrumbs: [...breadcrumbs, subjectName, sectionName!],
+              ),
+            ),
+          ),
+        ),
+        _buildDashboardCard(
+          context,
+          title: 'تصنيف المادة',
+          subtitle: 'الفصول والدروس والفقرات',
+          icon: Icons.account_tree_rounded,
+          color: Colors.orange,
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TopicManagementScreen(
+                subjectId: subjectId,
+                subjectName: subjectName,
+                breadcrumbs: [...breadcrumbs, subjectName, sectionName!],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -131,96 +209,50 @@ class SubjectDashboardScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
         boxShadow: [
-          if (!isDark) BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+          if (!isDark) BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: color, size: 32),
+                  child: Icon(icon, color: color, size: 28),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18)),
-                      Text(subtitle, style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary)),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey[400], size: 18),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showSectionChoice(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection(DatabaseService.colSections)
-            .where('parentId', isEqualTo: subjectId)
-            .orderBy('order')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return Center(child: Text('لا توجد أقسام مضافة لهذه المادة', style: GoogleFonts.cairo()));
-
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('اختر القسم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 20),
-                ...docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return ListTile(
-                    leading: Icon(data['name'].contains('نظري') ? Icons.menu_book_rounded : Icons.science_rounded, color: AppColors.primaryBlue),
-                    title: Text(data['name'], style: GoogleFonts.cairo()),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TheoreticalSectionManagementScreen(
-                            sectionId: doc.id,
-                            sectionName: data['name'],
-                            subjectId: subjectId,
-                            breadcrumbs: [...breadcrumbs, subjectName],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
