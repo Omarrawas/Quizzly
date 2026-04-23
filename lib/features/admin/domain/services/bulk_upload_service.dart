@@ -253,4 +253,59 @@ class BulkUploadService {
 
     return const ListToCsvConverter().convert(rows);
   }
+
+  static String generateTemplate({
+    required List<QuizQuestion> questions,
+    required Map<String, String> topicIdToName,
+  }) {
+    List<List<dynamic>> rows = [];
+    
+    // Header
+    rows.add([
+      'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
+      'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
+      'TopicName', 'Explanation'
+    ]);
+
+    for (var q in questions) {
+      final type = q.type.name;
+      final options = q.options ?? [];
+      
+      String optA = options.isNotEmpty ? options[0].text : '';
+      String optB = options.length > 1 ? options[1].text : '';
+      String optC = options.length > 2 ? options[2].text : '';
+      String optD = options.length > 3 ? options[3].text : '';
+
+      String correctAns = '';
+      if (q.type == QuestionType.mcq) {
+        int idx = options.indexWhere((o) => o.id == q.correctOptionId);
+        if (idx != -1) {
+          correctAns = String.fromCharCode(97 + idx); // a, b, c, d
+        }
+      } else if (q.type == QuestionType.trueFalse) {
+        correctAns = q.correctOptionId == 'true' || q.correctOptionId == 'صح' ? 'صح' : 'خطأ';
+      } else {
+        correctAns = q.essayAnswer ?? '';
+      }
+
+      String topicName = '';
+      if (q.topicIds != null && q.topicIds!.isNotEmpty) {
+        topicName = topicIdToName[q.topicIds!.first] ?? '';
+      }
+
+      rows.add([
+        q.text,
+        type,
+        optA, optB, optC, optD,
+        correctAns,
+        q.difficulty?.name ?? 'medium',
+        q.cognitiveLevel?.name ?? 'understanding',
+        q.estimatedTime,
+        topicName,
+        q.explanation ?? ''
+      ]);
+    }
+
+    return const ListToCsvConverter().convert(rows);
+  }
 }

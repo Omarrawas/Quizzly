@@ -47,6 +47,7 @@ class QuizQuestion {
   final String? correctOptionId; // For MCQ/TF
   final String? essayAnswer;     // For Essay
   final String? explanation;     // شرح الإجابة
+  final String? explanationImageUrl; // صورة الشرح لزيادة الوضوح
   final Difficulty? difficulty;
   final CognitiveLevel? cognitiveLevel;
   final int? estimatedTime;      // بالثواني
@@ -70,6 +71,7 @@ class QuizQuestion {
     this.correctOptionId,
     this.essayAnswer,
     this.explanation,
+    this.explanationImageUrl,
     this.difficulty,
     this.cognitiveLevel,
     this.estimatedTime,
@@ -94,6 +96,7 @@ class QuizQuestion {
       correctOptionId: data['correctOptionId'],
       essayAnswer: data['essayAnswer'],
       explanation: data['explanation'],
+      explanationImageUrl: data['explanationImageUrl'],
       difficulty: _parseDifficulty(data['difficulty']),
       cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']),
       estimatedTime: data['estimatedTime'],
@@ -140,6 +143,7 @@ class QuizQuestion {
       'correctOptionId': correctOptionId,
       'essayAnswer': essayAnswer,
       'explanation': explanation,
+      'explanationImageUrl': explanationImageUrl,
       'difficulty': difficulty?.name,
       'cognitiveLevel': cognitiveLevel?.name,
       'estimatedTime': estimatedTime,
