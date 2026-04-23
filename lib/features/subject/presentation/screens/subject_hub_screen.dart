@@ -3,15 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/presentation/widgets/hub_action_card.dart';
-import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/wrong_answers_screen.dart';
-import 'package:quizzly/features/search/presentation/screens/search_filter_screen.dart';
-import 'package:quizzly/features/training/presentation/screens/training_sessions_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/smart_quiz_session_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/performance_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
+import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
+import 'package:quizzly/features/gamification/data/models/gamification_profile.dart';
+import 'package:provider/provider.dart';
+import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 
 class SubjectHubScreen extends StatefulWidget {
+  final String subjectId;
   final String subjectName;
 
-  const SubjectHubScreen({super.key, this.subjectName = 'الكيمياء'});
+  const SubjectHubScreen({
+    super.key,
+    required this.subjectId,
+    this.subjectName = 'الكيمياء',
+  });
 
   @override
   State<SubjectHubScreen> createState() => _SubjectHubScreenState();
@@ -21,50 +31,50 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     with SingleTickerProviderStateMixin {
   bool _isSyncing = false;
   late AnimationController _syncController;
+  final GamificationService _gamificationService = GamificationService();
+  GamificationProfile? _profile;
 
-  // ── الأزرار الستة ─────────────────────────────────────
-  late final List<HubAction> _actions = [
+  // ── الأزرار الأساسية ─────────────────────────────────────
+  late final List<HubAction> _primaryActions = [
     const HubAction(
-      icon: Icons.assignment_rounded,
-      label: 'الامتحانات',
+      icon: Icons.fitness_center_rounded,
+      label: 'وضع التدريب',
       iconColor: Colors.white,
       iconBackground: Color(0xFF2563EB),
-      badgeCount: 23,
     ),
     const HubAction(
-      icon: Icons.label_rounded,
-      label: 'التصنيفات',
+      icon: Icons.assignment_rounded,
+      label: 'وضع الامتحان',
+      iconColor: Colors.white,
+      iconBackground: Color(0xFF7C3AED),
+    ),
+    const HubAction(
+      icon: Icons.auto_awesome_rounded,
+      label: 'كويز ذكي',
       iconColor: Colors.white,
       iconBackground: Color(0xFFEA580C),
-      badgeCount: 11,
+    ),
+  ];
+
+  // ── أدوات التطوير ──────────────────────────────────────
+  late final List<HubAction> _secondaryActions = [
+    const HubAction(
+      icon: Icons.history_edu_rounded,
+      label: 'مراجعة الأخطاء',
+      iconColor: Color(0xFFDC2626),
+      iconBackground: Color(0xFFFEF2F2),
     ),
     const HubAction(
-      icon: Icons.search_rounded,
-      label: 'البحث',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFF16A34A),
-      badgeCount: 0,
+      icon: Icons.topic_rounded,
+      label: 'مستكشف المواضيع',
+      iconColor: Color(0xFF16A34A),
+      iconBackground: Color(0xFFF0FDF4),
     ),
     const HubAction(
       icon: Icons.favorite_rounded,
       label: 'المفضلة',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFFDC2626),
-      badgeCount: 6,
-    ),
-    const HubAction(
-      icon: Icons.school_rounded,
-      label: 'تدرب بنفسك',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFF1D4ED8),
-      badgeCount: 0,
-    ),
-    const HubAction(
-      icon: Icons.cancel_rounded,
-      label: 'الإجابات الخاطئة',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFFDC2626),
-      badgeCount: 0,
+      iconColor: Color(0xFFDC2626),
+      iconBackground: Color(0xFFFEF2F2),
     ),
   ];
 
@@ -75,6 +85,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final userId = context.read<AuthService>().user?.uid;
+    if (userId == null) return;
+    
+    final profile = await _gamificationService.getProfile(userId);
+    if (mounted) setState(() => _profile = profile);
   }
 
   @override
@@ -94,192 +113,299 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     if (mounted) setState(() => _isSyncing = false);
   }
 
-  // ─────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: NestedScrollView(
-        headerSliverBuilder: (_, _) => [_buildSliverAppBar()],
-        body: _buildGrid(),
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(),
+          
+          // Header Stats Section
+          SliverToBoxAdapter(
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PerformanceScreen(
+                    subjectId: widget.subjectId,
+                    subjectName: widget.subjectName,
+                  ),
+                ),
+              ),
+              child: _buildHeaderStats(),
+            ),
+          ),
+
+          // Primary Actions Section
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Text(
+                'المهام الأساسية',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverGrid(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => HubActionCard(
+                  action: _primaryActions[index],
+                  onTap: () => _onPrimaryActionTap(index),
+                ),
+                childCount: _primaryActions.length,
+              ),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.85,
+              ),
+            ),
+          ),
+
+          // Secondary Actions Section (Improvement)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Text(
+                'تحسين المستوى',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildSecondaryActionTile(_secondaryActions[index], index),
+                ),
+                childCount: _secondaryActions.length,
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
       ),
     );
   }
 
-  // ── Sliver AppBar ──────────────────────────────────────
+  Widget _buildHeaderStats() {
+    return Container(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'المستوى ${_profile?.level ?? 1}',
+                    style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Text(
+                    'الإتقان الكلي للمادة: 65%',
+                    style: GoogleFonts.cairo(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
+              ),
+              _buildGamificationInfo(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: 0.65,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGamificationInfo() {
+    return Row(
+      children: [
+        _buildStatItem(Icons.bolt_rounded, '${_profile?.xp ?? 0}', Colors.amber),
+        const SizedBox(width: 12),
+        _buildStatItem(Icons.local_fire_department_rounded, '${_profile?.currentStreak ?? 0}', Colors.orange),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryActionTile(HubAction action, int index) {
+    return InkWell(
+      onTap: () => _onSecondaryActionTap(index),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: action.iconBackground,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(action.icon, color: action.iconColor, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                action.label,
+                style: GoogleFonts.cairo(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
   SliverAppBar _buildSliverAppBar() {
     return SliverAppBar(
       backgroundColor: Colors.white,
       elevation: 0,
-      scrolledUnderElevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.06),
       pinned: true,
       automaticallyImplyLeading: false,
-      // In RTL: leading widget appears on the RIGHT side (visually)
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(
-          Icons.arrow_forward_ios_rounded, // RTL back arrow
-          color: AppColors.textPrimary,
-          size: 20,
-        ),
+        icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary, size: 20),
       ),
       title: Text(
         widget.subjectName,
-        style: GoogleFonts.cairo(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-        ),
+        style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
       ),
       centerTitle: true,
-      // Sync button on the LEFT side (in RTL = actions side)
       actions: [
-        RotationTransition(
-          turns: _syncController,
-          child: IconButton(
-            onPressed: _onSync,
-            icon: Icon(
+        IconButton(
+          onPressed: _onSync,
+          icon: RotationTransition(
+            turns: _syncController,
+            child: Icon(
               Icons.sync_rounded,
-              color: _isSyncing
-                  ? AppColors.primaryBlue
-                  : AppColors.textSecondary,
-              size: 26,
-            ),
-            tooltip: 'مزامنة',
-          ),
-        ),
-        const SizedBox(width: 4),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFF1F5F9)),
-      ),
-    );
-  }
-
-  // ── Grid ─────────────────────────────────────────────
-  Widget _buildGrid() {
-    return CustomScrollView(
-      slivers: [
-        // Subject info header
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryBlue,
-                        AppColors.primaryBlue.withValues(alpha: 0.7),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.science_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.subjectName,
-                      style: GoogleFonts.cairo(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'اختر قسماً للبدء',
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              color: _isSyncing ? AppColors.primaryBlue : AppColors.textSecondary,
+              size: 24,
             ),
           ),
         ),
-
-        // 2-column grid of action cards
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          sliver: SliverGrid(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => HubActionCard(
-                action: _actions[index],
-                onTap: () => _onActionTap(index),
-              ),
-              childCount: _actions.length,
-            ),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.05, // nearly square cards
-            ),
-          ),
-        ),
-
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
   }
 
-  // ── Navigation ────────────────────────────────────────
-  void _onActionTap(int index) {
+  void _onPrimaryActionTap(int index) {
     HapticFeedback.selectionClick();
     switch (index) {
-      case 0: // الامتحانات
+      case 0: // وضع التدريب
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ExamsListScreen(subjectName: widget.subjectName),
-          ),
-        );
-        break;
-      case 1: // التصنيفات
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => TagsListScreen(subjectName: widget.subjectName),
-          ),
-        );
-        break;
-      case 4: // تدرب بنفسك
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                TrainingSessionsScreen(subjectName: widget.subjectName),
-          ),
-        );
-        break;
-      case 2: // البحث
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SearchFilterScreen(
+            builder: (_) => PracticeScreen(
+              subjectId: widget.subjectId,
               subjectName: widget.subjectName,
-              totalQuestions: 330,
             ),
           ),
         );
         break;
-      case 5: // الإجابات الخاطئة
+      case 1: // وضع الامتحان
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ExamsListScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
+        break;
+      case 2: // كويز ذكي
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SmartQuizSessionScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
+        break;
+    }
+  }
+
+  void _onSecondaryActionTap(int index) {
+    HapticFeedback.selectionClick();
+    switch (index) {
+      case 0: // مراجعة الأخطاء
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -287,23 +413,22 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
           ),
         );
         break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'قريباً: ${_actions[index].label}',
-              style: GoogleFonts.cairo(fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 1),
-            backgroundColor: AppColors.textPrimary,
-          ),
-        );
+      case 1: // مستكشف المواضيع
+        _showComingSoon('مستكشف المواضيع');
+        break;
+      case 2: // المفضلة
+        _showComingSoon('المفضلة');
+        break;
     }
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('قريباً: $feature', style: GoogleFonts.cairo(), textAlign: TextAlign.center),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 }

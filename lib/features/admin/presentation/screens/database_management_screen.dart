@@ -151,6 +151,11 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        
+        if (snapshot.hasError) {
+          return _emptyState('حدث خطأ أثناء جلب البيانات: ${snapshot.error}', isDark, isError: true);
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _emptyState('لا توجد بيانات متاحة حالياً', isDark);
 
         final docs = snapshot.data!.docs;
@@ -183,7 +188,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     final List<String> ids = docs.map((d) => d.id).toList();
     final item = ids.removeAt(oldIndex);
     ids.insert(newIndex, item);
-    await _dbService.updateOrder(_getCollectionName(_currentLevel), ids);
+    try {
+      await _dbService.updateOrder(_getCollectionName(_currentLevel), ids);
+      _showStatusSnackBar('تم تحديث الترتيب بنجاح', isError: false);
+    } catch (e) {
+      _showStatusSnackBar('فشل تحديث الترتيب: $e', isError: true);
+    }
   }
 
   void _onItemTap(String id, String name, ManagementLevel fromLevel) {
@@ -307,15 +317,45 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     );
   }
 
-  Widget _emptyState(String message, bool isDark) {
+  Widget _emptyState(String message, bool isDark, {bool isError = false}) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inventory_2_outlined, size: 48, color: isDark ? Colors.white24 : Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(message, style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.inventory_2_outlined,
+              size: 48,
+              color: isError ? Colors.red.withValues(alpha: 0.5) : (isDark ? Colors.white24 : Colors.grey[400]),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            if (isError) ...[
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => setState(() {}),
+                child: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStatusSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       ),
     );
   }
@@ -346,8 +386,15 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
                 else 'description': descController.text.trim(),
               };
-              await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
-              if (context.mounted) Navigator.pop(context);
+              try {
+                await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _showStatusSnackBar('تم التعديل بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+              }
             },
             child: Text('حفظ التغييرات'),
           ),
@@ -367,8 +414,15 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
             onPressed: () async {
-              await _dbService.deleteDoc(_getCollectionName(_currentLevel), id);
-              if (context.mounted) Navigator.pop(context);
+              try {
+                await _dbService.deleteDoc(_getCollectionName(_currentLevel), id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _showStatusSnackBar('تم الحذف بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+              }
             },
             child: Text('حذف نهائي', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
@@ -489,17 +543,22 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
     };
 
-    switch (_currentLevel) {
-      case ManagementLevel.university: await _dbService.addUniversity(data); break;
-      case ManagementLevel.college: await _dbService.addCollege(_parentIds[ManagementLevel.university]!, data); break;
-      case ManagementLevel.department: await _dbService.addDepartment(_parentIds[ManagementLevel.college]!, data); break;
-      case ManagementLevel.year: await _dbService.addYear(_parentIds[ManagementLevel.department]!, data); break;
-      case ManagementLevel.semester: await _dbService.addSemester(_parentIds[ManagementLevel.year]!, data); break;
-      case ManagementLevel.subject: await _dbService.addSubject(_parentIds[ManagementLevel.semester]!, data); break;
-      case ManagementLevel.section: 
-        data['type'] = name.contains('نظري') ? 'theory' : 'practice';
-        await _dbService.addSection(_parentIds[ManagementLevel.subject]!, data); 
-        break;
+    try {
+      switch (_currentLevel) {
+        case ManagementLevel.university: await _dbService.addUniversity(data); break;
+        case ManagementLevel.college: await _dbService.addCollege(_parentIds[ManagementLevel.university]!, data); break;
+        case ManagementLevel.department: await _dbService.addDepartment(_parentIds[ManagementLevel.college]!, data); break;
+        case ManagementLevel.year: await _dbService.addYear(_parentIds[ManagementLevel.department]!, data); break;
+        case ManagementLevel.semester: await _dbService.addSemester(_parentIds[ManagementLevel.year]!, data); break;
+        case ManagementLevel.subject: await _dbService.addSubject(_parentIds[ManagementLevel.semester]!, data); break;
+        case ManagementLevel.section: 
+          data['type'] = name.contains('نظري') ? 'theory' : 'practice';
+          await _dbService.addSection(_parentIds[ManagementLevel.subject]!, data); 
+          break;
+      }
+      _showStatusSnackBar('تمت الإضافة بنجاح', isError: false);
+    } catch (e) {
+      _showStatusSnackBar('فشل الإضافة: $e', isError: true);
     }
   }
 }

@@ -109,17 +109,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       stream: _dbService.getQuestions(widget.sectionId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snapshot.hasError) {
+          return _emptyState('حدث خطأ أثناء جلب الأسئلة: ${snapshot.error}', isDark, isError: true);
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.quiz_outlined, size: 48, color: isDark ? Colors.white24 : Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text('لا توجد أسئلة في هذا القسم حالياً', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-              ],
-            ),
-          );
+          return _emptyState('لا توجد أسئلة في هذا القسم حالياً', isDark);
         }
 
         final docs = snapshot.data!.docs;
@@ -569,13 +564,19 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   questionData['essayAnswer'] = essayAnswerController.text.trim();
                 }
 
-                if (isEdit) {
-                  await _dbService.updateDoc(DatabaseService.colQuestions, id, questionData);
-                } else {
-                  await _dbService.addQuestion(widget.sectionId, questionData);
+                try {
+                  if (isEdit) {
+                    await _dbService.updateDoc(DatabaseService.colQuestions, id, questionData);
+                  } else {
+                    await _dbService.addQuestion(widget.sectionId, questionData);
+                  }
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _showStatusSnackBar(isEdit ? 'تم تحديث السؤال بنجاح' : 'تم إضافة السؤال بنجاح', isError: false);
+                  }
+                } catch (e) {
+                  if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
                 }
-
-                if (context.mounted) Navigator.pop(context);
               },
               child: Text(isEdit ? 'حفظ' : 'إضافة', style: GoogleFonts.cairo()),
             ),
@@ -596,12 +597,54 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
             onPressed: () async {
-              await _dbService.deleteDoc(DatabaseService.colQuestions, id);
-              if (context.mounted) Navigator.pop(context);
+              try {
+                await _dbService.deleteDoc(DatabaseService.colQuestions, id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _showStatusSnackBar('تم حذف السؤال بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+              }
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+  Widget _emptyState(String message, bool isDark, {bool isError = false}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.quiz_outlined,
+              size: 48,
+              color: isError ? Colors.red.withValues(alpha: 0.5) : (isDark ? Colors.white24 : Colors.grey[400]),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStatusSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       ),
     );
   }

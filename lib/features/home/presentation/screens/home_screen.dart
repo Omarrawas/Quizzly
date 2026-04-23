@@ -237,7 +237,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => SubjectHubScreen(
-                                subjectName: colleges[index].name),
+                              subjectId: colleges[index].id,
+                              subjectName: colleges[index].name,
+                            ),
                           ),
                         );
                       },

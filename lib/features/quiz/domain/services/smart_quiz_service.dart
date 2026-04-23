@@ -169,4 +169,53 @@ class SmartQuizService {
       }, SetOptions(merge: true));
     });
   }
+  /// Fetch a summary of performance for the UI
+  Future<Map<String, dynamic>> getPerformanceSummary(String userId, String subjectId) async {
+    final docId = '${userId}_$subjectId';
+    final perfSnap = await _db.collection('user_topic_performance').doc(docId).get();
+    
+    if (!perfSnap.exists) return {'totalMastery': 0.0, 'weakTopics': [], 'strongTopics': []};
+
+    final perf = UserSubjectPerformance.fromFirestore(perfSnap);
+    
+    // Get all topic names for mapping
+    final topicsSnap = await _db.collection(DatabaseService.colTopics)
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    
+    Map<String, String> topicNames = {
+      for (var doc in topicsSnap.docs) doc.id: doc.data()['name'] ?? 'موضوع غير معروف'
+    };
+
+    List<Map<String, dynamic>> allStats = [];
+    double totalMasterySum = 0;
+    int count = 0;
+
+    perf.topicsStats.forEach((topicId, stats) {
+      final name = topicNames[topicId] ?? 'موضوع غير معروف';
+      allStats.add({
+        'id': topicId,
+        'name': name,
+        'mastery': stats.masteryLevel,
+        'attempts': stats.totalAttempts,
+      });
+      totalMasterySum += stats.masteryLevel;
+      count++;
+    });
+
+    final avgMastery = count > 0 ? totalMasterySum / count : 0.0;
+    
+    // Sort by mastery
+    allStats.sort((a, b) => (a['mastery'] as double).compareTo(b['mastery'] as double));
+    
+    final weak = allStats.where((s) => s['mastery'] < 0.5).take(3).toList();
+    final strong = allStats.where((s) => s['mastery'] >= 0.8).take(3).toList();
+
+    return {
+      'totalMastery': avgMastery,
+      'allStats': allStats,
+      'weakTopics': weak,
+      'strongTopics': strong,
+    };
+  }
 }

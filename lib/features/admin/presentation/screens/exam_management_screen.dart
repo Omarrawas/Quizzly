@@ -94,17 +94,12 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
       stream: _dbService.getExams(widget.subjectId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snapshot.hasError) {
+          return _emptyState('حدث خطأ أثناء جلب الاختبارات: ${snapshot.error}', isDark, isError: true);
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.assignment_outlined, size: 48, color: isDark ? Colors.white24 : Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text('لا توجد اختبارات حالياً', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-              ],
-            ),
-          );
+          return _emptyState('لا توجد اختبارات حالياً', isDark);
         }
 
         final docs = snapshot.data!.docs;
@@ -175,6 +170,42 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
           icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
           onPressed: () => _confirmDelete(id, config.title),
         ),
+      ),
+    );
+  }
+
+  Widget _emptyState(String message, bool isDark, {bool isError = false}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.assignment_outlined,
+              size: 48,
+              color: isError ? Colors.red.withValues(alpha: 0.5) : (isDark ? Colors.white24 : Colors.grey[400]),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStatusSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       ),
     );
   }
@@ -319,8 +350,15 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   ) : null,
                 );
 
-                await _dbService.addExam(config.toMap());
-                if (context.mounted) Navigator.pop(context);
+                try {
+                  await _dbService.addExam(config.toMap());
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _showStatusSnackBar('تمت إضافة الاختبار بنجاح', isError: false);
+                  }
+                } catch (e) {
+                  if (mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
+                }
               },
               child: Text('إضافة', style: GoogleFonts.cairo()),
             ),
@@ -360,8 +398,15 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
             onPressed: () async {
-              await _dbService.deleteDoc(DatabaseService.colExams, id);
-              if (context.mounted) Navigator.pop(context);
+              try {
+                await _dbService.deleteDoc(DatabaseService.colExams, id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _showStatusSnackBar('تم حذف الاختبار بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+              }
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),

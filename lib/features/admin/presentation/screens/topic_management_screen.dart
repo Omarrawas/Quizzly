@@ -142,17 +142,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
       stream: _dbService.getTopics(widget.subjectId, parentId: parentId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snapshot.hasError) {
+          return _emptyState('حدث خطأ أثناء جلب المواضيع: ${snapshot.error}', isDark, isError: true);
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.account_tree_outlined, size: 48, color: isDark ? Colors.white24 : Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text('لا توجد ${_getLevelTitle()} حالياً', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-              ],
-            ),
-          );
+          return _emptyState('لا توجد ${_getLevelTitle()} حالياً', isDark);
         }
 
         final docs = snapshot.data!.docs;
@@ -175,7 +170,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     final List<String> ids = docs.map((d) => d.id).toList();
     final item = ids.removeAt(oldIndex);
     ids.insert(newIndex, item);
-    await _dbService.updateOrder(DatabaseService.colTopics, ids);
+    try {
+      await _dbService.updateOrder(DatabaseService.colTopics, ids);
+      _showStatusSnackBar('تم تحديث الترتيب', isError: false);
+    } catch (e) {
+      _showStatusSnackBar('فشل تحديث الترتيب: $e', isError: true);
+    }
   }
 
   Widget _buildTopicCard(String id, Map<String, dynamic> data, bool isDark, {required Key key}) {
@@ -216,6 +216,42 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     });
   }
 
+  Widget _emptyState(String message, bool isDark, {bool isError = false}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.account_tree_outlined,
+              size: 48,
+              color: isError ? Colors.red.withValues(alpha: 0.5) : (isDark ? Colors.white24 : Colors.grey[400]),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStatusSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      ),
+    );
+  }
+
   void _showAddTopicDialog(BuildContext context) {
     final nameController = TextEditingController();
     final descController = TextEditingController();
@@ -243,12 +279,19 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 if (_currentLevel == TopicLevel.lesson) parentId = _parentIds[TopicLevel.chapter];
                 if (_currentLevel == TopicLevel.sublesson) parentId = _parentIds[TopicLevel.lesson];
 
-                await _dbService.addTopic(widget.subjectId, parentId, {
-                  'name': name,
-                  'description': descController.text.trim(),
-                  'type': _currentLevel.name,
-                });
-                if (context.mounted) Navigator.pop(context);
+                try {
+                  await _dbService.addTopic(widget.subjectId, parentId, {
+                    'name': name,
+                    'description': descController.text.trim(),
+                    'type': _currentLevel.name,
+                  });
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _showStatusSnackBar('تمت إضافة ${_getAddLabel()} بنجاح', isError: false);
+                  }
+                } catch (e) {
+                  if (mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
+                }
               }
             },
             child: Text('إضافة'),
@@ -279,11 +322,18 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           ElevatedButton(
             onPressed: () async {
-              await _dbService.updateDoc(DatabaseService.colTopics, id, {
-                'name': nameController.text.trim(),
-                'description': descController.text.trim(),
-              });
-              if (context.mounted) Navigator.pop(context);
+              try {
+                await _dbService.updateDoc(DatabaseService.colTopics, id, {
+                  'name': nameController.text.trim(),
+                  'description': descController.text.trim(),
+                });
+                if (mounted) {
+                  Navigator.pop(context);
+                  _showStatusSnackBar('تمت عملية التعديل بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+              }
             },
             child: Text('حفظ'),
           ),
@@ -303,8 +353,15 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
             onPressed: () async {
-              await _dbService.deleteDoc(DatabaseService.colTopics, id);
-              if (context.mounted) Navigator.pop(context);
+              try {
+                await _dbService.deleteDoc(DatabaseService.colTopics, id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _showStatusSnackBar('تم حذف الموضوع بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
+              }
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),

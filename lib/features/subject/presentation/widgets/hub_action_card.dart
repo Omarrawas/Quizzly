@@ -15,7 +15,7 @@ class HubAction {
     required this.label,
     required this.iconColor,
     required this.iconBackground,
-    required this.badgeCount,
+    this.badgeCount = 0,
   });
 }
 
