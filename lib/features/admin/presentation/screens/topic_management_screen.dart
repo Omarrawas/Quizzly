@@ -229,9 +229,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
               color: isError ? Colors.red.withValues(alpha: 0.5) : (isDark ? Colors.white24 : Colors.grey[400]),
             ),
             const SizedBox(height: 16),
-            Text(
+            SelectableText(
               message,
-              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary),
+              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary, fontSize: 11),
               textAlign: TextAlign.center,
             ),
           ],
