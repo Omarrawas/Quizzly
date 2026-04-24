@@ -86,7 +86,7 @@ class DatabaseService {
     return query.orderBy('order').snapshots();
   }
 
-  Future<DocumentReference> addTopic(String subjectId, String? parentId, Map<String, dynamic> data) async {
+  Future<void> addTopic(String subjectId, String? parentId, Map<String, dynamic> data) async {
     final count = await _db.collection(colTopics)
         .where('subjectId', isEqualTo: subjectId)
         .where('parentId', isEqualTo: parentId)
@@ -102,13 +102,37 @@ class DatabaseService {
       }
     }
 
-    return _db.collection(colTopics).add({
+    await _db.collection(colTopics).add({
       ...data,
       'subjectId': subjectId,
       'parentId': parentId,
       'ancestors': ancestors,
       'order': count.count,
       'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> moveTopic(String topicId, String? newParentId, String newType) async {
+    List<String> ancestors = [];
+    if (newParentId != null) {
+      final parentDoc = await _db.collection(colTopics).doc(newParentId).get();
+      if (parentDoc.exists) {
+        final parentData = parentDoc.data() as Map<String, dynamic>;
+        ancestors = List<String>.from(parentData['ancestors'] ?? []);
+        ancestors.add(newParentId);
+      }
+    }
+
+    // Get count for new order
+    final count = await _db.collection(colTopics)
+        .where('parentId', isEqualTo: newParentId)
+        .count().get();
+
+    await _db.collection(colTopics).doc(topicId).update({
+      'parentId': newParentId,
+      'type': newType,
+      'ancestors': ancestors,
+      'order': count.count,
     });
   }
 

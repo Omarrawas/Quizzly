@@ -67,7 +67,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
   Widget _buildChaptersColumn(bool isDark) {
     return Column(
       children: [
-        _buildColumnHeader('الفصول', Icons.folder_rounded, isDark, onAdd: () => _showAddTopicDialog(context, null, 'chapter')),
+        _buildColumnHeader('الفصول', Icons.folder_rounded, isDark, tooltip: 'إضافة فصل جديد', onAdd: () => _showAddTopicDialog(context, null, 'chapter')),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _dbService.getTopics(widget.subjectId, parentId: null, type: 'chapter'),
@@ -124,6 +124,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     return Column(
       children: [
         _buildColumnHeader('دروس: $_selectedChapterName', Icons.menu_book_rounded, isDark, 
+            tooltip: 'إضافة درس لهذا الفصل',
             onAdd: () => _showAddTopicDialog(context, _selectedChapterId, 'lesson')),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -161,7 +162,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     );
   }
 
-  Widget _buildColumnHeader(String title, IconData icon, bool isDark, {required VoidCallback onAdd}) {
+  Widget _buildColumnHeader(String title, IconData icon, bool isDark, {required String tooltip, required VoidCallback onAdd}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey[50],
@@ -174,7 +175,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           IconButton(
             icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue, size: 20),
             onPressed: onAdd,
-            tooltip: 'إضافة',
+            tooltip: tooltip,
           ),
         ],
       ),
@@ -277,26 +278,110 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     );
   }
 
-  void _showEditTopicDialog(String id, Map<String, dynamic> data, String label) {
+  void _showEditTopicDialog(String id, Map<String, dynamic> data, String label) async {
     final nameController = TextEditingController(text: data['name']);
+    String currentType = data['type'] ?? (label == 'فصل' ? 'chapter' : 'lesson');
+    String? currentParentId = data['parentId'];
+
+    // Fetch chapters for the parent dropdown
+    final chaptersSnap = await FirebaseFirestore.instance
+        .collection(DatabaseService.colTopics)
+        .where('subjectId', isEqualTo: widget.subjectId)
+        .where('type', isEqualTo: 'chapter')
+        .get();
+    
+    final chapters = chaptersSnap.docs.where((doc) => doc.id != id).toList();
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('تعديل $label', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: nameController,
-          decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              await _dbService.updateDoc(DatabaseService.colTopics, id, {'name': nameController.text.trim()});
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: Text('حفظ'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('تعديل $label', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'الاسم', 
+                    labelStyle: GoogleFonts.cairo(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: currentType,
+                  decoration: InputDecoration(
+                    labelText: 'النوع', 
+                    labelStyle: GoogleFonts.cairo(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: [
+                    DropdownMenuItem(value: 'chapter', child: Text('فصل رئيسي', style: GoogleFonts.cairo())),
+                    DropdownMenuItem(value: 'lesson', child: Text('درس فرعي', style: GoogleFonts.cairo())),
+                  ],
+                  onChanged: (val) => setDialogState(() {
+                    currentType = val!;
+                    if (currentType == 'chapter') currentParentId = null;
+                  }),
+                ),
+                if (currentType == 'lesson') ...[
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<String?>(
+                    value: currentParentId,
+                    decoration: InputDecoration(
+                      labelText: 'الفصل التابع له', 
+                      labelStyle: GoogleFonts.cairo(),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('اختر فصلاً...', style: TextStyle(color: Colors.grey))),
+                      ...chapters.map((doc) => DropdownMenuItem(
+                        value: doc.id,
+                        child: Text(doc.data()['name'] ?? '', style: GoogleFonts.cairo()),
+                      )),
+                    ],
+                    onChanged: (val) => setDialogState(() => currentParentId = val),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+
+                if (currentType == 'lesson' && currentParentId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('يرجى اختيار الفصل التابع له', style: GoogleFonts.cairo())),
+                  );
+                  return;
+                }
+
+                await _dbService.updateDoc(DatabaseService.colTopics, id, {'name': name});
+                
+                // If type or parent changed, use moveTopic
+                if (currentType != data['type'] || currentParentId != data['parentId']) {
+                  await _dbService.moveTopic(id, currentParentId, currentType);
+                }
+
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: Text('حفظ التغييرات', style: GoogleFonts.cairo(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
