@@ -72,10 +72,10 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           child: StreamBuilder<QuerySnapshot>(
             stream: _dbService.getTopics(widget.subjectId, parentId: null, type: 'chapter'),
             builder: (context, snapshot) {
-              if (snapshot.hasError) return Center(child: Text('خطأ: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;
-              if (docs.isEmpty) return _emptyState('لا توجد فصول', isDark);
+              if (docs.isEmpty) return _buildEmptyState('لا توجد فصول', Icons.folder_open_rounded);
 
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
@@ -131,10 +131,10 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           child: StreamBuilder<QuerySnapshot>(
             stream: _dbService.getTopics(widget.subjectId, parentId: _selectedChapterId, type: 'lesson'),
             builder: (context, snapshot) {
-              if (snapshot.hasError) return Center(child: Text('خطأ: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+              if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;
-              if (docs.isEmpty) return _emptyState('لا توجد دروس في هذا الفصل', isDark);
+              if (docs.isEmpty) return _buildEmptyState('لا توجد دروس في هذا الفصل', Icons.description_outlined);
 
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
@@ -241,9 +241,73 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     );
   }
 
-  Widget _emptyState(String message, bool isDark) {
+  Widget _buildErrorState(String error) {
+    bool isIndexError = error.contains('index');
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          Icon(
+            isIndexError ? Icons.bolt_rounded : Icons.error_outline_rounded,
+            color: Colors.amber[700],
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isIndexError ? 'جاري تجهيز قاعدة البيانات...' : 'حدث خطأ ما',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isIndexError 
+              ? 'يتم حالياً إنشاء الفهارس المطلوبة (Indexes). قد يستغرق هذا بضع دقائق لأول مرة فقط.'
+              : error,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.cairo(
+              color: Colors.grey[600],
+              fontSize: 13,
+            ),
+          ),
+          if (isIndexError) ...[
+            const SizedBox(height: 20),
+            const SizedBox(
+              width: 120,
+              child: LinearProgressIndicator(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'يرجى عمل Hot Restart بعد دقيقتين',
+              style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
     return Center(
-      child: Text(message, style: GoogleFonts.cairo(color: Colors.grey, fontSize: 12)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.grey[200], size: 64),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: GoogleFonts.cairo(
+              color: Colors.grey[500],
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -316,7 +380,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 ),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
-                  value: currentType,
+                  initialValue: currentType,
                   decoration: InputDecoration(
                     labelText: 'النوع', 
                     labelStyle: GoogleFonts.cairo(),
@@ -334,7 +398,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 if (currentType == 'lesson') ...[
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String?>(
-                    value: currentParentId,
+                    initialValue: currentParentId,
                     decoration: InputDecoration(
                       labelText: 'الفصل التابع له', 
                       labelStyle: GoogleFonts.cairo(),
