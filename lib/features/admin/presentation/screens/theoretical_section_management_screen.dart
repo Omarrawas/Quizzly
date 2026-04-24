@@ -604,20 +604,22 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   // --- Fixed Footer ---
                   const Divider(),
                   Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      runSpacing: 12,
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text('السؤال مفعل', style: GoogleFonts.cairo(fontSize: 13)),
-                            Switch(
-                              value: isEnabled,
-                              onChanged: (v) => setDialogState(() => isEnabled = v),
-                              activeThumbColor: AppColors.primaryBlue,
+                            const SizedBox(width: 4),
+                            Transform.scale(
+                              scale: 0.7,
+                              child: Switch(
+                                value: isEnabled,
+                                onChanged: (v) => setDialogState(() => isEnabled = v),
+                                activeColor: AppColors.primaryBlue,
+                              ),
                             ),
                           ],
                         ),
@@ -626,14 +628,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                           children: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey[600])),
+                              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13)),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryBlue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 elevation: 0,
                               ),
@@ -679,7 +681,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                   if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
                                 }
                               },
-                              child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                              child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13)),
                             ),
                           ],
                         ),
