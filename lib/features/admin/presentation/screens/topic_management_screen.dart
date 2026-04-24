@@ -70,7 +70,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         _buildColumnHeader('الفصول', Icons.folder_rounded, isDark, onAdd: () => _showAddTopicDialog(context, null, 'chapter')),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _dbService.getTopics(widget.subjectId, parentId: null),
+            stream: _dbService.getTopics(widget.subjectId, parentId: null, type: 'chapter'),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;
@@ -127,7 +127,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             onAdd: () => _showAddTopicDialog(context, _selectedChapterId, 'lesson')),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _dbService.getTopics(widget.subjectId, parentId: _selectedChapterId),
+            stream: _dbService.getTopics(widget.subjectId, parentId: _selectedChapterId, type: 'lesson'),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;

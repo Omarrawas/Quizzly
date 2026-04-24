@@ -214,7 +214,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 16),
                 ],
                 Row(
@@ -303,7 +303,6 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     final timeController = TextEditingController(text: currentData?['estimatedTime']?.toString() ?? '60');
     bool isEnabled = currentData?['isEnabled'] ?? true;
     
-    String? selectedTopicId = currentData?['topicId'];
     Difficulty selectedDifficulty = Difficulty.values.firstWhere((e) => e.name == currentData?['difficulty'], orElse: () => Difficulty.medium);
     CognitiveLevel selectedLevel = CognitiveLevel.values.firstWhere((e) => e.name == currentData?['cognitiveLevel'], orElse: () => CognitiveLevel.understanding);
     
@@ -338,78 +337,87 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 220,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedTypeId,
-                            isExpanded: true,
-                            onChanged: (val) {
-                              setDialogState(() {
-                                selectedTypeId = val!;
-                                if (selectedTypeId == 'tf') {
-                                  options = [{'id': 'true', 'text': 'صح'}, {'id': 'false', 'text': 'خطأ'}];
-                                  correctOptionId = 'true';
-                                } else if (options.isEmpty) {
-                                  options = [{'id': '1', 'text': ''}];
-                                }
-                              });
-                            },
-                            items: questionTypes.map((type) => DropdownMenuItem(
-                              value: type['id'] as String,
-                              child: Row(
-                                children: [
-                                  Icon(type['icon'] as IconData, size: 20, color: Colors.grey[600]),
-                                  const SizedBox(width: 12),
-                                  Text(type['label'] as String, style: GoogleFonts.cairo(fontSize: 14)),
-                                ],
-                              ),
-                            )).toList(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextField(
-                              controller: textController,
-                              style: GoogleFonts.cairo(fontSize: 16),
-                              decoration: InputDecoration(
-                                hintText: 'سؤال بدون عنوان',
-                                filled: true,
-                                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.all(16),
-                              ),
-                              maxLines: null,
-                            ),
-                            Container(height: 2, color: AppColors.primaryBlue),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.image_outlined, color: Colors.grey),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                  // --- Scrollable Content ---
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 220,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: selectedTypeId,
+                                    isExpanded: true,
+                                    onChanged: (val) {
+                                      setDialogState(() {
+                                        final oldType = selectedTypeId;
+                                        selectedTypeId = val!;
+                                        
+                                        // Reset options if changing to/from types that use different structures
+                                        if (selectedTypeId == 'tf') {
+                                          options = [{'id': 'true', 'text': 'صح'}, {'id': 'false', 'text': 'خطأ'}];
+                                          correctOptionId = 'true';
+                                        } else if (selectedTypeId == 'essay') {
+                                          options = [];
+                                          correctOptionId = null;
+                                        } else if (oldType == 'tf' || oldType == 'essay') {
+                                          // Reset to a single empty option if coming from tf or essay
+                                          options = [{'id': '1', 'text': ''}];
+                                          correctOptionId = '1';
+                                        }
+                                      });
+                                    },
+                                    items: questionTypes.map((type) => DropdownMenuItem(
+                                      value: type['id'] as String,
+                                      child: Row(
+                                        children: [
+                                          Icon(type['icon'] as IconData, size: 20, color: Colors.grey[600]),
+                                          const SizedBox(width: 12),
+                                          Text(type['label'] as String, style: GoogleFonts.cairo(fontSize: 14)),
+                                        ],
+                                      ),
+                                    )).toList(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    TextField(
+                                      controller: textController,
+                                      style: GoogleFonts.cairo(fontSize: 16),
+                                      decoration: InputDecoration(
+                                        hintText: 'سؤال بدون عنوان',
+                                        filled: true,
+                                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+                                        border: InputBorder.none,
+                                        contentPadding: const EdgeInsets.all(16),
+                                      ),
+                                      maxLines: null,
+                                    ),
+                                    Container(height: 2, color: AppColors.primaryBlue),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.image_outlined, color: Colors.grey),
+                                onPressed: () {},
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
                           if (selectedTypeId == 'mcq' || selectedTypeId == 'checkbox' || selectedTypeId == 'tf') ...[
                             ...options.asMap().entries.map((entry) {
                               final index = entry.key;
@@ -463,10 +471,20 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                           ] else ...[
                             Padding(
                               padding: const EdgeInsets.only(right: 16),
-                              child: Text('نص إجابة قصيرة', style: GoogleFonts.cairo(color: Colors.grey, fontSize: 14)),
+                              child: TextField(
+                                controller: essayAnswerController,
+                                style: GoogleFonts.cairo(fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'أدخل نص الإجابة الصحيحة هنا (للمقالي)',
+                                  hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 14),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                                maxLines: null,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                            Container(margin: const EdgeInsets.only(right: 16), height: 1, width: 300, color: Colors.grey[300]),
+                            Container(margin: const EdgeInsets.only(right: 16), height: 1, width: double.infinity, color: AppColors.primaryBlue.withValues(alpha: 0.3)),
                           ],
                           const SizedBox(height: 16),
                           Text('شرح الإجابة (اختياري)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -558,6 +576,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                       ),
                     ),
                   ),
+                  
+                  // --- Fixed Footer ---
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -587,14 +607,18 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                             final Map<String, dynamic> questionData = {
                               'text': textController.text.trim(),
                               'type': selectedTypeId == 'checkbox' ? 'mcq' : selectedTypeId,
-                              'topicId': selectedTopicId,
                               'subjectId': widget.subjectId,
                               'explanation': explanationController.text.trim(),
                               'explanationImageUrl': explanationImageUrlController.text.trim(),
                               'difficulty': selectedDifficulty.name,
                               'cognitiveLevel': selectedLevel.name,
                               'estimatedTime': int.tryParse(timeController.text) ?? 60,
-                              'topicIds': widget.lessonId != null ? [widget.lessonId!] : (selectedTopicId != null ? [selectedTopicId!] : []),
+                              'primaryTopicId': widget.lessonId,
+                              'topicIds': widget.lessonId != null ? [widget.lessonId!] : [],
+                              'topicNames': widget.lessonName != null ? [widget.lessonName!] : [],
+                              'topicWeights': widget.lessonId != null ? {widget.lessonId!: 1.0} : {},
+                              'discriminationIndex': 0.5,
+                              'isFrequentlyWrong': false,
                               'parentId': widget.sectionId,
                               'isEnabled': isEnabled,
                             };
@@ -604,6 +628,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                             } else {
                               questionData['essayAnswer'] = essayAnswerController.text.trim();
                             }
+                            final navigator = Navigator.of(context);
                             try {
                               if (isEdit) {
                                 await _dbService.updateDoc(DatabaseService.colQuestions, id, questionData);
@@ -611,7 +636,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                 await _dbService.addQuestion(widget.sectionId, questionData);
                               }
                                 if (mounted) {
-                                  Navigator.pop(context);
+                                  navigator.pop();
                                   _showStatusSnackBar(isEdit ? 'تم تحديث السؤال بنجاح' : 'تم إضافة السؤال بنجاح', isError: false);
                                 }
                             } catch (e) {
@@ -643,10 +668,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               try {
                 await _dbService.deleteDoc(DatabaseService.colQuestions, id);
                 if (mounted) {
-                  Navigator.pop(context);
+                  navigator.pop();
                   _showStatusSnackBar('تم حذف السؤال بنجاح', isError: false);
                 }
               } catch (e) {

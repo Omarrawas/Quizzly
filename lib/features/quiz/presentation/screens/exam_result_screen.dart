@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:quizzly/features/quiz/presentation/screens/question_review_screen.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 
@@ -170,6 +171,11 @@ class ExamResultScreen extends StatelessWidget {
           final pct = corrects / total;
           
           final tid = entry.key;
+          final topicName = questions.firstWhere(
+            (q) => (q.topicIds ?? []).contains(tid),
+            orElse: () => questions.first,
+          ).topicNames?.first ?? 'موضوع #$tid';
+          
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -181,7 +187,7 @@ class ExamResultScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'موضوع #$tid', // Ideally we'd have the name here
+                    topicName,
                     style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -218,7 +224,15 @@ class ExamResultScreen extends StatelessWidget {
           width: double.infinity,
           child: TextButton(
             onPressed: () {
-              // TODO: Review Questions
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuestionReviewScreen(
+                    questions: questions,
+                    userAnswers: userAnswers,
+                  ),
+                ),
+              );
             },
             child: Text('مراجعة الإجابات', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
           ),

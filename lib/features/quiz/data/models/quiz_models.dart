@@ -17,15 +17,16 @@ class QuestionAnalytics {
   final int timesAnswered;
   final int correctAnswers;
   final int totalTimeSpent;
+  final double successRate; // Pre-calculated for performance
+  final double avgTime;     // Pre-calculated for performance
 
   const QuestionAnalytics({
     this.timesAnswered = 0,
     this.correctAnswers = 0,
     this.totalTimeSpent = 0,
+    this.successRate = 0.0,
+    this.avgTime = 0.0,
   });
-
-  double get successRate => timesAnswered > 0 ? correctAnswers / timesAnswered : 0.0;
-  double get avgTime => timesAnswered > 0 ? totalTimeSpent / timesAnswered : 0.0;
 
   factory QuestionAnalytics.fromMap(Map<String, dynamic>? map) {
     if (map == null) return const QuestionAnalytics();
@@ -33,25 +34,45 @@ class QuestionAnalytics {
       timesAnswered: map['timesAnswered'] ?? 0,
       correctAnswers: map['correctAnswers'] ?? 0,
       totalTimeSpent: map['totalTimeSpent'] ?? 0,
+      successRate: (map['successRate'] ?? 0.0).toDouble(),
+      avgTime: (map['avgTime'] ?? 0.0).toDouble(),
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'timesAnswered': timesAnswered,
+      'correctAnswers': correctAnswers,
+      'totalTimeSpent': totalTimeSpent,
+      'successRate': successRate,
+      'avgTime': avgTime,
+    };
   }
 }
 
-/// نموذج سؤال متطور
+/// نموذج سؤال متطور بنظام "Tutor Engine"
 class QuizQuestion {
   final String? id;
   final int number;
   final String text;
   final QuestionType type;
   final List<QuizOption>? options;
-  final String? correctOptionId; // For MCQ/TF
-  final String? essayAnswer;     // For Essay
-  final String? explanation;     // شرح الإجابة
-  final String? explanationImageUrl; // صورة الشرح لزيادة الوضوح
+  final String? correctOptionId; 
+  final String? essayAnswer;     
+  final String? explanation;     
+  final String? explanationImageUrl; 
   final Difficulty? difficulty;
   final CognitiveLevel? cognitiveLevel;
-  final int? estimatedTime;      // بالثواني
-  final List<String>? topicIds;
+  final int? estimatedTime;      
+  
+  // --- Smart EdTech Fields ---
+  final String? primaryTopicId;   // Subject indexing
+  final List<String>? topicIds;   // Querying (Firestore array-contains)
+  final List<String>? topicNames; // Cache/Denormalization to avoid joins
+  final Map<String, double>? topicWeights; // AI/Logic weights
+  final double discriminationIndex; // Measures how well question distinguishes student levels
+  final bool isFrequentlyWrong;     // Flag for "Trap" questions
+  
   final String? tagLabel;
   final String? imageUrl;
   final QuestionAnalytics analytics;
@@ -75,7 +96,12 @@ class QuizQuestion {
     this.difficulty,
     this.cognitiveLevel,
     this.estimatedTime,
+    this.primaryTopicId,
     this.topicIds,
+    this.topicNames,
+    this.topicWeights,
+    this.discriminationIndex = 0.5,
+    this.isFrequentlyWrong = false,
     this.tagLabel,
     this.imageUrl,
     this.analytics = const QuestionAnalytics(),
@@ -92,15 +118,20 @@ class QuizQuestion {
       number: data['order'] ?? 0,
       text: data['text'] ?? '',
       type: _parseType(data['type']),
-      options: (data['options'] as List?)?.map((e) => QuizOption(id: e['id'], text: e['text'])).toList(),
-      correctOptionId: data['correctOptionId'],
+      options: (data['options'] as List?)?.map((e) => QuizOption(id: e['id'].toString(), text: e['text'].toString())).toList(),
+      correctOptionId: data['correctOptionId']?.toString(),
       essayAnswer: data['essayAnswer'],
       explanation: data['explanation'],
       explanationImageUrl: data['explanationImageUrl'],
       difficulty: _parseDifficulty(data['difficulty']),
       cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']),
       estimatedTime: data['estimatedTime'],
+      primaryTopicId: data['primaryTopicId'],
       topicIds: List<String>.from(data['topicIds'] ?? []),
+      topicNames: List<String>.from(data['topicNames'] ?? []),
+      topicWeights: (data['topicWeights'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toDouble())),
+      discriminationIndex: (data['discriminationIndex'] ?? 0.5).toDouble(),
+      isFrequentlyWrong: data['isFrequentlyWrong'] ?? false,
       tagLabel: data['tagLabel'],
       imageUrl: data['imageUrl'],
       analytics: QuestionAnalytics.fromMap(data['analytics']),
@@ -136,7 +167,7 @@ class QuizQuestion {
 
   Map<String, dynamic> toMap() {
     return {
-      'number': number,
+      'order': number,
       'text': text,
       'type': type.name,
       'options': options?.map((e) => {'id': e.id, 'text': e.text}).toList(),
@@ -147,9 +178,15 @@ class QuizQuestion {
       'difficulty': difficulty?.name,
       'cognitiveLevel': cognitiveLevel?.name,
       'estimatedTime': estimatedTime,
+      'primaryTopicId': primaryTopicId,
       'topicIds': topicIds,
+      'topicNames': topicNames,
+      'topicWeights': topicWeights,
+      'discriminationIndex': discriminationIndex,
+      'isFrequentlyWrong': isFrequentlyWrong,
       'tagLabel': tagLabel,
       'imageUrl': imageUrl,
+      'analytics': analytics.toMap(),
       'status': status.name,
       'authorId': authorId,
       'reviewerId': reviewerId,

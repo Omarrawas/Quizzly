@@ -74,10 +74,15 @@ class DatabaseService {
   Future<DocumentReference> addQuestion(String sectionId, Map<String, dynamic> data) => addChild(colQuestions, sectionId, data);
 
   // --- Topics (Nested Structure) ---
-  Stream<QuerySnapshot> getTopics(String subjectId, {String? parentId}) {
+  Stream<QuerySnapshot> getTopics(String subjectId, {String? parentId, String? type}) {
     var query = _db.collection(colTopics)
         .where('subjectId', isEqualTo: subjectId)
         .where('parentId', isEqualTo: parentId);
+    
+    if (type != null) {
+      query = query.where('type', isEqualTo: type);
+    }
+    
     return query.orderBy('order').snapshots();
   }
 
@@ -169,37 +174,37 @@ class DatabaseService {
 
   Future<void> updateUserHistory(String userId, List<Map<String, dynamic>> answers) async {
     final historyRef = _db.collection('user_history').doc(userId);
-    
-    List<String> seenIds = [];
-    List<String> wrongIds = [];
-    
+    final batch = _db.batch();
+
     for (var answer in answers) {
       final qId = answer['questionId'] as String;
-      seenIds.add(qId);
-      if (!(answer['isCorrect'] as bool)) {
-        wrongIds.add(qId);
-      }
+      final isCorrect = answer['isCorrect'] as bool;
+      
+      batch.set(historyRef, {
+        'questionStats': {
+          qId: {
+            'attempts': FieldValue.increment(1),
+            'correct': FieldValue.increment(isCorrect ? 1 : 0),
+            'lastAttemptAt': FieldValue.serverTimestamp(),
+          }
+        },
+        'lastActive': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
 
-    await historyRef.set({
+    // Still keep seen/wrong for easy querying
+    List<String> seenIds = [];
+    List<String> wrongIds = [];
+    for (var answer in answers) {
+      seenIds.add(answer['questionId'] as String);
+      if (!(answer['isCorrect'] as bool)) wrongIds.add(answer['questionId'] as String);
+    }
+
+    batch.update(historyRef, {
       'seenQuestions': FieldValue.arrayUnion(seenIds),
       'wrongAnswers': FieldValue.arrayUnion(wrongIds),
-      'lastActive': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    });
 
-    // Optional: We can also remove newly correct answers from wrongAnswers array
-    // if the user got them right this time.
-    List<String> newlyCorrectIds = [];
-    for (var answer in answers) {
-      if (answer['isCorrect'] as bool) {
-        newlyCorrectIds.add(answer['questionId'] as String);
-      }
-    }
-
-    if (newlyCorrectIds.isNotEmpty) {
-      await historyRef.update({
-        'wrongAnswers': FieldValue.arrayRemove(newlyCorrectIds),
-      });
-    }
+    await batch.commit();
   }
 }
