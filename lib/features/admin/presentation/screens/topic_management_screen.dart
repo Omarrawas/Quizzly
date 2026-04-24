@@ -72,6 +72,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           child: StreamBuilder<QuerySnapshot>(
             stream: _dbService.getTopics(widget.subjectId, parentId: null, type: 'chapter'),
             builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text('خطأ: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) return _emptyState('لا توجد فصول', isDark);
@@ -130,6 +131,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           child: StreamBuilder<QuerySnapshot>(
             stream: _dbService.getTopics(widget.subjectId, parentId: _selectedChapterId, type: 'lesson'),
             builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text('خطأ: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) return _emptyState('لا توجد دروس في هذا الفصل', isDark);
