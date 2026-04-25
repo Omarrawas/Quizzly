@@ -632,99 +632,88 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     ),
                   ),
                   
-                  // --- Footer (Fixed) ---
+                  // --- Footer (Fixed & Guaranteed Visible) ---
                   const Divider(height: 1),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey[50],
-                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('حالة السؤال:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 8),
-                            Transform.scale(
-                              scale: 0.8,
-                              child: Switch(
-                                value: isEnabled,
-                                activeThumbColor: AppColors.primaryBlue,
-                                activeTrackColor: AppColors.primaryBlue.withValues(alpha: 0.3),
-                                onChanged: (v) => setDialogState(() => isEnabled = v),
-                              ),
-                            ),
-                            Text(isEnabled ? 'مفعل' : 'معطل', style: GoogleFonts.cairo(fontSize: 12, color: isEnabled ? Colors.green : Colors.grey)),
-                          ],
+                        // --- Enabled Switch ---
+                        Text('حالة السؤال:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: isEnabled,
+                            activeThumbColor: AppColors.primaryBlue,
+                            onChanged: (v) => setDialogState(() => isEnabled = v),
+                          ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey[600], fontWeight: FontWeight.bold)),
-                            ),
-                            const SizedBox(width: 12),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryBlue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              onPressed: () async {
-                                if (textController.text.trim().isEmpty) return;
-                                final Map<String, dynamic> questionData = {
-                                  'text': textController.text.trim(),
-                                  'type': selectedTypeId == 'checkbox' ? 'mcq' : selectedTypeId,
-                                  'subjectId': widget.subjectId,
-                                  'explanation': explanationController.text.trim(),
-                                  'explanationImageUrl': explanationImageUrlController.text.trim(),
-                                  'difficulty': selectedDifficulty.name,
-                                  'cognitiveLevel': selectedLevel.name,
-                                  'estimatedTime': int.tryParse(timeController.text) ?? 60,
-                                  'primaryTopicId': widget.lessonId,
-                                  'topicIds': widget.lessonId != null ? [widget.lessonId!] : [],
-                                  'topicNames': widget.lessonName != null ? [widget.lessonName!] : [],
-                                  'topicWeights': widget.lessonId != null ? {widget.lessonId!: 1.0} : {},
-                                  'discriminationIndex': 0.5,
-                                  'isFrequentlyWrong': false,
-                                  'parentId': widget.sectionId,
-                                  'isEnabled': isEnabled,
-                                };
-                                if (selectedTypeId != 'essay') {
-                                  questionData['options'] = options;
-                                  questionData['correctOptionId'] = correctOptionId;
-                                } else {
-                                  questionData['essayAnswer'] = essayAnswerController.text.trim();
-                                }
-                                
-                                final navigator = Navigator.of(context);
-                                try {
-                                  if (isEdit) {
-                                    await _dbService.updateDoc(DatabaseService.colQuestions, id, questionData);
-                                  } else {
-                                    await _dbService.addQuestion(widget.sectionId, questionData);
-                                  }
-                                  if (mounted) {
-                                    navigator.pop();
-                                    _showStatusSnackBar(isEdit ? 'تم تحديث السؤال بنجاح' : 'تم إضافة السؤال بنجاح', isError: false);
-                                  }
-                                } catch (e) {
-                                  if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
-                                }
-                              },
-                              child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
-                            ),
-                          ],
+                        Text(isEnabled ? 'مفعل' : 'معطل', style: GoogleFonts.cairo(fontSize: 12, color: isEnabled ? Colors.green : Colors.grey)),
+                        
+                        const Spacer(),
+                        
+                        // --- Action Buttons ---
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          onPressed: () async {
+                            if (textController.text.trim().isEmpty) return;
+                            final Map<String, dynamic> questionData = {
+                              'text': textController.text.trim(),
+                              'type': selectedTypeId == 'checkbox' ? 'mcq' : selectedTypeId,
+                              'subjectId': widget.subjectId,
+                              'explanation': explanationController.text.trim(),
+                              'explanationImageUrl': explanationImageUrlController.text.trim(),
+                              'difficulty': selectedDifficulty.name,
+                              'cognitiveLevel': selectedLevel.name,
+                              'estimatedTime': int.tryParse(timeController.text) ?? 60,
+                              'primaryTopicId': widget.lessonId,
+                              'topicIds': widget.lessonId != null ? [widget.lessonId!] : [],
+                              'topicNames': widget.lessonName != null ? [widget.lessonName!] : [],
+                              'topicWeights': widget.lessonId != null ? {widget.lessonId!: 1.0} : {},
+                              'discriminationIndex': 0.5,
+                              'isFrequentlyWrong': false,
+                              'parentId': widget.sectionId,
+                              'isEnabled': isEnabled,
+                            };
+                            if (selectedTypeId != 'essay') {
+                              questionData['options'] = options;
+                              questionData['correctOptionId'] = correctOptionId;
+                            } else {
+                              questionData['essayAnswer'] = essayAnswerController.text.trim();
+                            }
+                            
+                            final navigator = Navigator.of(context);
+                            try {
+                              if (isEdit) {
+                                await _dbService.updateDoc(DatabaseService.colQuestions, id, questionData);
+                              } else {
+                                await _dbService.addQuestion(widget.sectionId, questionData);
+                              }
+                              if (mounted) {
+                                navigator.pop();
+                                _showStatusSnackBar(isEdit ? 'تم تحديث السؤال بنجاح' : 'تم إضافة السؤال بنجاح', isError: false);
+                              }
+                            } catch (e) {
+                              if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
+                            }
+                          },
+                          child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
                         ),
                       ],
                     ),
