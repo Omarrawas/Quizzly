@@ -330,7 +330,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           width: 800,
           constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
           decoration: BoxDecoration(
-            color: Theme.of(context).dialogBackgroundColor,
+            color: Theme.of(context).dialogTheme.backgroundColor,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -346,8 +346,9 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               final isDark = Theme.of(context).brightness == Brightness.dark;
               return Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // --- Header ---
+                  // --- Header (Fixed) ---
                   Row(
                     children: [
                       Icon(isEdit ? Icons.edit_note_rounded : Icons.add_circle_outline_rounded, color: AppColors.primaryBlue),
@@ -364,11 +365,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     ],
                   ),
                   const Divider(),
-                  const SizedBox(height: 16),
-                  
-                  // --- Scrollable Content ---
-                  Flexible(
+
+                  // --- Scrollable Body (Constrained) ---
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                    ),
                     child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -418,27 +422,23 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                               ),
                               const SizedBox(width: 16),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    TextField(
-                                      controller: textController,
-                                      style: GoogleFonts.cairo(fontSize: 16),
-                                      decoration: InputDecoration(
-                                        hintText: 'سؤال بدون عنوان',
-                                        filled: true,
-                                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                                        contentPadding: const EdgeInsets.all(16),
-                                      ),
-                                      maxLines: null,
-                                    ),
-                                  ],
+                                child: TextField(
+                                  controller: textController,
+                                  style: GoogleFonts.cairo(fontSize: 16),
+                                  decoration: InputDecoration(
+                                    hintText: 'نص السؤال...',
+                                    filled: true,
+                                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                    contentPadding: const EdgeInsets.all(16),
+                                  ),
+                                  maxLines: null,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 24),
+                          
                           if (selectedTypeId == 'mcq' || selectedTypeId == 'checkbox' || selectedTypeId == 'tf') ...[
                             ...options.asMap().entries.map((entry) {
                               final index = entry.key;
@@ -449,8 +449,18 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                   children: [
                                     if (selectedTypeId == 'checkbox')
                                       Checkbox(
-                                        value: correctOptionId == opt['id'], 
-                                        onChanged: (v) => setDialogState(() => correctOptionId = opt['id'])
+                                        value: correctOptionId?.split(',').contains(opt['id']) ?? false,
+                                        onChanged: (v) {
+                                          setDialogState(() {
+                                            List<String> current = correctOptionId?.split(',').where((s) => s.isNotEmpty).toList() ?? [];
+                                            if (v!) {
+                                              current.add(opt['id']!);
+                                            } else {
+                                              current.remove(opt['id']!);
+                                            }
+                                            correctOptionId = current.join(',');
+                                          });
+                                        },
                                       )
                                     else
                                       Radio<String>(
@@ -460,19 +470,19 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                       ),
                                     Expanded(
                                       child: TextField(
-                                        controller: TextEditingController(text: opt['text'])..selection = TextSelection.fromPosition(TextPosition(offset: opt['text']!.length)),
                                         onChanged: (v) => opt['text'] = v,
+                                        controller: TextEditingController(text: opt['text'])..selection = TextSelection.collapsed(offset: opt['text']!.length),
                                         style: GoogleFonts.cairo(fontSize: 14),
                                         decoration: InputDecoration(
-                                          hintText: 'خيار رقم ${index + 1}',
+                                          hintText: 'الخيار ${index + 1}',
                                           border: InputBorder.none,
-                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                                         ),
                                       ),
                                     ),
-                                    if (selectedTypeId != 'tf' && options.length > 1)
+                                    if (options.length > 1 && selectedTypeId != 'tf')
                                       IconButton(
-                                        icon: const Icon(Icons.close_rounded, size: 18, color: Colors.red),
+                                        icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.red),
                                         onPressed: () => setDialogState(() => options.removeAt(index)),
                                       ),
                                   ],
@@ -480,75 +490,58 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                               );
                             }),
                             if (selectedTypeId != 'tf')
-                              Padding(
-                                padding: const EdgeInsets.only(right: 48, top: 8),
-                                child: TextButton.icon(
-                                  icon: const Icon(Icons.add_rounded, size: 18),
-                                  onPressed: () {
-                                    setDialogState(() {
-                                      final nextId = (options.length + 1).toString();
-                                      options.add({'id': nextId, 'text': ''});
-                                    });
-                                  },
-                                  label: Text('إضافة خيار جديد', style: GoogleFonts.cairo(fontSize: 13)),
-                                ),
+                              TextButton.icon(
+                                icon: const Icon(Icons.add, size: 20),
+                                label: Text('إضافة خيار جديد', style: GoogleFonts.cairo()),
+                                onPressed: () => setDialogState(() {
+                                  final newId = (options.length + 1).toString();
+                                  options.add({'id': newId, 'text': ''});
+                                }),
                               ),
-                          ] else ...[
-                            Padding(
-                              padding: const EdgeInsets.only(right: 16),
-                              child: TextField(
-                                controller: essayAnswerController,
-                                style: GoogleFonts.cairo(fontSize: 14),
-                                decoration: InputDecoration(
-                                  hintText: 'أدخل نص الإجابة الصحيحة هنا (للمقالي)',
-                                  filled: true,
-                                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                                  isDense: true,
-                                ),
-                                maxLines: null,
+                          ] else if (selectedTypeId == 'essay')
+                            TextField(
+                              controller: essayAnswerController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                labelText: 'الإجابة النموذجية (مقالي)',
+                                labelStyle: GoogleFonts.cairo(),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                             ),
-                          ],
+                          
                           const SizedBox(height: 24),
-                          Text('شرح الإجابة (اختياري)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text('شرح الإجابة (اختياري)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.grey[600])),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: explanationController,
-                                  maxLines: 2,
-                                  style: GoogleFonts.cairo(fontSize: 14),
-                                  decoration: InputDecoration(
-                                    hintText: 'اكتب الشرح هنا (اختياري)',
-                                    filled: true,
-                                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primaryBlue),
-                                tooltip: 'إضافة صورة للشرح',
-                                onPressed: () {
-                                  showDialog(
+                          TextField(
+                            controller: explanationController,
+                            maxLines: 2,
+                            decoration: InputDecoration(
+                              hintText: 'اكتب الشرح هنا (اختياري)',
+                              hintStyle: GoogleFonts.cairo(fontSize: 14),
+                              filled: true,
+                              fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                              prefixIcon: IconButton(
+                                icon: Icon(Icons.add_photo_alternate_outlined, color: AppColors.primaryBlue),
+                                onPressed: () async {
+                                  final controller = TextEditingController();
+                                  final url = await showDialog<String>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: Text('رابط صورة الشرح', style: GoogleFonts.cairo()),
-                                      content: TextField(
-                                        controller: explanationImageUrlController,
-                                        decoration: const InputDecoration(hintText: 'https://example.com/image.png'),
-                                      ),
+                                      title: Text('رابط الصورة', style: GoogleFonts.cairo()),
+                                      content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'https://...')),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('تم')),
+                                        TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+                                        TextButton(onPressed: () => Navigator.pop(context, controller.text), child: Text('موافق')),
                                       ],
                                     ),
                                   );
+                                  if (url != null && url.isNotEmpty) {
+                                    setDialogState(() => explanationImageUrlController.text = url);
+                                  }
                                 },
                               ),
-                            ],
+                            ),
                           ),
                           if (explanationImageUrlController.text.isNotEmpty)
                             Padding(
@@ -565,18 +558,20 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                 ],
                               ),
                             ),
-                          const SizedBox(height: 24),
+                          
+                          const SizedBox(height: 16),
                           const Divider(),
                           Theme(
                             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                             child: ExpansionTile(
                               title: Text('إعدادات متقدمة', style: GoogleFonts.cairo(fontSize: 14, color: AppColors.primaryBlue)),
+                              tilePadding: EdgeInsets.zero,
                               children: [
                                 Row(
                                   children: [
                                     Expanded(
                                       child: DropdownButtonFormField<Difficulty>(
-                                        value: selectedDifficulty,
+                                        initialValue: selectedDifficulty,
                                         decoration: InputDecoration(labelText: 'الصعوبة', labelStyle: GoogleFonts.cairo()),
                                         items: Difficulty.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name, style: GoogleFonts.cairo()))).toList(),
                                         onChanged: (v) => setDialogState(() => selectedDifficulty = v!),
@@ -585,13 +580,23 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: DropdownButtonFormField<CognitiveLevel>(
-                                        value: selectedLevel,
+                                        initialValue: selectedLevel,
                                         decoration: InputDecoration(labelText: 'المستوى المعرفي', labelStyle: GoogleFonts.cairo()),
                                         items: CognitiveLevel.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name, style: GoogleFonts.cairo()))).toList(),
                                         onChanged: (v) => setDialogState(() => selectedLevel = v!),
                                       ),
                                     ),
                                   ],
+                                ),
+                                const SizedBox(height: 16),
+                                TextField(
+                                  controller: timeController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'الوقت المقدر (بالثواني)',
+                                    labelStyle: GoogleFonts.cairo(),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
                                 ),
                               ],
                             ),
@@ -601,25 +606,22 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     ),
                   ),
                   
-                  // --- Fixed Footer ---
+                  // --- Footer (Fixed & Guaranteed Visible) ---
                   const Divider(),
                   Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('السؤال مفعل', style: GoogleFonts.cairo(fontSize: 13)),
-                            const SizedBox(width: 4),
-                            Transform.scale(
-                              scale: 0.7,
-                              child: Switch(
-                                value: isEnabled,
-                                onChanged: (v) => setDialogState(() => isEnabled = v),
-                                activeColor: AppColors.primaryBlue,
-                              ),
+                            Text('تفعيل السؤال', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: isEnabled,
+                              onChanged: (v) => setDialogState(() => isEnabled = v),
+                              activeThumbColor: AppColors.primaryBlue,
                             ),
                           ],
                         ),
@@ -628,14 +630,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                           children: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13)),
+                              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 14)),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryBlue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 elevation: 0,
                               ),
@@ -681,7 +683,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                   if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
                                 }
                               },
-                              child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13)),
+                              child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
                             ),
                           ],
                         ),
