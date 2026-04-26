@@ -417,18 +417,18 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                         
                                         if (selectedTypeId == 'tf') {
                                           options = [{'id': 'true', 'text': 'صح'}, {'id': 'false', 'text': 'خطأ'}];
-                                          optionControllers.forEach((c) => c.dispose());
+                                          for (var c in optionControllers) { c.dispose(); }
                                           optionControllers.clear();
                                           optionControllers.addAll(options.map((o) => TextEditingController(text: o['text'])));
                                           correctOptionIds = ['true'];
                                         } else if (selectedTypeId == 'essay') {
                                           options = [];
-                                          optionControllers.forEach((c) => c.dispose());
+                                          for (var c in optionControllers) { c.dispose(); }
                                           optionControllers.clear();
                                           correctOptionIds = [];
                                         } else if (oldType == 'tf' || oldType == 'essay') {
                                           options = [{'id': '1', 'text': ''}];
-                                          optionControllers.forEach((c) => c.dispose());
+                                          for (var c in optionControllers) { c.dispose(); }
                                           optionControllers.clear();
                                           optionControllers.add(TextEditingController());
                                           correctOptionIds = ['1'];
@@ -508,7 +508,9 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                       else
                                         Radio<String>(
                                           value: opt['id'] ?? '',
+                                          // ignore: deprecated_member_use
                                           groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
+                                          // ignore: deprecated_member_use
                                           onChanged: (v) {
                                             if (v != null) {
                                               setDialogState(() => correctOptionIds = [v]);
