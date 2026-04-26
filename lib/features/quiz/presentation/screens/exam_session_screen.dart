@@ -99,7 +99,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     for (int i = 0; i < widget.questions.length; i++) {
       final q = widget.questions[i];
       final userAns = _userAnswers[i];
-      final isCorrect = userAns == q.correctOptionId;
+      final isCorrect = q.correctOptionIds.contains(userAns);
       if (isCorrect) correctCount++;
       
       results.add({

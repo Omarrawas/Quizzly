@@ -145,7 +145,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         setState(() {
                           _revealed.add(qIndex);
                           final isCorrect =
-                              sel == question.correctOptionId;
+                              question.correctOptionIds.contains(sel);
                           _answerStates[qIndex] = isCorrect
                               ? AnswerState.correct
                               : AnswerState.wrong;

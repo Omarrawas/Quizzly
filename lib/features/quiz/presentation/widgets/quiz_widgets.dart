@@ -322,7 +322,7 @@ class QuestionCard extends StatelessWidget {
               (option) => _OptionTile(
                 option: option,
                 isSelected: selectedOptionId == option.id,
-                isCorrect: option.id == question.correctOptionId,
+                isCorrect: question.correctOptionIds.contains(option.id),
                 answerState: answerState,
                 showCorrect: showCorrect,
                 onTap: () {

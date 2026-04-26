@@ -29,7 +29,7 @@ class QuestionReviewScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final question = questions[index];
           final userAnswerId = userAnswers[index];
-          final isCorrect = userAnswerId == question.correctOptionId;
+          final isCorrect = question.correctOptionIds.contains(userAnswerId);
 
           return Container(
             margin: const EdgeInsets.only(bottom: 20),
@@ -74,7 +74,7 @@ class QuestionReviewScreen extends StatelessWidget {
                 // Options
                 ... (question.options ?? []).map((opt) {
                   final isUserChoice = userAnswerId == opt.id;
-                  final isCorrectAnswer = question.correctOptionId == opt.id;
+                  final isCorrectAnswer = question.correctOptionIds.contains(opt.id);
                   
                   Color bgColor = Colors.transparent;
                   Color borderColor = isDark ? Colors.white10 : AppColors.borderLight;

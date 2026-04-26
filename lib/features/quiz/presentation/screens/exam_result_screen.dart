@@ -152,7 +152,7 @@ class ExamResultScreen extends StatelessWidget {
     Map<String, List<bool>> topicPerformance = {};
     for (int i = 0; i < questions.length; i++) {
       final q = questions[i];
-      final isCorrect = userAnswers[i] == q.correctOptionId;
+      final isCorrect = q.correctOptionIds.contains(userAnswers[i]);
       for (var tid in (q.topicIds ?? [])) {
         topicPerformance.putIfAbsent(tid, () => []).add(isCorrect);
       }

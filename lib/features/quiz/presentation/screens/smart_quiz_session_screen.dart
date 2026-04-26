@@ -97,7 +97,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     if (_answerState != AnswerState.unanswered) return;
     HapticFeedback.selectionClick();
 
-    final isCorrect = optionId == _current!.correctOptionId;
+    final isCorrect = _current!.correctOptionIds.contains(optionId);
     
     // Add to answer list for final update
     _userAnswers.add({
@@ -322,7 +322,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     return Column(
       children: q.options!.map((option) {
         final isSelected = _selectedOptionId == option.id;
-        final isCorrect = option.id == q.correctOptionId;
+        final isCorrect = q.correctOptionIds.contains(option.id);
         final revealed = _answerState != AnswerState.unanswered;
 
         Color bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;

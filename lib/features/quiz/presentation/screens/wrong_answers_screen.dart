@@ -87,7 +87,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                           if (sel != null) {
                             _revealed[index] = true;
                             final isCorrect =
-                                sel == question.correctOptionId;
+                                question.correctOptionIds.contains(sel);
                             _answerStates[index] = isCorrect
                                 ? AnswerState.correct
                                 : AnswerState.wrong;

@@ -755,6 +755,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           ),
         ),
       );
+      },
     ).then((_) {
       textController.dispose();
       essayAnswerController.dispose();
