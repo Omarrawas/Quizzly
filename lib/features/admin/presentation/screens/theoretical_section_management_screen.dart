@@ -358,7 +358,6 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             child: StatefulBuilder(
               builder: (context, setDialogState) {
               return Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // --- Header (Fixed) ---
@@ -389,8 +388,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   ),
                   const Divider(height: 1),
 
-                  // --- Scrollable Body (Flexible) ---
-                  Flexible(
+                  // --- Scrollable Body (Expanded) ---
+                  Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
                       child: Column(
