@@ -202,6 +202,9 @@ class BulkUploadService {
   String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, String> topicIdToName) {
     List<List<dynamic>> rows = [];
     
+    // إجبار Excel على استخدام الفاصلة كفاصل للأعمدة بغض النظر عن إعدادات المنطقة
+    rows.add(['sep=,']);
+    
     // Header
     rows.add([
       'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
@@ -260,6 +263,9 @@ class BulkUploadService {
     required Map<String, String> topicIdToName,
   }) {
     List<List<dynamic>> rows = [];
+    
+    // إجبار Excel على استخدام الفاصلة كفاصل للأعمدة بغض النظر عن إعدادات المنطقة
+    rows.add(['sep=,']);
     
     // Header
     rows.add([

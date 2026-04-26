@@ -362,7 +362,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'questions_${widget.sectionName}_$timestamp';
       
-      Uint8List bytes = Uint8List.fromList(utf8.encode(csvContent));
+      // إضافة BOM (Byte Order Mark) لضمان قراءة اللغة العربية بشكل صحيح في Excel
+      Uint8List bytes = Uint8List.fromList(utf8.encode('\uFEFF$csvContent'));
       
       await FileSaver.instance.saveFile(
         name: fileName,
