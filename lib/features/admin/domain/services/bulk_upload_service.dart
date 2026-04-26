@@ -172,7 +172,7 @@ class BulkUploadService {
         options: options.isNotEmpty 
             ? options.asMap().entries.map((e) => QuizOption(id: e.key.toString(), text: e.value)).toList() 
             : null,
-        correctOptionId: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? correctAnswer?.toString() : null,
+        correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? (correctAnswer != null ? [correctAnswer.toString()] : []) : [],
         essayAnswer: type == QuestionType.essay ? correctAnswer?.toString() : null,
         explanation: expl.isNotEmpty ? expl : null,
         difficulty: diff,
@@ -221,13 +221,14 @@ class BulkUploadService {
 
       String correctAns = '';
       if (type == 'mcq') {
-        final correctId = data['correctOptionId'];
-        int idx = options.indexWhere((o) => o['id'].toString() == correctId.toString());
+        final correctIds = data['correctOptionIds'] as List? ?? (data['correctOptionId'] != null ? [data['correctOptionId']] : []);
+        int idx = options.indexWhere((o) => correctIds.contains(o['id'].toString()));
         if (idx != -1) {
           correctAns = String.fromCharCode(97 + idx); // a, b, c, d
         }
       } else if (type == 'tf') {
-        correctAns = data['correctOptionId'].toString() == 'true' || data['correctOptionId'].toString() == 'صح' ? 'صح' : 'خطأ';
+        final correctIds = data['correctOptionIds'] as List? ?? (data['correctOptionId'] != null ? [data['correctOptionId']] : []);
+        correctAns = correctIds.contains('true') || correctIds.contains('صح') ? 'صح' : 'خطأ';
       } else {
         correctAns = data['essayAnswer'] ?? '';
       }
@@ -278,12 +279,12 @@ class BulkUploadService {
 
       String correctAns = '';
       if (q.type == QuestionType.mcq) {
-        int idx = options.indexWhere((o) => o.id == q.correctOptionId);
+        int idx = options.indexWhere((o) => q.correctOptionIds.contains(o.id));
         if (idx != -1) {
           correctAns = String.fromCharCode(97 + idx); // a, b, c, d
         }
       } else if (q.type == QuestionType.trueFalse) {
-        correctAns = q.correctOptionId == 'true' || q.correctOptionId == 'صح' ? 'صح' : 'خطأ';
+        correctAns = q.correctOptionIds.contains('true') || q.correctOptionIds.contains('صح') ? 'صح' : 'خطأ';
       } else {
         correctAns = q.essayAnswer ?? '';
       }

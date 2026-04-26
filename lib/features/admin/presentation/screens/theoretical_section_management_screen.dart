@@ -1,4 +1,7 @@
 import 'dart:math';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -125,7 +128,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     }
 
     return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
+      stream: query.limit(50).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (snapshot.hasError) {
@@ -143,14 +146,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
             final id = docs[index].id;
-            return _buildQuestionCard(id, data, isDark);
+            return _buildQuestionCard(id, data, isDark, key: ValueKey(id));
           },
         );
       },
     );
   }
 
-  Widget _buildQuestionCard(String id, Map<String, dynamic> data, bool isDark) {
+  Widget _buildQuestionCard(String id, Map<String, dynamic> data, bool isDark, {Key? key}) {
     final String typeStr = data['type'] == 'mcq' ? 'أتمتة' : (data['type'] == 'tf' ? 'صح/خطأ' : 'مقالي');
     final Color typeColor = data['type'] == 'mcq' ? Colors.blue : (data['type'] == 'tf' ? Colors.teal : Colors.orange);
     final questionText = data['text'] ?? '';
@@ -163,6 +166,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
       child: ExpansionTile(
+        key: PageStorageKey(id),
         tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         title: Row(
           children: [
@@ -197,7 +201,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   Text('الخيارات:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 8),
                   ...(data['options'] as List).map((opt) {
-                    final isCorrect = opt['id'] == data['correctOptionId'];
+                    final isCorrect = (data['correctOptionIds'] as List?)?.contains(opt['id']) ?? (opt['id'] == data['correctOptionId']);
                     return Container(
                       margin: const EdgeInsets.only(bottom: 4),
                       padding: const EdgeInsets.all(8),
@@ -319,7 +323,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       }
     }
     
-    String? correctOptionId = currentData?['correctOptionId'] ?? (options.isNotEmpty ? options[0]['id'] : null);
+    List<String> correctOptionIds = (currentData?['correctOptionIds'] as List?)?.map((e) => e.toString()).toList() ?? 
+        (currentData?['correctOptionId'] != null ? [currentData!['correctOptionId'].toString()] : []);
+    
+    if (correctOptionIds.isEmpty && options.isNotEmpty) {
+      correctOptionIds = [options[0]['id']!];
+    }
+
+    final List<TextEditingController> optionControllers = options.map((opt) => TextEditingController(text: opt['text'])).toList();
 
     showDialog(
       context: context,
@@ -406,13 +417,21 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                         
                                         if (selectedTypeId == 'tf') {
                                           options = [{'id': 'true', 'text': 'صح'}, {'id': 'false', 'text': 'خطأ'}];
-                                          correctOptionId = 'true';
+                                          optionControllers.forEach((c) => c.dispose());
+                                          optionControllers.clear();
+                                          optionControllers.addAll(options.map((o) => TextEditingController(text: o['text'])));
+                                          correctOptionIds = ['true'];
                                         } else if (selectedTypeId == 'essay') {
                                           options = [];
-                                          correctOptionId = null;
+                                          optionControllers.forEach((c) => c.dispose());
+                                          optionControllers.clear();
+                                          correctOptionIds = [];
                                         } else if (oldType == 'tf' || oldType == 'essay') {
                                           options = [{'id': '1', 'text': ''}];
-                                          correctOptionId = '1';
+                                          optionControllers.forEach((c) => c.dispose());
+                                          optionControllers.clear();
+                                          optionControllers.add(TextEditingController());
+                                          correctOptionIds = ['1'];
                                         }
                                       });
                                     },
@@ -462,66 +481,74 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                           const SizedBox(height: 24),
                           
                           if (selectedTypeId == 'mcq' || selectedTypeId == 'checkbox' || selectedTypeId == 'tf') ...[
-                            RadioGroup<String>(
-                              groupValue: correctOptionId,
-                              onChanged: (v) => setDialogState(() => correctOptionId = v),
-                              child: Column(
-                                children: options.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final opt = entry.value;
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    child: Row(
-                                      children: [
-                                        if (selectedTypeId == 'checkbox')
-                                          Checkbox(
-                                            value: correctOptionId?.split(',').contains(opt['id']) ?? false,
-                                            onChanged: (v) {
-                                              setDialogState(() {
-                                                List<String> current = correctOptionId?.split(',').where((s) => s.isNotEmpty).toList() ?? [];
-                                                if (v!) {
-                                                  current.add(opt['id']!);
-                                                } else {
-                                                  current.remove(opt['id']!);
+                            Column(
+                              children: options.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final opt = entry.value;
+                                final controller = optionControllers[index];
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      if (selectedTypeId == 'checkbox')
+                                        Checkbox(
+                                          value: correctOptionIds.contains(opt['id']),
+                                          onChanged: (v) {
+                                            setDialogState(() {
+                                              if (v ?? false) {
+                                                if (!correctOptionIds.contains(opt['id'])) {
+                                                  correctOptionIds.add(opt['id'] ?? '');
                                                 }
-                                                correctOptionId = current.join(',');
-                                              });
-                                            },
-                                          )
-                                        else
-                                          Radio<String>(
-                                            value: opt['id']!,
-                                          ),
-                                        Expanded(
-                                          child: TextField(
-                                            onChanged: (v) => opt['text'] = v,
-                                            controller: TextEditingController(text: opt['text'])..selection = TextSelection.collapsed(offset: opt['text']!.length),
-                                            style: GoogleFonts.cairo(fontSize: 14),
-                                            decoration: InputDecoration(
-                                              hintText: 'الخيار ${index + 1}',
-                                              border: InputBorder.none,
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                                            ),
+                                              } else {
+                                                correctOptionIds.remove(opt['id'] ?? '');
+                                              }
+                                            });
+                                          },
+                                        )
+                                      else
+                                        Radio<String>(
+                                          value: opt['id'] ?? '',
+                                          groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
+                                          onChanged: (v) {
+                                            if (v != null) {
+                                              setDialogState(() => correctOptionIds = [v]);
+                                            }
+                                          },
+                                        ),
+                                      Expanded(
+                                        child: TextField(
+                                          onChanged: (v) => opt['text'] = v,
+                                          controller: controller,
+                                          style: GoogleFonts.cairo(fontSize: 14),
+                                          decoration: InputDecoration(
+                                            hintText: 'الخيار ${index + 1}',
+                                            border: InputBorder.none,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                                           ),
                                         ),
-                                        if (options.length > 1 && selectedTypeId != 'tf')
-                                          IconButton(
-                                            icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.red),
-                                            onPressed: () => setDialogState(() => options.removeAt(index)),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+                                      ),
+                                      if (options.length > 1 && selectedTypeId != 'tf')
+                                        IconButton(
+                                          icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.red),
+                                          onPressed: () => setDialogState(() {
+                                            options.removeAt(index);
+                                            optionControllers.removeAt(index).dispose();
+                                            correctOptionIds.remove(opt['id']);
+                                          }),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
                             ),
                             if (selectedTypeId != 'tf')
                               TextButton.icon(
                                 icon: const Icon(Icons.add, size: 20),
                                 label: Text('إضافة خيار جديد', style: GoogleFonts.cairo()),
                                 onPressed: () => setDialogState(() {
-                                  final newId = (options.length + 1).toString();
+                                  final newId = DateTime.now().millisecondsSinceEpoch.toString();
                                   options.add({'id': newId, 'text': ''});
+                                  optionControllers.add(TextEditingController());
                                 }),
                               ),
                           ] else if (selectedTypeId == 'essay')
@@ -693,7 +720,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                             };
                             if (selectedTypeId != 'essay') {
                               questionData['options'] = options;
-                              questionData['correctOptionId'] = correctOptionId;
+                              questionData['correctOptionIds'] = correctOptionIds;
+                              // Backwards compatibility
+                              if (correctOptionIds.isNotEmpty) {
+                                questionData['correctOptionId'] = correctOptionIds.first;
+                              }
                             } else {
                               questionData['essayAnswer'] = essayAnswerController.text.trim();
                             }
@@ -724,9 +755,17 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           ),
         ),
       );
-    },
-  );
-}
+    ).then((_) {
+      textController.dispose();
+      essayAnswerController.dispose();
+      explanationController.dispose();
+      explanationImageUrlController.dispose();
+      timeController.dispose();
+      for (var c in optionControllers) {
+        c.dispose();
+      }
+    });
+  }
 
   void _confirmDelete(String id, String text) {
     showDialog(
@@ -773,11 +812,23 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         _showStatusSnackBar('لا توجد أسئلة لتصديرها', isError: true);
         return;
       }
+      
       final csvContent = BulkUploadService.generateTemplate(questions: questions, topicIdToName: topicIdToName);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'questions_${widget.sectionName}_$timestamp.csv';
-      debugPrint('Generated CSV length: ${csvContent.length}');
-      _showStatusSnackBar('تم توليد ملف CSV بنجاح: $fileName', isError: false);
+      final fileName = 'questions_${widget.sectionName}_$timestamp';
+      
+      Uint8List bytes = Uint8List.fromList(utf8.encode(csvContent));
+      
+      await FileSaver.instance.saveFile(
+        name: fileName,
+        bytes: bytes,
+        ext: 'csv',
+        mimeType: MimeType.csv,
+      );
+
+      if (mounted) {
+        _showStatusSnackBar('تم حفظ ملف CSV بنجاح', isError: false);
+      }
     } catch (e) {
       if (mounted) {
         _showStatusSnackBar('فشل التصدير: $e', isError: true);

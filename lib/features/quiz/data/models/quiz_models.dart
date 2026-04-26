@@ -57,7 +57,7 @@ class QuizQuestion {
   final String text;
   final QuestionType type;
   final List<QuizOption>? options;
-  final String? correctOptionId; 
+  final List<String> correctOptionIds; 
   final String? essayAnswer;     
   final String? explanation;     
   final String? explanationImageUrl; 
@@ -89,7 +89,7 @@ class QuizQuestion {
     required this.type,
     this.id,
     this.options,
-    this.correctOptionId,
+    this.correctOptionIds = const [],
     this.essayAnswer,
     this.explanation,
     this.explanationImageUrl,
@@ -119,7 +119,9 @@ class QuizQuestion {
       text: data['text'] ?? '',
       type: _parseType(data['type']),
       options: (data['options'] as List?)?.map((e) => QuizOption(id: e['id'].toString(), text: e['text'].toString())).toList(),
-      correctOptionId: data['correctOptionId']?.toString(),
+      correctOptionIds: data['correctOptionIds'] != null 
+          ? List<String>.from(data['correctOptionIds']) 
+          : (data['correctOptionId'] != null ? [data['correctOptionId'].toString()] : []),
       essayAnswer: data['essayAnswer'],
       explanation: data['explanation'],
       explanationImageUrl: data['explanationImageUrl'],
@@ -171,7 +173,7 @@ class QuizQuestion {
       'text': text,
       'type': type.name,
       'options': options?.map((e) => {'id': e.id, 'text': e.text}).toList(),
-      'correctOptionId': correctOptionId,
+      'correctOptionIds': correctOptionIds,
       'essayAnswer': essayAnswer,
       'explanation': explanation,
       'explanationImageUrl': explanationImageUrl,
@@ -326,7 +328,7 @@ final QuizExam mockQuizExam = QuizExam(
         QuizOption(id: 'c', text: 'الناشرة للحرارة'),
         QuizOption(id: 'd', text: 'الخاصة للحرارة'),
       ],
-      correctOptionId: 'a',
+      correctOptionIds: ['a'],
       tagLabel: 'الفصل السادس: تغيرات الانثالبية',
     ),
     QuizQuestion(
@@ -339,7 +341,7 @@ final QuizExam mockQuizExam = QuizExam(
         QuizOption(id: 'c', text: 'أكسجين'),
         QuizOption(id: 'd', text: 'نيتروجين'),
       ],
-      correctOptionId: 'a',
+      correctOptionIds: ['a'],
       tagLabel: 'الفصل الرابع: الربط الكيميائي',
     ),
     QuizQuestion(
@@ -352,7 +354,7 @@ final QuizExam mockQuizExam = QuizExam(
         QuizOption(id: 'c', text: 'Pa (باسكال)'),
         QuizOption(id: 'd', text: 'mmHg'),
       ],
-      correctOptionId: 'c',
+      correctOptionIds: ['c'],
       tagLabel: 'الفصل الخامس: حالات المادة',
     ),
   ],
