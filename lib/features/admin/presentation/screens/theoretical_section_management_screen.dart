@@ -665,16 +665,17 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   const Divider(height: 1),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-                    child: Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 16,
-                      runSpacing: 16,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // --- Enabled Switch ---
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                             Text('حالة السؤال:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 8),
                             Transform.scale(
@@ -687,13 +688,20 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                             ),
                             Text(isEnabled ? 'مفعل' : 'معطل', style: GoogleFonts.cairo(fontSize: 12, color: isEnabled ? Colors.green : Colors.grey)),
                           ],
+                            ),
+                          ),
                         ),
+                        const SizedBox(width: 16),
                         
                         // --- Action Buttons ---
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                        TextButton(
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextButton(
                           onPressed: () => Navigator.pop(context),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -758,7 +766,9 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                           },
                           child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
                         ),
-                          ],
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
