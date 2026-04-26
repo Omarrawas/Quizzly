@@ -665,24 +665,34 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   const Divider(height: 1),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-                    child: Row(
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 16,
                       children: [
                         // --- Enabled Switch ---
-                        Text('حالة السؤال:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: isEnabled,
-                            activeThumbColor: AppColors.primaryBlue,
-                            onChanged: (v) => setDialogState(() => isEnabled = v),
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('حالة السؤال:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 8),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: isEnabled,
+                                activeThumbColor: AppColors.primaryBlue,
+                                onChanged: (v) => setDialogState(() => isEnabled = v),
+                              ),
+                            ),
+                            Text(isEnabled ? 'مفعل' : 'معطل', style: GoogleFonts.cairo(fontSize: 12, color: isEnabled ? Colors.green : Colors.grey)),
+                          ],
                         ),
-                        Text(isEnabled ? 'مفعل' : 'معطل', style: GoogleFonts.cairo(fontSize: 12, color: isEnabled ? Colors.green : Colors.grey)),
-                        
-                        const Spacer(),
                         
                         // --- Action Buttons ---
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           style: TextButton.styleFrom(
@@ -747,6 +757,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                             }
                           },
                           child: Text(isEdit ? 'حفظ التعديلات' : 'إضافة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+                        ),
+                          ],
                         ),
                       ],
                     ),
