@@ -167,9 +167,10 @@ class DatabaseService {
   Stream<QuerySnapshot> getQuestions(String sectionId) => getChildren(colQuestions, sectionId);
 
   // --- Exams ---
-  Stream<QuerySnapshot> getExams(String subjectId) {
+  Stream<QuerySnapshot> getExams(String subjectId, {required String sectionId}) {
     return _db.collection(colExams)
         .where('subjectId', isEqualTo: subjectId)
+        .where('sectionId', isEqualTo: sectionId)
         .orderBy('createdAt', descending: true)
         .snapshots();
   }

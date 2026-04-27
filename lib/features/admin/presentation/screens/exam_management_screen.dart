@@ -94,7 +94,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
 
   Widget _buildExamsList(bool isDark) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _dbService.getExams(widget.subjectId),
+      stream: _dbService.getExams(widget.subjectId, sectionId: widget.sectionId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (snapshot.hasError) {
@@ -374,6 +374,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   totalQuestions: totalQ,
                   passingScore: score,
                   subjectId: widget.subjectId,
+                  sectionId: widget.sectionId,
                   staticQuestionIds: existingConfig?.staticQuestionIds ?? [],
                   generationRules: selectedType == ExamType.bank ? GenerationRules(
                     topicIds: selectedTopics,

@@ -300,7 +300,8 @@ class ExamConfig {
   final int totalQuestions;
   final double passingScore;
   final String subjectId;
-  final String? category; // e.g. "دورة 2024", "اختبار تجريبي"
+  final String sectionId;
+  final String? category;
   final List<String> staticQuestionIds;
   final GenerationRules? generationRules;
 
@@ -312,6 +313,7 @@ class ExamConfig {
     required this.totalQuestions,
     required this.passingScore,
     required this.subjectId,
+    required this.sectionId,
     this.category,
     this.staticQuestionIds = const [],
     this.generationRules,
@@ -327,6 +329,7 @@ class ExamConfig {
       totalQuestions: data['totalQuestions'] ?? 0,
       passingScore: (data['passingScore'] ?? 60.0).toDouble(),
       subjectId: data['subjectId'] ?? '',
+      sectionId: data['sectionId'] ?? '',
       category: data['category'],
       staticQuestionIds: List<String>.from(data['staticQuestions'] ?? []),
       generationRules: data['type'] == 'bank' ? GenerationRules.fromMap(data['generationRules']) : null,
@@ -341,6 +344,7 @@ class ExamConfig {
       'totalQuestions': totalQuestions,
       'passingScore': passingScore,
       'subjectId': subjectId,
+      'sectionId': sectionId,
       'category': category,
       'staticQuestions': staticQuestionIds,
       if (type == ExamType.bank && generationRules != null)
