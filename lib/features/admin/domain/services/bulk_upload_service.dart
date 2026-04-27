@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:excel/excel.dart';
 
 class UploadError {
   final int row;
@@ -257,6 +258,158 @@ class BulkUploadService {
     return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
   }
 
+  Future<ParsedQuestionResult> parseAndValidateExcel(Uint8List fileBytes, String subjectId) async {
+    List<QuizQuestion> parsedQuestions = [];
+    List<UploadError> errors = [];
+
+    final excel = Excel.decodeBytes(fileBytes);
+    if (excel.tables.isEmpty) {
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف فارغ أو غير صالح.')]);
+    }
+
+    final table = excel.tables.values.first;
+    if (table.maxRows <= 1) {
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف لا يحتوي على أسئلة.')]);
+    }
+
+    // Header row
+    final headerRow = table.rows.first;
+    final header = headerRow.map((e) => e?.value?.toString().trim().toLowerCase() ?? '').toList();
+
+    int colText = header.indexOf('questiontext');
+    int colType = header.indexOf('type');
+    int colOptA = header.indexOf('opt_a');
+    int colOptB = header.indexOf('opt_b');
+    int colOptC = header.indexOf('opt_c');
+    int colOptD = header.indexOf('opt_d');
+    int colCorrect = header.indexOf('correctans');
+    int colDiff = header.indexOf('difficulty');
+    int colCognitive = header.indexOf('cognitivelevel');
+    int colTime = header.indexOf('timesec');
+    int colTopic = header.indexOf('topicname');
+    int colExpl = header.indexOf('explanation');
+
+    if (colText == -1) {
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'العمود QuestionText مفقود.')]);
+    }
+
+    final topicsSnap = await _db.collection('topics')
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    
+    Map<String, String> topicMap = {};
+    Map<String, Map<String, dynamic>> topicsRawMap = {};
+    
+    for (var doc in topicsSnap.docs) {
+      final data = doc.data();
+      final name = (data['name'] as String).trim().toLowerCase();
+      topicMap[name] = doc.id;
+      topicsRawMap[doc.id] = data;
+    }
+
+    final seenQuestions = <String>{};
+
+    for (int i = 1; i < table.maxRows; i++) {
+      var row = table.rows[i];
+      if (row.isEmpty || row.length <= colText || row[colText]?.value == null || row[colText]!.value.toString().trim().isEmpty) continue;
+
+      String text = row[colText]!.value.toString().trim();
+      final normalizedText = text.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      if (seenQuestions.contains(normalizedText)) {
+        errors.add(UploadError(row: i + 1, message: 'سؤال مكرر داخل الملف.'));
+        continue;
+      }
+      seenQuestions.add(normalizedText);
+
+      String fullTopicPath = colTopic != -1 && row.length > colTopic ? row[colTopic]?.value?.toString().trim() ?? '' : '';
+      List<String> topicIds = [];
+      if (fullTopicPath.isNotEmpty) {
+        String chapterName = '';
+        String lessonName = fullTopicPath;
+        if (fullTopicPath.contains(' - ')) {
+          final parts = fullTopicPath.split(' - ');
+          chapterName = parts[0].trim().toLowerCase();
+          lessonName = parts[1].trim().toLowerCase();
+        } else {
+          lessonName = fullTopicPath.trim().toLowerCase();
+        }
+
+        String? finalTopicId;
+        if (chapterName.isNotEmpty) {
+          final chapterId = topicMap[chapterName];
+          if (chapterId != null) {
+            for (var entry in topicsRawMap.entries) {
+              if (entry.value['name'].toString().toLowerCase() == lessonName && entry.value['parentId'] == chapterId) {
+                finalTopicId = entry.key;
+                break;
+              }
+            }
+          }
+        }
+        finalTopicId ??= topicMap[lessonName];
+
+        if (finalTopicId != null) {
+          topicIds.add(finalTopicId);
+        } else {
+          errors.add(UploadError(row: i + 1, message: 'الموضوع "$fullTopicPath" غير موجود.'));
+        }
+      }
+
+      String typeStr = colType != -1 && row.length > colType ? row[colType]?.value?.toString().trim().toLowerCase() ?? 'mcq' : 'mcq';
+      QuestionType type = typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq);
+
+      List<String> options = [];
+      if (type == QuestionType.mcq || type == QuestionType.trueFalse) {
+        if (colOptA != -1 && row.length > colOptA && row[colOptA]?.value != null) options.add(row[colOptA]!.value.toString().trim());
+        if (colOptB != -1 && row.length > colOptB && row[colOptB]?.value != null) options.add(row[colOptB]!.value.toString().trim());
+        if (colOptC != -1 && row.length > colOptC && row[colOptC]?.value != null) options.add(row[colOptC]!.value.toString().trim());
+        if (colOptD != -1 && row.length > colOptD && row[colOptD]?.value != null) options.add(row[colOptD]!.value.toString().trim());
+      }
+
+      String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect]?.value?.toString().trim() ?? '' : '';
+      dynamic correctAnswer;
+      if (type == QuestionType.mcq) {
+        int ansIndex = -1;
+        switch (correctAnsRaw.toLowerCase()) {
+          case 'a': ansIndex = 0; break;
+          case 'b': ansIndex = 1; break;
+          case 'c': ansIndex = 2; break;
+          case 'd': ansIndex = 3; break;
+        }
+        if (ansIndex != -1 && ansIndex < options.length) correctAnswer = ansIndex;
+      } else if (type == QuestionType.trueFalse) {
+        if (correctAnsRaw.toLowerCase() == 'true' || correctAnsRaw.toLowerCase() == 'صح') {
+          correctAnswer = true;
+        } else if (correctAnsRaw.toLowerCase() == 'false' || correctAnsRaw.toLowerCase() == 'خطأ') {
+          correctAnswer = false;
+        }
+      } else {
+        correctAnswer = correctAnsRaw;
+      }
+
+      Difficulty diff = Difficulty.values.firstWhere((e) => e.name == (colDiff != -1 && row.length > colDiff ? row[colDiff]?.value?.toString().trim().toLowerCase() : 'medium'), orElse: () => Difficulty.medium);
+      CognitiveLevel cog = CognitiveLevel.values.firstWhere((e) => e.name == (colCognitive != -1 && row.length > colCognitive ? row[colCognitive]?.value?.toString().trim().toLowerCase() : 'understanding'), orElse: () => CognitiveLevel.understanding);
+      int timeSec = int.tryParse(colTime != -1 && row.length > colTime ? row[colTime]?.value?.toString() ?? '60' : '60') ?? 60;
+
+      parsedQuestions.add(QuizQuestion(
+        id: _generateQuestionId(text),
+        number: i,
+        text: text,
+        type: type,
+        options: options.isNotEmpty ? options.asMap().entries.map((e) => QuizOption(id: e.key.toString(), text: e.value)).toList() : null,
+        correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? (correctAnswer != null ? [correctAnswer.toString()] : []) : [],
+        essayAnswer: type == QuestionType.essay ? correctAnswer?.toString() : null,
+        explanation: colExpl != -1 && row.length > colExpl ? row[colExpl]?.value?.toString().trim() : null,
+        difficulty: diff,
+        cognitiveLevel: cog,
+        topicIds: topicIds.isNotEmpty ? topicIds : null,
+        estimatedTime: timeSec,
+      ));
+    }
+
+    return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
+  }
+
   Future<void> saveQuestions(List<QuizQuestion> questions, String subjectId) async {
     final batch = _db.batch();
     for (var q in questions) {
@@ -276,109 +429,39 @@ class BulkUploadService {
   }
 
 
-  String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, Map<String, dynamic>> topicsMap) {
-    List<List<dynamic>> rows = [];
-    
-    // Header
-    rows.add([
-      'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
-      'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
-      'TopicName', 'Explanation'
-    ]);
-
-
-    for (var doc in docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final type = data['type'] ?? 'mcq';
-      final options = data['options'] as List? ?? [];
-      
-      String optA = options.isNotEmpty ? options[0]['text'].toString() : '';
-      String optB = options.length > 1 ? options[1]['text'].toString() : '';
-      String optC = options.length > 2 ? options[2]['text'].toString() : '';
-      String optD = options.length > 3 ? options[3]['text'].toString() : '';
-
-      String correctAns = '';
-      if (type == 'mcq') {
-        final correctIds = data['correctOptionIds'] as List? ?? (data['correctOptionId'] != null ? [data['correctOptionId']] : []);
-        int idx = options.indexWhere((o) => correctIds.contains(o['id'].toString()));
-        if (idx != -1) {
-          correctAns = String.fromCharCode(97 + idx); // a, b, c, d
-        }
-      } else if (type == 'tf') {
-        final correctIds = data['correctOptionIds'] as List? ?? (data['correctOptionId'] != null ? [data['correctOptionId']] : []);
-        correctAns = correctIds.contains('true') || correctIds.contains('صح') ? 'صح' : 'خطأ';
-      } else {
-        correctAns = data['essayAnswer'] ?? '';
-      }
-
-      String topicName = '';
-      final topicIds = data['topicIds'] as List?;
-      
-      if (topicIds != null && topicIds.isNotEmpty) {
-        final topicId = topicIds.first.toString();
-        final topicData = topicsMap[topicId]; // Wait, I need access to the topics map
-        if (topicData != null) {
-          final parentId = topicData['parentId'];
-          if (parentId != null) {
-            final parentData = topicsMap[parentId];
-            topicName = "${parentData?['name'] ?? ''} - ${topicData['name'] ?? ''}";
-          } else {
-            topicName = topicData['name'] ?? '';
-          }
-        }
-      }
-
-      rows.add([
-        data['text'] ?? '',
-        type,
-        optA, optB, optC, optD,
-        correctAns,
-        data['difficulty'] ?? 'medium',
-        data['cognitiveLevel'] ?? 'understanding',
-        data['estimatedTime'] ?? 60,
-        topicName,
-        data['explanation'] ?? ''
-      ]);
-    }
-
-    final csv = const ListToCsvConverter(
-      fieldDelimiter: ',',
-      textDelimiter: '"',
-      eol: '\n',
-    ).convert(rows);
-    
-    return "sep=,\n$csv";
-  }
-
-  static String generateTemplate({
+  static Uint8List generateExcelTemplate({
     required List<QuizQuestion> questions,
     required Map<String, Map<String, dynamic>> topicsMap,
   }) {
-    List<List<dynamic>> rows = [];
-    
-    // Header
-    rows.add([
+    final excel = Excel.createExcel();
+    final sheet = excel['Questions'];
+    excel.setDefaultSheet('Questions');
+
+    final headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: ExcelColor.fromHexString('#EEEEEE'),
+    );
+
+    final List<String> headers = [
       'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
       'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
       'TopicName', 'Explanation'
-    ]);
+    ];
 
+    for (int i = 0; i < headers.length; i++) {
+      var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = headerStyle;
+    }
 
-    for (var q in questions) {
-      final type = q.type.name;
+    for (int i = 0; i < questions.length; i++) {
+      final q = questions[i];
       final options = q.options ?? [];
       
-      String optA = options.isNotEmpty ? options[0].text : '';
-      String optB = options.length > 1 ? options[1].text : '';
-      String optC = options.length > 2 ? options[2].text : '';
-      String optD = options.length > 3 ? options[3].text : '';
-
       String correctAns = '';
       if (q.type == QuestionType.mcq) {
         int idx = options.indexWhere((o) => q.correctOptionIds.contains(o.id));
-        if (idx != -1) {
-          correctAns = String.fromCharCode(97 + idx); // a, b, c, d
-        }
+        if (idx != -1) correctAns = String.fromCharCode(97 + idx);
       } else if (q.type == QuestionType.trueFalse) {
         correctAns = q.correctOptionIds.contains('true') || q.correctOptionIds.contains('صح') ? 'صح' : 'خطأ';
       } else {
@@ -400,25 +483,33 @@ class BulkUploadService {
         }
       }
 
-      rows.add([
-        q.text,
-        type,
-        optA, optB, optC, optD,
+      final rowValues = [
+        q.text, q.type.name,
+        options.isNotEmpty ? options[0].text : '',
+        options.length > 1 ? options[1].text : '',
+        options.length > 2 ? options[2].text : '',
+        options.length > 3 ? options[3].text : '',
         correctAns,
         q.difficulty?.name ?? 'medium',
         q.cognitiveLevel?.name ?? 'understanding',
         q.estimatedTime,
         topicName,
         q.explanation ?? ''
-      ]);
+      ];
+
+      for (int j = 0; j < rowValues.length; j++) {
+        var cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1));
+        final val = rowValues[j];
+        if (val is int) {
+          cell.value = IntCellValue(val);
+        } else if (val is double) {
+          cell.value = DoubleCellValue(val);
+        } else {
+          cell.value = TextCellValue(val.toString());
+        }
+      }
     }
 
-    final csv = const ListToCsvConverter(
-      fieldDelimiter: ',',
-      textDelimiter: '"',
-      eol: '\n',
-    ).convert(rows);
-
-    return "sep=,\n$csv";
+    return Uint8List.fromList(excel.encode()!);
   }
 }

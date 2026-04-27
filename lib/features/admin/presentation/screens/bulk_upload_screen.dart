@@ -22,7 +22,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv'],
+        allowedExtensions: ['xlsx', 'xls', 'csv'],
         withData: true,
       );
 
@@ -33,7 +33,11 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         });
 
         final bytes = result.files.single.bytes!;
-        final parsedResult = await _uploadService.parseAndValidateCsv(bytes, widget.subjectId);
+        final extension = result.files.single.extension?.toLowerCase();
+        
+        final parsedResult = (extension == 'xlsx' || extension == 'xls')
+            ? await _uploadService.parseAndValidateExcel(bytes, widget.subjectId)
+            : await _uploadService.parseAndValidateCsv(bytes, widget.subjectId);
 
         setState(() {
           _result = parsedResult;
@@ -70,7 +74,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('رفع أسئلة جماعي (CSV)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('رفع أسئلة جماعي (Excel)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -88,7 +92,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                 children: [
                   const Icon(Icons.file_upload_outlined, size: 48, color: AppColors.primaryBlue),
                   const SizedBox(height: 16),
-                  Text('قم برفع ملف CSV يحتوي على الأسئلة', style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('قم برفع ملف Excel (.xlsx) يحتوي على الأسئلة', style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _isProcessing ? null : _pickFile,

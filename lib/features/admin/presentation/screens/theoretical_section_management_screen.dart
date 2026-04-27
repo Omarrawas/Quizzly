@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -130,12 +128,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded),
-            tooltip: 'تصدير الأسئلة (CSV)',
-            onPressed: _exportCSV,
+            tooltip: 'تصدير الأسئلة (Excel)',
+            onPressed: _exportToExcel,
           ),
           IconButton(
             icon: const Icon(Icons.upload_file_rounded),
-            tooltip: 'رفع أسئلة (CSV)',
+            tooltip: 'رفع أسئلة (Excel)',
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => BulkUploadScreen(subjectId: widget.subjectId)));
             },
@@ -564,7 +562,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     );
   }
 
-  Future<void> _exportCSV() async {
+  Future<void> _exportToExcel() async {
     try {
       final questionsSnap = await FirebaseFirestore.instance
           .collection(DatabaseService.colQuestions)
@@ -580,25 +578,22 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         return;
       }
       
-      final csvContent = BulkUploadService.generateTemplate(
+      final bytes = BulkUploadService.generateExcelTemplate(
         questions: questions, 
         topicsMap: _topicsMap,
       );
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'questions_${widget.sectionName ?? "global"}_$timestamp';
       
-      final encodedContent = utf8.encode(csvContent);
-      final bytes = Uint8List.fromList([0xEF, 0xBB, 0xBF, ...encodedContent]);
-      
       await FileSaver.instance.saveFile(
         name: fileName,
         bytes: bytes,
-        ext: 'csv',
-        mimeType: MimeType.csv,
+        ext: 'xlsx',
+        mimeType: MimeType.microsoftExcel,
       );
 
       if (mounted) {
-        _showStatusSnackBar('تم حفظ ملف CSV بنجاح', isError: false);
+        _showStatusSnackBar('تم حفظ ملف Excel بنجاح', isError: false);
       }
     } catch (e) {
       if (mounted) {
