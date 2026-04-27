@@ -39,7 +39,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('تصنيف المادة - ${widget.subjectName}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('إدارة الفصول والدروس - ${widget.sectionName}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.pop(context),
