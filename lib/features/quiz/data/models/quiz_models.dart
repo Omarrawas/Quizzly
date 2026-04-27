@@ -115,10 +115,73 @@ class QuizQuestion {
     this.isRepeated = false,
   });
 
-  factory QuizQuestion.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  QuizQuestion copyWith({
+    String? id,
+    int? number,
+    String? text,
+    QuestionType? type,
+    List<QuizOption>? options,
+    List<String>? correctOptionIds,
+    String? essayAnswer,
+    String? explanation,
+    String? explanationImageUrl,
+    Difficulty? difficulty,
+    CognitiveLevel? cognitiveLevel,
+    int? estimatedTime,
+    String? primaryTopicId,
+    List<String>? topicIds,
+    List<String>? topicNames,
+    Map<String, double>? topicWeights,
+    double? discriminationIndex,
+    bool? isFrequentlyWrong,
+    String? tagLabel,
+    String? imageUrl,
+    List<String>? examTags,
+    QuestionAnalytics? analytics,
+    QuestionStatus? status,
+    String? authorId,
+    String? reviewerId,
+    String? reviewFeedback,
+    bool? isRepeated,
+  }) {
     return QuizQuestion(
-      id: doc.id,
+      id: id ?? this.id,
+      number: number ?? this.number,
+      text: text ?? this.text,
+      type: type ?? this.type,
+      options: options ?? this.options,
+      correctOptionIds: correctOptionIds ?? this.correctOptionIds,
+      essayAnswer: essayAnswer ?? this.essayAnswer,
+      explanation: explanation ?? this.explanation,
+      explanationImageUrl: explanationImageUrl ?? this.explanationImageUrl,
+      difficulty: difficulty ?? this.difficulty,
+      cognitiveLevel: cognitiveLevel ?? this.cognitiveLevel,
+      estimatedTime: estimatedTime ?? this.estimatedTime,
+      primaryTopicId: primaryTopicId ?? this.primaryTopicId,
+      topicIds: topicIds ?? this.topicIds,
+      topicNames: topicNames ?? this.topicNames,
+      topicWeights: topicWeights ?? this.topicWeights,
+      discriminationIndex: discriminationIndex ?? this.discriminationIndex,
+      isFrequentlyWrong: isFrequentlyWrong ?? this.isFrequentlyWrong,
+      tagLabel: tagLabel ?? this.tagLabel,
+      imageUrl: imageUrl ?? this.imageUrl,
+      examTags: examTags ?? this.examTags,
+      analytics: analytics ?? this.analytics,
+      status: status ?? this.status,
+      authorId: authorId ?? this.authorId,
+      reviewerId: reviewerId ?? this.reviewerId,
+      reviewFeedback: reviewFeedback ?? this.reviewFeedback,
+      isRepeated: isRepeated ?? this.isRepeated,
+    );
+  }
+
+  factory QuizQuestion.fromFirestore(DocumentSnapshot doc) {
+    return QuizQuestion.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+  }
+
+  factory QuizQuestion.fromMap(Map<String, dynamic> data, [String? docId]) {
+    return QuizQuestion(
+      id: docId,
       number: data['order'] ?? 0,
       text: data['text'] ?? '',
       type: _parseType(data['type']),

@@ -128,8 +128,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded),
-            tooltip: 'تصدير الأسئلة (Excel)',
-            onPressed: _exportToExcel,
+            tooltip: 'تصدير الأسئلة',
+            onPressed: _showExportDialog,
           ),
           IconButton(
             icon: const Icon(Icons.upload_file_rounded),
@@ -562,7 +562,37 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     );
   }
 
-  Future<void> _exportToExcel() async {
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('اختر صيغة التصدير', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.table_view_rounded, color: Colors.green),
+              title: Text('Excel (.xlsx)', style: GoogleFonts.cairo()),
+              onTap: () {
+                Navigator.pop(context);
+                _exportQuestions(isExcel: true);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.code_rounded, color: Colors.blue),
+              title: Text('JSON (.json)', style: GoogleFonts.cairo()),
+              onTap: () {
+                Navigator.pop(context);
+                _exportQuestions(isExcel: false);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportQuestions({required bool isExcel}) async {
     try {
       final questionsSnap = await FirebaseFirestore.instance
           .collection(DatabaseService.colQuestions)
@@ -578,22 +608,22 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         return;
       }
       
-      final bytes = BulkUploadService.generateExcelTemplate(
-        questions: questions, 
-        topicsMap: _topicsMap,
-      );
+      final bytes = isExcel 
+          ? BulkUploadService.generateExcelTemplate(questions: questions, topicsMap: _topicsMap)
+          : BulkUploadService.generateJSONTemplate(questions);
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'questions_${widget.sectionName ?? "global"}_$timestamp';
       
       await FileSaver.instance.saveFile(
         name: fileName,
         bytes: bytes,
-        ext: 'xlsx',
-        mimeType: MimeType.microsoftExcel,
+        ext: isExcel ? 'xlsx' : 'json',
+        mimeType: isExcel ? MimeType.microsoftExcel : MimeType.json,
       );
 
       if (mounted) {
-        _showStatusSnackBar('تم حفظ ملف Excel بنجاح', isError: false);
+        _showStatusSnackBar('تم حفظ الملف بنجاح', isError: false);
       }
     } catch (e) {
       if (mounted) {

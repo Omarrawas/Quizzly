@@ -410,6 +410,29 @@ class BulkUploadService {
     return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
   }
 
+  Future<ParsedQuestionResult> parseAndValidateJSON(Uint8List fileBytes) async {
+    try {
+      final jsonString = utf8.decode(fileBytes);
+      final List<dynamic> data = json.decode(jsonString);
+      List<QuizQuestion> parsedQuestions = [];
+      List<UploadError> errors = [];
+
+      for (int i = 0; i < data.length; i++) {
+        try {
+          final q = QuizQuestion.fromMap(data[i] as Map<String, dynamic>);
+          // Regenerate ID to ensure consistency and avoid collisions if imported from a different source
+          final finalQ = q.copyWith(id: _generateQuestionId(q.text));
+          parsedQuestions.add(finalQ);
+        } catch (e) {
+          errors.add(UploadError(row: i + 1, message: 'بيانات غير صالحة: $e'));
+        }
+      }
+      return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
+    } catch (e) {
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'ملف JSON غير صالح: $e')]);
+    }
+  }
+
   Future<void> saveQuestions(List<QuizQuestion> questions, String subjectId) async {
     final batch = _db.batch();
     for (var q in questions) {
@@ -511,5 +534,11 @@ class BulkUploadService {
     }
 
     return Uint8List.fromList(excel.encode()!);
+  }
+
+  static Uint8List generateJSONTemplate(List<QuizQuestion> questions) {
+    final List<Map<String, dynamic>> data = questions.map((q) => q.toMap()).toList();
+    final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+    return Uint8List.fromList(utf8.encode(jsonString));
   }
 }

@@ -26,11 +26,37 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
   late List<String> _selectedIds;
   String _searchQuery = '';
   String? _selectedTopicId;
+  Map<String, Map<String, dynamic>> _topicsMap = {};
+  bool _isLoadingTopics = true;
 
   @override
   void initState() {
     super.initState();
     _selectedIds = List.from(widget.initialSelectedIds);
+    _loadTopics();
+  }
+
+  Future<void> _loadTopics() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colTopics)
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      
+      final Map<String, Map<String, dynamic>> topics = {};
+      for (var doc in snap.docs) {
+        topics[doc.id] = doc.data();
+      }
+      
+      if (mounted) {
+        setState(() {
+          _topicsMap = topics;
+          _isLoadingTopics = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingTopics = false);
+    }
   }
 
   Future<void> _saveSelection() async {
@@ -138,42 +164,40 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
               filled: true,
             ),
           ),
-          const SizedBox(height: 12),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection(DatabaseService.colTopics)
-                .where('subjectId', isEqualTo: widget.subjectId)
-                .orderBy('order')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const LinearProgressIndicator();
-              final topics = snapshot.data!.docs;
-              return DropdownButtonFormField<String>(
-                initialValue: _selectedTopicId,
-                isExpanded: true,
-                hint: Text('تصفية حسب الموضوع', style: GoogleFonts.cairo(fontSize: 12)),
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  fillColor: isDark ? Colors.black26 : Colors.white,
-                  filled: true,
-                ),
-                items: [
-                  DropdownMenuItem(value: null, child: Text('جميع المواضيع', style: GoogleFonts.cairo(fontSize: 12))),
-                  ...topics.map((t) {
-                    final data = t.data() as Map<String, dynamic>;
-                    final prefix = data['type'] == 'chapter' ? '' : (data['type'] == 'lesson' ? '  - ' : '    -- ');
-                    return DropdownMenuItem(
-                      value: t.id,
-                      child: Text(prefix + data['name'], style: GoogleFonts.cairo(fontSize: 12)),
-                    );
-                  }),
-                ],
-                onChanged: (v) => setState(() => _selectedTopicId = v),
-              );
-            },
-          ),
+          if (_isLoadingTopics)
+            const LinearProgressIndicator()
+          else
+            DropdownButtonFormField<String>(
+              value: _selectedTopicId,
+              isExpanded: true,
+              hint: Text('تصفية حسب الموضوع', style: GoogleFonts.cairo(fontSize: 12)),
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                fillColor: isDark ? Colors.black26 : Colors.white,
+                filled: true,
+              ),
+              items: [
+                DropdownMenuItem(value: null, child: Text('جميع المواضيع', style: GoogleFonts.cairo(fontSize: 12))),
+                ..._topicsMap.entries.map((entry) {
+                  final data = entry.value;
+                  final name = data['name'] ?? '';
+                  final parentId = data['parentId'];
+                  String label = name;
+                  
+                  if (parentId != null && _topicsMap.containsKey(parentId)) {
+                    label = "${_topicsMap[parentId]!['name']} - $name";
+                  }
+                  
+                  return DropdownMenuItem(
+                    value: entry.key,
+                    child: Text(label, style: GoogleFonts.cairo(fontSize: 12), overflow: TextOverflow.ellipsis),
+                  );
+                }),
+              ],
+              onChanged: (v) => setState(() => _selectedTopicId = v),
+            ),
         ],
       ),
     );
@@ -185,7 +209,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
         .where('subjectId', isEqualTo: widget.subjectId);
 
     if (_selectedTopicId != null) {
-      query = query.where('topicId', isEqualTo: _selectedTopicId);
+      query = query.where('topicIds', arrayContains: _selectedTopicId);
     }
 
     return StreamBuilder<QuerySnapshot>(
