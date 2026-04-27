@@ -36,6 +36,76 @@ class TheoreticalSectionManagementScreen extends StatefulWidget {
 
 class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionManagementScreen> {
   final DatabaseService _dbService = DatabaseService();
+  Map<String, Map<String, dynamic>> _topicsMap = {};
+  bool _isLoadingTopics = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTopics();
+  }
+
+  Future<void> _loadTopics() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colTopics)
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      
+      final Map<String, Map<String, dynamic>> topics = {};
+      for (var doc in snap.docs) {
+        topics[doc.id] = doc.data();
+      }
+      
+      if (mounted) {
+        setState(() {
+          _topicsMap = topics;
+          _isLoadingTopics = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTopics = false);
+      }
+    }
+  }
+
+  String _getTopicLabel(List<dynamic>? topicIds) {
+    if (topicIds == null || topicIds.isEmpty) return 'بدون موضوع';
+    
+    final topicId = topicIds.first.toString();
+    final topicData = _topicsMap[topicId];
+    if (topicData == null) return 'موضوع غير معروف';
+    
+    final name = topicData['name'] ?? '';
+    final parentId = topicData['parentId'];
+    
+    if (parentId != null) {
+      final parentData = _topicsMap[parentId];
+      if (parentData != null) {
+        return "${parentData['name']} - $name";
+      }
+    }
+    
+    return name;
+  }
+
+  String _getChapterName(List<dynamic>? topicIds) {
+    if (topicIds == null || topicIds.isEmpty) return 'عام';
+    
+    final topicId = topicIds.first.toString();
+    final topicData = _topicsMap[topicId];
+    if (topicData == null) return 'عام';
+    
+    final parentId = topicData['parentId'];
+    if (parentId != null) {
+      final parentData = _topicsMap[parentId];
+      return parentData?['name'] ?? 'عام';
+    }
+    
+    return topicData['name'] ?? 'عام';
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +189,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   }
 
   Widget _buildQuestionsList(bool isDark) {
+    if (_isLoadingTopics) return const Center(child: CircularProgressIndicator());
+
     Query query = FirebaseFirestore.instance
         .collection(DatabaseService.colQuestions)
         .where('subjectId', isEqualTo: widget.subjectId);
@@ -130,7 +202,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     }
 
     return StreamBuilder<QuerySnapshot>(
-      stream: query.limit(50).snapshots(),
+      stream: query.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (snapshot.hasError) {
@@ -141,15 +213,100 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           return _emptyState('لا توجد أسئلة في هذا القسم حالياً', isDark);
         }
 
+        // Group and sort questions by chapter and lesson order
         final docs = snapshot.data!.docs;
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final id = docs[index].id;
-            return _buildQuestionCard(id, data, isDark, key: ValueKey(id));
-          },
+        final Map<String, List<QueryDocumentSnapshot>> grouped = {};
+        
+        for (var doc in docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final chapter = _getChapterName(data['topicIds']);
+          if (!grouped.containsKey(chapter)) grouped[chapter] = [];
+          grouped[chapter]!.add(doc);
+        }
+
+        // Sort Chapters by their order in _topicsMap
+        final sortedChapters = grouped.keys.toList();
+        sortedChapters.sort((a, b) {
+          final aTopic = _topicsMap.values.firstWhere((t) => t['name'] == a && t['parentId'] == null, orElse: () => {});
+          final bTopic = _topicsMap.values.firstWhere((t) => t['name'] == b && t['parentId'] == null, orElse: () => {});
+          return (aTopic['order'] ?? 0).compareTo(bTopic['order'] ?? 0);
+        });
+        
+        final List<Widget> listItems = [];
+        
+        for (var chapter in sortedChapters) {
+          // Sort questions within chapter by lesson order
+          final questionsInChapter = grouped[chapter]!;
+          questionsInChapter.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTopicId = (aData['topicIds'] as List?)?.firstOrNull;
+            final bTopicId = (bData['topicIds'] as List?)?.firstOrNull;
+            final aOrder = _topicsMap[aTopicId]?['order'] ?? 0;
+            final bOrder = _topicsMap[bTopicId]?['order'] ?? 0;
+            return aOrder.compareTo(bOrder);
+          });
+
+          // Add Header
+          listItems.add(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    chapter,
+                    style: GoogleFonts.cairo(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${questionsInChapter.length} سؤال',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          // Add Questions
+          for (var doc in questionsInChapter) {
+            final data = doc.data() as Map<String, dynamic>;
+            final id = doc.id;
+            listItems.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildQuestionCard(id, data, isDark, key: ValueKey(id)),
+              ),
+            );
+          }
+        }
+
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 100),
+          children: listItems,
         );
       },
     );
@@ -191,11 +348,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (data['topicNames'] != null && (data['topicNames'] as List).isNotEmpty)
+                  if (data['topicIds'] != null && (data['topicIds'] as List).isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        "${widget.sectionName ?? 'بنك الأسئلة'} - ${(data['topicNames'] as List).join(', ')}",
+                        _getTopicLabel(data['topicIds']),
                         style: GoogleFonts.cairo(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
