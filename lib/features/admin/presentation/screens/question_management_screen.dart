@@ -41,6 +41,11 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   List<Map<String, String>> options = [];
   List<String> correctOptionIds = [];
   List<TextEditingController> optionControllers = [];
+  
+  // Topic selection
+  List<String> selectedTopicIds = [];
+  List<String> selectedTopicNames = [];
+  List<Map<String, dynamic>> availableLessons = [];
 
   final List<Map<String, dynamic>> questionTypes = [
     {'id': 'mcq', 'label': 'خيارات متعددة', 'icon': Icons.radio_button_checked_rounded},
@@ -84,6 +89,34 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     }
 
     optionControllers = options.map((opt) => TextEditingController(text: opt['text'])).toList();
+    
+    // Initialize topics
+    if (widget.questionId != null) {
+      selectedTopicIds = List<String>.from(currentData?['topicIds'] ?? []);
+      selectedTopicNames = List<String>.from(currentData?['topicNames'] ?? []);
+    } else if (widget.lessonId != null) {
+      selectedTopicIds = [widget.lessonId!];
+      selectedTopicNames = [widget.lessonName ?? 'درس غير معروف'];
+    }
+    
+    _loadAvailableLessons();
+  }
+
+  Future<void> _loadAvailableLessons() async {
+    try {
+      // Get all topics of type 'lesson' for this subject
+      final snapshot = await _dbService.getTopics(widget.subjectId, type: 'lesson').first;
+      if (mounted) {
+        setState(() {
+          availableLessons = snapshot.docs.map((doc) => {
+            'id': doc.id,
+            'name': (doc.data() as Map<String, dynamic>)['name'] ?? '',
+          }).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading lessons: $e');
+    }
   }
 
   @override
@@ -234,11 +267,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'explanation': explanationController.text.trim(),
       'explanationImageUrl': explanationImageUrlController.text.trim(),
       'difficulty': selectedDifficulty.name,
-      'estimatedTime': int.tryParse(timeController.text) ?? 60,
-      'primaryTopicId': widget.lessonId,
-      'topicIds': widget.lessonId != null ? [widget.lessonId!] : [],
-      'topicNames': widget.lessonName != null ? [widget.lessonName!] : [],
-      'topicWeights': widget.lessonId != null ? {widget.lessonId!: 1.0} : {},
+      'primaryTopicId': selectedTopicIds.isNotEmpty ? selectedTopicIds.first : (widget.lessonId ?? 'global'),
+      'topicIds': selectedTopicIds,
+      'topicNames': selectedTopicNames,
+      'topicWeights': {for (var id in selectedTopicIds) id: 1.0},
       'discriminationIndex': 0.5,
       'isFrequentlyWrong': false,
       'parentId': widget.sectionId ?? 'global',
@@ -534,7 +566,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<Difficulty>(
-                          value: selectedDifficulty,
+                          initialValue: selectedDifficulty,
                           decoration: InputDecoration(labelText: 'الصعوبة', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                           items: Difficulty.values.map((e) => DropdownMenuItem(value: e, child: Text(_translateDifficulty(e), style: GoogleFonts.cairo()))).toList(),
                           onChanged: (v) => setState(() => selectedDifficulty = v!),
@@ -552,6 +584,39 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                  
+                  const SizedBox(height: 24),
+                  Text('المواضيع المرتبطة', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ...selectedTopicIds.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final name = selectedTopicNames[idx];
+                        return Chip(
+                          label: Text(name, style: GoogleFonts.cairo(fontSize: 12)),
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          onDeleted: () => setState(() {
+                            selectedTopicIds.removeAt(idx);
+                            selectedTopicNames.removeAt(idx);
+                          }),
+                          backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
+                          side: BorderSide.none,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        );
+                      }),
+                      ActionChip(
+                        label: Text('إضافة موضوع', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue)),
+                        avatar: const Icon(Icons.add, size: 14, color: AppColors.primaryBlue),
+                        onPressed: _showTopicSelectionDialog,
+                        backgroundColor: Colors.transparent,
+                        side: const BorderSide(color: AppColors.primaryBlue),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -564,6 +629,56 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     ),
   ),
 );
+  }
+
+  void _showTopicSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('اختر المواضيع', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: availableLessons.isEmpty 
+            ? Center(child: Text('لا توجد مواضيع متاحة', style: GoogleFonts.cairo()))
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: availableLessons.length,
+                itemBuilder: (context, index) {
+                  final lesson = availableLessons[index];
+                  final isSelected = selectedTopicIds.contains(lesson['id']);
+                  return CheckboxListTile(
+                    title: Text(lesson['name'], style: GoogleFonts.cairo()),
+                    value: isSelected,
+                    onChanged: (val) {
+                      setState(() {
+                        if (val ?? false) {
+                          if (!selectedTopicIds.contains(lesson['id'])) {
+                            selectedTopicIds.add(lesson['id']);
+                            selectedTopicNames.add(lesson['name']);
+                          }
+                        } else {
+                          final idx = selectedTopicIds.indexOf(lesson['id']);
+                          if (idx != -1) {
+                            selectedTopicIds.removeAt(idx);
+                            selectedTopicNames.removeAt(idx);
+                          }
+                        }
+                      });
+                      Navigator.pop(context);
+                      _showTopicSelectionDialog(); // Re-open to allow multiple selections easily or just keep it open
+                    },
+                  );
+                },
+              ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إغلاق', style: GoogleFonts.cairo()),
+          ),
+        ],
+      ),
+    );
   }
 
   String _translateDifficulty(Difficulty d) {
