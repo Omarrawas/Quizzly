@@ -6,6 +6,7 @@ import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 
 import 'package:quizzly/features/admin/presentation/screens/exam_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/topic_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/subject_dashboard_screen.dart';
 
