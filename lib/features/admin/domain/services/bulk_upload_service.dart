@@ -241,12 +241,16 @@ class BulkUploadService {
   String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, String> topicIdToName) {
     List<List<dynamic>> rows = [];
     
+    // Force Excel to use comma as delimiter
+    rows.add(['sep=,']);
+    
     // Header
     rows.add([
       'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
       'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
       'TopicName', 'Explanation'
     ]);
+
 
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
@@ -310,12 +314,16 @@ class BulkUploadService {
   }) {
     List<List<dynamic>> rows = [];
     
+    // Force Excel to use comma as delimiter
+    rows.add(['sep=,']);
+    
     // Header
     rows.add([
       'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
       'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
       'TopicName', 'Explanation'
     ]);
+
 
     for (var q in questions) {
       final type = q.type.name;

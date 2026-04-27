@@ -195,7 +195,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        (data['topicNames'] as List).join(', '),
+                        "${widget.sectionName ?? 'بنك الأسئلة'} - ${(data['topicNames'] as List).join(', ')}",
                         style: GoogleFonts.cairo(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
