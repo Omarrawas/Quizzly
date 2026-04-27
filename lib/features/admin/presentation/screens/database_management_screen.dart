@@ -263,7 +263,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         builder: (context) => TopicManagementScreen(
           subjectId: subjectId,
           sectionId: sectionId,
-          subjectName: name,
+          subjectName: _levelNames[ManagementLevel.subject] ?? name,
+          sectionName: name,
           breadcrumbs: breadcrumbs,
         ),
       ),
