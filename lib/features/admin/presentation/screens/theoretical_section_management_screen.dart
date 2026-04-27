@@ -36,6 +36,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   final DatabaseService _dbService = DatabaseService();
   Map<String, Map<String, dynamic>> _topicsMap = {};
   bool _isLoadingTopics = true;
+  
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedChapterId;
+  String? _selectedLessonId;
 
   @override
   void initState() {
@@ -66,6 +71,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         setState(() => _isLoadingTopics = false);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   String _getTopicLabel(List<dynamic>? topicIds) {
@@ -143,6 +154,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       body: Column(
         children: [
           _buildBreadcrumbs(isDark),
+          _buildSearchAndFilter(isDark),
           Expanded(child: _buildQuestionsList(isDark)),
         ],
       ),
@@ -151,6 +163,164 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         backgroundColor: AppColors.primaryBlue,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: Text('إضافة سؤال', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter(bool isDark) {
+    // Extract chapters and current lessons
+    final chapters = _topicsMap.values
+        .where((t) => t['parentId'] == null)
+        .toList();
+    
+    // Sort chapters by order
+    chapters.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+
+    final lessons = _selectedChapterId == null 
+        ? [] 
+        : _topicsMap.values
+            .where((t) => t['parentId'] == _selectedChapterId)
+            .toList();
+    
+    // Sort lessons by order
+    lessons.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
+
+    return Column(
+      children: [
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
+              boxShadow: isDark ? [] : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+              style: GoogleFonts.cairo(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'ابحث عن سؤال...',
+                hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 14),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBlue),
+                suffixIcon: _searchQuery.isNotEmpty 
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 20),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              ),
+            ),
+          ),
+        ),
+
+        // Chapters Filter
+        SizedBox(
+          height: 50,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              _buildFilterChip(
+                label: 'الكل',
+                isSelected: _selectedChapterId == null,
+                onSelected: () => setState(() {
+                  _selectedChapterId = null;
+                  _selectedLessonId = null;
+                }),
+                isDark: isDark,
+              ),
+              ...chapters.map((chapter) {
+                final id = _topicsMap.keys.firstWhere((k) => _topicsMap[k] == chapter);
+                return _buildFilterChip(
+                  label: chapter['name'] ?? '',
+                  isSelected: _selectedChapterId == id,
+                  onSelected: () => setState(() {
+                    _selectedChapterId = id;
+                    _selectedLessonId = null;
+                  }),
+                  isDark: isDark,
+                );
+              }),
+            ],
+          ),
+        ),
+
+        // Lessons Filter (Only if a chapter is selected)
+        if (_selectedChapterId != null && lessons.isNotEmpty)
+          Container(
+            height: 45,
+            margin: const EdgeInsets.only(top: 4, bottom: 8),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildFilterChip(
+                  label: 'جميع دروس الفصل',
+                  isSelected: _selectedLessonId == null,
+                  onSelected: () => setState(() => _selectedLessonId = null),
+                  isDark: isDark,
+                  isSecondary: true,
+                ),
+                ...lessons.map((lesson) {
+                  final id = _topicsMap.keys.firstWhere((k) => _topicsMap[k] == lesson);
+                  return _buildFilterChip(
+                    label: lesson['name'] ?? '',
+                    isSelected: _selectedLessonId == id,
+                    onSelected: () => setState(() => _selectedLessonId = id),
+                    isDark: isDark,
+                    isSecondary: true,
+                  );
+                }),
+              ],
+            ),
+          ),
+        
+        const Divider(height: 1),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+    required bool isDark,
+    bool isSecondary = false,
+  }) {
+    final activeColor = isSecondary ? Colors.teal : AppColors.primaryBlue;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: isSecondary ? 11 : 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+          ),
+        ),
+        selected: isSelected,
+        onSelected: (_) => onSelected(),
+        selectedColor: activeColor,
+        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200],
+        checkmarkColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: BorderSide.none,
       ),
     );
   }
@@ -211,8 +381,45 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           return _emptyState('لا توجد أسئلة في هذا القسم حالياً', isDark);
         }
 
+        // Apply Search and Filters
+        var docs = snapshot.data!.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          
+          // Search Filter
+          if (_searchQuery.isNotEmpty) {
+            final text = (data['text'] ?? '').toString().toLowerCase();
+            if (!text.contains(_searchQuery)) return false;
+          }
+
+          // Lesson Filter
+          if (_selectedLessonId != null) {
+            final topicIds = data['topicIds'] as List?;
+            if (topicIds == null || !topicIds.contains(_selectedLessonId)) return false;
+          } 
+          // Chapter Filter (if no specific lesson selected)
+          else if (_selectedChapterId != null) {
+            final topicIds = data['topicIds'] as List?;
+            if (topicIds == null || topicIds.isEmpty) return false;
+            
+            // Check if any of the topics belong to this chapter
+            bool belongsToChapter = false;
+            for (var tid in topicIds) {
+              if (_topicsMap[tid]?['parentId'] == _selectedChapterId) {
+                belongsToChapter = true;
+                break;
+              }
+            }
+            if (!belongsToChapter) return false;
+          }
+
+          return true;
+        }).toList();
+
+        if (docs.isEmpty) {
+          return _emptyState('لا توجد نتائج تطابق البحث أو الفلاتر', isDark);
+        }
+
         // Group and sort questions by chapter and lesson order
-        final docs = snapshot.data!.docs;
         final Map<String, List<QueryDocumentSnapshot>> grouped = {};
         
         for (var doc in docs) {

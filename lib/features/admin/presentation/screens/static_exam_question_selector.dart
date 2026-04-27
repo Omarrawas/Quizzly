@@ -41,6 +41,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
       final snap = await FirebaseFirestore.instance
           .collection(DatabaseService.colTopics)
           .where('subjectId', isEqualTo: widget.subjectId)
+          .orderBy('createdAt', descending: false) // Order from oldest to newest
           .get();
       
       final Map<String, Map<String, dynamic>> topics = {};
@@ -180,21 +181,28 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
               ),
               items: [
                 DropdownMenuItem(value: null, child: Text('جميع المواضيع', style: GoogleFonts.cairo(fontSize: 12))),
-                ..._topicsMap.entries.map((entry) {
-                  final data = entry.value;
-                  final name = data['name'] ?? '';
-                  final parentId = data['parentId'];
-                  String label = name;
-                  
-                  if (parentId != null && _topicsMap.containsKey(parentId)) {
-                    label = "${_topicsMap[parentId]!['name']} - $name";
-                  }
-                  
-                  return DropdownMenuItem(
-                    value: entry.key,
-                    child: Text(label, style: GoogleFonts.cairo(fontSize: 12), overflow: TextOverflow.ellipsis),
-                  );
-                }),
+                ..._topicsMap.entries
+                  .where((entry) => entry.value['parentId'] != null) // Only show lessons (hide chapters)
+                  .map((entry) {
+                    final data = entry.value;
+                    final name = data['name'] ?? '';
+                    final parentId = data['parentId'];
+                    
+                    // Build the label as "Chapter Name - Lesson Name"
+                    String label = name;
+                    if (parentId != null && _topicsMap.containsKey(parentId)) {
+                      label = "${_topicsMap[parentId]!['name']} - $name";
+                    }
+                    
+                    return DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(
+                        label, 
+                        style: GoogleFonts.cairo(fontSize: 12), 
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }),
               ],
               onChanged: (v) => setState(() => _selectedTopicId = v),
             ),

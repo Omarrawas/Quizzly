@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
@@ -114,10 +115,22 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
         };
 
         setState(() {
-          availableLessons = allDocs.where((doc) {
+          // Filter for lessons and sort by creation order
+          final lessonDocs = allDocs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return data['type'] == 'lesson';
-          }).map((doc) {
+          }).toList();
+
+          // Sort docs by createdAt locally (ascending = oldest to newest)
+          lessonDocs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTime = (aData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            final bTime = (bData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            return aTime.compareTo(bTime);
+          });
+
+          availableLessons = lessonDocs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final parentId = data['parentId'];
             final parentName = (parentId != null) ? nameMap[parentId] : null;
