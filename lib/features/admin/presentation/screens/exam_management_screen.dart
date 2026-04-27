@@ -183,9 +183,18 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 ],
               ),
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-              onPressed: () => _confirmDelete(id, config.title),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_note_rounded, color: AppColors.primaryBlue),
+                  onPressed: () => _showAddExamDialog(context, existingConfig: config, examId: id),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                  onPressed: () => _confirmDelete(id, config.title),
+                ),
+              ],
             ),
           ),
           if (!isGenerated)
@@ -256,20 +265,21 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     );
   }
 
-  void _showAddExamDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final categoryController = TextEditingController();
-    final durationController = TextEditingController(text: '60');
-    final questionsCountController = TextEditingController(text: '20');
-    final scoreController = TextEditingController(text: '60');
+  void _showAddExamDialog(BuildContext context, {ExamConfig? existingConfig, String? examId}) {
+    final isEdit = existingConfig != null;
+    final titleController = TextEditingController(text: existingConfig?.title);
+    final categoryController = TextEditingController(text: existingConfig?.category);
+    final questionsCountController = TextEditingController(text: existingConfig?.totalQuestions.toString() ?? '20');
+    final durationController = TextEditingController(text: (existingConfig != null ? existingConfig.durationSeconds ~/ 60 : 20).toString());
+    final scoreController = TextEditingController(text: existingConfig?.passingScore.toString() ?? '60');
     
-    ExamType selectedType = ExamType.generated;
+    ExamType selectedType = existingConfig?.type ?? ExamType.generated;
     
     // For Generated
-    double easyP = 33;
-    double mediumP = 34;
-    double hardP = 33;
-    List<String> selectedTopics = [];
+    double easyP = existingConfig?.generationRules?.difficultyDistribution[Difficulty.easy]?.toDouble() ?? 33;
+    double mediumP = existingConfig?.generationRules?.difficultyDistribution[Difficulty.medium]?.toDouble() ?? 34;
+    double hardP = existingConfig?.generationRules?.difficultyDistribution[Difficulty.hard]?.toDouble() ?? 33;
+    List<String> selectedTopics = existingConfig?.generationRules?.topicIds ?? [];
 
     showDialog(
       context: context,
@@ -277,7 +287,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('إضافة اختبار جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          title: Text(isEdit ? 'تعديل الاختبار' : 'إضافة اختبار جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
           content: SizedBox(
             width: MediaQuery.of(context).size.width * 0.9,
             child: SingleChildScrollView(
@@ -299,17 +309,35 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: durationController,
+                          controller: questionsCountController,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(labelText: 'المدة (دقائق)', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                          onChanged: (v) {
+                            final q = int.tryParse(v) ?? 0;
+                            setDialogState(() {
+                              durationController.text = q.toString(); // 1 minute per question
+                            });
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'عدد الأسئلة', 
+                            labelStyle: GoogleFonts.cairo(), 
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            suffixText: 'سؤال',
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
-                          controller: questionsCountController,
+                          controller: durationController,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(labelText: 'عدد الأسئلة', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                          decoration: InputDecoration(
+                            labelText: 'المدة (دقائق)', 
+                            labelStyle: GoogleFonts.cairo(), 
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            suffixText: 'دقيقة',
+                            helperText: 'يتم حسابها تلقائياً',
+                            helperStyle: GoogleFonts.cairo(fontSize: 10),
+                          ),
                         ),
                       ),
                     ],
@@ -381,11 +409,12 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
               onPressed: () async {
                 if (titleController.text.trim().isEmpty) return;
                 
-                final int duration = (int.tryParse(durationController.text) ?? 60) * 60;
+                final int duration = (int.tryParse(durationController.text) ?? 20) * 60;
                 final int totalQ = int.tryParse(questionsCountController.text) ?? 20;
                 final double score = double.tryParse(scoreController.text) ?? 60.0;
 
                 final config = ExamConfig(
+                  id: examId,
                   title: titleController.text.trim(),
                   category: categoryController.text.trim().isEmpty ? null : categoryController.text.trim(),
                   type: selectedType,
@@ -393,6 +422,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   totalQuestions: totalQ,
                   passingScore: score,
                   subjectId: widget.subjectId,
+                  staticQuestionIds: existingConfig?.staticQuestionIds ?? [],
                   generationRules: selectedType == ExamType.generated ? GenerationRules(
                     topicIds: selectedTopics,
                     difficultyDistribution: {
@@ -404,16 +434,38 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 );
 
                 try {
-                  await _dbService.addExam(config.toMap());
+                  String newExamId = examId ?? '';
+                  if (isEdit) {
+                    await _dbService.updateDoc(DatabaseService.colExams, examId!, config.toMap());
+                  } else {
+                    final docRef = await FirebaseFirestore.instance.collection(DatabaseService.colExams).add(config.toMap());
+                    newExamId = docRef.id;
+                  }
+                  
                   if (context.mounted) {
                     Navigator.pop(context);
-                    _showStatusSnackBar('تمت إضافة الاختبار بنجاح', isError: false);
+                    _showStatusSnackBar(isEdit ? 'تم تحديث الاختبار بنجاح' : 'تمت إضافة الاختبار بنجاح', isError: false);
+                    
+                    // Auto-navigate to selection if it's a new static exam
+                    if (!isEdit && selectedType == ExamType.static) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StaticExamQuestionSelector(
+                            examId: newExamId,
+                            examTitle: config.title,
+                            subjectId: widget.subjectId,
+                            initialSelectedIds: const [],
+                          ),
+                        ),
+                      );
+                    }
                   }
                 } catch (e) {
-                  if (context.mounted) _showStatusSnackBar('فشل الإضافة: $e', isError: true);
+                  if (context.mounted) _showStatusSnackBar('فشل العملية: $e', isError: true);
                 }
               },
-              child: Text('إضافة', style: GoogleFonts.cairo()),
+              child: Text(isEdit ? 'تحديث' : 'إضافة', style: GoogleFonts.cairo()),
             ),
           ],
         ),

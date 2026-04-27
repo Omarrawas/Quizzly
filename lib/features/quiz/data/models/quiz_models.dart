@@ -75,6 +75,7 @@ class QuizQuestion {
   
   final String? tagLabel;
   final String? imageUrl;
+  final List<String> examTags;
   final QuestionAnalytics analytics;
 
   // Moderation fields
@@ -104,6 +105,7 @@ class QuizQuestion {
     this.isFrequentlyWrong = false,
     this.tagLabel,
     this.imageUrl,
+    this.examTags = const [],
     this.analytics = const QuestionAnalytics(),
     this.status = QuestionStatus.draft,
     this.authorId,
@@ -136,6 +138,7 @@ class QuizQuestion {
       isFrequentlyWrong: data['isFrequentlyWrong'] ?? false,
       tagLabel: data['tagLabel'],
       imageUrl: data['imageUrl'],
+      examTags: List<String>.from(data['examTags'] ?? []),
       analytics: QuestionAnalytics.fromMap(data['analytics']),
       status: _parseStatus(data['status']),
       authorId: data['authorId'],
@@ -188,6 +191,7 @@ class QuizQuestion {
       'isFrequentlyWrong': isFrequentlyWrong,
       'tagLabel': tagLabel,
       'imageUrl': imageUrl,
+      'examTags': examTags,
       'analytics': analytics.toMap(),
       'status': status.name,
       'authorId': authorId,

@@ -38,17 +38,50 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      await FirebaseFirestore.instance
-          .collection(DatabaseService.colExams)
-          .doc(widget.examId)
-          .update({
-        'staticQuestions': _selectedIds,
-        'totalQuestions': _selectedIds.length,
-      });
+      final batch = FirebaseFirestore.instance.batch();
+      
+      // 1. Get Exam Details to get the Category/Tag name
+      final examSnap = await FirebaseFirestore.instance.collection(DatabaseService.colExams).doc(widget.examId).get();
+      final examData = examSnap.data() ?? {};
+      final tagName = examData['category'] ?? widget.examTitle;
+      
+      // 2. Update Exam
+      batch.update(
+        FirebaseFirestore.instance.collection(DatabaseService.colExams).doc(widget.examId), 
+        {
+          'staticQuestions': _selectedIds,
+          'totalQuestions': _selectedIds.length,
+          'duration': _selectedIds.length * 60, // Auto-calculate duration: 60s per question
+        }
+      );
+
+      // 3. Handle Tags for newly selected questions
+      final addedIds = _selectedIds.where((id) => !widget.initialSelectedIds.contains(id)).toList();
+      for (var id in addedIds) {
+        batch.update(
+          FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id),
+          {
+            'examTags': FieldValue.arrayUnion([tagName])
+          }
+        );
+      }
+
+      // 4. Handle Tags for removed questions
+      final removedIds = widget.initialSelectedIds.where((id) => !_selectedIds.contains(id)).toList();
+      for (var id in removedIds) {
+        batch.update(
+          FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id),
+          {
+            'examTags': FieldValue.arrayRemove([tagName])
+          }
+        );
+      }
+
+      await batch.commit();
       
       navigator.pop();
       scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('تم تحديث أسئلة الاختبار بنجاح')),
+        const SnackBar(content: Text('تم تحديث أسئلة الاختبار والأوسمة بنجاح')),
       );
     } catch (e) {
       scaffoldMessenger.showSnackBar(

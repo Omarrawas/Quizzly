@@ -358,6 +358,33 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                  if (data['examTags'] != null && (data['examTags'] as List).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: (data['examTags'] as List).map((tag) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.bookmark_rounded, size: 10, color: Colors.orange),
+                              const SizedBox(width: 4),
+                              Text(
+                                tag.toString(),
+                                style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
+                              ),
+                            ],
+                          ),
+                        )).toList(),
+                      ),
+                    ),
                 ],
               ),
             ),
