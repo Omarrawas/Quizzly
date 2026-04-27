@@ -1,10 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/presentation/screens/database_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  bool _isLoading = false;
+
+  Future<Map<String, String>> _fetchStats() async {
+    try {
+      final results = await Future.wait([
+        _db.collection('users').count().get(),
+        _db.collection('activation_codes').count().get(),
+        _db.collection('questions').count().get(),
+        _db.collection('exam_attempts').count().get(),
+      ]);
+
+      return {
+        'users': results[0].count.toString(),
+        'codes': results[1].count.toString(),
+        'questions': results[2].count.toString(),
+        'exams': results[3].count.toString(),
+      };
+    } catch (e) {
+      return {
+        'users': '0',
+        'codes': '0',
+        'questions': '0',
+        'exams': '0',
+      };
+    }
+  }
+
+  void _refresh() {
+    setState(() {
+      _isLoading = true;
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +74,10 @@ class AdminDashboardScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _refresh,
+            icon: _isLoading 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.refresh_rounded),
             color: AppColors.primaryBlue,
           ),
         ],
@@ -38,41 +88,65 @@ class AdminDashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── Statistics Cards ────────────────────────────────
-            _buildSectionTitle('إحصائيات النظام', isDark),
-            const SizedBox(height: 16),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.2,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatCard(
-                  icon: Icons.people_alt_rounded,
-                  label: 'المستخدمين',
-                  value: '1,248',
-                  color: const Color(0xFF3B82F6),
-                ),
-                _buildStatCard(
-                  icon: Icons.vpn_key_rounded,
-                  label: 'الأكواد النشطة',
-                  value: '852',
-                  color: const Color(0xFF10B981),
-                ),
-                _buildStatCard(
-                  icon: Icons.quiz_rounded,
-                  label: 'الأسئلة الكلية',
-                  value: '45,000+',
-                  color: const Color(0xFFF59E0B),
-                ),
-                _buildStatCard(
-                  icon: Icons.monetization_on_rounded,
-                  label: 'الأرباح (Mock)',
-                  value: '15.4K',
-                  color: const Color(0xFF8B5CF6),
+                _buildSectionTitle('إحصائيات النظام', isDark),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsDashboardScreen()));
+                  },
+                  icon: const Icon(Icons.analytics_outlined, size: 16),
+                  label: Text('تحليلات مفصلة', style: GoogleFonts.cairo(fontSize: 12)),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            FutureBuilder<Map<String, String>>(
+              future: _fetchStats(),
+              builder: (context, snapshot) {
+                final stats = snapshot.data ?? {
+                  'users': '...',
+                  'codes': '...',
+                  'questions': '...',
+                  'exams': '...',
+                };
+
+                return GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 1.6,
+                  children: [
+                    _buildStatCard(
+                      icon: Icons.people_alt_rounded,
+                      label: 'المستخدمين',
+                      value: stats['users']!,
+                      color: const Color(0xFF3B82F6),
+                    ),
+                    _buildStatCard(
+                      icon: Icons.vpn_key_rounded,
+                      label: 'الأكواد النشطة',
+                      value: stats['codes']!,
+                      color: const Color(0xFF10B981),
+                    ),
+                    _buildStatCard(
+                      icon: Icons.quiz_rounded,
+                      label: 'الأسئلة الكلية',
+                      value: stats['questions']!,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                    _buildStatCard(
+                      icon: Icons.assignment_turned_in_rounded,
+                      label: 'اختبارات منجزة',
+                      value: stats['exams']!,
+                      color: const Color(0xFF8B5CF6),
+                    ),
+                  ],
+                );
+              }
             ),
 
             const SizedBox(height: 32),

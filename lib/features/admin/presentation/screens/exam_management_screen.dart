@@ -145,6 +145,22 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: config.type == ExamType.bank ? Colors.purple : Colors.blue),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: config.isFree ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    config.isFree ? 'مجاني' : 'مدفوع',
+                    style: GoogleFonts.cairo(
+                      fontSize: 10, 
+                      fontWeight: FontWeight.bold, 
+                      color: config.isFree ? Colors.green : Colors.orange[800],
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -261,6 +277,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     final scoreController = TextEditingController(text: existingConfig?.passingScore.toString() ?? '60');
     
     ExamType selectedType = existingConfig?.type ?? ExamType.bank;
+    bool isFree = existingConfig?.isFree ?? true;
     List<String> selectedTopics = existingConfig?.generationRules?.topicIds ?? [];
 
     showDialog(
@@ -347,6 +364,15 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: Text('اختبار مجاني', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                    subtitle: Text('إذا كان مفعلاً، سيتمكن جميع الطلاب من تقديم الاختبار', style: GoogleFonts.cairo(fontSize: 11)),
+                    value: isFree,
+                    activeThumbColor: AppColors.primaryBlue,
+                    activeTrackColor: AppColors.primaryBlue.withValues(alpha: 0.3),
+                    onChanged: (v) => setDialogState(() => isFree = v),
+                  ),
                   if (selectedType == ExamType.bank) ...[
                     const Divider(),
                     Text('سيتم توليد الأسئلة تلقائياً من بنك الأسئلة', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
@@ -379,6 +405,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   generationRules: selectedType == ExamType.bank ? GenerationRules(
                     topicIds: selectedTopics,
                   ) : null,
+                  isFree: isFree,
                 );
 
                 try {

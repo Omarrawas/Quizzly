@@ -304,6 +304,7 @@ class ExamConfig {
   final String? category;
   final List<String> staticQuestionIds;
   final GenerationRules? generationRules;
+  final bool isFree;
 
   const ExamConfig({
     this.id,
@@ -317,6 +318,7 @@ class ExamConfig {
     this.category,
     this.staticQuestionIds = const [],
     this.generationRules,
+    this.isFree = true,
   });
 
   factory ExamConfig.fromFirestore(DocumentSnapshot doc) {
@@ -333,6 +335,7 @@ class ExamConfig {
       category: data['category'],
       staticQuestionIds: List<String>.from(data['staticQuestions'] ?? []),
       generationRules: data['type'] == 'bank' ? GenerationRules.fromMap(data['generationRules']) : null,
+      isFree: data['isFree'] ?? true,
     );
   }
 
@@ -347,6 +350,7 @@ class ExamConfig {
       'sectionId': sectionId,
       'category': category,
       'staticQuestions': staticQuestionIds,
+      'isFree': isFree,
       if (type == ExamType.bank && generationRules != null)
         'generationRules': generationRules!.toMap(),
     };

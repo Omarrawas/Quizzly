@@ -173,6 +173,10 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               key: ValueKey(id),
               title: name,
               subtitle: data['description'] ?? data['subtitle'] ?? '',
+              price: (data['price'] != null) 
+                  ? (data['price'] as num).toDouble() 
+                  : (_currentLevel == ManagementLevel.semester ? (data['totalPrice'] as num?)?.toDouble() : null),
+              discount: data['discount'] != null ? (data['discount'] as num).toDouble() : null,
               isDark: isDark,
               onTap: () => _onItemTap(id, name, _currentLevel),
               onEdit: () => _showEditDialog(id, data),
@@ -249,6 +253,16 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     });
   }
 
+  Future<double> _getSemesterSubjectPrices(String semesterId) async {
+    final snapshot = await _dbService.getSubjects(semesterId).first;
+    double total = 0;
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      total += (data['price'] as num?)?.toDouble() ?? 0;
+    }
+    return total;
+  }
+
   void _goToTopics(String subjectId, String sectionId, String name) {
     List<String> breadcrumbs = [];
     for (var level in ManagementLevel.values) {
@@ -304,7 +318,17 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
   }
 
-  Widget _buildManagementCard({required Key key, required String title, required String subtitle, required bool isDark, required VoidCallback onTap, required VoidCallback onEdit, required VoidCallback onDelete}) {
+  Widget _buildManagementCard({
+    required Key key, 
+    required String title, 
+    required String subtitle, 
+    double? price,
+    double? discount,
+    required bool isDark, 
+    required VoidCallback onTap, 
+    required VoidCallback onEdit, 
+    required VoidCallback onDelete
+  }) {
     return Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 12),
@@ -317,7 +341,39 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Row(
+          children: [
+            Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16))),
+            if (price != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${price.toStringAsFixed(0)} ل.س',
+                  style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                ),
+              ),
+            ],
+            if (discount != null && discount > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '-${discount.toStringAsFixed(0)}%',
+                  style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+              ),
+            ],
+          ],
+        ),
         subtitle: subtitle.isNotEmpty ? Text(subtitle, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)) : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -395,6 +451,10 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   }
 
   void _showEditDialog(String id, Map<String, dynamic> currentData) {
+    if (_currentLevel == ManagementLevel.semester) {
+      _showSemesterEditDialog(id, currentData);
+      return;
+    }
     final nameController = TextEditingController(text: currentData['name']);
     final descController = TextEditingController(text: currentData['description'] ?? currentData['subtitle']);
 
@@ -409,6 +469,30 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
             const SizedBox(height: 16),
             TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
+            if (_currentLevel == ManagementLevel.subject) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: TextEditingController(text: currentData['price']?.toString() ?? ''),
+                      onChanged: (v) => currentData['price'] = double.tryParse(v),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: TextEditingController(text: currentData['discount']?.toString() ?? ''),
+                      onChanged: (v) => currentData['discount'] = double.tryParse(v),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
         actions: [
@@ -419,6 +503,11 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 'name': nameController.text.trim(),
                 if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
                 else 'description': descController.text.trim(),
+                if (_currentLevel == ManagementLevel.subject || _currentLevel == ManagementLevel.semester) ...{
+                  'price': currentData['price'],
+                  'discount': currentData['discount'],
+                  if (_currentLevel == ManagementLevel.semester) 'totalPrice': currentData['totalPrice'],
+                },
               };
               try {
                 await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
@@ -433,6 +522,156 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             child: Text('حفظ التغييرات'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showSemesterEditDialog(String id, Map<String, dynamic> currentData) async {
+    final nameController = TextEditingController(text: currentData['name']);
+    final descController = TextEditingController(text: currentData['description'] ?? '');
+    
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final totalPrice = await _getSemesterSubjectPrices(id);
+    if (!mounted) return;
+    Navigator.pop(context); // Close loading
+
+    double discount = (currentData['discount'] as num?)?.toDouble() ?? 0;
+    double? manualPrice = (currentData['manualPrice'] as num?)?.toDouble();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final effectiveBasePrice = manualPrice ?? totalPrice;
+          final finalPrice = effectiveBasePrice * (1 - (discount / 100));
+          
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text('تعديل الفصل الدراسي', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
+                const SizedBox(height: 16),
+                TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.1)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('مجموع أسعار المواد:', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
+                          Text('${totalPrice.toStringAsFixed(0)} ل.س', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Text('سعر يدوي للفصل (اختياري):', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: TextEditingController(text: manualPrice?.toStringAsFixed(0) ?? ''),
+                              onChanged: (v) => setDialogState(() => manualPrice = double.tryParse(v)),
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                hintText: 'تجاوز الحساب',
+                                hintStyle: GoogleFonts.cairo(fontSize: 10),
+                                isDense: true, 
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Text('خصم الفصل (%):', style: GoogleFonts.cairo(fontSize: 12)),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: TextEditingController(text: discount.toStringAsFixed(0)),
+                              onChanged: (v) => setDialogState(() => discount = double.tryParse(v) ?? 0),
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                isDense: true, 
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('السعر النهائي للفصل:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                              if (manualPrice != null) 
+                                Text('(تم استخدام السعر اليدوي)', style: GoogleFonts.cairo(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Text('${finalPrice.toStringAsFixed(0)} ل.س', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+              ElevatedButton(
+                onPressed: () async {
+                  final updatedData = {
+                    'name': nameController.text.trim(),
+                    'description': descController.text.trim(),
+                    'totalPrice': finalPrice, 
+                    'basePrice': totalPrice,  
+                    'manualPrice': manualPrice,
+                    'discount': discount,
+                  };
+                  try {
+                    await _dbService.updateDoc(DatabaseService.colSemesters, id, updatedData);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      _showStatusSnackBar('تم التعديل بنجاح', isError: false);
+                    }
+                  } catch (e) {
+                    if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+                  }
+                },
+                child: Text('حفظ التغييرات'),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
@@ -527,6 +766,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     
     final nameController = TextEditingController();
     final descController = TextEditingController();
+    double? price;
+    double? discount;
 
     showDialog(
       context: context,
@@ -539,6 +780,28 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
             const SizedBox(height: 16),
             TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف (اختياري)', labelStyle: GoogleFonts.cairo())),
+            if (_currentLevel == ManagementLevel.subject) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      onChanged: (v) => price = double.tryParse(v),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      onChanged: (v) => discount = double.tryParse(v),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
         actions: [
@@ -548,7 +811,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               final name = nameController.text.trim();
               final desc = descController.text.trim();
               if (name.isNotEmpty) {
-                await _performAdd(name, desc);
+                await _performAdd(name, desc, price: price, discount: discount);
                 if (context.mounted) Navigator.pop(context);
               }
             },
@@ -571,10 +834,14 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
   }
 
-  Future<void> _performAdd(String name, String desc) async {
+  Future<void> _performAdd(String name, String desc, {double? price, double? discount}) async {
     final Map<String, dynamic> data = {
       'name': name,
       _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
+      if (_currentLevel == ManagementLevel.subject) ...{
+        'price': price,
+        'discount': discount,
+      },
     };
 
     try {
