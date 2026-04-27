@@ -449,9 +449,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                 ],
                 Row(
                   children: [
-                    _buildMetaChip(Icons.bar_chart_rounded, data['difficulty'] ?? 'N/A', Colors.blue),
-                    const SizedBox(width: 8),
-                    _buildMetaChip(Icons.psychology_rounded, _translateCognitiveLevel(data['cognitiveLevel']), Colors.orange),
+                    _buildMetaChip(Icons.bar_chart_rounded, _translateDifficulty(data['difficulty']), Colors.blue),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -479,12 +477,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     );
   }
 
-  String _translateCognitiveLevel(String? c) {
-    switch (c) {
-      case 'recall': return 'تذكر';
-      case 'application': return 'تطبيق';
-      case 'understanding':
-      default: return 'فهم واستيعاب';
+  String _translateDifficulty(String? d) {
+    switch (d) {
+      case 'easy': return 'سهل';
+      case 'hard': return 'صعب';
+      case 'medium':
+      default: return 'متوسط';
     }
   }
 

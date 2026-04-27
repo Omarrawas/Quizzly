@@ -143,20 +143,6 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: config.type == ExamType.bank ? Colors.purple : Colors.blue),
                   ),
                 ),
-                if (config.category != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      config.category!,
-                      style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
-                    ),
-                  ),
-                ],
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -267,7 +253,6 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
   void _showAddExamDialog(BuildContext context, {ExamConfig? existingConfig, String? examId}) {
     final isEdit = existingConfig != null;
     final titleController = TextEditingController(text: existingConfig?.title);
-    final categoryController = TextEditingController(text: existingConfig?.category);
     final questionsCountController = TextEditingController(text: existingConfig?.totalQuestions.toString() ?? '20');
     final durationController = TextEditingController(text: (existingConfig != null ? existingConfig.durationSeconds ~/ 60 : 20).toString());
     final scoreController = TextEditingController(text: existingConfig?.passingScore.toString() ?? '60');
@@ -292,11 +277,6 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   TextField(
                     controller: titleController,
                     decoration: InputDecoration(labelText: 'عنوان الاختبار', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: categoryController,
-                    decoration: InputDecoration(labelText: 'التصنيف / الوسم (مثال: دورة 2023)', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -385,7 +365,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 final config = ExamConfig(
                   id: examId,
                   title: titleController.text.trim(),
-                  category: categoryController.text.trim().isEmpty ? null : categoryController.text.trim(),
+                  category: titleController.text.trim(),
                   type: selectedType,
                   durationSeconds: duration,
                   totalQuestions: totalQ,

@@ -37,7 +37,6 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   late TextEditingController timeController;
   late bool isEnabled;
   late Difficulty selectedDifficulty;
-  late CognitiveLevel selectedLevel;
   
   List<Map<String, String>> options = [];
   List<String> correctOptionIds = [];
@@ -64,7 +63,6 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     isEnabled = currentData?['isEnabled'] ?? true;
     
     selectedDifficulty = Difficulty.values.firstWhere((e) => e.name == currentData?['difficulty'], orElse: () => Difficulty.medium);
-    selectedLevel = CognitiveLevel.values.firstWhere((e) => e.name == currentData?['cognitiveLevel'], orElse: () => CognitiveLevel.understanding);
     
     options = (currentData?['options'] as List? ?? [])
         .map((e) => {'id': e['id'].toString(), 'text': e['text'].toString()})
@@ -236,7 +234,6 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'explanation': explanationController.text.trim(),
       'explanationImageUrl': explanationImageUrlController.text.trim(),
       'difficulty': selectedDifficulty.name,
-      'cognitiveLevel': selectedLevel.name,
       'estimatedTime': int.tryParse(timeController.text) ?? 60,
       'primaryTopicId': widget.lessonId,
       'topicIds': widget.lessonId != null ? [widget.lessonId!] : [],
@@ -537,19 +534,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<Difficulty>(
-                          initialValue: selectedDifficulty,
+                          value: selectedDifficulty,
                           decoration: InputDecoration(labelText: 'الصعوبة', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                          items: Difficulty.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name, style: GoogleFonts.cairo()))).toList(),
+                          items: Difficulty.values.map((e) => DropdownMenuItem(value: e, child: Text(_translateDifficulty(e), style: GoogleFonts.cairo()))).toList(),
                           onChanged: (v) => setState(() => selectedDifficulty = v!),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<CognitiveLevel>(
-                          initialValue: selectedLevel,
-                          decoration: InputDecoration(labelText: 'المستوى المعرفي', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                          items: CognitiveLevel.values.map((e) => DropdownMenuItem(value: e, child: Text(e.name, style: GoogleFonts.cairo()))).toList(),
-                          onChanged: (v) => setState(() => selectedLevel = v!),
                         ),
                       ),
                     ],
@@ -576,5 +564,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     ),
   ),
 );
+  }
+
+  String _translateDifficulty(Difficulty d) {
+    switch (d) {
+      case Difficulty.easy: return 'سهل';
+      case Difficulty.medium: return 'متوسط';
+      case Difficulty.hard: return 'صعب';
+    }
   }
 }
