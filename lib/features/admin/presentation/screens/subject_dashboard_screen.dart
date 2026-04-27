@@ -72,26 +72,8 @@ class SubjectDashboardScreen extends StatelessWidget {
 
         final List<Widget> cards = [];
         
-        // Add "Global Bank" card first
-        cards.add(
-          _buildDashboardCard(
-            context,
-            title: 'بنك الأسئلة الشامل',
-            subtitle: 'جميع أسئلة المادة (نظري وعملي)',
-            icon: Icons.inventory_2_rounded,
-            color: Colors.indigo,
-            isDark: isDark,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TheoreticalSectionManagementScreen(
-                  subjectId: subjectId,
-                  breadcrumbs: [...breadcrumbs, subjectName],
-                ),
-              ),
-            ),
-          ),
-        );
+        // Removed "Global Bank" card as per user request
+
 
         cards.addAll(docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
@@ -315,42 +297,81 @@ class SubjectDashboardScreen extends StatelessWidget {
   }
 
   void _showAddSectionDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('إضافة قسم جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: Column(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('أمثلة: القسم النظري، القسم العملي', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
+            Text(
+              'إضافة قسم للمادة',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSectionTypeOption(
+                    context,
+                    title: 'القسم النظري',
+                    icon: Icons.menu_book_rounded,
+                    color: Colors.blue,
+                    onTap: () => _addSectionAndPop(context, 'القسم النظري'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildSectionTypeOption(
+                    context,
+                    title: 'القسم العملي',
+                    icon: Icons.science_rounded,
+                    color: Colors.teal,
+                    onTap: () => _addSectionAndPop(context, 'القسم العملي'),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'اسم القسم',
-                labelStyle: GoogleFonts.cairo(),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTypeOption(BuildContext context, {required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(16),
+          color: color.withValues(alpha: 0.05),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: color),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              if (name.isNotEmpty) {
-                await DatabaseService().addSection(subjectId, {
-                  'name': name,
-                });
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-            child: Text('إضافة'),
-          ),
-        ],
       ),
     );
+  }
+
+  Future<void> _addSectionAndPop(BuildContext context, String name) async {
+    await DatabaseService().addSection(subjectId, {
+      'name': name,
+    });
+    if (context.mounted) Navigator.pop(context);
   }
 }

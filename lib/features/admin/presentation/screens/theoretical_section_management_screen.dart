@@ -54,7 +54,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         title: Text(
           widget.lessonName != null 
               ? 'أسئلة: ${widget.lessonName}' 
-              : (widget.sectionName ?? 'بنك الأسئلة الشامل'),
+              : (widget.sectionName ?? 'بنك الأسئلة'),
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
         actions: [

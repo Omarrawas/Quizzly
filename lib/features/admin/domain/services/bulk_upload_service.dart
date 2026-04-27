@@ -26,7 +26,13 @@ class BulkUploadService {
     List<UploadError> errors = [];
 
     // 1. Decode CSV
-    final csvString = utf8.decode(fileBytes);
+    String csvString = utf8.decode(fileBytes, allowMalformed: true);
+    
+    // Strip UTF-8 BOM if present (common in Excel-exported CSVs)
+    if (csvString.startsWith('\uFEFF')) {
+      csvString = csvString.substring(1);
+    }
+    
     var rows = const CsvToListConverter().convert(csvString);
 
     if (rows.isEmpty) {
