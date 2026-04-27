@@ -27,10 +27,19 @@ class BulkUploadService {
 
     // 1. Decode CSV
     final csvString = utf8.decode(fileBytes);
-    final rows = const CsvToListConverter().convert(csvString);
+    var rows = const CsvToListConverter().convert(csvString);
+
+    if (rows.isEmpty) {
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف فارغ.')]);
+    }
+
+    // Skip "sep=," metadata row if present
+    if (rows.isNotEmpty && rows.first.isNotEmpty && rows.first.first.toString().startsWith('sep=')) {
+      rows = rows.sublist(1);
+    }
 
     if (rows.isEmpty || rows.length == 1) {
-      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف فارغ أو لا يحتوي على أسئلة.')]);
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف لا يحتوي على أسئلة.')]);
     }
 
     // Assume first row is header
@@ -237,9 +246,15 @@ class BulkUploadService {
       }
 
       String topicName = '';
-      final topicId = data['topicId'];
-      if (topicId != null) {
-        topicName = topicIdToName[topicId] ?? '';
+      final topicIds = data['topicIds'] as List?;
+      final topicNames = data['topicNames'] as List?;
+      
+      if (topicNames != null && topicNames.isNotEmpty) {
+        topicName = topicNames.first.toString();
+      } else if (topicIds != null && topicIds.isNotEmpty) {
+        topicName = topicIdToName[topicIds.first.toString()] ?? '';
+      } else if (data['primaryTopicId'] != null) {
+        topicName = topicIdToName[data['primaryTopicId'].toString()] ?? '';
       }
 
       rows.add([
@@ -296,8 +311,12 @@ class BulkUploadService {
       }
 
       String topicName = '';
-      if (q.topicIds != null && q.topicIds!.isNotEmpty) {
+      if (q.topicNames != null && q.topicNames!.isNotEmpty) {
+        topicName = q.topicNames!.first;
+      } else if (q.topicIds != null && q.topicIds!.isNotEmpty) {
         topicName = topicIdToName[q.topicIds!.first] ?? '';
+      } else if (q.primaryTopicId != null) {
+        topicName = topicIdToName[q.primaryTopicId!] ?? '';
       }
 
       rows.add([

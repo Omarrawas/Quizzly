@@ -70,7 +70,30 @@ class SubjectDashboardScreen extends StatelessWidget {
           );
         }
 
-        final List<Widget> cards = docs.map((doc) {
+        final List<Widget> cards = [];
+        
+        // Add "Global Bank" card first
+        cards.add(
+          _buildDashboardCard(
+            context,
+            title: 'بنك الأسئلة الشامل',
+            subtitle: 'جميع أسئلة المادة (نظري وعملي)',
+            icon: Icons.inventory_2_rounded,
+            color: Colors.indigo,
+            isDark: isDark,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TheoreticalSectionManagementScreen(
+                  subjectId: subjectId,
+                  breadcrumbs: [...breadcrumbs, subjectName],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        cards.addAll(docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final name = data['name'] ?? '';
           final isTheory = name.contains('نظري');
@@ -95,7 +118,7 @@ class SubjectDashboardScreen extends StatelessWidget {
               ),
             ),
           );
-        }).toList();
+        }));
 
         // Add "Add Section" card
         cards.add(

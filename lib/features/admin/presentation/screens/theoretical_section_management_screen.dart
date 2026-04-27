@@ -13,8 +13,8 @@ import 'package:quizzly/features/admin/presentation/screens/question_management_
 
 
 class TheoreticalSectionManagementScreen extends StatefulWidget {
-  final String sectionId;
-  final String sectionName;
+  final String? sectionId;
+  final String? sectionName;
   final String subjectId;
   final List<String> breadcrumbs;
   final String? lessonId;
@@ -22,8 +22,8 @@ class TheoreticalSectionManagementScreen extends StatefulWidget {
 
   const TheoreticalSectionManagementScreen({
     super.key,
-    required this.sectionId,
-    required this.sectionName,
+    this.sectionId,
+    this.sectionName,
     required this.subjectId,
     required this.breadcrumbs,
     this.lessonId,
@@ -52,7 +52,9 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.lessonName != null ? 'أسئلة: ${widget.lessonName}' : widget.sectionName,
+          widget.lessonName != null 
+              ? 'أسئلة: ${widget.lessonName}' 
+              : (widget.sectionName ?? 'بنك الأسئلة الشامل'),
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -123,7 +125,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
 
     if (widget.lessonId != null) {
       query = query.where('topicIds', arrayContains: widget.lessonId);
-    } else {
+    } else if (widget.sectionId != null) {
       query = query.where('parentId', isEqualTo: widget.sectionId);
     }
 
@@ -180,11 +182,26 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                questionText,
-                style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    questionText,
+                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (data['topicNames'] != null && (data['topicNames'] as List).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        (data['topicNames'] as List).join(', '),
+                        style: GoogleFonts.cairo(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -301,7 +318,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       context,
       MaterialPageRoute(
         builder: (_) => QuestionManagementScreen(
-          sectionId: widget.sectionId,
+          sectionId: widget.sectionId ?? 'global', // Fallback for global bank
           subjectId: widget.subjectId,
           lessonId: widget.lessonId,
           lessonName: widget.lessonName,
@@ -360,10 +377,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       
       final csvContent = BulkUploadService.generateTemplate(questions: questions, topicIdToName: topicIdToName);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'questions_${widget.sectionName}_$timestamp';
+      final fileName = 'questions_${widget.sectionName ?? "global"}_$timestamp';
       
       // إضافة BOM (Byte Order Mark) لضمان قراءة اللغة العربية بشكل صحيح في Excel
-      Uint8List bytes = Uint8List.fromList(utf8.encode('\uFEFF$csvContent'));
+      // نستخدم تسلسل البايتات الصريح [0xEF, 0xBB, 0xBF]
+      final encodedContent = utf8.encode(csvContent);
+      final bytes = Uint8List.fromList([0xEF, 0xBB, 0xBF, ...encodedContent]);
       
       await FileSaver.instance.saveFile(
         name: fileName,

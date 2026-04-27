@@ -5,7 +5,7 @@ import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 
 class QuestionManagementScreen extends StatefulWidget {
-  final String sectionId;
+  final String? sectionId;
   final String subjectId;
   final String? lessonId;
   final String? lessonName;
@@ -175,7 +175,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                 scale: 0.8,
                 child: Switch(
                   value: isEnabled,
-                  activeColor: AppColors.primaryBlue,
+                  activeThumbColor: AppColors.primaryBlue,
                   onChanged: (v) => setState(() => isEnabled = v),
                 ),
               ),
@@ -244,7 +244,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'topicWeights': widget.lessonId != null ? {widget.lessonId!: 1.0} : {},
       'discriminationIndex': 0.5,
       'isFrequentlyWrong': false,
-      'parentId': widget.sectionId,
+      'parentId': widget.sectionId ?? 'global',
       'isEnabled': isEnabled,
     };
     
@@ -263,7 +263,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       if (isEdit) {
         await _dbService.updateDoc(DatabaseService.colQuestions, widget.questionId!, questionData);
       } else {
-        await _dbService.addQuestion(widget.sectionId, questionData);
+        await _dbService.addQuestion(widget.sectionId ?? 'global', questionData);
       }
       if (mounted) {
         navigator.pop();
@@ -371,63 +371,64 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
             if (selectedTypeId != 'essay')
               _buildSection(
                 title: 'الخيارات والإجابة',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ...options.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final opt = entry.value;
-                      final controller = optionControllers[index];
-                      final isCorrect = correctOptionIds.contains(opt['id']);
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: isCorrect ? Colors.green.withValues(alpha: 0.1) : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isCorrect ? Colors.green : (isDark ? Colors.white10 : Colors.grey.shade300),
-                            width: isCorrect ? 2 : 1,
+                child: RadioGroup<String>(
+                  groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
+                  onChanged: (v) {
+                    if (v != null) setState(() => correctOptionIds = [v]);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...options.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final opt = entry.value;
+                        final controller = optionControllers[index];
+                        final isCorrect = correctOptionIds.contains(opt['id']);
+                        
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: isCorrect ? Colors.green.withValues(alpha: 0.1) : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isCorrect ? Colors.green : (isDark ? Colors.white10 : Colors.grey.shade300),
+                              width: isCorrect ? 2 : 1,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            if (selectedTypeId == 'checkbox')
-                              Checkbox(
-                                value: isCorrect,
-                                activeColor: Colors.green,
-                                onChanged: (v) {
-                                  setState(() {
-                                    if (v ?? false) {
-                                      if (!correctOptionIds.contains(opt['id'])) correctOptionIds.add(opt['id'] ?? '');
-                                    } else {
-                                      correctOptionIds.remove(opt['id'] ?? '');
-                                    }
-                                  });
-                                },
-                              )
-                            else
-                              Radio<String>(
-                                value: opt['id'] ?? '',
-                                groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
-                                activeColor: Colors.green,
-                                onChanged: (v) {
-                                  if (v != null) setState(() => correctOptionIds = [v]);
-                                },
-                              ),
-                            Expanded(
-                              child: TextField(
-                                onChanged: (v) => opt['text'] = v,
-                                controller: controller,
-                                style: GoogleFonts.cairo(fontSize: 14),
-                                decoration: InputDecoration(
-                                  hintText: 'الخيار ${index + 1}',
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                          child: Row(
+                            children: [
+                              if (selectedTypeId == 'checkbox')
+                                Checkbox(
+                                  value: isCorrect,
+                                  activeColor: Colors.green,
+                                  onChanged: (v) {
+                                    setState(() {
+                                      if (v ?? false) {
+                                        if (!correctOptionIds.contains(opt['id'])) correctOptionIds.add(opt['id'] ?? '');
+                                      } else {
+                                        correctOptionIds.remove(opt['id'] ?? '');
+                                      }
+                                    });
+                                  },
+                                )
+                              else
+                                Radio<String>(
+                                  value: opt['id'] ?? '',
+                                  activeColor: Colors.green,
+                                ),
+                              Expanded(
+                                child: TextField(
+                                  onChanged: (v) => opt['text'] = v,
+                                  controller: controller,
+                                  style: GoogleFonts.cairo(fontSize: 14),
+                                  decoration: InputDecoration(
+                                    hintText: 'الخيار ${index + 1}',
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                                  ),
                                 ),
                               ),
-                            ),
-                            if (options.length > 1 && selectedTypeId != 'tf')
+                              if (options.length > 1 && selectedTypeId != 'tf')
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                                 onPressed: () => setState(() {
@@ -439,7 +440,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                     if (selectedTypeId != 'tf')
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
@@ -461,7 +462,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       ),
                   ],
                 ),
-              )
+              ),
+            )
             else
               _buildSection(
                 title: 'الإجابة النموذجية',
