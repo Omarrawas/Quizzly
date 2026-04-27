@@ -118,7 +118,6 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
   }
 
   Widget _buildExamCard(String id, ExamConfig config, bool isDark) {
-    final bool isGenerated = config.type == ExamType.generated;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -136,12 +135,12 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isGenerated ? Colors.purple.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                    color: config.type == ExamType.bank ? Colors.purple.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    isGenerated ? 'مُولد' : 'ثابت',
-                    style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: isGenerated ? Colors.purple : Colors.blue),
+                    config.type == ExamType.bank ? 'بنك' : 'دورة',
+                    style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: config.type == ExamType.bank ? Colors.purple : Colors.blue),
                   ),
                 ),
                 if (config.category != null) ...[
@@ -197,7 +196,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
               ],
             ),
           ),
-          if (!isGenerated)
+          if (config.type == ExamType.dora)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: SizedBox(
@@ -217,7 +216,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     );
                   },
                   icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
-                  label: Text('تحديد الأسئلة الثابتة (${config.staticQuestionIds.length})', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text('تحديد أسئلة الدورة (${config.staticQuestionIds.length})', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -273,12 +272,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     final durationController = TextEditingController(text: (existingConfig != null ? existingConfig.durationSeconds ~/ 60 : 20).toString());
     final scoreController = TextEditingController(text: existingConfig?.passingScore.toString() ?? '60');
     
-    ExamType selectedType = existingConfig?.type ?? ExamType.generated;
-    
-    // For Generated
-    double easyP = existingConfig?.generationRules?.difficultyDistribution[Difficulty.easy]?.toDouble() ?? 33;
-    double mediumP = existingConfig?.generationRules?.difficultyDistribution[Difficulty.medium]?.toDouble() ?? 34;
-    double hardP = existingConfig?.generationRules?.difficultyDistribution[Difficulty.hard]?.toDouble() ?? 33;
+    ExamType selectedType = existingConfig?.type ?? ExamType.bank;
     List<String> selectedTopics = existingConfig?.generationRules?.topicIds ?? [];
 
     showDialog(
@@ -357,47 +351,22 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                       children: [
                         Expanded(
                           child: RadioListTile<ExamType>(
-                            title: Text('مُولد تلقائياً', style: GoogleFonts.cairo(fontSize: 12)),
-                            value: ExamType.generated,
+                            title: Text('بنك أسئلة', style: GoogleFonts.cairo(fontSize: 12)),
+                            value: ExamType.bank,
                           ),
                         ),
                         Expanded(
                           child: RadioListTile<ExamType>(
-                            title: Text('ثابت', style: GoogleFonts.cairo(fontSize: 12)),
-                            value: ExamType.static,
+                            title: Text('دورة', style: GoogleFonts.cairo(fontSize: 12)),
+                            value: ExamType.dora,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (selectedType == ExamType.generated) ...[
+                  if (selectedType == ExamType.bank) ...[
                     const Divider(),
-                    Text('توزيع الصعوبة (يجب أن يكون المجموع 100)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    _buildSliderRow('سهل', easyP, (v) {
-                      setDialogState(() {
-                        easyP = v;
-                        final remainder = 100 - easyP;
-                        mediumP = remainder / 2;
-                        hardP = remainder / 2;
-                      });
-                    }),
-                    _buildSliderRow('متوسط', mediumP, (v) {
-                      setDialogState(() {
-                        mediumP = v;
-                        final remainder = 100 - mediumP;
-                        easyP = remainder / 2;
-                        hardP = remainder / 2;
-                      });
-                    }),
-                    _buildSliderRow('صعب', hardP, (v) {
-                      setDialogState(() {
-                        hardP = v;
-                        final remainder = 100 - hardP;
-                        easyP = remainder / 2;
-                        mediumP = remainder / 2;
-                      });
-                    }),
+                    Text('سيتم توليد الأسئلة تلقائياً من بنك الأسئلة', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
                   ],
                 ],
               ),
@@ -423,13 +392,8 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   passingScore: score,
                   subjectId: widget.subjectId,
                   staticQuestionIds: existingConfig?.staticQuestionIds ?? [],
-                  generationRules: selectedType == ExamType.generated ? GenerationRules(
+                  generationRules: selectedType == ExamType.bank ? GenerationRules(
                     topicIds: selectedTopics,
-                    difficultyDistribution: {
-                      Difficulty.easy: easyP.round(),
-                      Difficulty.medium: mediumP.round(),
-                      Difficulty.hard: hardP.round(),
-                    },
                   ) : null,
                 );
 
@@ -446,8 +410,8 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     Navigator.pop(context);
                     _showStatusSnackBar(isEdit ? 'تم تحديث الاختبار بنجاح' : 'تمت إضافة الاختبار بنجاح', isError: false);
                     
-                    // Auto-navigate to selection if it's a new static exam
-                    if (!isEdit && selectedType == ExamType.static) {
+                    // Auto-navigate to selection if it's a new dora exam
+                    if (!isEdit && selectedType == ExamType.dora) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -470,25 +434,6 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSliderRow(String label, double value, ValueChanged<double> onChanged) {
-    return Row(
-      children: [
-        SizedBox(width: 60, child: Text(label, style: GoogleFonts.cairo(fontSize: 12))),
-        Expanded(
-          child: Slider(
-            value: value,
-            min: 0,
-            max: 100,
-            divisions: 100,
-            label: value.round().toString(),
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(width: 40, child: Text('${value.round()}%', style: GoogleFonts.cairo(fontSize: 12))),
-      ],
     );
   }
 

@@ -55,24 +55,25 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
         }
       );
 
-      // 3. Handle Tags for newly selected questions
-      final addedIds = _selectedIds.where((id) => !widget.initialSelectedIds.contains(id)).toList();
-      for (var id in addedIds) {
-        batch.update(
-          FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id),
-          {
-            'examTags': FieldValue.arrayUnion([tagName])
-          }
-        );
-      }
+      // 3 & 4. Handle Tags for modified questions
+      final allAffectedIds = {..._selectedIds, ...widget.initialSelectedIds};
+      
+      for (var id in allAffectedIds) {
+        final qSnap = await FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id).get();
+        final qData = qSnap.data() ?? {};
+        List<String> currentTags = List<String>.from(qData['examTags'] ?? []);
+        
+        if (_selectedIds.contains(id)) {
+          if (!currentTags.contains(tagName)) currentTags.add(tagName);
+        } else {
+          currentTags.remove(tagName);
+        }
 
-      // 4. Handle Tags for removed questions
-      final removedIds = widget.initialSelectedIds.where((id) => !_selectedIds.contains(id)).toList();
-      for (var id in removedIds) {
         batch.update(
           FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id),
           {
-            'examTags': FieldValue.arrayRemove([tagName])
+            'examTags': currentTags,
+            'isRepeated': currentTags.length > 1,
           }
         );
       }

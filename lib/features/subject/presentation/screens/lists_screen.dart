@@ -25,7 +25,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
   final ExamGeneratorService _generator = ExamGeneratorService();
   int _selectedFilter = 0;
 
-  final List<String> _filters = ['الكل', 'الدورات الوزارية', 'نماذج مولدة'];
+  final List<String> _filters = ['الكل', 'الدورات الوزارية', 'بنك الأسئلة'];
 
   @override
   Widget build(BuildContext context) {
@@ -63,8 +63,8 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                 final filtered = _selectedFilter == 0
                     ? allExams
                     : _selectedFilter == 1
-                        ? allExams.where((e) => e.type == ExamType.static).toList()
-                        : allExams.where((e) => e.type == ExamType.generated).toList();
+                        ? allExams.where((e) => e.type == ExamType.dora).toList()
+                        : allExams.where((e) => e.type == ExamType.bank).toList();
 
                 if (filtered.isEmpty) {
                   return const _EmptyState(message: 'لا توجد امتحانات متاحة حالياً');
@@ -150,7 +150,7 @@ class _ExamConfigTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isStatic = config.type == ExamType.static;
+    final isDora = config.type == ExamType.dora;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -165,12 +165,12 @@ class _ExamConfigTile extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: isStatic ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
+            color: isDora ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
             shape: BoxShape.circle,
           ),
           child: Icon(
-            isStatic ? Icons.assignment_rounded : Icons.auto_awesome_rounded,
-            color: isStatic ? AppColors.primaryBlue : Colors.green,
+            isDora ? Icons.assignment_rounded : Icons.auto_awesome_rounded,
+            color: isDora ? AppColors.primaryBlue : Colors.green,
           ),
         ),
         title: Text(

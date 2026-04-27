@@ -276,7 +276,7 @@ class BulkUploadService {
   }
 
 
-  String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, Map<String, dynamic>> _topicsMap) {
+  String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, Map<String, dynamic>> topicsMap) {
     List<List<dynamic>> rows = [];
     
     // Header
@@ -316,11 +316,11 @@ class BulkUploadService {
       
       if (topicIds != null && topicIds.isNotEmpty) {
         final topicId = topicIds.first.toString();
-        final topicData = _topicsMap[topicId]; // Wait, I need access to the topics map
+        final topicData = topicsMap[topicId]; // Wait, I need access to the topics map
         if (topicData != null) {
           final parentId = topicData['parentId'];
           if (parentId != null) {
-            final parentData = _topicsMap[parentId];
+            final parentData = topicsMap[parentId];
             topicName = "${parentData?['name'] ?? ''} - ${topicData['name'] ?? ''}";
           } else {
             topicName = topicData['name'] ?? '';

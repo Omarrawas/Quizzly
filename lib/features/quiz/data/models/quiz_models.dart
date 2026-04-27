@@ -83,6 +83,7 @@ class QuizQuestion {
   final String? authorId;
   final String? reviewerId;
   final String? reviewFeedback;
+  final bool isRepeated; // If belongs to > 1 exam
 
   const QuizQuestion({
     required this.number,
@@ -111,6 +112,7 @@ class QuizQuestion {
     this.authorId,
     this.reviewerId,
     this.reviewFeedback,
+    this.isRepeated = false,
   });
 
   factory QuizQuestion.fromFirestore(DocumentSnapshot doc) {
@@ -144,6 +146,7 @@ class QuizQuestion {
       authorId: data['authorId'],
       reviewerId: data['reviewerId'],
       reviewFeedback: data['reviewFeedback'],
+      isRepeated: (data['examTags'] as List?) != null && (data['examTags'] as List).length > 1,
     );
   }
 
@@ -197,42 +200,30 @@ class QuizQuestion {
       'authorId': authorId,
       'reviewerId': reviewerId,
       'reviewFeedback': reviewFeedback,
+      'isRepeated': examTags.length > 1,
     };
   }
 }
 
-enum ExamType { static, generated }
+enum ExamType { dora, bank }
 
 class GenerationRules {
   final List<String> topicIds;
-  final Map<Difficulty, int> difficultyDistribution; // percentage
 
   const GenerationRules({
     required this.topicIds,
-    required this.difficultyDistribution,
   });
 
   factory GenerationRules.fromMap(Map<String, dynamic>? map) {
-    if (map == null) return const GenerationRules(topicIds: [], difficultyDistribution: {});
-    final dist = map['difficultyDistribution'] as Map<String, dynamic>? ?? {};
+    if (map == null) return const GenerationRules(topicIds: []);
     return GenerationRules(
       topicIds: List<String>.from(map['topicIds'] ?? []),
-      difficultyDistribution: {
-        Difficulty.easy: dist['easy'] ?? 33,
-        Difficulty.medium: dist['medium'] ?? 34,
-        Difficulty.hard: dist['hard'] ?? 33,
-      },
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'topicIds': topicIds,
-      'difficultyDistribution': {
-        'easy': difficultyDistribution[Difficulty.easy],
-        'medium': difficultyDistribution[Difficulty.medium],
-        'hard': difficultyDistribution[Difficulty.hard],
-      },
     };
   }
 }
@@ -268,28 +259,28 @@ class ExamConfig {
     return ExamConfig(
       id: doc.id,
       title: data['title'] ?? '',
-      type: data['type'] == 'generated' ? ExamType.generated : ExamType.static,
+      type: data['type'] == 'bank' ? ExamType.bank : ExamType.dora,
       durationSeconds: data['duration'] ?? 3600,
       totalQuestions: data['totalQuestions'] ?? 0,
       passingScore: (data['passingScore'] ?? 60.0).toDouble(),
       subjectId: data['subjectId'] ?? '',
       category: data['category'],
       staticQuestionIds: List<String>.from(data['staticQuestions'] ?? []),
-      generationRules: data['type'] == 'generated' ? GenerationRules.fromMap(data['generationRules']) : null,
+      generationRules: data['type'] == 'bank' ? GenerationRules.fromMap(data['generationRules']) : null,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'title': title,
-      'type': type == ExamType.generated ? 'generated' : 'static',
+      'type': type == ExamType.bank ? 'bank' : 'dora',
       'duration': durationSeconds,
       'totalQuestions': totalQuestions,
       'passingScore': passingScore,
       'subjectId': subjectId,
       'category': category,
       'staticQuestions': staticQuestionIds,
-      if (type == ExamType.generated && generationRules != null)
+      if (type == ExamType.bank && generationRules != null)
         'generationRules': generationRules!.toMap(),
     };
   }

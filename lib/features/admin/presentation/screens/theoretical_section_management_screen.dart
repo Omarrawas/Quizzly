@@ -364,25 +364,49 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                       child: Wrap(
                         spacing: 6,
                         runSpacing: 4,
-                        children: (data['examTags'] as List).map((tag) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.bookmark_rounded, size: 10, color: Colors.orange),
-                              const SizedBox(width: 4),
-                              Text(
-                                tag.toString(),
-                                style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
+                        children: [
+                          // 1. "Mukarrar" Tag if applicable
+                          if ((data['examTags'] as List).length > 1)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                               ),
-                            ],
-                          ),
-                        )).toList(),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.repeat_rounded, size: 10, color: Colors.red),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'مكرر',
+                                    style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.red[800]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          // 2. Individual Dora Tags
+                          ...(data['examTags'] as List).map((tag) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.bookmark_rounded, size: 10, color: Colors.orange),
+                                const SizedBox(width: 4),
+                                Text(
+                                  tag.toString(),
+                                  style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
+                                ),
+                              ],
+                            ),
+                          )),
+                        ],
                       ),
                     ),
                 ],
