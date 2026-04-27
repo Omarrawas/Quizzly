@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/features/admin/presentation/widgets/generate_codes_dialog.dart';
+import 'package:quizzly/features/admin/presentation/screens/manage_activation_codes_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/database_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 
@@ -118,7 +120,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 1.6,
+                  childAspectRatio: 1.8,
                   children: [
                     _buildStatCard(
                       icon: Icons.people_alt_rounded,
@@ -158,7 +160,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               icon: Icons.add_moderator_rounded,
               title: 'توليد أكواد تفعيل جديدة',
               subtitle: 'إنشاء مفاتيح وصول للمستخدمين الجدد',
-              onTap: () {},
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const GenerateCodesDialog(),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.vpn_key_rounded,
+              title: 'إدارة مجموعات الأكواد',
+              subtitle: 'عرض، طباعة، وحذف دفعات الأكواد',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ManageActivationCodesScreen()),
+                );
+              },
               isDark: isDark,
             ),
             _buildActionTile(
@@ -236,29 +255,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 28),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.inter(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              Text(
-                label,
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: color.withValues(alpha: 0.8),
-                ),
-              ),
-            ],
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color.withValues(alpha: 0.8),
+            ),
           ),
         ],
       ),

@@ -43,7 +43,11 @@ class AccessService {
         throw Exception('هذا الكود تم استخدامه مسبقاً.');
       }
 
-      final subjectId = codeData['subjectId'] as String;
+      final subjectIds = (codeData['subjectIds'] as List?)?.cast<String>() ?? [];
+      if (subjectIds.isEmpty && codeData['subjectId'] != null) {
+        subjectIds.add(codeData['subjectId'] as String);
+      }
+
       final durationDays = codeData['durationDays'] as int;
 
       // 1. Mark code as used
@@ -53,26 +57,28 @@ class AccessService {
         'usedAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Grant access to the user
-      final grantId = '${userId}_$subjectId';
-      final grantRef = _db.collection('user_access_grants').doc(grantId);
-      
-      // Calculate expiration
-      DateTime? expiresAt;
-      if (durationDays > 0) {
-        expiresAt = DateTime.now().add(Duration(days: durationDays));
+      // 2. Grant access to the user for each subject
+      for (var subjectId in subjectIds) {
+        final grantId = '${userId}_$subjectId';
+        final grantRef = _db.collection('user_access_grants').doc(grantId);
+        
+        // Calculate expiration
+        DateTime? expiresAt;
+        if (durationDays > 0) {
+          expiresAt = DateTime.now().add(Duration(days: durationDays));
+        }
+
+        final grant = UserAccessGrant(
+          userId: userId,
+          subjectId: subjectId,
+          accessMethod: isQr ? AccessMethod.qrCode : AccessMethod.manualCode,
+          grantedAt: DateTime.now(),
+          expiresAt: expiresAt,
+          isActive: true,
+        );
+
+        transaction.set(grantRef, grant.toMap(), SetOptions(merge: true));
       }
-
-      final grant = UserAccessGrant(
-        userId: userId,
-        subjectId: subjectId,
-        accessMethod: isQr ? AccessMethod.qrCode : AccessMethod.manualCode,
-        grantedAt: DateTime.now(),
-        expiresAt: expiresAt,
-        isActive: true,
-      );
-
-      transaction.set(grantRef, grant.toMap(), SetOptions(merge: true));
     });
   }
 

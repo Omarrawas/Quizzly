@@ -169,14 +169,31 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             final data = docs[index].data() as Map<String, dynamic>;
             final id = docs[index].id;
             final name = data['name'] ?? '';
+            double? basePrice;
+            double? finalPrice;
+            double? discount = data['discount'] != null ? (data['discount'] as num).toDouble() : null;
+
+            if (_currentLevel == ManagementLevel.subject) {
+              basePrice = (data['price'] as num?)?.toDouble();
+              if (basePrice != null && discount != null && discount > 0) {
+                finalPrice = basePrice * (1 - discount / 100);
+              } else {
+                finalPrice = basePrice;
+              }
+            } else if (_currentLevel == ManagementLevel.semester) {
+              finalPrice = (data['totalPrice'] as num?)?.toDouble();
+              basePrice = (data['manualPrice'] as num?)?.toDouble() ?? (data['basePrice'] as num?)?.toDouble();
+              // If basePrice is same as finalPrice (no discount), set basePrice to null to avoid redundant display
+              if (basePrice == finalPrice) basePrice = null;
+            }
+
             return _buildManagementCard(
               key: ValueKey(id),
               title: name,
               subtitle: data['description'] ?? data['subtitle'] ?? '',
-              price: (data['price'] != null) 
-                  ? (data['price'] as num).toDouble() 
-                  : (_currentLevel == ManagementLevel.semester ? (data['totalPrice'] as num?)?.toDouble() : null),
-              discount: data['discount'] != null ? (data['discount'] as num).toDouble() : null,
+              basePrice: basePrice,
+              finalPrice: finalPrice,
+              discount: discount,
               isDark: isDark,
               onTap: () => _onItemTap(id, name, _currentLevel),
               onEdit: () => _showEditDialog(id, data),
@@ -322,7 +339,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     required Key key, 
     required String title, 
     required String subtitle, 
-    double? price,
+    double? basePrice,
+    double? finalPrice,
     double? discount,
     required bool isDark, 
     required VoidCallback onTap, 
@@ -344,18 +362,32 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         title: Row(
           children: [
             Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16))),
-            if (price != null) ...[
+            if (finalPrice != null) ...[
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${price.toStringAsFixed(0)} ل.س',
-                  style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (basePrice != null && basePrice > finalPrice)
+                    Text(
+                      '${basePrice.toStringAsFixed(0)} ل.س',
+                      style: GoogleFonts.cairo(
+                        fontSize: 10, 
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${finalPrice.toStringAsFixed(0)} ل.س',
+                      style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                    ),
+                  ),
+                ],
               ),
             ],
             if (discount != null && discount > 0) ...[

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DatabaseService {
@@ -250,6 +251,82 @@ class DatabaseService {
       'seenQuestions': FieldValue.arrayUnion(seenIds),
       'wrongAnswers': FieldValue.arrayUnion(wrongIds),
     });
+
+    await batch.commit();
+  }
+
+  // ─── Activation Codes ──────────────────────────────────
+
+  String _generateRandomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing O,0,I,1
+    final rnd = math.Random();
+    return List.generate(8, (index) => chars[rnd.nextInt(chars.length)]).join();
+  }
+
+  Future<void> generateBulkCodes({
+    required List<String> subjectIds,
+    required String batchName,
+    required int quantity,
+    required int durationDays,
+  }) async {
+    final batch = _db.batch();
+    final now = DateTime.now();
+
+    for (int i = 0; i < quantity; i++) {
+      final code = _generateRandomCode();
+      final ref = _db.collection('activation_codes').doc(code);
+
+      batch.set(ref, {
+        'code': code,
+        'subjectIds': subjectIds,
+        'durationDays': durationDays,
+        'isUsed': false,
+        'usedBy': null,
+        'usedAt': null,
+        'createdAt': now,
+        'batchName': batchName,
+      });
+    }
+
+    // Also create a batch record for easier listing
+    final batchRef = _db.collection('activation_batches').doc(batchName);
+    batch.set(batchRef, {
+      'name': batchName,
+      'subjectIds': subjectIds,
+      'quantity': quantity,
+      'durationDays': durationDays,
+      'createdAt': now,
+    });
+
+    await batch.commit();
+  }
+
+  Stream<QuerySnapshot> getBatches() {
+    return _db.collection('activation_batches')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<List<Map<String, dynamic>>> getActivationCodesByBatch(String batchName) async {
+    final snap = await _db.collection('activation_codes')
+        .where('batchName', isEqualTo: batchName)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((d) => d.data()).toList();
+  }
+
+  Future<void> deleteActivationBatch(String batchName) async {
+    final snap = await _db.collection('activation_codes')
+        .where('batchName', isEqualTo: batchName)
+        .get();
+    
+    final batch = _db.batch();
+    for (var doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Delete batch record too
+    batch.delete(_db.collection('activation_batches').doc(batchName));
 
     await batch.commit();
   }

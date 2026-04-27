@@ -51,17 +51,74 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildSummaryCards(bool isDark) {
-    // In a real production app with Cloud Functions, these would fetch from 'analytics_summary/global'
-    // For now, we mock some top-level aggregated data visually.
-    return Row(
-      children: [
-        Expanded(child: _buildCard('الاختبارات المنجزة', '12.4K', Icons.assignment_turned_in, Colors.green, isDark)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildCard('نسبة النجاح العامة', '68%', Icons.trending_up, Colors.blue, isDark)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildCard('تفاعل الطلاب', '8.2K', Icons.local_fire_department_rounded, Colors.orange, isDark)),
-      ],
+    return FutureBuilder<Map<String, String>>(
+      future: _fetchGlobalAnalytics(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? {
+          'exams': '...',
+          'success': '...',
+          'engagement': '...',
+        };
+
+        return Row(
+          children: [
+            Expanded(child: _buildCard('الاختبارات المنجزة', stats['exams']!, Icons.assignment_turned_in, Colors.green, isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildCard('نسبة النجاح العامة', stats['success']!, Icons.trending_up, Colors.blue, isDark)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildCard('تفاعل الطلاب', stats['engagement']!, Icons.local_fire_department_rounded, Colors.orange, isDark)),
+          ],
+        );
+      }
     );
+  }
+
+  Future<Map<String, String>> _fetchGlobalAnalytics() async {
+    try {
+      // 1. Total Exams
+      final examsCount = await _db.collection('exam_attempts').count().get();
+      
+      // 2. Success Rate (Average of all questions' success rates)
+      final questions = await _db.collection('questions')
+          .where('analytics.timesAnswered', isGreaterThan: 0)
+          .get();
+      
+      double totalSuccess = 0;
+      int count = 0;
+      for (var doc in questions.docs) {
+        final data = doc.data();
+        final analytics = data['analytics'] as Map<String, dynamic>?;
+        if (analytics != null) {
+          totalSuccess += (analytics['successRate'] as num?)?.toDouble() ?? 0;
+          count++;
+        }
+      }
+      final avgSuccess = count > 0 ? (totalSuccess / count) * 100 : 0.0;
+
+      // 3. Engagement (Unique users who have quiz attempts)
+      // Note: For true uniqueness we'd need a complex query or aggregation, 
+      // but for dashboard we can estimate or count active users.
+      final usersCount = await _db.collection('users').count().get();
+
+      return {
+        'exams': _formatNumber(examsCount.count ?? 0),
+        'success': '${avgSuccess.toStringAsFixed(1)}%',
+        'engagement': _formatNumber(usersCount.count ?? 0),
+      };
+    } catch (e) {
+      return {
+        'exams': '0',
+        'success': '0%',
+        'engagement': '0',
+      };
+    }
+  }
+
+  String _formatNumber(int number) {
+    if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    }
+    return number.toString();
   }
 
   Widget _buildCard(String title, String value, IconData icon, Color color, bool isDark) {
