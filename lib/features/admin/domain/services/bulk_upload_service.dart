@@ -28,14 +28,19 @@ class BulkUploadService {
     // 1. Decode CSV
     String csvString = utf8.decode(fileBytes, allowMalformed: true);
     
-    // Strip UTF-8 BOM if present (common in Excel-exported CSVs)
+    // Strip UTF-8 BOM if present
     if (csvString.startsWith('\uFEFF')) {
       csvString = csvString.substring(1);
     }
     
-    var rows = const CsvToListConverter().convert(csvString);
+    var rows = const CsvToListConverter(
+      eol: '\n',
+      fieldDelimiter: ',',
+      textDelimiter: '"',
+    ).convert(csvString);
 
     if (rows.isEmpty) {
+
       return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف فارغ.')]);
     }
 
@@ -80,12 +85,23 @@ class BulkUploadService {
       topicMap[name] = doc.id;
     }
 
+    final seenQuestions = <String>{};
+
     // 3. Parse rows
     for (int i = 1; i < rows.length; i++) {
       var row = rows[i];
-      if (row.isEmpty || row.length < colText || row[colText].toString().trim().isEmpty) continue;
+      if (row.isEmpty || row.length <= colText || row[colText] == null || row[colText].toString().trim().isEmpty) continue;
 
       String text = row[colText].toString().trim();
+      
+      // Prevent duplicates in the same file
+      final normalizedText = text.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      if (seenQuestions.contains(normalizedText)) {
+        errors.add(UploadError(row: i + 1, message: 'سؤال مكرر داخل الملف.'));
+        continue;
+      }
+      seenQuestions.add(normalizedText);
+
       
       // Map Topic
       String topicName = colTopic != -1 && row.length > colTopic ? row[colTopic].toString().trim() : '';
@@ -180,7 +196,7 @@ class BulkUploadService {
       String expl = colExpl != -1 && row.length > colExpl ? row[colExpl].toString().trim() : '';
 
       final q = QuizQuestion(
-        id: _db.collection('dummy').doc().id, // Generate a temp ID
+        id: _generateQuestionId(text),
         number: i,
         text: text,
         type: type,
@@ -196,6 +212,7 @@ class BulkUploadService {
         estimatedTime: timeSec,
       );
 
+
       parsedQuestions.add(q);
     }
 
@@ -205,20 +222,24 @@ class BulkUploadService {
   Future<void> saveQuestions(List<QuizQuestion> questions, String subjectId) async {
     final batch = _db.batch();
     for (var q in questions) {
-      final docRef = _db.collection('questions').doc();
+      final docRef = _db.collection('questions').doc(q.id);
       final data = q.toMap();
       data['subjectId'] = subjectId;
-      data['createdAt'] = FieldValue.serverTimestamp();
-      batch.set(docRef, data);
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      batch.set(docRef, data, SetOptions(merge: true));
     }
     await batch.commit();
   }
 
+  String _generateQuestionId(String text) {
+    // Generate a deterministic ID based on question text to prevent duplicates
+    final normalized = text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    return 'q_${normalized.hashCode.abs()}';
+  }
+
+
   String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, String> topicIdToName) {
     List<List<dynamic>> rows = [];
-    
-    // إجبار Excel على استخدام الفاصلة كفاصل للأعمدة بغض النظر عن إعدادات المنطقة
-    rows.add(['sep=,']);
     
     // Header
     rows.add([
@@ -276,7 +297,11 @@ class BulkUploadService {
       ]);
     }
 
-    return const ListToCsvConverter().convert(rows);
+    return const ListToCsvConverter(
+      fieldDelimiter: ',',
+      textDelimiter: '"',
+      eol: '\n',
+    ).convert(rows);
   }
 
   static String generateTemplate({
@@ -284,9 +309,6 @@ class BulkUploadService {
     required Map<String, String> topicIdToName,
   }) {
     List<List<dynamic>> rows = [];
-    
-    // إجبار Excel على استخدام الفاصلة كفاصل للأعمدة بغض النظر عن إعدادات المنطقة
-    rows.add(['sep=,']);
     
     // Header
     rows.add([
@@ -338,6 +360,10 @@ class BulkUploadService {
       ]);
     }
 
-    return const ListToCsvConverter().convert(rows);
+    return const ListToCsvConverter(
+      fieldDelimiter: ',',
+      textDelimiter: '"',
+      eol: '\n',
+    ).convert(rows);
   }
 }
