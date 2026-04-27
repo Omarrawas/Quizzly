@@ -86,6 +86,12 @@ class DatabaseService {
     return query.orderBy('order').snapshots();
   }
 
+  Stream<QuerySnapshot> getAllTopicsForSubject(String subjectId) {
+    return _db.collection(colTopics)
+        .where('subjectId', isEqualTo: subjectId)
+        .snapshots();
+  }
+
   Future<void> addTopic(String subjectId, String? parentId, Map<String, dynamic> data) async {
     final count = await _db.collection(colTopics)
         .where('subjectId', isEqualTo: subjectId)

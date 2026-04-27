@@ -104,14 +104,43 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
 
   Future<void> _loadAvailableLessons() async {
     try {
-      // Get all topics of type 'lesson' for this subject
-      final snapshot = await _dbService.getTopics(widget.subjectId, type: 'lesson').first;
+      // Get all topics for this subject to build the hierarchy
+      final snapshot = await _dbService.getAllTopicsForSubject(widget.subjectId).first;
       if (mounted) {
+        final allDocs = snapshot.docs;
+        // Create a map for quick name lookup
+        final Map<String, String> nameMap = {
+          for (var doc in allDocs) doc.id: (doc.data() as Map<String, dynamic>)['name'] ?? ''
+        };
+
         setState(() {
-          availableLessons = snapshot.docs.map((doc) => {
-            'id': doc.id,
-            'name': (doc.data() as Map<String, dynamic>)['name'] ?? '',
+          availableLessons = allDocs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return data['type'] == 'lesson';
+          }).map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final parentId = data['parentId'];
+            final parentName = (parentId != null) ? nameMap[parentId] : null;
+            
+            // Format as "Chapter Name - Lesson Name"
+            final fullName = parentName != null 
+                ? '$parentName - ${data['name']}' 
+                : data['name'] ?? '';
+
+            return {
+              'id': doc.id,
+              'name': fullName,
+            };
           }).toList();
+
+          // Optional: Update current selected names if they are just lesson names
+          if (widget.lessonId != null && selectedTopicIds.contains(widget.lessonId)) {
+            final idx = selectedTopicIds.indexOf(widget.lessonId!);
+            final lessonData = availableLessons.firstWhere((l) => l['id'] == widget.lessonId, orElse: () => {});
+            if (lessonData.isNotEmpty) {
+              selectedTopicNames[idx] = lessonData['name'];
+            }
+          }
         });
       }
     } catch (e) {
@@ -634,49 +663,61 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   void _showTopicSelectionDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('اختر المواضيع', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: availableLessons.isEmpty 
-            ? Center(child: Text('لا توجد مواضيع متاحة', style: GoogleFonts.cairo()))
-            : ListView.builder(
-                shrinkWrap: true,
-                itemCount: availableLessons.length,
-                itemBuilder: (context, index) {
-                  final lesson = availableLessons[index];
-                  final isSelected = selectedTopicIds.contains(lesson['id']);
-                  return CheckboxListTile(
-                    title: Text(lesson['name'], style: GoogleFonts.cairo()),
-                    value: isSelected,
-                    onChanged: (val) {
-                      setState(() {
-                        if (val ?? false) {
-                          if (!selectedTopicIds.contains(lesson['id'])) {
-                            selectedTopicIds.add(lesson['id']);
-                            selectedTopicNames.add(lesson['name']);
-                          }
-                        } else {
-                          final idx = selectedTopicIds.indexOf(lesson['id']);
-                          if (idx != -1) {
-                            selectedTopicIds.removeAt(idx);
-                            selectedTopicNames.removeAt(idx);
-                          }
-                        }
-                      });
-                      Navigator.pop(context);
-                      _showTopicSelectionDialog(); // Re-open to allow multiple selections easily or just keep it open
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text('اختر المواضيع', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            content: Container(
+              width: double.maxFinite,
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+              child: availableLessons.isEmpty 
+                ? Center(child: Text('لا توجد مواضيع متاحة', style: GoogleFonts.cairo()))
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: availableLessons.length,
+                    separatorBuilder: (c, i) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final lesson = availableLessons[index];
+                      final isSelected = selectedTopicIds.contains(lesson['id']);
+                      return CheckboxListTile(
+                        title: Text(
+                          lesson['name'], 
+                          style: GoogleFonts.cairo(
+                            fontSize: 14,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          )
+                        ),
+                        value: isSelected,
+                        activeColor: AppColors.primaryBlue,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val ?? false) {
+                              if (!selectedTopicIds.contains(lesson['id'])) {
+                                selectedTopicIds.add(lesson['id']);
+                                selectedTopicNames.add(lesson['name']);
+                              }
+                            } else {
+                              final idx = selectedTopicIds.indexOf(lesson['id']);
+                              if (idx != -1) {
+                                selectedTopicIds.removeAt(idx);
+                                selectedTopicNames.removeAt(idx);
+                              }
+                            }
+                          });
+                          setDialogState(() {}); // Update dialog UI
+                        },
+                      );
                     },
-                  );
-                },
+                  ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('تم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
               ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إغلاق', style: GoogleFonts.cairo()),
-          ),
-        ],
+            ],
+          );
+        }
       ),
     );
   }
