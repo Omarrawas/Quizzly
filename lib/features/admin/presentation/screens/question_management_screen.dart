@@ -106,7 +106,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   Future<void> _loadAvailableLessons() async {
     try {
       // Get all topics for this subject to build the hierarchy
-      final snapshot = await _dbService.getAllTopicsForSubject(widget.subjectId).first;
+      final snapshot = await _dbService.getAllTopicsForSubject(widget.subjectId, sectionId: widget.sectionId).first;
       if (mounted) {
         final allDocs = snapshot.docs;
         // Create a map for quick name lookup

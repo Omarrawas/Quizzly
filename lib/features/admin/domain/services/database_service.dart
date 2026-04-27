@@ -74,10 +74,14 @@ class DatabaseService {
   Future<DocumentReference> addQuestion(String sectionId, Map<String, dynamic> data) => addChild(colQuestions, sectionId, data);
 
   // --- Topics (Nested Structure) ---
-  Stream<QuerySnapshot> getTopics(String subjectId, {String? parentId, String? type}) {
+  Stream<QuerySnapshot> getTopics(String subjectId, {String? sectionId, String? parentId, String? type}) {
     var query = _db.collection(colTopics)
         .where('subjectId', isEqualTo: subjectId)
         .where('parentId', isEqualTo: parentId);
+    
+    if (sectionId != null) {
+      query = query.where('sectionId', isEqualTo: sectionId);
+    }
     
     if (type != null) {
       query = query.where('type', isEqualTo: type);
@@ -86,17 +90,27 @@ class DatabaseService {
     return query.orderBy('order').snapshots();
   }
 
-  Stream<QuerySnapshot> getAllTopicsForSubject(String subjectId) {
-    return _db.collection(colTopics)
-        .where('subjectId', isEqualTo: subjectId)
-        .snapshots();
+  Stream<QuerySnapshot> getAllTopicsForSubject(String subjectId, {String? sectionId}) {
+    var query = _db.collection(colTopics)
+        .where('subjectId', isEqualTo: subjectId);
+        
+    if (sectionId != null) {
+      query = query.where('sectionId', isEqualTo: sectionId);
+    }
+    
+    return query.snapshots();
   }
 
-  Future<void> addTopic(String subjectId, String? parentId, Map<String, dynamic> data) async {
-    final count = await _db.collection(colTopics)
+  Future<void> addTopic(String subjectId, String? sectionId, String? parentId, Map<String, dynamic> data) async {
+    var query = _db.collection(colTopics)
         .where('subjectId', isEqualTo: subjectId)
-        .where('parentId', isEqualTo: parentId)
-        .count().get();
+        .where('parentId', isEqualTo: parentId);
+    
+    if (sectionId != null) {
+      query = query.where('sectionId', isEqualTo: sectionId);
+    }
+
+    final count = await query.count().get();
 
     List<String> ancestors = [];
     if (parentId != null) {
@@ -111,6 +125,7 @@ class DatabaseService {
     await _db.collection(colTopics).add({
       ...data,
       'subjectId': subjectId,
+      'sectionId': sectionId,
       'parentId': parentId,
       'ancestors': ancestors,
       'order': count.count,

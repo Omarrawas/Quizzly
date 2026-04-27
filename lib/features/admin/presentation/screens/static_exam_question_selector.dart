@@ -8,6 +8,7 @@ class StaticExamQuestionSelector extends StatefulWidget {
   final String examId;
   final String examTitle;
   final String subjectId;
+  final String sectionId;
   final List<String> initialSelectedIds;
 
   const StaticExamQuestionSelector({
@@ -15,6 +16,7 @@ class StaticExamQuestionSelector extends StatefulWidget {
     required this.examId,
     required this.examTitle,
     required this.subjectId,
+    required this.sectionId,
     required this.initialSelectedIds,
   });
 
@@ -41,7 +43,8 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
       final snap = await FirebaseFirestore.instance
           .collection(DatabaseService.colTopics)
           .where('subjectId', isEqualTo: widget.subjectId)
-          .orderBy('createdAt', descending: false) // Order from oldest to newest
+          .where('sectionId', isEqualTo: widget.sectionId)
+          .orderBy('createdAt', descending: false)
           .get();
       
       final Map<String, Map<String, dynamic>> topics = {};
@@ -169,7 +172,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
             const LinearProgressIndicator()
           else
             DropdownButtonFormField<String>(
-              value: _selectedTopicId,
+              initialValue: _selectedTopicId,
               isExpanded: true,
               hint: Text('تصفية حسب الموضوع', style: GoogleFonts.cairo(fontSize: 12)),
               decoration: InputDecoration(
@@ -214,7 +217,8 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
   Widget _buildQuestionsList(bool isDark) {
     Query query = FirebaseFirestore.instance
         .collection(DatabaseService.colQuestions)
-        .where('subjectId', isEqualTo: widget.subjectId);
+        .where('subjectId', isEqualTo: widget.subjectId)
+        .where('parentId', isEqualTo: widget.sectionId);
 
     if (_selectedTopicId != null) {
       query = query.where('topicIds', arrayContains: _selectedTopicId);

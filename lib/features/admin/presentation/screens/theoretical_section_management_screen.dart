@@ -53,6 +53,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       final snap = await FirebaseFirestore.instance
           .collection(DatabaseService.colTopics)
           .where('subjectId', isEqualTo: widget.subjectId)
+          .where('sectionId', isEqualTo: widget.sectionId)
           .get();
       
       final Map<String, Map<String, dynamic>> topics = {};
@@ -146,7 +147,10 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             icon: const Icon(Icons.upload_file_rounded),
             tooltip: 'رفع أسئلة (Excel)',
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => BulkUploadScreen(subjectId: widget.subjectId)));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => BulkUploadScreen(
+                subjectId: widget.subjectId,
+                sectionId: widget.sectionId,
+              )));
             },
           ),
         ],

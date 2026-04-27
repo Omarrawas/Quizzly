@@ -22,7 +22,7 @@ class ParsedQuestionResult {
 class BulkUploadService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<ParsedQuestionResult> parseAndValidateCsv(Uint8List fileBytes, String subjectId) async {
+  Future<ParsedQuestionResult> parseAndValidateCsv(Uint8List fileBytes, String subjectId, {String? sectionId}) async {
     List<QuizQuestion> parsedQuestions = [];
     List<UploadError> errors = [];
 
@@ -75,10 +75,14 @@ class BulkUploadService {
       return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'العمود QuestionText مفقود.')]);
     }
 
-    // 2. Fetch topics for auto-mapping
-    final topicsSnap = await _db.collection('topics')
-        .where('subjectId', isEqualTo: subjectId)
-        .get();
+    var topicsQuery = _db.collection('topics')
+        .where('subjectId', isEqualTo: subjectId);
+    
+    if (sectionId != null) {
+      topicsQuery = topicsQuery.where('sectionId', isEqualTo: sectionId);
+    }
+
+    final topicsSnap = await topicsQuery.get();
     
     Map<String, String> topicIdToName = {};
     Map<String, String> topicMap = {};
@@ -258,7 +262,7 @@ class BulkUploadService {
     return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
   }
 
-  Future<ParsedQuestionResult> parseAndValidateExcel(Uint8List fileBytes, String subjectId) async {
+  Future<ParsedQuestionResult> parseAndValidateExcel(Uint8List fileBytes, String subjectId, {String? sectionId}) async {
     List<QuizQuestion> parsedQuestions = [];
     List<UploadError> errors = [];
 
@@ -293,9 +297,14 @@ class BulkUploadService {
       return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'العمود QuestionText مفقود.')]);
     }
 
-    final topicsSnap = await _db.collection('topics')
-        .where('subjectId', isEqualTo: subjectId)
-        .get();
+    var excelTopicsQuery = _db.collection('topics')
+        .where('subjectId', isEqualTo: subjectId);
+    
+    if (sectionId != null) {
+      excelTopicsQuery = excelTopicsQuery.where('sectionId', isEqualTo: sectionId);
+    }
+
+    final topicsSnap = await excelTopicsQuery.get();
     
     Map<String, String> topicMap = {};
     Map<String, Map<String, dynamic>> topicsRawMap = {};
@@ -433,12 +442,15 @@ class BulkUploadService {
     }
   }
 
-  Future<void> saveQuestions(List<QuizQuestion> questions, String subjectId) async {
+  Future<void> saveQuestions(List<QuizQuestion> questions, String subjectId, {String? sectionId}) async {
     final batch = _db.batch();
     for (var q in questions) {
       final docRef = _db.collection('questions').doc(q.id);
       final data = q.toMap();
       data['subjectId'] = subjectId;
+      if (sectionId != null) {
+        data['parentId'] = sectionId;
+      }
       data['updatedAt'] = FieldValue.serverTimestamp();
       batch.set(docRef, data, SetOptions(merge: true));
     }

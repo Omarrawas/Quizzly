@@ -158,6 +158,7 @@ class SubjectDashboardScreen extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => ExamManagementScreen(
                 subjectId: subjectId,
+                sectionId: sectionId!,
                 subjectName: subjectName,
                 breadcrumbs: [...breadcrumbs, subjectName, sectionName!],
               ),

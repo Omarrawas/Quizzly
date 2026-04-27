@@ -248,7 +248,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     });
   }
 
-  void _goToTopics(String id, String name) {
+  void _goToTopics(String subjectId, String sectionId, String name) {
     List<String> breadcrumbs = [];
     for (var level in ManagementLevel.values) {
       if (level.index <= ManagementLevel.subject.index && _levelNames.containsKey(level)) {
@@ -259,8 +259,9 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SubjectDashboardScreen(
-          subjectId: id,
+        builder: (context) => TopicManagementScreen(
+          subjectId: subjectId,
+          sectionId: sectionId,
           subjectName: name,
           breadcrumbs: breadcrumbs,
         ),
@@ -268,7 +269,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     );
   }
 
-  void _goToExams(String id, String name) {
+  void _goToExams(String subjectId, String sectionId, String name) {
     List<String> breadcrumbs = [];
     for (var level in ManagementLevel.values) {
       if (level.index <= ManagementLevel.subject.index && _levelNames.containsKey(level)) {
@@ -280,7 +281,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ExamManagementScreen(
-          subjectId: id,
+          subjectId: subjectId,
+          sectionId: sectionId,
           subjectName: name,
           breadcrumbs: breadcrumbs,
         ),
@@ -318,15 +320,23 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_currentLevel == ManagementLevel.subject) ...[
+            if (_currentLevel == ManagementLevel.section) ...[
               IconButton(
                 icon: const Icon(Icons.assignment_outlined, color: Colors.purple, size: 22),
-                onPressed: () => _goToExams((key as ValueKey<String>).value, title),
+                onPressed: () => _goToExams(
+                  _parentIds[ManagementLevel.subject]!,
+                  (key as ValueKey<String>).value,
+                  title,
+                ),
                 tooltip: 'إدارة الاختبارات',
               ),
               IconButton(
                 icon: const Icon(Icons.account_tree_rounded, color: AppColors.primaryBlue, size: 22),
-                onPressed: () => _goToTopics((key as ValueKey<String>).value, title),
+                onPressed: () => _goToTopics(
+                  _parentIds[ManagementLevel.subject]!,
+                  (key as ValueKey<String>).value,
+                  title,
+                ),
                 tooltip: 'إدارة المواضيع',
               ),
             ],

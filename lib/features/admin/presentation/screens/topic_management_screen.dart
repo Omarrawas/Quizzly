@@ -70,7 +70,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         _buildColumnHeader('الفصول', Icons.folder_rounded, isDark, tooltip: 'إضافة فصل جديد', onAdd: () => _showAddTopicDialog(context, null, 'chapter')),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _dbService.getTopics(widget.subjectId, parentId: null, type: 'chapter'),
+            stream: _dbService.getTopics(widget.subjectId, sectionId: widget.sectionId, parentId: null, type: 'chapter'),
             builder: (context, snapshot) {
               if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -129,7 +129,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             onAdd: () => _showAddTopicDialog(context, _selectedChapterId, 'lesson')),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _dbService.getTopics(widget.subjectId, parentId: _selectedChapterId, type: 'lesson'),
+            stream: _dbService.getTopics(widget.subjectId, sectionId: widget.sectionId, parentId: _selectedChapterId, type: 'lesson'),
             builder: (context, snapshot) {
               if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -330,7 +330,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty) {
-                await _dbService.addTopic(widget.subjectId, parentId, {
+                await _dbService.addTopic(widget.subjectId, widget.sectionId, parentId, {
                   'name': nameController.text.trim(),
                   'type': type,
                 });

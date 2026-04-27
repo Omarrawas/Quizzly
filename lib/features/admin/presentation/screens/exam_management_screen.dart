@@ -8,12 +8,14 @@ import 'package:quizzly/features/admin/presentation/screens/static_exam_question
 
 class ExamManagementScreen extends StatefulWidget {
   final String subjectId;
+  final String sectionId;
   final String subjectName;
   final List<String> breadcrumbs;
 
   const ExamManagementScreen({
     super.key,
     required this.subjectId,
+    required this.sectionId,
     required this.subjectName,
     required this.breadcrumbs,
   });
@@ -196,6 +198,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                           examId: id,
                           examTitle: config.title,
                           subjectId: widget.subjectId,
+                          sectionId: widget.sectionId,
                           initialSelectedIds: config.staticQuestionIds,
                         ),
                       ),
@@ -399,6 +402,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                             examId: newExamId,
                             examTitle: config.title,
                             subjectId: widget.subjectId,
+                            sectionId: widget.sectionId,
                             initialSelectedIds: const [],
                           ),
                         ),
