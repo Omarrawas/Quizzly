@@ -87,7 +87,7 @@ class DatabaseService {
       query = query.where('type', isEqualTo: type);
     }
     
-    return query.orderBy('order').snapshots();
+    return query.snapshots();
   }
 
   Stream<QuerySnapshot> getAllTopicsForSubject(String subjectId, {String? sectionId}) {

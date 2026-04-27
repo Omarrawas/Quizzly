@@ -74,7 +74,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             builder: (context, snapshot) {
               if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              final docs = snapshot.data!.docs;
+              final docs = [...snapshot.data!.docs]
+                ..sort((a, b) {
+                  final aOrder = (a.data() as Map<String, dynamic>)['order'] ?? 0;
+                  final bOrder = (b.data() as Map<String, dynamic>)['order'] ?? 0;
+                  return (aOrder as num).compareTo(bOrder as num);
+                });
               if (docs.isEmpty) return _buildEmptyState('لا توجد فصول', Icons.folder_open_rounded);
 
               return ListView.builder(
@@ -133,7 +138,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             builder: (context, snapshot) {
               if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              final docs = snapshot.data!.docs;
+              final docs = [...snapshot.data!.docs]
+                ..sort((a, b) {
+                  final aOrder = (a.data() as Map<String, dynamic>)['order'] ?? 0;
+                  final bOrder = (b.data() as Map<String, dynamic>)['order'] ?? 0;
+                  return (aOrder as num).compareTo(bOrder as num);
+                });
               if (docs.isEmpty) return _buildEmptyState('لا توجد دروس في هذا الفصل', Icons.description_outlined);
 
               return ListView.builder(
