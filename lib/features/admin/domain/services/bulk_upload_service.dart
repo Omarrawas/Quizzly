@@ -79,10 +79,16 @@ class BulkUploadService {
         .where('subjectId', isEqualTo: subjectId)
         .get();
     
+    Map<String, String> topicIdToName = {};
     Map<String, String> topicMap = {};
+    Map<String, Map<String, dynamic>> topicsRawMap = {};
+    
     for (var doc in topicsSnap.docs) {
-      final name = (doc.data()['name'] as String).trim().toLowerCase();
+      final data = doc.data();
+      final name = (data['name'] as String).trim().toLowerCase();
       topicMap[name] = doc.id;
+      topicIdToName[doc.id] = name;
+      topicsRawMap[doc.id] = data;
     }
 
     final seenQuestions = <String>{};
@@ -103,15 +109,47 @@ class BulkUploadService {
       seenQuestions.add(normalizedText);
 
       
-      // Map Topic
-      String topicName = colTopic != -1 && row.length > colTopic ? row[colTopic].toString().trim() : '';
+      // Map Topic (Handle "Chapter - Lesson" format)
+      String fullTopicPath = colTopic != -1 && row.length > colTopic ? row[colTopic].toString().trim() : '';
       List<String> topicIds = [];
-      if (topicName.isNotEmpty) {
-        String? mappedId = topicMap[topicName.toLowerCase()];
-        if (mappedId != null) {
-          topicIds.add(mappedId);
+      
+      if (fullTopicPath.isNotEmpty) {
+        String chapterName = '';
+        String lessonName = fullTopicPath;
+        
+        if (fullTopicPath.contains(' - ')) {
+          final parts = fullTopicPath.split(' - ');
+          chapterName = parts[0].trim().toLowerCase();
+          lessonName = parts[1].trim().toLowerCase();
         } else {
-          errors.add(UploadError(row: i + 1, message: 'الموضوع "$topicName" غير موجود.'));
+          lessonName = fullTopicPath.trim().toLowerCase();
+        }
+
+        // Try to find the topic
+        String? finalTopicId;
+        
+        if (chapterName.isNotEmpty) {
+          // Find chapter first
+          final chapterId = topicMap[chapterName];
+          if (chapterId != null) {
+            // Find lesson under this chapter
+            for (var entry in topicsRawMap.entries) {
+              if (entry.value['name'].toString().toLowerCase() == lessonName && 
+                  entry.value['parentId'] == chapterId) {
+                finalTopicId = entry.key;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Fallback: search by lesson name directly if not found via path
+        finalTopicId ??= topicMap[lessonName];
+
+        if (finalTopicId != null) {
+          topicIds.add(finalTopicId);
+        } else {
+          errors.add(UploadError(row: i + 1, message: 'الموضوع "$fullTopicPath" غير موجود في هذا المادة.'));
         }
       }
 
@@ -238,11 +276,8 @@ class BulkUploadService {
   }
 
 
-  String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, String> topicIdToName) {
+  String exportQuestionsToCSV(List<QueryDocumentSnapshot> docs, Map<String, Map<String, dynamic>> _topicsMap) {
     List<List<dynamic>> rows = [];
-    
-    // Force Excel to use comma as delimiter
-    rows.add(['sep=,']);
     
     // Header
     rows.add([
@@ -278,14 +313,19 @@ class BulkUploadService {
 
       String topicName = '';
       final topicIds = data['topicIds'] as List?;
-      final topicNames = data['topicNames'] as List?;
       
-      if (topicNames != null && topicNames.isNotEmpty) {
-        topicName = topicNames.first.toString();
-      } else if (topicIds != null && topicIds.isNotEmpty) {
-        topicName = topicIdToName[topicIds.first.toString()] ?? '';
-      } else if (data['primaryTopicId'] != null) {
-        topicName = topicIdToName[data['primaryTopicId'].toString()] ?? '';
+      if (topicIds != null && topicIds.isNotEmpty) {
+        final topicId = topicIds.first.toString();
+        final topicData = _topicsMap[topicId]; // Wait, I need access to the topics map
+        if (topicData != null) {
+          final parentId = topicData['parentId'];
+          if (parentId != null) {
+            final parentData = _topicsMap[parentId];
+            topicName = "${parentData?['name'] ?? ''} - ${topicData['name'] ?? ''}";
+          } else {
+            topicName = topicData['name'] ?? '';
+          }
+        }
       }
 
       rows.add([
@@ -301,21 +341,20 @@ class BulkUploadService {
       ]);
     }
 
-    return const ListToCsvConverter(
+    final csv = const ListToCsvConverter(
       fieldDelimiter: ',',
       textDelimiter: '"',
       eol: '\n',
     ).convert(rows);
+    
+    return "sep=,\n$csv";
   }
 
   static String generateTemplate({
     required List<QuizQuestion> questions,
-    required Map<String, String> topicIdToName,
+    required Map<String, Map<String, dynamic>> topicsMap,
   }) {
     List<List<dynamic>> rows = [];
-    
-    // Force Excel to use comma as delimiter
-    rows.add(['sep=,']);
     
     // Header
     rows.add([
@@ -347,12 +386,18 @@ class BulkUploadService {
       }
 
       String topicName = '';
-      if (q.topicNames != null && q.topicNames!.isNotEmpty) {
-        topicName = q.topicNames!.first;
-      } else if (q.topicIds != null && q.topicIds!.isNotEmpty) {
-        topicName = topicIdToName[q.topicIds!.first] ?? '';
-      } else if (q.primaryTopicId != null) {
-        topicName = topicIdToName[q.primaryTopicId!] ?? '';
+      if (q.topicIds != null && q.topicIds!.isNotEmpty) {
+        final topicId = q.topicIds!.first;
+        final topicData = topicsMap[topicId];
+        if (topicData != null) {
+          final parentId = topicData['parentId'];
+          if (parentId != null) {
+            final parentData = topicsMap[parentId];
+            topicName = "${parentData?['name'] ?? ''} - ${topicData['name'] ?? ''}";
+          } else {
+            topicName = topicData['name'] ?? '';
+          }
+        }
       }
 
       rows.add([
@@ -368,10 +413,12 @@ class BulkUploadService {
       ]);
     }
 
-    return const ListToCsvConverter(
+    final csv = const ListToCsvConverter(
       fieldDelimiter: ',',
       textDelimiter: '"',
       eol: '\n',
     ).convert(rows);
+
+    return "sep=,\n$csv";
   }
 }

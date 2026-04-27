@@ -517,12 +517,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
 
   Future<void> _exportCSV() async {
     try {
-      final topicsSnap = await FirebaseFirestore.instance.collection(DatabaseService.colTopics).where('subjectId', isEqualTo: widget.subjectId).get();
-      Map<String, String> topicIdToName = {};
-      for (var doc in topicsSnap.docs) {
-        topicIdToName[doc.id] = doc.data()['name'] ?? '';
-      }
-      final questionsSnap = await FirebaseFirestore.instance.collection(DatabaseService.colQuestions).where('parentId', isEqualTo: widget.sectionId).get();
+      final questionsSnap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colQuestions)
+          .where('parentId', isEqualTo: widget.sectionId)
+          .get();
+      
       final List<QuizQuestion> questions = questionsSnap.docs.map((doc) => QuizQuestion.fromFirestore(doc)).toList();
       
       if (!mounted) return;
@@ -532,12 +531,13 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         return;
       }
       
-      final csvContent = BulkUploadService.generateTemplate(questions: questions, topicIdToName: topicIdToName);
+      final csvContent = BulkUploadService.generateTemplate(
+        questions: questions, 
+        topicsMap: _topicsMap,
+      );
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'questions_${widget.sectionName ?? "global"}_$timestamp';
       
-      // إضافة BOM (Byte Order Mark) لضمان قراءة اللغة العربية بشكل صحيح في Excel
-      // نستخدم تسلسل البايتات الصريح [0xEF, 0xBB, 0xBF]
       final encodedContent = utf8.encode(csvContent);
       final bytes = Uint8List.fromList([0xEF, 0xBB, 0xBF, ...encodedContent]);
       
@@ -557,7 +557,6 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       }
     }
   }
-
   void _showStatusSnackBar(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
