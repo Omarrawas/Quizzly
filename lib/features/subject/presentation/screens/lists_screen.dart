@@ -5,6 +5,9 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_generator_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_session_screen.dart';
+import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:quizzly/features/auth/domain/services/activation_service.dart';
+import 'package:provider/provider.dart';
 
 class ExamsListScreen extends StatefulWidget {
   final String subjectId;
@@ -23,6 +26,7 @@ class ExamsListScreen extends StatefulWidget {
 class _ExamsListScreenState extends State<ExamsListScreen> {
   final ExamService _service = ExamService();
   final ExamGeneratorService _generator = ExamGeneratorService();
+  final ActivationService _activationService = ActivationService();
   int _selectedFilter = 0;
 
   final List<String> _filters = ['الكل', 'الدورات الوزارية', 'بنك الأسئلة'];
@@ -75,7 +79,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                   itemCount: filtered.length,
                   itemBuilder: (context, index) => _ExamConfigTile(
                     config: filtered[index],
-                    onTap: () => _startExam(filtered[index]),
+                    onTap: () => _handleExamTap(filtered[index]),
                   ),
                 );
               },
@@ -102,8 +106,108 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     );
   }
 
+  Future<void> _handleExamTap(ExamConfig config) async {
+    if (config.isFree) {
+      _startExam(config);
+      return;
+    }
+
+    final userId = context.read<AuthService>().user?.uid;
+    if (userId == null) return;
+
+    // Check if subject is activated
+    final hasAccess = await _activationService.hasExamAccess(userId, config.id!, widget.subjectId);
+    if (hasAccess) {
+      _startExam(config);
+    } else {
+      _showActivationDialog(config);
+    }
+  }
+
+  Future<void> _showActivationDialog(ExamConfig config) async {
+    final controller = TextEditingController();
+    bool isLoading = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'تفعيل المادة',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'لتتمكن من الوصول لهذا الاختبار وجميع اختبارات مادة ${widget.subjectName}، يرجى إدخال كود تفعيل المادة.',
+                style: GoogleFonts.cairo(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'أدخل الكود هنا...',
+                  hintStyle: GoogleFonts.cairo(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 2),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: isLoading ? null : () async {
+                if (controller.text.isEmpty) return;
+                
+                setDialogState(() => isLoading = true);
+                final userId = context.read<AuthService>().user?.uid;
+                final result = await _activationService.activateWithCode(
+                  userId: userId!,
+                  code: controller.text,
+                  subjectId: widget.subjectId, // Activate the whole subject
+                );
+                
+                if (mounted) {
+                  setDialogState(() => isLoading = false);
+                  if (result['success']) {
+                    Navigator.pop(context); // Close dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result['message'], style: GoogleFonts.cairo())),
+                    );
+                    _startExam(config);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result['message'], style: GoogleFonts.cairo()), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: isLoading 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text('تفعيل الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _startExam(ExamConfig config) async {
-    // Show a quick loading dialog or overlay if needed
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -173,9 +277,34 @@ class _ExamConfigTile extends StatelessWidget {
             color: isDora ? AppColors.primaryBlue : Colors.green,
           ),
         ),
-        title: Text(
-          config.title,
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                config.title,
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            if (!config.isFree)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_rounded, size: 10, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      'مدفوع',
+                      style: GoogleFonts.cairo(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         subtitle: Row(
           children: [
