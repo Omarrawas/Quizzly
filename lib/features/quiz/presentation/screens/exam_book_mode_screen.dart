@@ -33,6 +33,8 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   bool _filterCorrected = false;
   bool _filterWrong = false;
   bool _filterCorrect = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   // Answer tracking for filtering
   final Map<int, String?> _selectedOptions = {};
@@ -41,6 +43,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
 
   int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
   int get _wrongCount => _answerStates.values.where((s) => s == AnswerState.wrong).length;
+  int get _answeredCount => _answerStates.length;
 
   List<QuizQuestion> get _filteredQuestions {
     return widget.questions.where((q) {
@@ -56,6 +59,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       if (_filterCorrected && _answerStates[index] == AnswerState.unanswered) return false;
       if (_filterWrong && _answerStates[index] != AnswerState.wrong) return false;
       if (_filterCorrect && _answerStates[index] != AnswerState.correct) return false;
+      
+      // Search filter
+      if (_searchQuery.isNotEmpty && !q.text.contains(_searchQuery)) {
+        return false;
+      }
       
       return true;
     }).toList();
@@ -113,9 +121,44 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          widget.config.title,
-          style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            // Search on the left
+            Expanded(
+              flex: 2,
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(
+                    hintText: 'بحث في الأسئلة...',
+                    hintStyle: GoogleFonts.cairo(fontSize: 13, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Title on the right
+            Text(
+              widget.config.title,
+              style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
         ),
         actions: [
           Row(
@@ -139,7 +182,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       body: Column(
         children: [
           QuizHud(
-            current: _filteredQuestions.length,
+            current: _answeredCount,
             total: widget.questions.length,
             correctCount: _correctCount,
             wrongCount: _wrongCount,

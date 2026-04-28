@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
+import 'package:quizzly/core/widgets/smart_text.dart';
 
 // ═══════════════════════════════════════════════════════
 //  1. شريط الحالة العلوي (HUD)
@@ -366,8 +367,8 @@ class QuestionCard extends StatelessWidget {
                 _QuestionMenuButton(question: question),
                 const Spacer(),
                 Expanded(
-                  child: Text(
-                    '${question.number} - ${question.text}',
+                  child: SmartText(
+                    text: '${question.number} - ${question.text}',
                     style: GoogleFonts.cairo(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -417,6 +418,9 @@ class QuestionCard extends StatelessWidget {
             onAddNote: onAddNote ?? () {
               showNoteDialog(context, question.number);
             },
+            onShowExplanation: (question.explanation != null && question.explanation!.isNotEmpty)
+                ? () => showExplanationDialog(context, question)
+                : null,
           ),
           const SizedBox(height: 12),
         ],
@@ -489,8 +493,8 @@ class _OptionTile extends StatelessWidget {
               const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
             const Spacer(),
             Expanded(
-              child: Text(
-                option.text,
+              child: SmartText(
+                text: option.text,
                 style: GoogleFonts.cairo(
                   fontSize: 15,
                   color: AppColors.textPrimary,
@@ -557,6 +561,7 @@ class QuestionBottomBar extends StatelessWidget {
   final VoidCallback onCheck;
   final VoidCallback onFavorite;
   final VoidCallback onAddNote;
+  final VoidCallback? onShowExplanation;
 
   const QuestionBottomBar({
     super.key,
@@ -565,6 +570,7 @@ class QuestionBottomBar extends StatelessWidget {
     required this.onCheck,
     required this.onFavorite,
     required this.onAddNote,
+    this.onShowExplanation,
   });
 
   @override
@@ -588,6 +594,12 @@ class QuestionBottomBar extends StatelessWidget {
             icon: Icons.note_add_outlined,
             onTap: onAddNote,
           ),
+          if (onShowExplanation != null)
+            _CircleAction(
+              icon: Icons.info_outline_rounded,
+              color: const Color(0xFF2563EB),
+              onTap: onShowExplanation!,
+            ),
         ],
       ),
     );
@@ -955,4 +967,92 @@ class _ReportOption extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────
+//  نافذة شرح الإجابة
+// ─────────────────────────────────────────
+void showExplanationDialog(BuildContext context, QuizQuestion question) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            'توضيح الإجابة',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 24),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (question.explanationImageUrl != null && question.explanationImageUrl!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.network(
+                  question.explanationImageUrl!,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 150,
+                      alignment: Alignment.center,
+                      child: const CircularProgressIndicator(),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            SmartText(
+              text: question.explanation ?? 'لا يوجد شرح متوفر لهذا السؤال حالياً.',
+              style: GoogleFonts.cairo(
+                fontSize: 15,
+                height: 1.8,
+                color: const Color(0xFF475569),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          child: Text(
+            'فهمت ذلك',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF2563EB),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
