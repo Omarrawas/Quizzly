@@ -196,6 +196,64 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
     }
   }
 
+  // ── Show Preview Content ──────────────────────────────
+  Future<void> _showPreviewDialog(List<String> subjectIds) async {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('المحتوى المفعل',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: FutureBuilder<List<String>>(
+          future: _fetchSubjectNames(subjectIds),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Text('لا يوجد محتوى مرتبط', style: GoogleFonts.cairo());
+            }
+            return ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: snapshot.data!.map((name) => ListTile(
+                    leading: const Icon(Icons.book_rounded, color: AppColors.primaryBlue),
+                    title: Text(name, style: GoogleFonts.cairo(fontSize: 14)),
+                    dense: true,
+                  )).toList(),
+                ),
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إغلاق', style: GoogleFonts.cairo()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<List<String>> _fetchSubjectNames(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colSubjects)
+          .where(FieldPath.documentId, whereIn: ids)
+          .get();
+      return snap.docs.map((d) => d.get('name') as String? ?? 'بدون اسم').toList();
+    } catch (e) {
+      return ['خطأ في تحميل البيانات'];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -283,18 +341,18 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                 if (_filter == 'active') {
                   docs = docs
                       .where((d) =>
-                          (d.data() as Map<String, dynamic>)['isUsed'] == false)
+                          d.get('isUsed') == false)
                       .toList();
                 } else if (_filter == 'used') {
                   docs = docs
                       .where((d) =>
-                          (d.data() as Map<String, dynamic>)['isUsed'] == true)
+                          d.get('isUsed') == true)
                       .toList();
                 }
 
                 final usedCount = allDocs
                     .where((d) =>
-                        (d.data() as Map<String, dynamic>)['isUsed'] == true)
+                        d.get('isUsed') == true)
                     .length;
                 final activeCount = allDocs.length - usedCount;
 
@@ -367,6 +425,13 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                                   (data['durationDays'] as int?) ??
                                       widget.durationDays),
                               onDelete: () => _deleteCode(docId),
+                              onPreview: () {
+                                final ids = (data['subjectIds'] as List?)
+                                        ?.map((e) => e.toString())
+                                        .toList() ??
+                                    [];
+                                _showPreviewDialog(ids);
+                              },
                             );
                           },
                         ),
@@ -391,6 +456,7 @@ class _CodeTile extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onEditDuration;
   final VoidCallback onDelete;
+  final VoidCallback onPreview;
 
   const _CodeTile({
     required this.data,
@@ -399,6 +465,7 @@ class _CodeTile extends StatelessWidget {
     required this.onToggle,
     required this.onEditDuration,
     required this.onDelete,
+    required this.onPreview,
   });
 
   @override
@@ -410,6 +477,16 @@ class _CodeTile extends StatelessWidget {
     final usedAt = (data['usedAt'] as Timestamp?)?.toDate();
     final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
     final durationDays = (data['durationDays'] as int?) ?? 0;
+    final List subjectIds = data['subjectIds'] as List? ?? [];
+    final int subjectsCount = subjectIds.length;
+
+    String typeLabel = 'كود مادة';
+    Color typeColor = AppColors.primaryBlue;
+
+    if (subjectsCount > 1) {
+      typeLabel = 'كود باقة ($subjectsCount مواد)';
+      typeColor = Colors.purple;
+    }
 
     DateTime? expiresAt;
     if (isUsed && usedAt != null) {
@@ -493,6 +570,27 @@ class _CodeTile extends StatelessWidget {
                               color: isDark
                                   ? Colors.white
                                   : AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Type Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: typeColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  color: typeColor.withValues(alpha: 0.3),
+                                  width: 0.8),
+                            ),
+                            child: Text(
+                              typeLabel,
+                              style: GoogleFonts.cairo(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: typeColor,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -629,8 +727,16 @@ class _CodeTile extends StatelessWidget {
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
+            child: Wrap(
+              alignment: WrapAlignment.start,
               children: [
+                // Preview
+                _ActionBtn(
+                  icon: Icons.visibility_outlined,
+                  label: 'معاينة',
+                  color: AppColors.primaryBlue,
+                  onTap: onPreview,
+                ),
                 // Toggle activation
                 _ActionBtn(
                   icon: isUsed
@@ -641,7 +747,6 @@ class _CodeTile extends StatelessWidget {
                       isUsed ? AppColors.iconGreen : Colors.orange,
                   onTap: onToggle,
                 ),
-                const SizedBox(width: 4),
                 // Edit duration
                 _ActionBtn(
                   icon: Icons.timer_outlined,
@@ -649,7 +754,6 @@ class _CodeTile extends StatelessWidget {
                   color: AppColors.primaryBlue,
                   onTap: onEditDuration,
                 ),
-                const SizedBox(width: 4),
                 // Delete
                 _ActionBtn(
                   icon: Icons.delete_outline_rounded,

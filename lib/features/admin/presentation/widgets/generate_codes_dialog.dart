@@ -57,9 +57,11 @@ class _GenerateCodesDialogState extends State<GenerateCodesDialog> {
     }
 
     if (!_formKey.currentState!.validate() || finalSubjectIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار مادة واحدة على الأقل وتعبئة الحقول')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى اختيار مادة واحدة على الأقل وتعبئة الحقول')),
+        );
+      }
       return;
     }
 
@@ -331,8 +333,11 @@ class _GenerateCodesDialogState extends State<GenerateCodesDialog> {
                 title: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 13)),
                 onChanged: (val) {
                   setState(() {
-                    if (val == true) _selectedSubjectIds.add(id);
-                    else _selectedSubjectIds.remove(id);
+                    if (val == true) {
+                      _selectedSubjectIds.add(id);
+                    } else {
+                      _selectedSubjectIds.remove(id);
+                    }
                   });
                 },
                 dense: true,

@@ -269,13 +269,55 @@ class DatabaseService {
     required int quantity,
     required int durationDays,
   }) async {
-    final batch = _db.batch();
+    final Set<String> uniqueCodes = {};
     final now = DateTime.now();
 
-    for (int i = 0; i < quantity; i++) {
-      final code = _generateRandomCode();
-      final ref = _db.collection('activation_codes').doc(code);
+    // 1. Generate local unique codes
+    while (uniqueCodes.length < quantity) {
+      uniqueCodes.add(_generateRandomCode());
+    }
 
+    // 2. Double check against Firestore for any potential collisions
+    // We check in chunks because 'whereIn' has a limit (usually 30)
+    final List<String> codeList = uniqueCodes.toList();
+    final Set<String> existingCodes = {};
+    
+    for (int i = 0; i < codeList.length; i += 30) {
+      final chunk = codeList.sublist(i, math.min(i + 30, codeList.length));
+      final snapshot = await _db
+          .collection('activation_codes')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      
+      for (var doc in snapshot.docs) {
+        existingCodes.add(doc.id);
+      }
+    }
+
+    // 3. If any exist, replace them until we have the desired quantity of unique ones
+    while (existingCodes.isNotEmpty) {
+      final String oldCode = existingCodes.first;
+      existingCodes.remove(oldCode);
+      uniqueCodes.remove(oldCode);
+      
+      String newCode;
+      do {
+        newCode = _generateRandomCode();
+      } while (uniqueCodes.contains(newCode));
+      
+      // Check if newCode exists in DB (recursive-like check for very rare cases)
+      final doc = await _db.collection('activation_codes').doc(newCode).get();
+      if (doc.exists) {
+        existingCodes.add(newCode);
+      } else {
+        uniqueCodes.add(newCode);
+      }
+    }
+
+    // 4. Commit to database using batch
+    final batch = _db.batch();
+    for (final code in uniqueCodes) {
+      final ref = _db.collection('activation_codes').doc(code);
       batch.set(ref, {
         'code': code,
         'subjectIds': subjectIds,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
@@ -25,6 +26,11 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
       final codes = await _dbService.getActivationCodesByBatch(batchName);
       if (codes.isEmpty) return;
 
+      // Load fonts and logo for PDF
+      final arabicFont = pw.Font.ttf(await rootBundle.load("assets/fonts/Cairo-Regular.ttf"));
+      final arabicFontBold = pw.Font.ttf(await rootBundle.load("assets/fonts/Cairo-Bold.ttf"));
+      final logoImage = pw.MemoryImage((await rootBundle.load("assets/images/logo.png")).buffer.asUint8List());
+
       final pdf = pw.Document();
       
       // We'll use 3x7 grid for codes (21 per page)
@@ -36,13 +42,14 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.a4,
+            theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold),
             build: (pw.Context context) {
               return pw.Directionality(
                 textDirection: pw.TextDirection.rtl,
                 child: pw.GridView(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.8,
-                  children: pageCodes.map((code) => _buildQrCell(code)).toList(),
+                  childAspectRatio: 0.72,
+                  children: pageCodes.map((code) => _buildQrCell(code, arabicFontBold, logoImage)).toList(),
                 ),
               );
             },
@@ -63,10 +70,14 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
     }
   }
 
-  pw.Widget _buildQrCell(Map<String, dynamic> code) {
+  pw.Widget _buildQrCell(Map<String, dynamic> code, pw.Font boldFont, pw.ImageProvider logo) {
+    final List subjectIds = code['subjectIds'] as List? ?? [];
+    final int subjectsCount = subjectIds.length;
+    final String typeLabel = subjectsCount > 1 ? 'كود باقة ($subjectsCount مواد)' : 'كود مادة';
+
     return pw.Container(
       margin: const pw.EdgeInsets.all(5),
-      padding: const pw.EdgeInsets.all(8),
+      padding: const pw.EdgeInsets.all(6),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
@@ -76,28 +87,56 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
         children: [
           pw.Text(
             'Quizzly Activation',
-            style: pw.TextStyle(fontSize: 8, color: PdfColors.blue900, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 7, color: PdfColors.blue900, font: boldFont),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: const pw.BoxDecoration(
+              color: PdfColors.grey100,
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+            ),
+            child: pw.Text(
+              typeLabel,
+              style: pw.TextStyle(fontSize: 6, font: boldFont, color: PdfColors.blue800),
+            ),
           ),
           pw.SizedBox(height: 4),
-          pw.BarcodeWidget(
-            data: code['code'],
-            barcode: pw.Barcode.qrCode(),
-            width: 80,
-            height: 80,
+          // QR with Logo
+          pw.Stack(
+            alignment: pw.Alignment.center,
+            children: [
+              pw.BarcodeWidget(
+                data: code['code'],
+                barcode: pw.Barcode.qrCode(),
+                width: 75,
+                height: 75,
+              ),
+              pw.Container(
+                width: 18,
+                height: 18,
+                padding: const pw.EdgeInsets.all(1),
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+                ),
+                child: pw.Image(logo),
+              ),
+            ],
           ),
-          pw.SizedBox(height: 6),
+          pw.SizedBox(height: 4),
           pw.Text(
             code['code'],
-            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, letterSpacing: 1),
+            style: pw.TextStyle(fontSize: 9, font: boldFont, letterSpacing: 1),
           ),
-          pw.SizedBox(height: 4),
+          pw.SizedBox(height: 2),
           pw.Text(
             'Batch: ${code['batchName']}',
-            style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700),
+            style: const pw.TextStyle(fontSize: 5, color: PdfColors.grey700),
           ),
           pw.Text(
             'Duration: ${code['durationDays']} Days',
-            style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey700),
+            style: const pw.TextStyle(fontSize: 5, color: PdfColors.grey700),
           ),
         ],
       ),
