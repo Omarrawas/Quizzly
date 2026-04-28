@@ -115,21 +115,8 @@ class _QuizScreenState extends State<QuizScreen> {
                       selectedOptionId: selected,
                       answerState: state,
                       showCorrect: showCorrect,
-                      onOptionSelected: (id) {
-                        setState(() {
-                          _currentIndex = qIndex;
-                          _selectedAnswers[qIndex] = id;
-                          _answerStates[qIndex] = AnswerState.unanswered;
-                          _revealed.remove(qIndex);
-                        });
-                      },
-                    ),
-                    // Bottom action bar per question
-                    QuestionBottomBar(
                       isFavorite: _favorites.contains(qIndex),
-                      isWrongMode: widget.wrongAnswersMode,
-                      onMenuTap: () => showNoteDialog(context, question.number),
-                      onFavoriteTap: () {
+                      onFavoriteToggle: () {
                         setState(() {
                           if (_favorites.contains(qIndex)) {
                             _favorites.remove(qIndex);
@@ -138,7 +125,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           }
                         });
                       },
-                      onCheckTap: () {
+                      onCheck: () {
                         final sel = _selectedAnswers[qIndex];
                         if (sel == null) return;
                         HapticFeedback.mediumImpact();
@@ -149,6 +136,15 @@ class _QuizScreenState extends State<QuizScreen> {
                           _answerStates[qIndex] = isCorrect
                               ? AnswerState.correct
                               : AnswerState.wrong;
+                        });
+                      },
+                      onAddNote: () => showNoteDialog(context, question.number),
+                      onOptionSelected: (id) {
+                        setState(() {
+                          _currentIndex = qIndex;
+                          _selectedAnswers[qIndex] = id;
+                          _answerStates[qIndex] = AnswerState.unanswered;
+                          _revealed.remove(qIndex);
                         });
                       },
                     ),

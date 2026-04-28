@@ -35,49 +35,53 @@ class QuizHud extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
       child: Row(
         children: [
-          // Timer
+          // Play/Pause button
           GestureDetector(
             onTap: onToggleTimer,
-            child: _HudPill(
-              icon: isTimerRunning
-                  ? Icons.pause_circle_filled_rounded
-                  : Icons.play_circle_filled_rounded,
-              label: _formatTime(elapsed),
-              iconColor: AppColors.primaryBlue,
-              bgColor: const Color(0xFFEFF6FF),
-              labelColor: AppColors.primaryBlue,
+            child: Icon(
+              isTimerRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              color: Colors.black,
+              size: 28,
             ),
           ),
+          const SizedBox(width: 8),
+          // Timer Pill
+          _HudPill(
+            icon: Icons.timer_outlined,
+            label: _formatTime(elapsed),
+            color: const Color(0xFF2563EB),
+            bgColor: const Color(0xFFEFF6FF),
+          ),
           const Spacer(),
-          // Wrong counter
+          // Wrong Pill
           _HudPill(
             icon: Icons.close_rounded,
             label: '$wrongCount',
-            iconColor: const Color(0xFFDC2626),
+            color: const Color(0xFFDC2626),
             bgColor: const Color(0xFFFEF2F2),
-            labelColor: const Color(0xFFDC2626),
           ),
-          const SizedBox(width: 6),
-          // Correct counter
+          const SizedBox(width: 8),
+          // Correct Pill
           _HudPill(
             icon: Icons.check_rounded,
             label: '$correctCount',
-            iconColor: const Color(0xFF16A34A),
+            color: const Color(0xFF16A34A),
             bgColor: const Color(0xFFF0FDF4),
-            labelColor: const Color(0xFF16A34A),
           ),
-          const SizedBox(width: 6),
-          // Progress counter
+          const SizedBox(width: 8),
+          // Progress Pill
           _HudPill(
-            icon: null,
+            icon: Icons.check_circle_rounded,
             label: '$current/$total',
-            iconColor: Colors.transparent,
-            bgColor: AppColors.primaryBlue,
-            labelColor: Colors.white,
+            color: const Color(0xFF0891B2),
+            bgColor: const Color(0xFFECFEFF),
           ),
         ],
       ),
@@ -88,39 +92,38 @@ class QuizHud extends StatelessWidget {
 class _HudPill extends StatelessWidget {
   final IconData? icon;
   final String label;
-  final Color iconColor;
+  final Color color;
   final Color bgColor;
-  final Color labelColor;
 
   const _HudPill({
     required this.icon,
     required this.label,
-    required this.iconColor,
+    required this.color,
     required this.bgColor,
-    required this.labelColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: iconColor),
-            const SizedBox(width: 4),
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
           ],
           Text(
             label,
             style: GoogleFonts.cairo(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: labelColor,
+              color: color,
             ),
           ),
         ],
@@ -141,116 +144,154 @@ class QuizExamHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            exam.title,
-            style: GoogleFonts.cairo(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              exam.title,
+              style: GoogleFonts.cairo(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.right,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           // Classification row
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Icon(
-                Icons.folder_rounded,
-                size: 14,
-                color: AppColors.textSecondary,
+              _HeaderPill(
+                icon: Icons.access_time_rounded,
+                label: 'آخر تعديل: ${exam.lastUpdated}',
               ),
-              const SizedBox(width: 5),
-              Text(
-                'التصنيف: ${exam.classification}',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.edit_calendar_rounded,
-                size: 14,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'آخر تعديل: ${exam.lastUpdated}',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
+              const SizedBox(width: 8),
+              _HeaderPill(
+                icon: Icons.folder_open_rounded,
+                label: 'التصنيف: ${exam.classification}',
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Divider
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-          // Filters + count row
+          const SizedBox(height: 16),
+          // Bottom row: Filters and Question count
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderLight),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.filter_list_rounded,
-                      size: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'الفلاتر',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+              _IconActionChip(
+                icon: Icons.filter_list_rounded,
+                label: 'الفلاتر',
+                onTap: () {},
               ),
               const Spacer(),
-              const Icon(
-                Icons.insert_drive_file_rounded,
-                size: 14,
+              _IconActionChip(
+                icon: Icons.description_outlined,
+                label: '${exam.totalQuestions} أسئلة',
                 color: AppColors.primaryBlue,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                '${exam.totalQuestions} أسئلة',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryBlue,
-                ),
+                onTap: null,
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeaderPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? color;
+  final VoidCallback? onTap;
+
+  const _IconActionChip({
+    required this.icon,
+    required this.label,
+    this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final finalColor = color ?? AppColors.textSecondary;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onTap != null) ...[
+              Icon(icon, size: 18, color: finalColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  color: finalColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ] else ...[
+              Text(
+                label,
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  color: finalColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(icon, size: 18, color: finalColor),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -265,6 +306,12 @@ class QuestionCard extends StatelessWidget {
   final AnswerState answerState;
   final bool showCorrect;
   final void Function(String optionId) onOptionSelected;
+  
+  // New callbacks for bottom actions
+  final bool isFavorite;
+  final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onCheck;
+  final VoidCallback? onAddNote;
 
   const QuestionCard({
     super.key,
@@ -273,6 +320,10 @@ class QuestionCard extends StatelessWidget {
     required this.answerState,
     required this.showCorrect,
     required this.onOptionSelected,
+    this.isFavorite = false,
+    this.onFavoriteToggle,
+    this.onCheck,
+    this.onAddNote,
   });
 
   @override
@@ -281,47 +332,49 @@ class QuestionCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 3-dots menu row
+          // ── Top row with 3 dots and Question text
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _QuestionMenuButton(question: question),
                 const Spacer(),
+                Expanded(
+                  child: Text(
+                    '${question.number} - ${question.text}',
+                    style: GoogleFonts.cairo(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
               ],
             ),
           ),
-          // ── Question text
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Text(
-              '${question.number} - ${question.text}',
-              style: GoogleFonts.cairo(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-                height: 1.6,
-              ),
-            ),
-          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          const SizedBox(height: 12),
           // ── Options
           if (question.options != null)
             ...question.options!.map(
               (option) => _OptionTile(
                 option: option,
-                isSelected: selectedOptionId == option.id,
+                isSelected: selectedOptionId == option.id || (showCorrect && question.correctOptionIds.contains(option.id)),
                 isCorrect: question.correctOptionIds.contains(option.id),
                 answerState: answerState,
                 showCorrect: showCorrect,
@@ -333,12 +386,26 @@ class QuestionCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
-          // ── Tag chip
+          // ── Tag chip (Aligned right)
           if (question.tagLabel != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: _TagChip(label: question.tagLabel!),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16, bottom: 12),
+                child: _TagChip(label: question.tagLabel!),
+              ),
             ),
+          // ── Bottom Toolbar
+          QuestionBottomBar(
+            isFavorite: isFavorite,
+            isRevealed: showCorrect,
+            onCheck: onCheck ?? () {},
+            onFavorite: onFavoriteToggle ?? () {},
+            onAddNote: onAddNote ?? () {
+              showNoteDialog(context, question.number);
+            },
+          ),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -366,10 +433,10 @@ class _OptionTile extends StatelessWidget {
   });
 
   Color get _bgColor {
-    if (answerState == AnswerState.unanswered) {
-      return isSelected ? const Color(0xFFEFF6FF) : Colors.transparent;
-    }
     if (showCorrect && isCorrect) return const Color(0xFFF0FDF4);
+    if (answerState == AnswerState.unanswered) {
+      return isSelected ? const Color(0xFFF8FAFC) : Colors.transparent;
+    }
     if (isSelected && answerState == AnswerState.wrong) {
       return const Color(0xFFFEF2F2);
     }
@@ -379,31 +446,9 @@ class _OptionTile extends StatelessWidget {
     return Colors.transparent;
   }
 
-  Color get _borderColor {
-    if (answerState == AnswerState.unanswered) {
-      return isSelected ? AppColors.primaryBlue : AppColors.borderLight;
-    }
-    if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected && answerState == AnswerState.wrong) {
-      return const Color(0xFFDC2626);
-    }
-    if (isSelected && answerState == AnswerState.correct) {
-      return const Color(0xFF16A34A);
-    }
-    return AppColors.borderLight;
-  }
-
   Color get _radioColor {
-    if (answerState == AnswerState.unanswered) {
-      return isSelected ? AppColors.primaryBlue : AppColors.borderLight;
-    }
     if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected && answerState == AnswerState.wrong) {
-      return const Color(0xFFDC2626);
-    }
-    if (isSelected && answerState == AnswerState.correct) {
-      return const Color(0xFF16A34A);
-    }
+    if (isSelected) return AppColors.primaryBlue;
     return AppColors.borderLight;
   }
 
@@ -413,20 +458,39 @@ class _OptionTile extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: _bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _borderColor, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? _radioColor : Colors.transparent,
+            width: 1.5,
+          ),
         ),
         child: Row(
           children: [
-            // Radio circle
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 20,
-              height: 20,
+            if (showCorrect && isCorrect)
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+            if (isSelected && answerState == AnswerState.wrong)
+              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+            const Spacer(),
+            Expanded(
+              child: Text(
+                option.text,
+                style: GoogleFonts.cairo(
+                  fontSize: 15,
+                  color: AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Radio circle on the right
+            Container(
+              width: 22,
+              height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: _radioColor, width: 2),
@@ -436,32 +500,6 @@ class _OptionTile extends StatelessWidget {
                   ? const Icon(Icons.circle, size: 8, color: Colors.white)
                   : null,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                option.text,
-                style: GoogleFonts.cairo(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ),
-            // Show result icon after reveal
-            if (answerState != AnswerState.unanswered &&
-                showCorrect &&
-                isCorrect)
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Color(0xFF16A34A),
-                size: 18,
-              ),
-            if (isSelected && answerState == AnswerState.wrong)
-              const Icon(
-                Icons.cancel_rounded,
-                color: Color(0xFFDC2626),
-                size: 18,
-              ),
           ],
         ),
       ),
@@ -481,16 +519,16 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFDDD6FE)),
+        color: const Color(0xFFFFF1F2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFECDD3)),
       ),
       child: Text(
         label,
         style: GoogleFonts.cairo(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFF7C3AED),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFFE11D48),
         ),
       ),
     );
@@ -502,53 +540,40 @@ class _TagChip extends StatelessWidget {
 // ═══════════════════════════════════════════════════════
 class QuestionBottomBar extends StatelessWidget {
   final bool isFavorite;
-  final bool isWrongMode; // true → shows X icon instead of check
-  final VoidCallback onMenuTap;
-  final VoidCallback onFavoriteTap;
-  final VoidCallback onCheckTap;
+  final bool isRevealed;
+  final VoidCallback onCheck;
+  final VoidCallback onFavorite;
+  final VoidCallback onAddNote;
 
   const QuestionBottomBar({
     super.key,
-    required this.isFavorite,
-    required this.isWrongMode,
-    required this.onMenuTap,
-    required this.onFavoriteTap,
-    required this.onCheckTap,
+    this.isFavorite = false,
+    this.isRevealed = false,
+    required this.onCheck,
+    required this.onFavorite,
+    required this.onAddNote,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // ── Menu (3 dots)
-          _BarIconButton(
-            icon: Icons.more_horiz_rounded,
-            color: AppColors.textSecondary,
-            onTap: onMenuTap,
+          _CircleAction(
+            icon: isRevealed ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+            color: isRevealed ? const Color(0xFF16A34A) : AppColors.textPrimary,
+            onTap: onCheck,
           ),
-          const Spacer(),
-          // ── Favorite
-          _BarIconButton(
-            icon: isFavorite
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            color: isFavorite
-                ? const Color(0xFFDC2626)
-                : AppColors.textSecondary,
-            onTap: onFavoriteTap,
+          _CircleAction(
+            icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            color: isFavorite ? const Color(0xFFE11D48) : AppColors.textPrimary,
+            onTap: onFavorite,
           ),
-          const SizedBox(width: 12),
-          // ── Check / Wrong
-          _BarIconButton(
-            icon: isWrongMode
-                ? Icons.cancel_rounded
-                : Icons.check_circle_outline_rounded,
-            color: isWrongMode
-                ? const Color(0xFFDC2626)
-                : AppColors.primaryBlue,
-            onTap: onCheckTap,
+          _CircleAction(
+            icon: Icons.note_add_outlined,
+            onTap: onAddNote,
           ),
         ],
       ),
@@ -556,29 +581,26 @@ class QuestionBottomBar extends StatelessWidget {
   }
 }
 
-class _BarIconButton extends StatelessWidget {
+class _CircleAction extends StatelessWidget {
   final IconData icon;
-  final Color color;
+  final Color? color;
   final VoidCallback onTap;
 
-  const _BarIconButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+  const _CircleAction({required this.icon, this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final finalColor = color ?? AppColors.textPrimary;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 44,
-        height: 44,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
+          color: finalColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(icon, color: color, size: 22),
+        child: Icon(icon, color: finalColor, size: 24),
       ),
     );
   }
@@ -599,36 +621,40 @@ class _QuestionMenuButton extends StatelessWidget {
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) {
-        if (value == 'note') {
-          showNoteDialog(context, question.number);
+        if (value == 'report') {
+          // TODO: Implement report
+        } else if (value == 'share') {
+          // TODO: Implement share
         }
       },
       itemBuilder: (_) => [
         PopupMenuItem(
-          value: 'note',
+          value: 'share',
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              Text('مشاركة السؤال', style: GoogleFonts.cairo(fontSize: 14)),
+              const SizedBox(width: 10),
               const Icon(
-                Icons.note_add_rounded,
+                Icons.share_rounded,
                 color: AppColors.primaryBlue,
                 size: 18,
               ),
-              const SizedBox(width: 10),
-              Text('إضافة ملاحظة', style: GoogleFonts.cairo(fontSize: 14)),
             ],
           ),
         ),
         PopupMenuItem(
           value: 'report',
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              Text('الإبلاغ عن خطأ', style: GoogleFonts.cairo(fontSize: 14)),
+              const SizedBox(width: 10),
               const Icon(
                 Icons.flag_rounded,
                 color: Color(0xFFDC2626),
                 size: 18,
               ),
-              const SizedBox(width: 10),
-              Text('إبلاغ عن خطأ', style: GoogleFonts.cairo(fontSize: 14)),
             ],
           ),
         ),
