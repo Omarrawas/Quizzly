@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/features/admin/presentation/screens/batch_codes_preview_screen.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -160,41 +161,54 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
               final data = batches[index].data() as Map<String, dynamic>;
               final name = data['name'] ?? 'بدون اسم';
               final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
-              final quantity = data['quantity'] ?? 0;
-              final duration = data['durationDays'] ?? 0;
+              final quantity = (data['quantity'] as int?) ?? 0;
+              final duration = (data['durationDays'] as int?) ?? 0;
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BatchCodesPreviewScreen(
+                        batchName: name,
+                        durationDays: duration,
+                        quantity: quantity,
+                      ),
                     ),
-                    child: Icon(Icons.inventory_2_rounded, color: AppColors.primaryBlue),
                   ),
-                  title: Text(name, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                  subtitle: Text(
-                    '${intl.DateFormat('yyyy/MM/dd').format(createdAt ?? DateTime.now())} • $quantity كود • $duration يوم',
-                    style: GoogleFonts.cairo(fontSize: 12),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.print_rounded, color: Colors.green),
-                        onPressed: () => _printBatch(name),
-                        tooltip: 'طباعة الأكواد',
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                        onPressed: () => _deleteBatch(name),
-                        tooltip: 'حذف المجموعة',
-                      ),
-                    ],
+                      child: Icon(Icons.inventory_2_rounded, color: AppColors.primaryBlue),
+                    ),
+                    title: Text(name, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      '${intl.DateFormat('yyyy/MM/dd').format(createdAt ?? DateTime.now())} • $quantity كود • $duration يوم',
+                      style: GoogleFonts.cairo(fontSize: 12),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.print_rounded, color: Colors.green),
+                          onPressed: () => _printBatch(name),
+                          tooltip: 'طباعة الأكواد',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                          onPressed: () => _deleteBatch(name),
+                          tooltip: 'حذف المجموعة',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

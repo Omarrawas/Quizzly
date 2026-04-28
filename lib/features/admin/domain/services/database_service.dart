@@ -315,6 +315,34 @@ class DatabaseService {
     return snap.docs.map((d) => d.data()).toList();
   }
 
+  Stream<QuerySnapshot> streamActivationCodesByBatch(String batchName) {
+    return _db.collection('activation_codes')
+        .where('batchName', isEqualTo: batchName)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  /// Toggle a single code between active (isUsed=false) and used (isUsed=true)
+  Future<void> toggleCodeActivation(String codeId, {required bool markAsUsed}) {
+    return _db.collection('activation_codes').doc(codeId).update({
+      'isUsed': markAsUsed,
+      'usedAt': markAsUsed ? FieldValue.serverTimestamp() : null,
+      'usedBy': markAsUsed ? 'admin' : null,
+    });
+  }
+
+  /// Update the duration of a single code
+  Future<void> updateCodeDuration(String codeId, int newDurationDays) {
+    return _db.collection('activation_codes').doc(codeId).update({
+      'durationDays': newDurationDays,
+    });
+  }
+
+  /// Delete a single activation code
+  Future<void> deleteCode(String codeId) {
+    return _db.collection('activation_codes').doc(codeId).delete();
+  }
+
   Future<void> deleteActivationBatch(String batchName) async {
     final snap = await _db.collection('activation_codes')
         .where('batchName', isEqualTo: batchName)
