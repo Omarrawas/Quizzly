@@ -305,6 +305,7 @@ class ExamConfig {
   final List<String> staticQuestionIds;
   final GenerationRules? generationRules;
   final bool isFree;
+  final DateTime? lastUpdated;
 
   const ExamConfig({
     this.id,
@@ -319,6 +320,7 @@ class ExamConfig {
     this.staticQuestionIds = const [],
     this.generationRules,
     this.isFree = true,
+    this.lastUpdated,
   });
 
   factory ExamConfig.fromFirestore(DocumentSnapshot doc) {
@@ -336,6 +338,7 @@ class ExamConfig {
       staticQuestionIds: List<String>.from(data['staticQuestions'] ?? []),
       generationRules: data['type'] == 'bank' ? GenerationRules.fromMap(data['generationRules']) : null,
       isFree: data['isFree'] ?? true,
+      lastUpdated: data['lastUpdated'] != null ? (data['lastUpdated'] as Timestamp).toDate() : null,
     );
   }
 
@@ -351,6 +354,7 @@ class ExamConfig {
       'category': category,
       'staticQuestions': staticQuestionIds,
       'isFree': isFree,
+      'lastUpdated': lastUpdated != null ? Timestamp.fromDate(lastUpdated!) : null,
       if (type == ExamType.bank && generationRules != null)
         'generationRules': generationRules!.toMap(),
     };
@@ -361,14 +365,14 @@ class ExamConfig {
 class QuizExam {
   final String title;
   final String classification;
-  final String lastUpdated;
+  final DateTime? lastUpdated;
   final int totalQuestions;
   final List<QuizQuestion> questions;
 
   const QuizExam({
     required this.title,
     required this.classification,
-    required this.lastUpdated,
+    this.lastUpdated,
     required this.totalQuestions,
     required this.questions,
   });
@@ -381,7 +385,7 @@ enum AnswerState { unanswered, correct, wrong }
 final QuizExam mockQuizExam = QuizExam(
   title: 'الدورة التجريبية',
   classification: 'الدورات الوزارية',
-  lastUpdated: '21/02/2024',
+  lastUpdated: DateTime(2024, 2, 21),
   totalQuestions: 30,
   questions: [
     QuizQuestion(

@@ -9,6 +9,7 @@ import 'package:quizzly/features/home/presentation/widgets/app_drawer.dart';
 import 'package:quizzly/features/home/presentation/widgets/subject_card.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_hub_screen.dart';
 import 'package:quizzly/features/home/presentation/screens/subject_selection_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/favorites_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -94,6 +95,20 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'المظهر',
             );
           },
+        ),
+        IconButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+            );
+          },
+          icon: const Icon(
+            Icons.favorite_border_rounded,
+            color: AppColors.textSecondary,
+            size: 24,
+          ),
+          tooltip: 'المفضلة',
         ),
         Container(
           width: 32,

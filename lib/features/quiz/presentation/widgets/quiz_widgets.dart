@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
@@ -14,6 +16,7 @@ class QuizHud extends StatelessWidget {
   final Duration elapsed;
   final bool isTimerRunning;
   final VoidCallback onToggleTimer;
+  final Widget? additionalAction;
 
   const QuizHud({
     super.key,
@@ -24,6 +27,7 @@ class QuizHud extends StatelessWidget {
     required this.elapsed,
     required this.isTimerRunning,
     required this.onToggleTimer,
+    this.additionalAction,
   });
 
   String _formatTime(Duration d) {
@@ -52,6 +56,10 @@ class QuizHud extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          if (additionalAction != null) ...[
+            additionalAction!,
+            const SizedBox(width: 8),
+          ],
           // Timer Pill
           _HudPill(
             icon: Icons.timer_outlined,
@@ -140,6 +148,11 @@ class QuizExamHeader extends StatelessWidget {
 
   const QuizExamHeader({super.key, required this.exam});
 
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'غير متوفر';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -178,7 +191,7 @@ class QuizExamHeader extends StatelessWidget {
             children: [
               _HeaderPill(
                 icon: Icons.access_time_rounded,
-                label: 'آخر تعديل: ${exam.lastUpdated}',
+                label: 'آخر تعديل: ${_formatDate(exam.lastUpdated)}',
               ),
               const SizedBox(width: 8),
               _HeaderPill(
@@ -622,7 +635,7 @@ class _QuestionMenuButton extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) {
         if (value == 'report') {
-          // TODO: Implement report
+          showReportDialog(context, question.number);
         } else if (value == 'share') {
           // TODO: Implement share
         }
@@ -719,4 +732,227 @@ void showNoteDialog(BuildContext context, int questionNumber) {
       ],
     ),
   );
+}
+// ═══════════════════════════════════════════════════════
+//  6. نافذة الإبلاغ عن سؤال (Report Dialog)
+// ═══════════════════════════════════════════════════════
+void showReportDialog(BuildContext context, int questionNumber) {
+  final controller = TextEditingController();
+  String selectedType = 'خطأ في الإجابة';
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Text(
+              'الإبلاغ عن السؤال (#$questionNumber)',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'تفاصيل المشكلة',
+                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    maxLines: 3,
+                    style: GoogleFonts.cairo(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'اكتب تفاصيل المشكلة هنا...',
+                      hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.borderLight),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'نوع المشكلة',
+                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  _ReportOption(
+                    label: 'خطأ في الإجابة',
+                    value: 'خطأ في الإجابة',
+                    groupValue: selectedType,
+                    onChanged: (v) => setState(() => selectedType = v!),
+                  ),
+                  _ReportOption(
+                    label: 'خطأ إملائي',
+                    value: 'خطأ إملائي',
+                    groupValue: selectedType,
+                    onChanged: (v) => setState(() => selectedType = v!),
+                  ),
+                  _ReportOption(
+                    label: 'استفسار عن السؤال',
+                    value: 'استفسار عن السؤال',
+                    groupValue: selectedType,
+                    onChanged: (v) => setState(() => selectedType = v!),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'إلغاء',
+                  style: GoogleFonts.cairo(color: AppColors.textSecondary),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final details = controller.text.trim();
+                  final user = FirebaseAuth.instance.currentUser;
+
+                  // Show loading
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => const Center(child: CircularProgressIndicator()),
+                  );
+
+                  try {
+                    await FirebaseFirestore.instance.collection('question_reports').add({
+                      'questionId': questionNumber.toString(),
+                      'questionText': '', // Ideally pass question text too
+                      'details': details,
+                      'type': selectedType,
+                      'userId': user?.uid ?? 'anonymous',
+                      'userEmail': user?.email ?? 'anonymous',
+                      'createdAt': FieldValue.serverTimestamp(),
+                      'status': 'pending',
+                    });
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Pop loading
+                      Navigator.pop(context); // Pop report dialog
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'تم إرسال بلاغك بنجاح، شكراً لك!',
+                            style: GoogleFonts.cairo(),
+                            textAlign: TextAlign.right,
+                          ),
+                          backgroundColor: const Color(0xFF16A34A),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Pop loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'حدث خطأ أثناء إرسال البلاغ. حاول مجدداً.',
+                            style: GoogleFonts.cairo(),
+                            textAlign: TextAlign.right,
+                          ),
+                          backgroundColor: const Color(0xFFDC2626),
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                ),
+                child: Text('إرسال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class _ReportOption extends StatelessWidget {
+  final String label;
+  final String value;
+  final String groupValue;
+  final ValueChanged<String?> onChanged;
+
+  const _ReportOption({
+    required this.label,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = value == groupValue;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => onChanged(value),
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryBlue.withValues(alpha: 0.05) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
+                    width: 2,
+                  ),
+                ),
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: isSelected ? 10 : 0,
+                    height: isSelected ? 10 : 0,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryBlue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -116,12 +118,27 @@ class _QuizScreenState extends State<QuizScreen> {
                       answerState: state,
                       showCorrect: showCorrect,
                       isFavorite: _favorites.contains(qIndex),
-                      onFavoriteToggle: () {
+                      onFavoriteToggle: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) return;
+
+                        final qId = question.id ?? question.number.toString();
+                        final favoritesRef = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .collection('favorites');
+
                         setState(() {
                           if (_favorites.contains(qIndex)) {
                             _favorites.remove(qIndex);
+                            favoritesRef.doc(qId).delete();
                           } else {
                             _favorites.add(qIndex);
+                            favoritesRef.doc(qId).set({
+                              'questionId': qId,
+                              'savedAt': FieldValue.serverTimestamp(),
+                              'questionData': question.toMap(),
+                            });
                           }
                         });
                       },

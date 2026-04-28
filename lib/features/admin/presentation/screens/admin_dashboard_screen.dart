@@ -6,6 +6,7 @@ import 'package:quizzly/features/admin/presentation/widgets/generate_codes_dialo
 import 'package:quizzly/features/admin/presentation/screens/manage_activation_codes_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/database_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/reports_management_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -195,6 +196,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const DatabaseManagementScreen()),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.report_problem_rounded,
+              title: 'إدارة البلاغات',
+              subtitle: 'مراجعة شكاوى المستخدمين حول الأسئلة',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReportsManagementScreen()),
                 );
               },
               isDark: isDark,
