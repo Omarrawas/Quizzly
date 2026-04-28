@@ -9,6 +9,7 @@ import 'package:quizzly/features/subject/presentation/screens/performance_screen
 import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:quizzly/features/gamification/data/models/gamification_profile.dart';
+import 'package:quizzly/features/subject/domain/services/subject_stats_service.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 
@@ -31,47 +32,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
   bool _isSyncing = false;
   late AnimationController _syncController;
   final GamificationService _gamificationService = GamificationService();
+  final SubjectStatsService _statsService = SubjectStatsService();
   GamificationProfile? _profile;
-
-  // ── الأزرار الستة المطلوبة ─────────────────────────────────────
-  late final List<HubAction> _hubActions = [
-    const HubAction(
-      icon: Icons.assignment_rounded,
-      label: 'الامتحانات',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFF7C3AED),
-    ),
-    const HubAction(
-      icon: Icons.category_rounded,
-      label: 'التصنيفات',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFF2563EB),
-    ),
-    const HubAction(
-      icon: Icons.search_rounded,
-      label: 'البحث',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFF10B981),
-    ),
-    const HubAction(
-      icon: Icons.favorite_rounded,
-      label: 'المفضلة',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFFEF4444),
-    ),
-    const HubAction(
-      icon: Icons.error_outline_rounded,
-      label: 'الإجابات الخاطئة',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFFF59E0B),
-    ),
-    const HubAction(
-      icon: Icons.fitness_center_rounded,
-      label: 'تدرب بنفسك',
-      iconColor: Colors.white,
-      iconBackground: Color(0xFF6366F1),
-    ),
-  ];
 
   @override
   void initState() {
@@ -110,6 +72,17 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Get screen height to make cards responsive
+    final screenHeight = MediaQuery.of(context).size.height;
+    final appBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+    final headerStatsHeight = 160.0; // Approximate
+    final availableHeight = screenHeight - appBarHeight - headerStatsHeight - 100;
+    
+    // Calculate aspect ratio so 3 rows fit the available height
+    final double cardHeight = (availableHeight / 3).clamp(120.0, 180.0);
+    final double cardWidth = (MediaQuery.of(context).size.width - 56) / 2;
+    final double aspectRatio = cardWidth / cardHeight;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
@@ -132,23 +105,24 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
             ),
           ),
 
-          // Main Actions Grid
+          // Main Actions Grid (Real Counters + Responsive)
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => HubActionCard(
-                  action: _hubActions[index],
-                  onTap: () => _onActionTap(index),
-                ),
-                childCount: _hubActions.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: aspectRatio,
               ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.85,
-              ),
+              delegate: SliverChildListDelegate([
+                _buildActionCard(0, Icons.assignment_rounded, 'الامتحانات', const Color(0xFF2563EB), _statsService.streamExamsCount(widget.subjectId)),
+                _buildActionCard(1, Icons.sell_rounded, 'التصنيفات', const Color(0xFFEA580C), _statsService.streamTopicsCount(widget.subjectId)),
+                _buildActionCard(2, Icons.search_rounded, 'البحث', const Color(0xFF16A34A), Stream.value(0)),
+                _buildActionCard(3, Icons.favorite_rounded, 'المفضلة', const Color(0xFFEF4444), _statsService.streamFavoritesCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
+                _buildActionCard(4, Icons.close_rounded, 'الإجابات الخاطئة', const Color(0xFFDC2626), _statsService.streamWrongAnswersCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
+                _buildActionCard(5, Icons.school_rounded, 'تدرب بنفسك', const Color(0xFF0EA5E9), Stream.value(0)),
+              ]),
             ),
           ),
 
@@ -158,9 +132,28 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     );
   }
 
+  Widget _buildActionCard(int index, IconData icon, String label, Color bg, Stream<int> countStream) {
+    return StreamBuilder<int>(
+      stream: countStream,
+      initialData: 0,
+      builder: (context, snapshot) {
+        return HubActionCard(
+          action: HubAction(
+            icon: icon,
+            label: label,
+            iconColor: Colors.white,
+            iconBackground: bg,
+            badgeCount: snapshot.data ?? 0,
+          ),
+          onTap: () => _onActionTap(index),
+        );
+      }
+    );
+  }
+
   Widget _buildHeaderStats() {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -250,19 +243,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
 
   SliverAppBar _buildSliverAppBar() {
     return SliverAppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       elevation: 0,
       pinned: true,
       automaticallyImplyLeading: false,
-      leading: IconButton(
-        onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary, size: 20),
-      ),
-      title: Text(
-        widget.subjectName,
-        style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-      ),
-      centerTitle: true,
       actions: [
         IconButton(
           onPressed: _onSync,
@@ -276,6 +260,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
           ),
         ),
       ],
+      title: Text(
+        widget.subjectName,
+        style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+      ),
+      centerTitle: true,
+      leading: IconButton(
+        onPressed: () => Navigator.maybePop(context),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+      ),
     );
   }
 

@@ -20,7 +20,7 @@ class HubAction {
 }
 
 // ─────────────────────────────────────────
-//  Widget: بطاقة الزر مع الـ Badge
+//  Widget: بطاقة الزر مع الـ Badge (التصميم المربع المحدث)
 // ─────────────────────────────────────────
 class HubActionCard extends StatelessWidget {
   final HubAction action;
@@ -36,84 +36,86 @@ class HubActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // ── Main Card
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Icon Circle
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: action.iconBackground,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    action.icon,
-                    size: 36,
-                    color: action.iconColor,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                // Label
-                Text(
-                  action.label,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-
-          // ── Badge in top-right corner (RTL: top-start)
-          if (action.badgeCount > 0)
+          ],
+        ),
+        child: Stack(
+          children: [
+            // ── Badge in top-left (RTL: top-start)
             Positioned(
-              top: -6,
-              right: -6,
+              top: 12,
+              left: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: const Color(0xFF60A5FA).withValues(alpha: 0.6), // Light blue from image
+                  shape: BoxShape.circle,
                 ),
                 child: Text(
-                  action.badgeCount > 99 ? '99+' : '${action.badgeCount}',
-                  style: GoogleFonts.cairo(
+                  '${action.badgeCount}',
+                  style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: const Color(0xFF1D4ED8), // Darker blue from image
                   ),
                 ),
               ),
             ),
-        ],
+
+            // ── Main Content (Icon and Label)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icon Circle
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: action.iconBackground,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: action.iconBackground.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      action.icon,
+                      size: 32,
+                      color: action.iconColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Label
+                  Text(
+                    action.label,
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
