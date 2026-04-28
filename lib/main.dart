@@ -6,6 +6,7 @@ import 'package:quizzly/core/theme/theme_service.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/firebase_options.dart';
 import 'package:quizzly/features/home/domain/services/college_service.dart';
+import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 
 void main() async {
@@ -19,6 +20,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
         Provider(create: (_) => CollegeService()),
+        Provider(create: (_) => ContentService()),
       ],
       child: const MyApp(),
     ),
