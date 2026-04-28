@@ -67,11 +67,10 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         'departmentName': _departmentName,
         'yearName': _yearName,
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ الخيارات كإعدادات افتراضية بنجاح ✅'), backgroundColor: Colors.green),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ الخيارات كإعدادات افتراضية بنجاح ✅'), backgroundColor: Colors.green),
+      );
     }
   }
 
@@ -154,104 +153,43 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
             ),
           ),
 
-          // 2. Dynamic Filters
-          SizedBox(
-            height: 45,
-            child: ListView(
+          // 2. Breadcrumbs / Selected Path (Optional visual aid)
+          if (_selectedUniversityId != null)
+            SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildFilterChip(
-                  label: 'الكل',
-                  isSelected: _selectedUniversityId == null,
-                  onTap: _resetFilters,
-                ),
-                StreamBuilder<QuerySnapshot>(
-                  stream: contentService.getUniversities(),
-                  builder: (context, snapshot) {
-                    final items = snapshot.data?.docs ?? [];
-                    return _buildDropdownFilterChip(
-                      label: _universityName,
-                      items: items,
-                      onSelected: (id, name) {
-                        setState(() {
-                          _selectedUniversityId = id;
-                          _universityName = name;
-                          _selectedCollegeId = null;
-                          _collegeName = 'الكلية';
-                          _selectedDepartmentId = null;
-                          _departmentName = 'القسم';
-                        });
-                      },
-                      isActive: _selectedUniversityId != null,
-                    );
-                  }
-                ),
-                if (_selectedUniversityId != null)
-                  StreamBuilder<QuerySnapshot>(
-                    stream: contentService.getColleges(_selectedUniversityId!),
-                    builder: (context, snapshot) {
-                      final items = snapshot.data?.docs ?? [];
-                      return _buildDropdownFilterChip(
-                        label: _collegeName,
-                        items: items,
-                        onSelected: (id, name) {
-                          setState(() {
-                            _selectedCollegeId = id;
-                            _collegeName = name;
-                            _selectedDepartmentId = null;
-                            _departmentName = 'القسم';
-                          });
-                        },
-                        isActive: _selectedCollegeId != null,
-                      );
-                    }
-                  ),
-                if (_selectedCollegeId != null)
-                  StreamBuilder<QuerySnapshot>(
-                    stream: contentService.getDepartments(_selectedCollegeId!),
-                    builder: (context, snapshot) {
-                      final items = snapshot.data?.docs ?? [];
-                      return _buildDropdownFilterChip(
-                        label: _departmentName,
-                        items: items,
-                        onSelected: (id, name) {
-                          setState(() {
-                            _selectedDepartmentId = id;
-                            _departmentName = name;
-                            _selectedYearId = null;
-                            _yearName = 'السنة';
-                          });
-                        },
-                        isActive: _selectedDepartmentId != null,
-                      );
-                    }
-                  ),
-                if (_selectedDepartmentId != null)
-                  StreamBuilder<QuerySnapshot>(
-                    stream: contentService.getYears(_selectedDepartmentId!),
-                    builder: (context, snapshot) {
-                      final items = snapshot.data?.docs ?? [];
-                      return _buildDropdownFilterChip(
-                        label: _yearName,
-                        items: items,
-                        onSelected: (id, name) {
-                          setState(() {
-                            _selectedYearId = id;
-                            _yearName = name;
-                          });
-                        },
-                        isActive: _selectedYearId != null,
-                      );
-                    }
-                  ),
-              ],
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildBreadcrumb('الكل', () => _resetFilters()),
+                  _buildBreadcrumb(_universityName, () {
+                    setState(() {
+                      _selectedCollegeId = null;
+                      _collegeName = 'الكلية';
+                      _selectedDepartmentId = null;
+                      _departmentName = 'القسم';
+                    });
+                  }),
+                  if (_selectedCollegeId != null)
+                    _buildBreadcrumb(_collegeName, () {
+                      setState(() {
+                        _selectedDepartmentId = null;
+                        _departmentName = 'القسم';
+                      });
+                    }),
+                  if (_selectedDepartmentId != null)
+                    _buildBreadcrumb(_departmentName, () {
+                      setState(() {
+                        _selectedYearId = null;
+                        _yearName = 'السنة';
+                      });
+                    }),
+                ],
+              ),
             ),
-          ),
 
-          const Divider(height: 32, thickness: 0.5),
+          const Divider(height: 24, thickness: 0.5),
 
-          // 3. Main Content
+          // 3. Main Discovery Area
           Expanded(
             child: authService.user == null
                 ? const Center(child: CircularProgressIndicator())
@@ -260,37 +198,145 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                     builder: (context, activeSnapshot) {
                       final activeIds = activeSnapshot.data ?? {};
                       
-                      return _selectedYearId == null
-                          ? _buildEmptyState('يرجى اختيار التخصص والسنة الدراسية لعرض الفصول والمواد المتاحة.')
-                          : StreamBuilder<QuerySnapshot>(
-                              stream: contentService.getSemesters(_selectedYearId!),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(child: CircularProgressIndicator());
-                                }
-                                final semesters = snapshot.data?.docs ?? [];
-                                if (semesters.isEmpty) return _buildEmptyState('لا توجد فصول دراسية مضافة لهذه السنة بعد.');
-
-                                return ListView.builder(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  itemCount: semesters.length,
-                                  itemBuilder: (context, index) {
-                                    final semDoc = semesters[index];
-                                    return _SemesterExpansionTile(
-                                      semesterId: semDoc.id,
-                                      semesterName: semDoc['name'],
-                                      contentService: contentService,
-                                      activeSubjectIds: activeIds,
-                                    );
-                                  },
-                                );
-                              },
-                            );
+                      return _buildDrillDownContent(contentService, activeIds);
                     },
                   ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBreadcrumb(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue)),
+            const Icon(Icons.chevron_left_rounded, size: 16, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrillDownContent(ContentService contentService, Set<String> activeIds) {
+    if (_selectedUniversityId == null) {
+      return _buildHierarchyList(
+        stream: contentService.getUniversities(),
+        title: 'اختر الجامعة',
+        onTap: (doc) => setState(() {
+          _selectedUniversityId = doc.id;
+          _universityName = doc['name'];
+        }),
+      );
+    }
+
+    if (_selectedCollegeId == null) {
+      return _buildHierarchyList(
+        stream: contentService.getColleges(_selectedUniversityId!),
+        title: 'اختر الكلية',
+        onTap: (doc) => setState(() {
+          _selectedCollegeId = doc.id;
+          _collegeName = doc['name'];
+        }),
+      );
+    }
+
+    if (_selectedDepartmentId == null) {
+      return _buildHierarchyList(
+        stream: contentService.getDepartments(_selectedCollegeId!),
+        title: 'اختر القسم / التخصص',
+        onTap: (doc) => setState(() {
+          _selectedDepartmentId = doc.id;
+          _departmentName = doc['name'];
+        }),
+      );
+    }
+
+    if (_selectedYearId == null) {
+      return _buildHierarchyList(
+        stream: contentService.getYears(_selectedDepartmentId!),
+        title: 'اختر السنة الدراسية',
+        onTap: (doc) => setState(() {
+          _selectedYearId = doc.id;
+          _yearName = doc['name'];
+        }),
+      );
+    }
+
+    // Final Level: Semesters & Subjects
+    return StreamBuilder<QuerySnapshot>(
+      stream: contentService.getSemesters(_selectedYearId!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        final semesters = snapshot.data?.docs ?? [];
+        if (semesters.isEmpty) return _buildEmptyState('لا توجد فصول دراسية مضافة لهذه السنة بعد.');
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: semesters.length,
+          itemBuilder: (context, index) {
+            final semDoc = semesters[index];
+            return _SemesterExpansionTile(
+              semesterId: semDoc.id,
+              semesterName: semDoc['name'],
+              contentService: contentService,
+              activeSubjectIds: activeIds,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHierarchyList({
+    required Stream<QuerySnapshot> stream,
+    required String title,
+    required Function(QueryDocumentSnapshot) onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              final items = snapshot.data?.docs ?? [];
+              if (items.isEmpty) return _buildEmptyState('لا توجد بيانات متاحة حالياً.');
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final doc = items[index];
+                  return Card(
+                    elevation: 0,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: AppColors.borderLight.withValues(alpha: 0.5)),
+                    ),
+                    child: ListTile(
+                      onTap: () => onTap(doc),
+                      title: Text(doc['name'], style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                      trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.primaryBlue),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -309,70 +355,6 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
               style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip({required String label, required bool isSelected, required VoidCallback onTap}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onTap(),
-        labelStyle: GoogleFonts.cairo(
-          fontSize: 13,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.white : AppColors.textPrimary,
-        ),
-        backgroundColor: Colors.transparent,
-        selectedColor: AppColors.primaryBlue,
-        checkmarkColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: isSelected ? AppColors.primaryBlue : AppColors.borderLight),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownFilterChip({
-    required String label,
-    required List<QueryDocumentSnapshot> items,
-    required Function(String, String) onSelected,
-    required bool isActive,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: PopupMenuButton<Map<String, String>>(
-        onSelected: (val) => onSelected(val['id']!, val['name']!),
-        itemBuilder: (context) => items.map((doc) => PopupMenuItem<Map<String, String>>(
-          value: {'id': doc.id, 'name': doc['name']},
-          child: Text(doc['name'], style: GoogleFonts.cairo(fontSize: 14)),
-        )).toList(),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.primaryBlue : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isActive ? AppColors.primaryBlue : AppColors.borderLight),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: isActive ? Colors.white : AppColors.textSecondary),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: GoogleFonts.cairo(
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
