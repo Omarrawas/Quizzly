@@ -5,6 +5,10 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_generator_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_session_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/exam_flashcards_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/active_recall_session_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/speed_mode_session_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/domain/services/activation_service.dart';
 import 'package:provider/provider.dart';
@@ -108,7 +112,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 
   Future<void> _handleExamTap(ExamConfig config) async {
     if (config.isFree) {
-      _startExam(config);
+      _showExamOptions(config);
       return;
     }
 
@@ -118,9 +122,156 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     // Check if subject is activated
     final hasAccess = await _activationService.hasExamAccess(userId, config.id!, widget.subjectId);
     if (hasAccess) {
-      _startExam(config);
+      _showExamOptions(config);
     } else {
       _showActivationDialog(config);
+    }
+  }
+
+  // ─── حوار خيارات بدء الامتحان ──────────────────────────────────────────
+  void _showExamOptions(ExamConfig config) {
+    int selectedMode = 1; // Default to Timed Exam
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+          title: Text(
+            config.title,
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'اختر طريقة عرض أو بدء الاختبار المفضل لديك:',
+                style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              _ModeOption(
+                index: 0,
+                title: 'تصفح ككتاب',
+                subtitle: 'عرض كافة الأسئلة مع الحلول والشرح',
+                icon: Icons.menu_book_rounded,
+                color: Colors.orange,
+                isSelected: selectedMode == 0,
+                onTap: () => setDialogState(() => selectedMode = 0),
+              ),
+              const SizedBox(height: 12),
+              _ModeOption(
+                index: 1,
+                title: 'وضع "احفظني" (عالمي)',
+                subtitle: 'أقوى وسيلة للحفظ عبر الاسترجاع النشط',
+                icon: Icons.psychology_rounded,
+                color: Colors.red,
+                isSelected: selectedMode == 1,
+                onTap: () => setDialogState(() => selectedMode = 1),
+              ),
+              const SizedBox(height: 12),
+              _ModeOption(
+                index: 2,
+                title: 'امتحان مؤقت (أتمتة)',
+                subtitle: 'اختبار تجريبي مع مؤقت تنازلي وحساب نقاط',
+                icon: Icons.timer_rounded,
+                color: AppColors.primaryBlue,
+                isSelected: selectedMode == 2,
+                onTap: () => setDialogState(() => selectedMode = 2),
+              ),
+              const SizedBox(height: 12),
+              _ModeOption(
+                index: 3,
+                title: 'بطاقات ذكية',
+                subtitle: 'مراجعة سريعة وحفظ عبر قلب البطاقات',
+                icon: Icons.style_rounded,
+                color: Colors.purple,
+                isSelected: selectedMode == 3,
+                onTap: () => setDialogState(() => selectedMode = 3),
+              ),
+              const SizedBox(height: 12),
+              _ModeOption(
+                index: 4,
+                title: 'تحدي السرعة ⚡',
+                subtitle: '10 ثوانٍ فقط لكل سؤال لإتقان السرعة',
+                icon: Icons.bolt_rounded,
+                color: Colors.amber,
+                isSelected: selectedMode == 4,
+                onTap: () => setDialogState(() => selectedMode = 4),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  _launchExamMode(config, selectedMode);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text('بدء الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchExamMode(ExamConfig config, int mode) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final questions = await _generator.generateExam(config);
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      if (questions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('عذراً، لا توجد أسئلة كافية لهذا الاختبار حالياً')),
+        );
+        return;
+      }
+
+      Widget screen;
+      switch (mode) {
+        case 0: // Book mode
+          screen = ExamBookModeScreen(config: config, questions: questions);
+          break;
+        case 1: // Memory mode
+          screen = ActiveRecallSessionScreen(config: config, questions: questions);
+          break;
+        case 3: // Flashcards
+          screen = ExamFlashcardsScreen(config: config, questions: questions);
+          break;
+        case 4: // Speed mode
+          screen = SpeedModeSessionScreen(config: config, questions: questions);
+          break;
+        default: // Exam mode
+          screen = ExamSessionScreen(config: config, questions: questions);
+      }
+
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ أثناء تجهيز الاختبار: $e')),
+        );
+      }
     }
   }
 
@@ -175,22 +326,24 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                 final result = await _activationService.activateWithCode(
                   userId: userId!,
                   code: controller.text,
-                  subjectId: widget.subjectId, // Activate the whole subject
+                  subjectId: widget.subjectId,
                 );
                 
-                if (mounted) {
-                  setDialogState(() => isLoading = false);
-                  if (result['success']) {
-                    Navigator.pop(context); // Close dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result['message'], style: GoogleFonts.cairo())),
-                    );
-                    _startExam(config);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result['message'], style: GoogleFonts.cairo()), backgroundColor: Colors.red),
-                    );
-                  }
+                if (!mounted) return;
+                setDialogState(() => isLoading = false);
+
+                if (result['success']) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context); // Close dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result['message'], style: GoogleFonts.cairo())),
+                  );
+                  _showExamOptions(config);
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result['message'], style: GoogleFonts.cairo()), backgroundColor: Colors.red),
+                  );
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -206,43 +359,62 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
       ),
     );
   }
+}
 
-  Future<void> _startExam(ExamConfig config) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+class _ModeOption extends StatelessWidget {
+  final int index;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-    try {
-      final questions = await _generator.generateExam(config);
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading
+  const _ModeOption({
+    required this.index,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
 
-      if (questions.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('عذراً، لا توجد أسئلة كافية لهذا الاختبار حالياً')),
-        );
-        return;
-      }
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ExamSessionScreen(
-            config: config,
-            questions: questions,
-          ),
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? color : Colors.grey.shade200, width: isSelected ? 2 : 1),
         ),
-      );
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ أثناء تجهيز الاختبار: $e')),
-        );
-      }
-    }
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+                  Text(subtitle, style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle_rounded, color: color, size: 20),
+          ],
+        ),
+      ),
+    );
   }
 }
 

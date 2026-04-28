@@ -5,13 +5,18 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/presentation/widgets/hub_action_card.dart';
 import 'package:quizzly/features/quiz/presentation/screens/wrong_answers_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
-import 'package:quizzly/features/subject/presentation/screens/performance_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/performance_screen.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:quizzly/features/gamification/data/models/gamification_profile.dart';
 import 'package:quizzly/features/subject/domain/services/subject_stats_service.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:quizzly/features/subject/presentation/widgets/smart_coach_banner.dart';
+import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
+import 'package:quizzly/features/quiz/domain/services/exam_generator_service.dart';
+import 'package:quizzly/features/quiz/presentation/screens/active_recall_session_screen.dart';
+import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -33,6 +38,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
   late AnimationController _syncController;
   final GamificationService _gamificationService = GamificationService();
   final SubjectStatsService _statsService = SubjectStatsService();
+  final SpacedRepetitionService _srsService = SpacedRepetitionService();
+  final ExamGeneratorService _generatorService = ExamGeneratorService();
   GamificationProfile? _profile;
 
   @override
@@ -72,13 +79,11 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Get screen height to make cards responsive
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
-    final headerStatsHeight = 160.0; // Approximate
+    final headerStatsHeight = 160.0;
     final availableHeight = screenHeight - appBarHeight - headerStatsHeight - 100;
     
-    // Calculate aspect ratio so 3 rows fit the available height
     final double cardHeight = (availableHeight / 3).clamp(120.0, 180.0);
     final double cardWidth = (MediaQuery.of(context).size.width - 56) / 2;
     final double aspectRatio = cardWidth / cardHeight;
@@ -89,7 +94,6 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         slivers: [
           _buildSliverAppBar(),
           
-          // Header Stats Section
           SliverToBoxAdapter(
             child: GestureDetector(
               onTap: () => Navigator.push(
@@ -105,7 +109,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
             ),
           ),
 
-          // Main Actions Grid (Real Counters + Responsive)
+          _buildSmartCoachSliver(),
+
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
@@ -326,5 +331,69 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  Widget _buildSmartCoachSliver() {
+    final userId = context.read<AuthService>().user?.uid;
+    if (userId == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    return StreamBuilder<int>(
+      stream: _statsService.streamDueQuestionsCount(userId, widget.subjectId),
+      builder: (context, snapshot) {
+        final count = snapshot.data ?? 0;
+        if (count == 0) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+        return SliverToBoxAdapter(
+          child: SmartCoachBanner(
+            message: 'لديك $count سؤالاً حان موعد مراجعتها لتثبيتها في ذاكرتك!',
+            actionLabel: 'راجع الآن',
+            onAction: () => _startSmartReview(userId),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _startSmartReview(String userId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final dueIds = await _srsService.getDueQuestionIds(userId, widget.subjectId);
+      final questions = await _generatorService.getQuestionsByIds(dueIds);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Close loader
+
+      if (questions.isEmpty) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ActiveRecallSessionScreen(
+            config: ExamConfig(
+              title: 'مراجعة ذكية',
+              subjectId: widget.subjectId,
+              durationSeconds: questions.length * 60,
+              totalQuestions: questions.length,
+              type: ExamType.bank,
+              passingScore: 60.0,
+              sectionId: 'smart_review',
+            ),
+            questions: questions,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في جلب الأسئلة: $e')),
+        );
+      }
+    }
   }
 }

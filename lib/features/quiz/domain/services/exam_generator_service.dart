@@ -83,6 +83,24 @@ class ExamGeneratorService {
     return finalExam;
   }
 
+  Future<List<QuizQuestion>> getQuestionsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+
+    List<QuizQuestion> questions = [];
+    final chunks = _chunkList(ids, 10);
+
+    for (var chunk in chunks) {
+      final snap = await _db
+          .collection(DatabaseService.colQuestions)
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      
+      questions.addAll(snap.docs.map((d) => QuizQuestion.fromFirestore(d)));
+    }
+
+    return questions;
+  }
+
 
   List<List<T>> _chunkList<T>(List<T> list, int chunkSize) {
     List<List<T>> chunks = [];

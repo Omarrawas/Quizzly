@@ -48,4 +48,17 @@ class SubjectStatsService {
         .snapshots()
         .map((snap) => snap.size);
   }
+
+  /// Stream of questions due for review based on Spaced Repetition (SRS)
+  Stream<int> streamDueQuestionsCount(String userId, String subjectId) {
+    final now = DateTime.now().toIso8601String();
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('nextReview', isLessThanOrEqualTo: now)
+        .snapshots()
+        .map((snap) => snap.size);
+  }
 }

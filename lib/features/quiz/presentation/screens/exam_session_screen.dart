@@ -7,6 +7,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
+import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_result_screen.dart';
 
 class ExamSessionScreen extends StatefulWidget {
@@ -25,16 +26,20 @@ class ExamSessionScreen extends StatefulWidget {
 
 class _ExamSessionScreenState extends State<ExamSessionScreen> {
   final ExamService _examService = ExamService();
+  final SpacedRepetitionService _srsService = SpacedRepetitionService();
   int _currentIndex = 0;
   final Map<int, String> _userAnswers = {}; // index -> optionId
   
   late int _timeLeft;
   Timer? _timer;
+  late List<QuizQuestion> _sessionQuestions;
+  final Set<String> _incorrectQuestionIds = {};
 
   @override
   void initState() {
     super.initState();
     _timeLeft = widget.config.durationSeconds;
+    _sessionQuestions = List.from(widget.questions);
     _startTimer();
   }
 
@@ -62,10 +67,32 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   void _selectOption(String optionId) {
+    if (_userAnswers.containsKey(_currentIndex)) return; // Prevent changing answer in practice mode logic
+
+    final q = _sessionQuestions[_currentIndex];
+    final isCorrect = q.correctOptionIds.contains(optionId);
+    
     setState(() {
       _userAnswers[_currentIndex] = optionId;
     });
+
+    if (!isCorrect) {
+      _incorrectQuestionIds.add(q.id!);
+      // Smart Re-entry: Add to queue again after 4 questions
+      final insertAt = (_currentIndex + 5).clamp(0, _sessionQuestions.length);
+      setState(() {
+        _sessionQuestions.insert(insertAt, q);
+      });
+    }
+
     HapticFeedback.selectionClick();
+    
+    // Auto advance after short delay to show feedback if wanted (optional)
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted && _currentIndex < _sessionQuestions.length - 1) {
+        setState(() => _currentIndex++);
+      }
+    });
   }
 
   Future<void> _submitExam({bool auto = false}) async {
@@ -96,25 +123,40 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     int correctCount = 0;
     List<Map<String, dynamic>> results = [];
 
-    for (int i = 0; i < widget.questions.length; i++) {
-      final q = widget.questions[i];
+    for (int i = 0; i < _sessionQuestions.length; i++) {
+      final q = _sessionQuestions[i];
       final userAns = _userAnswers[i];
-      final isCorrect = q.correctOptionIds.contains(userAns);
-      if (isCorrect) correctCount++;
       
-      results.add({
-        'questionId': q.id,
-        'selectedOptionId': userAns,
-        'isCorrect': isCorrect,
-        'topicIds': q.topicIds,
-      });
+      // Only count the FIRST attempt for the official score
+      // We can identify first attempts by checking if it's the first time this question ID appears
+      bool isFirstOccurrence = true;
+      for(int j=0; j<i; j++) {
+        if(_sessionQuestions[j].id == q.id) {
+          isFirstOccurrence = false;
+          break;
+        }
+      }
+
+      if (isFirstOccurrence) {
+        final isCorrect = q.correctOptionIds.contains(userAns);
+        if (isCorrect) correctCount++;
+        
+        results.add({
+          'questionId': q.id,
+          'selectedOptionId': userAns,
+          'isCorrect': isCorrect,
+          'topicIds': q.topicIds,
+        });
+      }
     }
 
-    final score = (correctCount / widget.questions.length) * 100;
+    final totalOriginal = widget.questions.length;
+    final score = (correctCount / totalOriginal) * 100;
     final timeSpent = widget.config.durationSeconds - _timeLeft;
 
     final userId = authService.user?.uid;
     if (userId != null && widget.config.id != null) {
+      // Record official exam attempt
       await _examService.recordExamAttempt(
         userId: userId,
         examId: widget.config.id!,
@@ -122,6 +164,16 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         timeSpentSeconds: timeSpent,
         answers: results,
       );
+
+      // Update Spaced Repetition Mastery for each question
+      for (var res in results) {
+        await _srsService.updateMastery(
+          userId: userId,
+          questionId: res['questionId'],
+          subjectId: widget.config.subjectId,
+          quality: res['isCorrect'] ? 5 : 0,
+        );
+      }
     }
 
     navigator.pushReplacement(
@@ -141,8 +193,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final q = widget.questions[_currentIndex];
-    final progress = (_currentIndex + 1) / widget.questions.length;
+    final q = _sessionQuestions[_currentIndex];
+    final progress = (_currentIndex + 1) / _sessionQuestions.length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -184,7 +236,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'سؤال ${_currentIndex + 1} / ${widget.questions.length}',
+            'سؤال ${_currentIndex + 1} / ${_sessionQuestions.length}',
             style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
           ),
           Container(
@@ -268,7 +320,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                     opt.text,
                     style: GoogleFonts.cairo(
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                      color: isSelected 
+                        ? (q.correctOptionIds.contains(opt.id) ? Colors.green : Colors.red)
+                        : AppColors.textPrimary,
                     ),
                     textDirection: TextDirection.rtl,
                   ),
@@ -304,7 +358,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             const SizedBox(width: 80),
           
           ElevatedButton(
-            onPressed: _currentIndex < widget.questions.length - 1
+            onPressed: _currentIndex < _sessionQuestions.length - 1
                 ? () => setState(() => _currentIndex++)
                 : () => _submitExam(),
             style: ElevatedButton.styleFrom(
@@ -314,7 +368,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              _currentIndex < widget.questions.length - 1 ? 'التالي' : 'تسليم الاختبار',
+              _currentIndex < _sessionQuestions.length - 1 ? 'التالي' : 'تسليم الاختبار',
               style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
             ),
           ),
