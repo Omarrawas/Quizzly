@@ -47,7 +47,7 @@ class QuizHud extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Play/Pause button
+          // 1. Play/Pause button
           GestureDetector(
             onTap: onToggleTimer,
             child: Icon(
@@ -57,17 +57,16 @@ class QuizHud extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          if (additionalAction != null) ...[
-            additionalAction!,
-            const SizedBox(width: 8),
-          ],
-          // Timer Pill
+          // 2. Timer Pill
           _HudPill(
             icon: Icons.timer_outlined,
             label: _formatTime(elapsed),
             color: const Color(0xFF2563EB),
             bgColor: const Color(0xFFEFF6FF),
           ),
+          const SizedBox(width: 12),
+          // 3. Filters button (additionalAction)
+          if (additionalAction != null) additionalAction!,
           const Spacer(),
           // Wrong Pill
           _HudPill(
@@ -319,71 +318,122 @@ class QuestionCard extends StatelessWidget {
   final String? selectedOptionId;
   final AnswerState answerState;
   final bool showCorrect;
-  final void Function(String optionId) onOptionSelected;
-  
-  // New callbacks for bottom actions
+  final Function(String) onOptionSelected;
   final bool isFavorite;
-  final VoidCallback? onFavoriteToggle;
-  final VoidCallback? onCheck;
-  final VoidCallback? onAddNote;
+  final VoidCallback onFavoriteToggle;
+  final String? note;
+  final Function(String) onNoteChanged;
+  final VoidCallback onCheckAnswer;
+  final bool isChecked;
+  final bool isSelected;
 
   const QuestionCard({
     super.key,
     required this.question,
-    required this.selectedOptionId,
-    required this.answerState,
-    required this.showCorrect,
+    this.selectedOptionId,
+    this.answerState = AnswerState.unanswered,
+    this.showCorrect = false,
     required this.onOptionSelected,
     this.isFavorite = false,
-    this.onFavoriteToggle,
-    this.onCheck,
-    this.onAddNote,
+    required this.onFavoriteToggle,
+    this.note,
+    required this.onNoteChanged,
+    required this.onCheckAnswer,
+    this.isChecked = false,
+    this.isSelected = false,
   });
+
+  void _showNoteDialog(BuildContext context) {
+    final controller = TextEditingController(text: note);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('إضافة ملاحظة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          textAlign: TextAlign.right,
+          decoration: InputDecoration(
+            hintText: 'اكتب ملاحظتك هنا...',
+            hintStyle: GoogleFonts.cairo(fontSize: 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              onNoteChanged(controller.text);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('حفظ', style: GoogleFonts.cairo(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Top row with 3 dots and Question text
+          // Header: Question Number and Menu
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 16, 8),
+            padding: const EdgeInsets.all(16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _QuestionMenuButton(question: question),
-                const Spacer(),
                 Expanded(
                   child: SmartText(
                     text: '${question.number} - ${question.text}',
                     style: GoogleFonts.cairo(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
-                      height: 1.5,
                     ),
                     textAlign: TextAlign.right,
                   ),
                 ),
+                _QuestionMenuButton(question: question),
               ],
             ),
           ),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          const SizedBox(height: 12),
-          // ── Options
+          
+          // Question Image (if exists)
+          if (question.imageUrl != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  question.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+
+          // Options List
           if (question.options != null)
             ...question.options!.map(
               (option) => _OptionTile(
@@ -399,8 +449,10 @@ class QuestionCard extends StatelessWidget {
                 },
               ),
             ),
-          const SizedBox(height: 12),
-          // ── Tag chip (Aligned right)
+
+          const SizedBox(height: 16),
+
+          // Tag Label if exists
           if (question.tagLabel != null)
             Align(
               alignment: Alignment.centerRight,
@@ -409,20 +461,17 @@ class QuestionCard extends StatelessWidget {
                 child: _TagChip(label: question.tagLabel!),
               ),
             ),
-          // ── Bottom Toolbar
+
+          // Bottom Bar
           QuestionBottomBar(
             isFavorite: isFavorite,
-            isRevealed: showCorrect,
-            onCheck: onCheck ?? () {},
-            onFavorite: onFavoriteToggle ?? () {},
-            onAddNote: onAddNote ?? () {
-              showNoteDialog(context, question.number);
-            },
-            onShowExplanation: (question.explanation != null && question.explanation!.isNotEmpty)
-                ? () => showExplanationDialog(context, question)
-                : null,
+            onFavoriteToggle: onFavoriteToggle,
+            hasNote: note != null && note!.isNotEmpty,
+            onNoteTap: () => _showNoteDialog(context),
+            onCheckTap: onCheckAnswer,
+            isChecked: isChecked,
+            canCheck: isSelected && !isChecked,
           ),
-          const SizedBox(height: 12),
         ],
       ),
     );
@@ -552,84 +601,6 @@ class _TagChip extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-//  4. شريط الأدوات السفلي للسؤال
-// ═══════════════════════════════════════════════════════
-class QuestionBottomBar extends StatelessWidget {
-  final bool isFavorite;
-  final bool isRevealed;
-  final VoidCallback onCheck;
-  final VoidCallback onFavorite;
-  final VoidCallback onAddNote;
-  final VoidCallback? onShowExplanation;
-
-  const QuestionBottomBar({
-    super.key,
-    this.isFavorite = false,
-    this.isRevealed = false,
-    required this.onCheck,
-    required this.onFavorite,
-    required this.onAddNote,
-    this.onShowExplanation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _CircleAction(
-            icon: isRevealed ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
-            color: isRevealed ? const Color(0xFF16A34A) : AppColors.textPrimary,
-            onTap: onCheck,
-          ),
-          _CircleAction(
-            icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            color: isFavorite ? const Color(0xFFE11D48) : AppColors.textPrimary,
-            onTap: onFavorite,
-          ),
-          _CircleAction(
-            icon: Icons.note_add_outlined,
-            onTap: onAddNote,
-          ),
-          if (onShowExplanation != null)
-            _CircleAction(
-              icon: Icons.info_outline_rounded,
-              color: const Color(0xFF2563EB),
-              onTap: onShowExplanation!,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CircleAction extends StatelessWidget {
-  final IconData icon;
-  final Color? color;
-  final VoidCallback onTap;
-
-  const _CircleAction({required this.icon, this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final finalColor = color ?? AppColors.textPrimary;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: finalColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Icon(icon, color: finalColor, size: 24),
-      ),
-    );
-  }
-}
 
 // ── 3-dots menu button per question
 class _QuestionMenuButton extends StatelessWidget {
@@ -1055,4 +1026,90 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
       ],
     ),
   );
+}
+
+// ═══════════════════════════════════════════════════════
+//  شريط الأدوات السفلي للسؤال
+// ═══════════════════════════════════════════════════════
+class QuestionBottomBar extends StatelessWidget {
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  final bool hasNote;
+  final VoidCallback onNoteTap;
+  final VoidCallback onCheckTap;
+  final bool isChecked;
+  final bool canCheck;
+
+  const QuestionBottomBar({
+    super.key,
+    this.isFavorite = false,
+    required this.onFavoriteToggle,
+    this.hasNote = false,
+    required this.onNoteTap,
+    required this.onCheckTap,
+    this.isChecked = false,
+    this.canCheck = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _ActionButton(
+            icon: hasNote ? Icons.note_alt_rounded : Icons.note_add_outlined,
+            color: hasNote ? const Color(0xFF16A34A) : null,
+            onTap: onNoteTap,
+          ),
+          _ActionButton(
+            icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            color: isFavorite ? Colors.red : null,
+            onTap: onFavoriteToggle,
+          ),
+          _ActionButton(
+            icon: isChecked ? Icons.check_circle_rounded : Icons.check_circle_outlined,
+            color: isChecked ? const Color(0xFF16A34A) : (canCheck ? const Color(0xFF2563EB) : Colors.grey.shade400),
+            onTap: canCheck ? onCheckTap : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color? color;
+
+  const _ActionButton({
+    required this.icon,
+    this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            icon,
+            color: color ?? AppColors.textSecondary,
+            size: 24,
+          ),
+        ),
+      ),
+    );
+  }
 }

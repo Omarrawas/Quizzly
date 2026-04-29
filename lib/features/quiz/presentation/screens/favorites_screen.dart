@@ -96,6 +96,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         .delete();
                   },
                   onOptionSelected: (_) {},
+                  onNoteChanged: (_) {},
+                  onCheckAnswer: () {},
+                  isChecked: true,
+                  isSelected: false,
                 ),
               );
             },

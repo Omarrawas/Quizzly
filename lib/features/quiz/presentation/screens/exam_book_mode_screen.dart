@@ -36,14 +36,16 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // Answer tracking for filtering
+  // State tracking
   final Map<int, String?> _selectedOptions = {};
   final Map<int, AnswerState> _answerStates = {};
-  final Set<int> _favorites = {}; // Track favorites locally if needed, or via global state
+  final Set<int> _favorites = {};
+  final Set<int> _checkedQuestions = {};
+  final Map<int, String> _notes = {};
 
   int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
   int get _wrongCount => _answerStates.values.where((s) => s == AnswerState.wrong).length;
-  int get _answeredCount => _answerStates.length;
+  int get _answeredCount => _checkedQuestions.length;
 
   List<QuizQuestion> get _filteredQuestions {
     return widget.questions.where((q) {
@@ -56,7 +58,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       
       // Other filters
       if (_filterFavorites && !_favorites.contains(index)) return false;
-      if (_filterCorrected && _answerStates[index] == AnswerState.unanswered) return false;
+      if (_filterCorrected && !_checkedQuestions.contains(index)) return false;
       if (_filterWrong && _answerStates[index] != AnswerState.wrong) return false;
       if (_filterCorrect && _answerStates[index] != AnswerState.correct) return false;
       
@@ -91,6 +93,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   @override
   void dispose() {
     _timer.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -102,6 +105,49 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         _stopwatch.start();
       }
       _isTimerRunning = !_isTimerRunning;
+    });
+  }
+
+  void _onOptionSelected(int questionIndex, String optionId) {
+    setState(() {
+      _selectedOptions[questionIndex] = optionId;
+    });
+  }
+
+  void _onCheckAnswer(int questionIndex) {
+    if (_selectedOptions[questionIndex] == null) return;
+    
+    setState(() {
+      _checkedQuestions.add(questionIndex);
+      
+      final question = widget.questions[questionIndex];
+      final selectedId = _selectedOptions[questionIndex];
+      
+      if (question.correctOptionIds.contains(selectedId)) {
+        _answerStates[questionIndex] = AnswerState.correct;
+      } else {
+        _answerStates[questionIndex] = AnswerState.wrong;
+      }
+    });
+  }
+
+  void _toggleFavorite(int questionIndex) {
+    setState(() {
+      if (_favorites.contains(questionIndex)) {
+        _favorites.remove(questionIndex);
+      } else {
+        _favorites.add(questionIndex);
+      }
+    });
+  }
+
+  void _addNote(int questionIndex, String note) {
+    setState(() {
+      if (note.trim().isEmpty) {
+        _notes.remove(questionIndex);
+      } else {
+        _notes[questionIndex] = note;
+      }
     });
   }
 
@@ -124,60 +170,65 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            // Search on the left
+            // Search Bar (Left side)
             Expanded(
               flex: 2,
               child: Container(
-                height: 40,
+                height: 36,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (v) => setState(() => _searchQuery = v),
                   textAlign: TextAlign.right,
+                  style: GoogleFonts.cairo(fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: 'بحث في الأسئلة...',
-                    hintStyle: GoogleFonts.cairo(fontSize: 13, color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+                    hintText: 'بحث...',
+                    hintStyle: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            // Title on the right
+            const SizedBox(width: 8),
+            // Show Solution Toggle
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'الحل',
+                  style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                ),
+                Transform.scale(
+                  scale: 0.7,
+                  child: Switch(
+                    value: _showAnswers,
+                    onChanged: (v) => setState(() => _showAnswers = v),
+                    activeTrackColor: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                    activeThumbColor: const Color(0xFF16A34A),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            // Title
             Text(
               widget.config.title,
-              style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
+            // Back Button (Right side)
             IconButton(
               icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
               onPressed: () => Navigator.pop(context),
             ),
           ],
         ),
-        actions: [
-          Row(
-            children: [
-              Text(
-                'إظهار الحل',
-                style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-              ),
-              Switch(
-                value: _showAnswers,
-                onChanged: (v) => setState(() => _showAnswers = v),
-                activeTrackColor: const Color(0xFF16A34A).withValues(alpha: 0.5),
-                activeThumbColor: const Color(0xFF16A34A),
-              ),
-            ],
-          ),
-          const SizedBox(width: 8),
-        ],
-        centerTitle: false,
       ),
       body: Column(
         children: [
@@ -228,49 +279,22 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                 QuizExamHeader(exam: realExam),
                 const SizedBox(height: 8),
                 ..._filteredQuestions.map((q) {
-                  final index = widget.questions.indexOf(q);
+                  final realIndex = widget.questions.indexOf(q);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        QuestionCard(
-                          question: q,
-                          selectedOptionId: _selectedOptions[index],
-                          answerState: _answerStates[index] ?? AnswerState.unanswered,
-                          showCorrect: _showAnswers,
-                          onOptionSelected: (optId) {
-                            setState(() {
-                              _selectedOptions[index] = optId;
-                              final isCorrect = q.correctOptionIds.contains(optId);
-                              _answerStates[index] = isCorrect ? AnswerState.correct : AnswerState.wrong;
-                            });
-                          },
-                        ),
-                        if (q.explanation != null)
-                          Container(
-                            margin: const EdgeInsets.fromLTRB(28, 8, 28, 0),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDF4),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFBBF7D0)),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.lightbulb_outline_rounded, size: 18, color: Color(0xFF16A34A)),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    q.explanation!,
-                                    style: GoogleFonts.cairo(fontSize: 13, color: const Color(0xFF166534)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
+                    child: QuestionCard(
+                      question: q,
+                      isSelected: _selectedOptions[realIndex] != null,
+                      selectedOptionId: _selectedOptions[realIndex],
+                      answerState: _answerStates[realIndex] ?? AnswerState.unanswered,
+                      showCorrect: _showAnswers || _checkedQuestions.contains(realIndex),
+                      onOptionSelected: (optId) => _onOptionSelected(realIndex, optId),
+                      isFavorite: _favorites.contains(realIndex),
+                      onFavoriteToggle: () => _toggleFavorite(realIndex),
+                      note: _notes[realIndex],
+                      onNoteChanged: (note) => _addNote(realIndex, note),
+                      onCheckAnswer: () => _onCheckAnswer(realIndex),
+                      isChecked: _checkedQuestions.contains(realIndex),
                     ),
                   );
                 }),

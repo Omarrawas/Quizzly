@@ -25,6 +25,8 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
   final Map<int, String> _selectedAnswers = {};
   final Map<int, AnswerState> _answerStates = {};
   final Map<int, bool> _revealed = {};
+  final Set<int> _favorites = {};
+  final Map<int, String> _notes = {};
   bool _showAllAnswers = false;
 
   @override
@@ -56,19 +58,54 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                   children: [
                     // Exam breadcrumb
                     _ExamBreadcrumb(examTitle: mockQuizExam.title),
-                    QuestionCard(
-                      question: question,
-                      selectedOptionId: selected,
-                      answerState: state,
-                      showCorrect: showCorrect,
-                      onOptionSelected: (id) {
-                        setState(() {
-                          _selectedAnswers[index] = id;
-                          _answerStates[index] = AnswerState.unanswered;
-                          _revealed[index] = false;
-                        });
-                      },
-                    ),
+                     QuestionCard(
+                       question: question,
+                       selectedOptionId: selected,
+                       answerState: state,
+                       showCorrect: showCorrect,
+                       onOptionSelected: (id) {
+                         setState(() {
+                           _selectedAnswers[index] = id;
+                           _answerStates[index] = AnswerState.unanswered;
+                           _revealed[index] = false;
+                         });
+                       },
+                       isFavorite: _favorites.contains(index),
+                       onFavoriteToggle: () {
+                         setState(() {
+                           if (_favorites.contains(index)) {
+                             _favorites.remove(index);
+                           } else {
+                             _favorites.add(index);
+                           }
+                         });
+                       },
+                       note: _notes[index],
+                       onNoteChanged: (note) {
+                         setState(() {
+                           if (note.isEmpty) {
+                             _notes.remove(index);
+                           } else {
+                             _notes[index] = note;
+                           }
+                         });
+                       },
+                       onCheckAnswer: () {
+                         setState(() {
+                           final sel = _selectedAnswers[index];
+                           if (sel != null) {
+                             _revealed[index] = true;
+                             final isCorrect =
+                                 question.correctOptionIds.contains(sel);
+                             _answerStates[index] = isCorrect
+                                 ? AnswerState.correct
+                                 : AnswerState.wrong;
+                           }
+                         });
+                       },
+                       isChecked: _revealed[index] ?? false,
+                       isSelected: _selectedAnswers.containsKey(index),
+                     ),
                     // Wrong mode bottom bar
                     _WrongModeBar(
                       onReset: () {

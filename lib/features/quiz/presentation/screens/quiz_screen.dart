@@ -29,6 +29,7 @@ class _QuizScreenState extends State<QuizScreen> {
   final Map<int, AnswerState> _answerStates = {};
   final Set<int> _favorites = {};
   final Set<int> _revealed = {}; // which questions have been checked
+  final Map<int, String> _notes = {};
 
   // Timer
   bool _timerRunning = true;
@@ -142,7 +143,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           }
                         });
                       },
-                      onCheck: () {
+                      onCheckAnswer: () {
                         final sel = _selectedAnswers[qIndex];
                         if (sel == null) return;
                         HapticFeedback.mediumImpact();
@@ -155,7 +156,16 @@ class _QuizScreenState extends State<QuizScreen> {
                               : AnswerState.wrong;
                         });
                       },
-                      onAddNote: () => showNoteDialog(context, question.number),
+                      note: _notes[qIndex],
+                      onNoteChanged: (note) {
+                        setState(() {
+                          if (note.isEmpty) {
+                            _notes.remove(qIndex);
+                          } else {
+                            _notes[qIndex] = note;
+                          }
+                        });
+                      },
                       onOptionSelected: (id) {
                         setState(() {
                           _currentIndex = qIndex;
@@ -164,6 +174,8 @@ class _QuizScreenState extends State<QuizScreen> {
                           _revealed.remove(qIndex);
                         });
                       },
+                      isChecked: _revealed.contains(qIndex),
+                      isSelected: _selectedAnswers.containsKey(qIndex),
                     ),
                     const _QuestionDivider(),
                   ],
