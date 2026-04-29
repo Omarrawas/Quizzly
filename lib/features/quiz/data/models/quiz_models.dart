@@ -306,6 +306,7 @@ class ExamConfig {
   final GenerationRules? generationRules;
   final bool isFree;
   final DateTime? lastUpdated;
+  final DateTime? createdAt;
 
   const ExamConfig({
     this.id,
@@ -321,6 +322,7 @@ class ExamConfig {
     this.generationRules,
     this.isFree = true,
     this.lastUpdated,
+    this.createdAt,
   });
 
   factory ExamConfig.fromFirestore(DocumentSnapshot doc) {
@@ -339,6 +341,7 @@ class ExamConfig {
       generationRules: data['type'] == 'bank' ? GenerationRules.fromMap(data['generationRules']) : null,
       isFree: data['isFree'] ?? true,
       lastUpdated: data['lastUpdated'] != null ? (data['lastUpdated'] as Timestamp).toDate() : null,
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
     );
   }
 
@@ -365,14 +368,18 @@ class ExamConfig {
 class QuizExam {
   final String title;
   final String classification;
+  final ExamType type;
   final DateTime? lastUpdated;
+  final DateTime? createdAt;
   final int totalQuestions;
   final List<QuizQuestion> questions;
 
   const QuizExam({
     required this.title,
     required this.classification,
+    required this.type,
     this.lastUpdated,
+    this.createdAt,
     required this.totalQuestions,
     required this.questions,
   });
@@ -385,7 +392,9 @@ enum AnswerState { unanswered, correct, wrong }
 final QuizExam mockQuizExam = QuizExam(
   title: 'الدورة التجريبية',
   classification: 'الدورات الوزارية',
+  type: ExamType.dora,
   lastUpdated: DateTime(2024, 2, 21),
+  createdAt: DateTime(2024, 2, 1),
   totalQuestions: 30,
   questions: [
     QuizQuestion(

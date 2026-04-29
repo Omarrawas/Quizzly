@@ -66,7 +66,7 @@ class QuizHud extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           // 3. Filters button (additionalAction)
-          if (additionalAction != null) additionalAction!,
+          if (additionalAction case final action?) action,
           const Spacer(),
           // Wrong Pill
           _HudPill(
@@ -187,16 +187,16 @@ class QuizExamHeader extends StatelessWidget {
           const SizedBox(height: 16),
           // Classification row
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               _HeaderPill(
-                icon: Icons.access_time_rounded,
-                label: 'آخر تعديل: ${_formatDate(exam.lastUpdated)}',
+                icon: Icons.folder_open_rounded,
+                label: exam.type == ExamType.dora ? 'دورة' : 'بنك',
               ),
               const SizedBox(width: 8),
               _HeaderPill(
-                icon: Icons.folder_open_rounded,
-                label: 'التصنيف: ${exam.classification}',
+                icon: Icons.access_time_rounded,
+                label: 'آخر تعديل: ${_formatDate(exam.lastUpdated ?? exam.createdAt)}',
               ),
             ],
           ),
@@ -205,16 +205,16 @@ class QuizExamHeader extends StatelessWidget {
           Row(
             children: [
               _IconActionChip(
-                icon: Icons.filter_list_rounded,
-                label: 'الفلاتر',
-                onTap: () {},
-              ),
-              const Spacer(),
-              _IconActionChip(
                 icon: Icons.description_outlined,
                 label: '${exam.totalQuestions} أسئلة',
                 color: AppColors.primaryBlue,
                 onTap: null,
+              ),
+              const Spacer(),
+              _IconActionChip(
+                icon: Icons.filter_list_rounded,
+                label: 'الفلاتر',
+                onTap: () {},
               ),
             ],
           ),
@@ -326,6 +326,7 @@ class QuestionCard extends StatelessWidget {
   final VoidCallback onCheckAnswer;
   final bool isChecked;
   final bool isSelected;
+  final int? displayIndex;
 
   const QuestionCard({
     super.key,
@@ -341,6 +342,7 @@ class QuestionCard extends StatelessWidget {
     required this.onCheckAnswer,
     this.isChecked = false,
     this.isSelected = false,
+    this.displayIndex,
   });
 
   void _showNoteDialog(BuildContext context) {
@@ -405,7 +407,7 @@ class QuestionCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: SmartText(
-                    text: '${question.number} - ${question.text}',
+                    text: '${displayIndex ?? question.number} - ${question.text}',
                     style: GoogleFonts.cairo(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -536,23 +538,6 @@ class _OptionTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            if (showCorrect && isCorrect)
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
-            if (isSelected && answerState == AnswerState.wrong)
-              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
-            const Spacer(),
-            Expanded(
-              child: SmartText(
-                text: option.text,
-                style: GoogleFonts.cairo(
-                  fontSize: 15,
-                  color: AppColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                ),
-                textAlign: TextAlign.right,
-              ),
-            ),
-            const SizedBox(width: 12),
             // Radio circle on the right
             Container(
               width: 22,
@@ -566,6 +551,26 @@ class _OptionTile extends StatelessWidget {
                   ? const Icon(Icons.circle, size: 8, color: Colors.white)
                   : null,
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SmartText(
+                text: option.text,
+                style: GoogleFonts.cairo(
+                  fontSize: 15,
+                  color: AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
+            if (showCorrect && isCorrect) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+            ],
+            if (isSelected && answerState == AnswerState.wrong) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+            ],
           ],
         ),
       ),
@@ -620,7 +625,16 @@ class _QuestionMenuButton extends StatelessWidget {
         if (value == 'report') {
           showReportDialog(context, question.number);
         } else if (value == 'share') {
-          // TODO: Implement share
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'ميزة المشاركة ستكون متوفرة قريباً',
+                style: GoogleFonts.cairo(),
+                textAlign: TextAlign.right,
+              ),
+              backgroundColor: AppColors.primaryBlue,
+            ),
+          );
         }
       },
       itemBuilder: (_) => [

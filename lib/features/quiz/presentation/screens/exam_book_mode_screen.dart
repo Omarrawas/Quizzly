@@ -35,6 +35,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   bool _filterCorrect = false;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  bool _isFabExpanded = false;
 
   // State tracking
   final Map<int, String?> _selectedOptions = {};
@@ -151,18 +152,66 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     });
   }
 
+  void _resetAnswers() {
+    setState(() {
+      _selectedOptions.clear();
+      _answerStates.clear();
+      _checkedQuestions.clear();
+      _showAnswers = false;
+      _isFabExpanded = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم تصفير كافة الإجابات', textAlign: TextAlign.right)),
+    );
+  }
+
+  void _checkAll() {
+    setState(() {
+      for (int i = 0; i < widget.questions.length; i++) {
+        if (_selectedOptions[i] != null) {
+          _checkedQuestions.add(i);
+          final question = widget.questions[i];
+          final selectedId = _selectedOptions[i];
+          if (question.correctOptionIds.contains(selectedId)) {
+            _answerStates[i] = AnswerState.correct;
+          } else {
+            _answerStates[i] = AnswerState.wrong;
+          }
+        }
+      }
+      _isFabExpanded = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم تصحيح كافة الأسئلة المجابة', textAlign: TextAlign.right)),
+    );
+  }
+
+  void _checkMyAnswers() {
+    // In this context, it's similar to checkAll but maybe just for the currently visible ones?
+    // Or maybe checkAll means reveal all answers even if not selected?
+    // Let's make Check All reveal all answers (like the toggle).
+    setState(() {
+      _showAnswers = true;
+      _isFabExpanded = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Mock exam data for the header
     final realExam = QuizExam(
       title: widget.config.title,
       classification: widget.config.category ?? 'الدورات الوزارية',
+      type: widget.config.type,
       lastUpdated: widget.config.lastUpdated,
+      createdAt: widget.config.createdAt,
       totalQuestions: widget.questions.length,
       questions: widget.questions,
     );
 
     return Scaffold(
+      floatingActionButton: _buildExpandableFab(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -170,7 +219,39 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            // Search Bar (Left side)
+            // Back Button (Far Right in RTL)
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+            const SizedBox(width: 4),
+            // Title
+            Text(
+              widget.config.title,
+              style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            const Spacer(),
+            // Show Solution Toggle
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'الحل',
+                  style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                ),
+                Transform.scale(
+                  scale: 0.7,
+                  child: Switch(
+                    value: _showAnswers,
+                    onChanged: (v) => setState(() => _showAnswers = v),
+                    activeTrackColor: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                    activeThumbColor: const Color(0xFF16A34A),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            // Search Bar (Far Left in RTL)
             Expanded(
               flex: 2,
               child: Container(
@@ -194,38 +275,6 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            // Show Solution Toggle
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'الحل',
-                  style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                ),
-                Transform.scale(
-                  scale: 0.7,
-                  child: Switch(
-                    value: _showAnswers,
-                    onChanged: (v) => setState(() => _showAnswers = v),
-                    activeTrackColor: const Color(0xFF16A34A).withValues(alpha: 0.3),
-                    activeThumbColor: const Color(0xFF16A34A),
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            // Title
-            Text(
-              widget.config.title,
-              style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(width: 4),
-            // Back Button (Right side)
-            IconButton(
-              icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
             ),
           ],
         ),
@@ -278,12 +327,15 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               children: [
                 QuizExamHeader(exam: realExam),
                 const SizedBox(height: 8),
-                ..._filteredQuestions.map((q) {
+                ..._filteredQuestions.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final q = entry.value;
                   final realIndex = widget.questions.indexOf(q);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: QuestionCard(
                       question: q,
+                      displayIndex: index + 1,
                       isSelected: _selectedOptions[realIndex] != null,
                       selectedOptionId: _selectedOptions[realIndex],
                       answerState: _answerStates[realIndex] ?? AnswerState.unanswered,
@@ -428,6 +480,90 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               fontSize: 14,
               color: value ? AppColors.primaryBlue : AppColors.textPrimary,
               fontWeight: value ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandableFab() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isFabExpanded) ...[
+          _buildFabMenuItem(
+            icon: Icons.refresh_rounded,
+            label: 'تصفير الإجابات',
+            onTap: _resetAnswers,
+          ),
+          const SizedBox(height: 12),
+          _buildFabMenuItem(
+            icon: Icons.done_all_rounded,
+            label: 'تصحيح الكل',
+            onTap: _checkAll,
+          ),
+          const SizedBox(height: 12),
+          _buildFabMenuItem(
+            icon: Icons.check_circle_rounded,
+            label: 'تصحيح إجاباتي',
+            onTap: _checkMyAnswers,
+          ),
+          const SizedBox(height: 12),
+        ],
+        FloatingActionButton(
+          onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
+          backgroundColor: Colors.white,
+          elevation: 4,
+          shape: const CircleBorder(),
+          child: Icon(
+            _isFabExpanded ? Icons.close : Icons.more_vert,
+            color: AppColors.primaryBlue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFabMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+              ],
+            ),
+            child: Icon(icon, color: AppColors.primaryBlue, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+              ],
+            ),
+            child: Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],
