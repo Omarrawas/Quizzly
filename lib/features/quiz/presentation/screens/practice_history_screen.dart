@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
@@ -129,7 +129,7 @@ class PracticeHistoryScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            DateFormat('yyyy/MM/dd - hh:mm a').format(date),
+                            intl.DateFormat('yyyy/MM/dd - hh:mm a').format(date),
                             style: GoogleFonts.cairo(
                               fontSize: 12,
                               color: AppColors.textSecondary,
