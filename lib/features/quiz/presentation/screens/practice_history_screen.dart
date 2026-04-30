@@ -44,7 +44,6 @@ class PracticeHistoryScreen extends StatelessWidget {
                   .collection('practice_sessions')
                   .where('userId', isEqualTo: userId)
                   .where('subjectId', isEqualTo: subjectId)
-                  .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -56,11 +55,23 @@ class PracticeHistoryScreen extends StatelessWidget {
                   return _buildEmptyState();
                 }
 
+                // Sort locally by creation date descending
+                final sortedDocs = docs.toList()
+                  ..sort((a, b) {
+                    final dataA = a.data() as Map<String, dynamic>;
+                    final dataB = b.data() as Map<String, dynamic>;
+                    final timeA = dataA['createdAt'] as Timestamp?;
+                    final timeB = dataB['createdAt'] as Timestamp?;
+                    if (timeA == null) return 1;
+                    if (timeB == null) return -1;
+                    return timeB.compareTo(timeA);
+                  });
+
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: docs.length,
+                  itemCount: sortedDocs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
+                    final data = sortedDocs[index].data() as Map<String, dynamic>;
                     return _buildSessionCard(context, data);
                   },
                 );

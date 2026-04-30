@@ -110,6 +110,11 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
               tooltip: 'حفظ كإفتراضي',
             ),
           IconButton(
+            onPressed: () => _showAddCodeDialog(contentService, authService.user?.uid),
+            icon: const Icon(Icons.vpn_key_rounded),
+            tooltip: 'تفعيل بواسطة كود',
+          ),
+          IconButton(
             onPressed: _resetFilters,
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'إعادة ضبط',
@@ -346,24 +351,176 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(String message, {bool showCodeAction = true}) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.library_books_rounded, size: 64, color: AppColors.primaryBlue.withValues(alpha: 0.2)),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textSecondary),
-            ),
-          ],
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.library_books_rounded, size: 64, color: AppColors.primaryBlue.withValues(alpha: 0.3)),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'قد لا تكون المواد مضافة لهذا العام الدراسي بعد في قاعدة البيانات.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              if (showCodeAction) ...[
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddCodeDialog(
+                    context.read<ContentService>(), 
+                    context.read<AuthService>().user?.uid
+                  ),
+                  icon: const Icon(Icons.vpn_key_rounded),
+                  label: Text('تفعيل مادة بواسطة كود', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _showAddCodeDialog(ContentService contentService, String? userId) {
+    if (userId == null) return;
+    final codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('تفعيل مادة / فصل', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'أدخل الكود الخاص بالمادة أو الفصل الدراسي لتفعيله مباشرة',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: codeController,
+              textAlign: TextAlign.center,
+              autofocus: true,
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2),
+              decoration: InputDecoration(
+                hintText: 'ABCD-1234',
+                hintStyle: GoogleFonts.inter(color: Colors.grey[300]),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final code = codeController.text;
+              if (code.isEmpty) return;
+              
+              Navigator.pop(context);
+              _processCode(contentService, userId, code);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('تفعيل الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processCode(ContentService contentService, String userId, String code) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final result = await contentService.resolveContentCode(code);
+      if (!mounted) return;
+      Navigator.pop(context); // hide loading
+
+      if (result == null) {
+        _showErrorDialog('الكود غير صحيح أو منتهي الصلاحية ❌');
+        return;
+      }
+
+      final String type = result['type'];
+      final String targetId = result['targetId'];
+      final String name = result['name'];
+
+      if (type == 'semester') {
+        await contentService.addUserSemester(userId, targetId);
+        _showSuccessSnackBar('تم تفعيل فصل "$name" بنجاح ✅');
+      } else {
+        await contentService.addUserSubject(userId, targetId);
+        _showSuccessSnackBar('تم تفعيل مادة "$name" بنجاح ✅');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // hide loading
+      _showErrorDialog('حدث خطأ أثناء معالجة الكود');
+    }
+  }
+
+  void _showErrorDialog(String msg) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('خطأ', textAlign: TextAlign.center, style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: Text(msg, textAlign: TextAlign.center, style: GoogleFonts.cairo()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('حسناً', style: GoogleFonts.cairo())),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, textAlign: TextAlign.center, style: GoogleFonts.cairo()),
+      backgroundColor: Colors.green,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ));
   }
 }
 

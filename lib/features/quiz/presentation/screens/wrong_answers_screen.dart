@@ -8,10 +8,12 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 
 class WrongAnswersScreen extends StatefulWidget {
+  final String? subjectId;
   final String subjectName;
 
   const WrongAnswersScreen({
     super.key,
+    this.subjectId,
     this.subjectName = 'الكيمياء',
   });
 
@@ -98,19 +100,48 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
         setState(() => _isLoading = false);
         return;
       }
+
+      final String wrongField = widget.subjectId != null ? 'wrongAnswers_${widget.subjectId}' : 'wrongAnswers';
+      final List<String> subjectIds = List<String>.from(doc.data()?[wrongField] ?? []);
+      final List<String> globalIds = List<String>.from(doc.data()?['wrongAnswers'] ?? []);
       
-      final wrongIds = List<String>.from(doc.data()?['wrongAnswers'] ?? []);
+      // Combine for initial display
+      final Set<String> allIdsSet = {...subjectIds, ...globalIds};
+      final List<String> wrongIds = allIdsSet.toList();
+      
       if (wrongIds.isEmpty) {
         setState(() => _isLoading = false);
         return;
       }
 
-      // Fetch questions in chunks of 30 due to Firestore limits
       List<QuizQuestion> questions = [];
+      List<String> idsToMigrate = [];
+
       for (var i = 0; i < wrongIds.length; i += 30) {
         final chunk = wrongIds.sublist(i, i + 30 > wrongIds.length ? wrongIds.length : i + 30);
-        final snap = await FirebaseFirestore.instance.collection('questions').where(FieldPath.documentId, whereIn: chunk).get();
-        questions.addAll(snap.docs.map((d) => QuizQuestion.fromMap(d.data(), d.id)));
+        
+        Query query = FirebaseFirestore.instance.collection('questions')
+            .where(FieldPath.documentId, whereIn: chunk);
+            
+        if (widget.subjectId != null) {
+          query = query.where('subjectId', isEqualTo: widget.subjectId);
+        }
+        
+        final snap = await query.get();
+        for (var d in snap.docs) {
+          final q = QuizQuestion.fromMap(d.data() as Map<String, dynamic>, d.id);
+          questions.add(q);
+          
+          // If this ID was found in global but not subject list, mark for migration
+          if (globalIds.contains(q.id) && !subjectIds.contains(q.id)) {
+            idsToMigrate.add(q.id!);
+          }
+        }
+      }
+
+      // Perform stealth migration if needed
+      if (idsToMigrate.isNotEmpty && widget.subjectId != null) {
+        _performStealthMigration(idsToMigrate);
       }
 
       _groupAndSortQuestions(questions);
@@ -118,6 +149,19 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     } catch (e) {
       debugPrint('Error fetching wrong questions: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _performStealthMigration(List<String> ids) async {
+    try {
+      final String wrongField = 'wrongAnswers_${widget.subjectId}';
+      await FirebaseFirestore.instance.collection('user_history').doc(_user!.uid).update({
+        wrongField: FieldValue.arrayUnion(ids),
+        'wrongAnswers': FieldValue.arrayRemove(ids),
+      });
+      debugPrint('Successfully migrated ${ids.length} questions to subject pool');
+    } catch (e) {
+      debugPrint('Migration failed: $e');
     }
   }
 

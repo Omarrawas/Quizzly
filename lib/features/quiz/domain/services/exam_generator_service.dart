@@ -44,7 +44,8 @@ class ExamGeneratorService {
       if (historyDoc.exists) {
         final data = historyDoc.data()!;
         seenIds = Set<String>.from(data['seenQuestions'] ?? []);
-        wrongIds = Set<String>.from(data['wrongAnswers'] ?? []);
+        final wrongField = 'wrongAnswers_${config.subjectId}';
+        wrongIds = Set<String>.from(data[wrongField] ?? []);
       }
     }
 

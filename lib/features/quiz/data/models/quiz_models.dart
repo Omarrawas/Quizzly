@@ -373,6 +373,7 @@ class QuizExam {
   final DateTime? createdAt;
   final int totalQuestions;
   final List<QuizQuestion> questions;
+  final String subjectId;
 
   const QuizExam({
     required this.title,
@@ -382,6 +383,7 @@ class QuizExam {
     this.createdAt,
     required this.totalQuestions,
     required this.questions,
+    this.subjectId = '',
   });
 }
 

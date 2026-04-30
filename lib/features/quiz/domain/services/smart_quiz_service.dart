@@ -167,6 +167,34 @@ class SmartQuizService {
         'subjectId': subjectId,
         'topicsData': updatedTopicsData,
       }, SetOptions(merge: true));
+
+      // Also update global history
+      final historyRef = _db.collection('user_history').doc(userId);
+      List<String> seenIds = [];
+      List<String> wrongIds = [];
+      List<String> correctIds = [];
+      
+      for (var answer in answers) {
+        final id = answer['questionId'] as String;
+        seenIds.add(id);
+        if (!(answer['isCorrect'] as bool)) {
+          wrongIds.add(id);
+        } else {
+          correctIds.add(id);
+        }
+      }
+
+      transaction.set(historyRef, {
+        'seenQuestions': FieldValue.arrayUnion(seenIds),
+        'wrongAnswers_$subjectId': FieldValue.arrayUnion(wrongIds),
+        'lastActive': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (correctIds.isNotEmpty) {
+        transaction.update(historyRef, {
+          'wrongAnswers_$subjectId': FieldValue.arrayRemove(correctIds),
+        });
+      }
     });
   }
   /// Fetch a summary of performance for the UI

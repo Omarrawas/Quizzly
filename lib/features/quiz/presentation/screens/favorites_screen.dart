@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
@@ -90,10 +91,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         if (_selectedOptions[qId] != null) {
           _checkedQuestions.add(qId);
           final selectedId = _selectedOptions[qId];
-          if (question.correctOptionIds.contains(selectedId)) {
-            _answerStates[qId] = AnswerState.correct;
-          } else {
-            _answerStates[qId] = AnswerState.wrong;
+          final isCorrect = question.correctOptionIds.contains(selectedId);
+          _answerStates[qId] = isCorrect ? AnswerState.correct : AnswerState.wrong;
+
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          if (userId != null && question.primaryTopicId != null) {
+            DatabaseService().updateUserHistoryForSubject(
+              userId,
+              addWrongIds: isCorrect ? [] : [qId],
+              removeWrongIds: isCorrect ? [qId] : [],
+              subjectId: question.primaryTopicId!,
+            );
           }
         }
       }
@@ -118,15 +126,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _onCheckAnswer(String qId, QuizQuestion question) {
-    if (_selectedOptions[qId] == null) return;
+    final sel = _selectedOptions[qId];
+    if (sel == null) return;
     
     setState(() {
       _checkedQuestions.add(qId);
-      final selectedId = _selectedOptions[qId];
-      if (question.correctOptionIds.contains(selectedId)) {
-        _answerStates[qId] = AnswerState.correct;
-      } else {
-        _answerStates[qId] = AnswerState.wrong;
+      final isCorrect = question.correctOptionIds.contains(sel);
+      _answerStates[qId] = isCorrect ? AnswerState.correct : AnswerState.wrong;
+
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null && question.primaryTopicId != null) {
+        DatabaseService().updateUserHistoryForSubject(
+          userId,
+          addWrongIds: isCorrect ? [] : [qId],
+          removeWrongIds: isCorrect ? [qId] : [],
+          subjectId: question.primaryTopicId!,
+        );
       }
     });
   }
@@ -331,7 +346,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       builder: (context, snapshot) {
         final docs = snapshot.data?.docs ?? [];
         
-        // Filter by search query
         var filteredDocs = docs;
         if (_searchQuery.isNotEmpty) {
           filteredDocs = docs.where((doc) {

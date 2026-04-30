@@ -328,7 +328,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => WrongAnswersScreen(subjectName: widget.subjectName),
+            builder: (_) => WrongAnswersScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
           ),
         );
         break;

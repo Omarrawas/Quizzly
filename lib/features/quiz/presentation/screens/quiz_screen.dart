@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
@@ -154,6 +155,18 @@ class _QuizScreenState extends State<QuizScreen> {
                           _answerStates[qIndex] = isCorrect
                               ? AnswerState.correct
                               : AnswerState.wrong;
+
+                          // Sync with global history
+                          final userId = FirebaseAuth.instance.currentUser?.uid;
+                          if (userId != null && widget.exam.subjectId.isNotEmpty) {
+                            final qId = question.id ?? question.number.toString();
+                            DatabaseService().updateUserHistoryForSubject(
+                              userId,
+                              addWrongIds: isCorrect ? [] : [qId],
+                              removeWrongIds: isCorrect ? [qId] : [],
+                              subjectId: widget.exam.subjectId,
+                            );
+                          }
                         });
                       },
                       note: _notes[qIndex],

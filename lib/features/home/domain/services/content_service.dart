@@ -123,4 +123,23 @@ class ContentService {
       'defaults': defaults,
     });
   }
+
+  // --- Content Codes ---
+
+  /// Resolves a code to a specific subject or semester
+  Future<Map<String, dynamic>?> resolveContentCode(String code) async {
+    final snapshot = await _db.collection('content_codes')
+        .where('code', isEqualTo: code.trim().toUpperCase())
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+    
+    final data = snapshot.docs.first.data();
+    return {
+      'type': data['type'], // 'subject' or 'semester'
+      'targetId': data['targetId'],
+      'name': data['name'],
+    };
+  }
 }

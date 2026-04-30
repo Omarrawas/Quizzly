@@ -7,6 +7,8 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
+import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ExamBookModeScreen extends StatefulWidget {
   final ExamConfig config;
@@ -163,8 +165,34 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       
       if (question.correctOptionIds.contains(selectedId)) {
         _answerStates[questionIndex] = AnswerState.correct;
+        // Remove from wrong answers if it was corrected
+        if (widget.config.subjectId.isNotEmpty) {
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          if (userId != null) {
+            final dbService = DatabaseService();
+            final qId = question.id ?? question.number.toString();
+            dbService.updateUserHistoryForSubject(
+              userId,
+              removeWrongIds: [qId],
+              subjectId: widget.config.subjectId,
+            );
+          }
+        }
       } else {
         _answerStates[questionIndex] = AnswerState.wrong;
+        // Add to wrong answers
+        if (widget.config.subjectId.isNotEmpty) {
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          if (userId != null) {
+            final dbService = DatabaseService();
+            final qId = question.id ?? question.number.toString();
+            dbService.updateUserHistoryForSubject(
+              userId,
+              addWrongIds: [qId],
+              subjectId: widget.config.subjectId,
+            );
+          }
+        }
       }
     });
     _saveState();

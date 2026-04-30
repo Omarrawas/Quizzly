@@ -63,6 +63,27 @@ class SpacedRepetitionService {
     );
 
     await docRef.set(updatedMastery.toMap());
+
+    // Update global user history for Wrong Answers screen
+    final historyRef = _db.collection('user_history').doc(userId);
+    final isCorrect = quality >= 3;
+    
+    await _db.runTransaction((transaction) async {
+      transaction.set(historyRef, {
+        'seenQuestions': FieldValue.arrayUnion([questionId]),
+        'lastActive': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (isCorrect) {
+        transaction.update(historyRef, {
+          'wrongAnswers_$subjectId': FieldValue.arrayRemove([questionId]),
+        });
+      } else {
+        transaction.set(historyRef, {
+          'wrongAnswers_$subjectId': FieldValue.arrayUnion([questionId]),
+        }, SetOptions(merge: true));
+      }
+    });
   }
 
   /// Get questions due for review today

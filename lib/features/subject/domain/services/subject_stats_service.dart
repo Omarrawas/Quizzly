@@ -25,8 +25,6 @@ class SubjectStatsService {
   /// Note: Currently this is a global count in user_history. 
   /// In a real app, we'd filter these by subjectId if the schema supports it.
   Stream<int> streamWrongAnswersCount(String userId, String subjectId) {
-    // For now, we fetch from user_history.
-    // Optimization: In a production app, we would store wrong_answers per subject.
     return _db
         .collection('user_history')
         .doc(userId)
@@ -34,8 +32,8 @@ class SubjectStatsService {
         .map((snap) {
           if (!snap.exists) return 0;
           final data = snap.data() as Map<String, dynamic>;
-          final List<dynamic> wrong = data['wrongAnswers'] ?? [];
-          return wrong.length; // This is global, but we show it as a starting point
+          final List<dynamic> wrong = data['wrongAnswers_$subjectId'] ?? [];
+          return wrong.length;
         });
   }
 

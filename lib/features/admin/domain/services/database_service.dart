@@ -219,7 +219,8 @@ class DatabaseService {
     await batch.commit();
   }
 
-  Future<void> updateUserHistory(String userId, List<Map<String, dynamic>> answers) async {
+  /// Updates the user's history with a batch of answers from an exam
+  Future<void> updateUserHistory(String userId, List<Map<String, dynamic>> answers, {String? subjectId}) async {
     final historyRef = _db.collection('user_history').doc(userId);
     final batch = _db.batch();
 
@@ -242,17 +243,62 @@ class DatabaseService {
     // Still keep seen/wrong for easy querying
     List<String> seenIds = [];
     List<String> wrongIds = [];
+    List<String> correctIds = [];
     for (var answer in answers) {
-      seenIds.add(answer['questionId'] as String);
-      if (!(answer['isCorrect'] as bool)) wrongIds.add(answer['questionId'] as String);
+      final id = answer['questionId'] as String;
+      seenIds.add(id);
+      if (!(answer['isCorrect'] as bool)) {
+        wrongIds.add(id);
+      } else {
+        correctIds.add(id);
+      }
     }
 
-    batch.update(historyRef, {
-      'seenQuestions': FieldValue.arrayUnion(seenIds),
-      'wrongAnswers': FieldValue.arrayUnion(wrongIds),
-    });
+    final String wrongField = subjectId != null ? 'wrongAnswers_$subjectId' : 'wrongAnswers';
+
+    if (seenIds.isNotEmpty) {
+      batch.update(historyRef, {'seenQuestions': FieldValue.arrayUnion(seenIds)});
+    }
+    if (wrongIds.isNotEmpty) {
+      batch.update(historyRef, {wrongField: FieldValue.arrayUnion(wrongIds)});
+    }
+    if (correctIds.isNotEmpty) {
+      batch.update(historyRef, {wrongField: FieldValue.arrayRemove(correctIds)});
+      // Also remove from global list to ensure cleanup of old data
+      if (subjectId != null) {
+        batch.update(historyRef, {'wrongAnswers': FieldValue.arrayRemove(correctIds)});
+      }
+    }
 
     await batch.commit();
+  }
+
+  /// Flexible method to update specific wrong/corrected answers for a subject
+  Future<void> updateUserHistoryForSubject(
+    String userId, {
+    List<String> addWrongIds = const [],
+    List<String> removeWrongIds = const [],
+    required String subjectId,
+  }) async {
+    final historyRef = _db.collection('user_history').doc(userId);
+    final String wrongField = 'wrongAnswers_$subjectId';
+
+    final Map<String, dynamic> updates = {
+      'lastActive': FieldValue.serverTimestamp(),
+    };
+
+    if (addWrongIds.isNotEmpty) {
+      updates[wrongField] = FieldValue.arrayUnion(addWrongIds);
+    }
+
+    await historyRef.set(updates, SetOptions(merge: true));
+
+    if (removeWrongIds.isNotEmpty) {
+      await historyRef.update({
+        wrongField: FieldValue.arrayRemove(removeWrongIds),
+        'wrongAnswers': FieldValue.arrayRemove(removeWrongIds), // Cleanup global list too
+      });
+    }
   }
 
   // ─── Activation Codes ──────────────────────────────────
