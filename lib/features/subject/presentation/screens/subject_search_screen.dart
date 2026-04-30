@@ -31,17 +31,16 @@ class _SubjectSearchScreenState extends State<SubjectSearchScreen> {
 
   Future<void> _fetchAllQuestions() async {
     try {
-      final subjectDoc = await FirebaseFirestore.instance
-          .collection('subjects')
-          .doc(widget.subjectId)
+      final snap = await FirebaseFirestore.instance
+          .collection('questions')
+          .where('subjectId', isEqualTo: widget.subjectId)
           .get();
 
-      if (subjectDoc.exists) {
-        final data = subjectDoc.data()!;
-        if (data.containsKey('questions')) {
-          final qList = data['questions'] as List;
-          _allQuestions = qList.map((q) => QuizQuestion.fromMap(Map<String, dynamic>.from(q))).toList();
-        }
+      if (snap.docs.isNotEmpty) {
+        _allQuestions = snap.docs
+            .map((doc) => QuizQuestion.fromMap(
+                Map<String, dynamic>.from(doc.data()), doc.id))
+            .toList();
       }
     } catch (e) {
       debugPrint('Error fetching questions: $e');

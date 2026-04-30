@@ -5,6 +5,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/presentation/widgets/hub_action_card.dart';
 import 'package:quizzly/features/quiz/presentation/screens/wrong_answers_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/favorites_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/performance_screen.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
@@ -125,10 +126,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
               delegate: SliverChildListDelegate([
                 _buildActionCard(0, Icons.assignment_rounded, 'الامتحانات', const Color(0xFF2563EB), _statsService.streamExamsCount(widget.subjectId)),
                 _buildActionCard(1, Icons.sell_rounded, 'التصنيفات', const Color(0xFFEA580C), _statsService.streamTopicsCount(widget.subjectId)),
-                _buildActionCard(2, Icons.search_rounded, 'البحث', const Color(0xFF16A34A), Stream.value(0)),
+                _buildActionCard(2, Icons.search_rounded, 'البحث', const Color(0xFF16A34A), _statsService.streamQuestionsCount(widget.subjectId)),
                 _buildActionCard(3, Icons.favorite_rounded, 'المفضلة', const Color(0xFFEF4444), _statsService.streamFavoritesCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
                 _buildActionCard(4, Icons.close_rounded, 'الإجابات الخاطئة', const Color(0xFFDC2626), _statsService.streamWrongAnswersCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
-                _buildActionCard(5, Icons.school_rounded, 'تدرب بنفسك', const Color(0xFF0EA5E9), Stream.value(0)),
+                _buildActionCard(5, Icons.school_rounded, 'تدرب بنفسك', const Color(0xFF0EA5E9), _statsService.streamPracticeCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
               ]),
             ),
           ),
@@ -316,7 +317,12 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         );
         break;
       case 3: // المفضلة
-        _showComingSoon('المفضلة');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const FavoritesScreen(),
+          ),
+        );
         break;
       case 4: // الإجابات الخاطئة
         Navigator.push(
@@ -340,16 +346,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     }
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('قريباً: $feature', style: GoogleFonts.cairo(), textAlign: TextAlign.center),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 1),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
+
 
   Widget _buildSmartCoachSliver() {
     final userId = context.read<AuthService>().user?.uid;

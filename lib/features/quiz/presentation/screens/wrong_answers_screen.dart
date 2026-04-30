@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 
-/// شاشة الإجابات الخاطئة - نسخة خاصة من QuizScreen
 class WrongAnswersScreen extends StatefulWidget {
   final String subjectName;
 
@@ -18,354 +20,271 @@ class WrongAnswersScreen extends StatefulWidget {
 }
 
 class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
-  // Mock: الأسئلة التي أجاب عليها المستخدم خطأً
-  final List<QuizQuestion> _wrongQuestions = mockQuizExam.questions;
+  final User? _user = FirebaseAuth.instance.currentUser;
+  
+  bool _isLoading = true;
+  List<QuizQuestion> _wrongQuestions = [];
+  Map<String, List<QuizQuestion>> _groupedQuestions = {};
+  List<String> _orderedExams = [];
 
-  // حالة التصحيح
-  final Map<int, String> _selectedAnswers = {};
-  final Map<int, AnswerState> _answerStates = {};
-  final Map<int, bool> _revealed = {};
-  final Set<int> _favorites = {};
-  final Map<int, String> _notes = {};
-  bool _showAllAnswers = false;
+  // Stopwatch & HUD
+  late Stopwatch _stopwatch;
+  late Timer _timer;
+  bool _isTimerRunning = false;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          // ── Top stats bar
-          _buildStatsBar(),
-          const Divider(height: 1),
-          // ── Filter row
-          _buildFilterRow(),
-          // ── Questions
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80),
-              itemCount: _wrongQuestions.length,
-              itemBuilder: (context, index) {
-                final question = _wrongQuestions[index];
-                final selected = _selectedAnswers[index];
-                final state =
-                    _answerStates[index] ?? AnswerState.unanswered;
-                final showCorrect =
-                    _revealed[index] ?? _showAllAnswers;
+  // Answers state
+  final Map<String, String?> _selectedOptions = {};
+  final Map<String, AnswerState> _answerStates = {};
+  final Set<String> _checkedQuestions = {};
+  final Map<String, String> _notes = {};
+  final Set<String> _favorites = {};
+  bool _showAnswers = false;
 
-                return Column(
-                  children: [
-                    // Exam breadcrumb
-                    _ExamBreadcrumb(examTitle: mockQuizExam.title),
-                     QuestionCard(
-                       question: question,
-                       selectedOptionId: selected,
-                       answerState: state,
-                       showCorrect: showCorrect,
-                       onOptionSelected: (id) {
-                         setState(() {
-                           _selectedAnswers[index] = id;
-                           _answerStates[index] = AnswerState.unanswered;
-                           _revealed[index] = false;
-                         });
-                       },
-                       isFavorite: _favorites.contains(index),
-                       onFavoriteToggle: () {
-                         setState(() {
-                           if (_favorites.contains(index)) {
-                             _favorites.remove(index);
-                           } else {
-                             _favorites.add(index);
-                           }
-                         });
-                       },
-                       note: _notes[index],
-                       onNoteChanged: (note) {
-                         setState(() {
-                           if (note.isEmpty) {
-                             _notes.remove(index);
-                           } else {
-                             _notes[index] = note;
-                           }
-                         });
-                       },
-                       onCheckAnswer: () {
-                         setState(() {
-                           final sel = _selectedAnswers[index];
-                           if (sel != null) {
-                             _revealed[index] = true;
-                             final isCorrect =
-                                 question.correctOptionIds.contains(sel);
-                             _answerStates[index] = isCorrect
-                                 ? AnswerState.correct
-                                 : AnswerState.wrong;
-                           }
-                         });
-                       },
-                       isChecked: _revealed[index] ?? false,
-                       isSelected: _selectedAnswers.containsKey(index),
-                     ),
-                    // Wrong mode bottom bar
-                    _WrongModeBar(
-                      onReset: () {
-                        setState(() {
-                          _selectedAnswers.remove(index);
-                          _answerStates.remove(index);
-                          _revealed[index] = false;
-                        });
-                      },
-                      onCorrectAll: () {
-                        setState(() => _showAllAnswers = true);
-                      },
-                      onMarkCorrect: () {
-                        setState(() {
-                          final sel = _selectedAnswers[index];
-                          if (sel != null) {
-                            _revealed[index] = true;
-                            final isCorrect =
-                                question.correctOptionIds.contains(sel);
-                            _answerStates[index] = isCorrect
-                                ? AnswerState.correct
-                                : AnswerState.wrong;
-                          }
-                        });
-                      },
-                    ),
-                    const _QuestionDivider(),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // FAB
+  bool _isFabExpanded = false;
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.06),
-      automaticallyImplyLeading: false,
-      leading: IconButton(
-        onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(
-          Icons.arrow_forward_ios_rounded,
-          color: AppColors.textPrimary,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        'الإجابات الخاطئة',
-        style: GoogleFonts.cairo(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
-        ),
-      ),
-      centerTitle: true,
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFF1F5F9)),
-      ),
-    );
-  }
+  // Filters
+  bool _showFilters = false;
+  String _searchQuery = '';
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
-  Widget _buildStatsBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: Colors.white,
-      child: Row(
-        children: [
-          // Timer placeholder (static in wrong mode)
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.play_circle_filled_rounded,
-                    size: 16, color: AppColors.primaryBlue),
-                const SizedBox(width: 4),
-                Text(
-                  '00:00',
-                  style: GoogleFonts.cairo(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          // Wrong: 0
-          _StatPill(
-            icon: Icons.close_rounded,
-            label: '0',
-            iconColor: const Color(0xFFDC2626),
-            bgColor: const Color(0xFFFEF2F2),
-          ),
-          const SizedBox(width: 6),
-          // Correct: 0
-          _StatPill(
-            icon: Icons.check_rounded,
-            label: '0',
-            iconColor: const Color(0xFF16A34A),
-            bgColor: const Color(0xFFF0FDF4),
-          ),
-          const SizedBox(width: 6),
-          // Total
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '1/${_wrongQuestions.length}',
-              style: GoogleFonts.cairo(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterRow() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: const Color(0xFFF8FAFC),
-      child: Row(
-        children: [
-          const Icon(Icons.insert_drive_file_rounded,
-              size: 14, color: AppColors.primaryBlue),
-          const SizedBox(width: 5),
-          Text(
-            '${_wrongQuestions.length} سؤال',
-            style: GoogleFonts.cairo(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryBlue,
-            ),
-          ),
-          const Spacer(),
-          // Sort filter
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.sort_rounded,
-                    size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  'حسب التاريخ',
-                  style: GoogleFonts.cairo(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Filters
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.filter_list_rounded,
-                    size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  'الفلاتر',
-                  style: GoogleFonts.cairo(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────
-//  Wrong Mode Bottom Action Bar
-// ─────────────────────────────────────────
-class _WrongModeBar extends StatelessWidget {
-  final VoidCallback onReset;
-  final VoidCallback onCorrectAll;
-  final VoidCallback onMarkCorrect;
-
-  const _WrongModeBar({
-    required this.onReset,
-    required this.onCorrectAll,
-    required this.onMarkCorrect,
-  });
+  int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
+  int get _wrongCount => _answerStates.values.where((s) => s == AnswerState.wrong).length;
+  int get _answeredCount => _checkedQuestions.length;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // Reset answers
-          _ActionBtn(
+  void initState() {
+    super.initState();
+    _stopwatch = Stopwatch();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted && _isTimerRunning) setState(() {});
+    });
+    _fetchWrongQuestions();
+    _fetchFavorites();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchFavorites() async {
+    if (_user == null) return;
+    try {
+      final snap = await FirebaseFirestore.instance.collection('users').doc(_user.uid).collection('favorites').get();
+      if (mounted) {
+        setState(() {
+          for (var doc in snap.docs) {
+            _favorites.add(doc.id);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching favorites: $e');
+    }
+  }
+
+  Future<void> _fetchWrongQuestions() async {
+    if (_user == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    try {
+      final doc = await FirebaseFirestore.instance.collection('user_history').doc(_user.uid).get();
+      if (!doc.exists) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      
+      final wrongIds = List<String>.from(doc.data()?['wrongAnswers'] ?? []);
+      if (wrongIds.isEmpty) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Fetch questions in chunks of 30 due to Firestore limits
+      List<QuizQuestion> questions = [];
+      for (var i = 0; i < wrongIds.length; i += 30) {
+        final chunk = wrongIds.sublist(i, i + 30 > wrongIds.length ? wrongIds.length : i + 30);
+        final snap = await FirebaseFirestore.instance.collection('questions').where(FieldPath.documentId, whereIn: chunk).get();
+        questions.addAll(snap.docs.map((d) => QuizQuestion.fromMap(d.data(), d.id)));
+      }
+
+      _groupAndSortQuestions(questions);
+
+    } catch (e) {
+      debugPrint('Error fetching wrong questions: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _groupAndSortQuestions(List<QuizQuestion> questions) {
+    final grouped = <String, List<QuizQuestion>>{};
+    for (var q in questions) {
+      final groupName = (q.tagLabel != null && q.tagLabel!.isNotEmpty) ? q.tagLabel! : 'بدون تصنيف';
+      grouped.putIfAbsent(groupName, () => []).add(q);
+    }
+    
+    setState(() {
+      _wrongQuestions = questions;
+      _groupedQuestions = grouped;
+      _orderedExams = grouped.keys.toList()..sort();
+      _isLoading = false;
+    });
+  }
+
+  void _toggleTimer() {
+    setState(() {
+      if (_isTimerRunning) {
+        _stopwatch.stop();
+      } else {
+        _stopwatch.start();
+      }
+      _isTimerRunning = !_isTimerRunning;
+    });
+  }
+
+  void _resetAnswers() {
+    setState(() {
+      _selectedOptions.clear();
+      _answerStates.clear();
+      _checkedQuestions.clear();
+      _showAnswers = false;
+      _isFabExpanded = false;
+      _stopwatch.reset();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم تصفير كافة الإجابات', textAlign: TextAlign.right)),
+    );
+  }
+
+  void _checkAll() {
+    setState(() {
+      for (var q in _wrongQuestions) {
+        final qId = q.id ?? q.number.toString();
+        if (_selectedOptions[qId] != null) {
+          _checkedQuestions.add(qId);
+          final selectedId = _selectedOptions[qId];
+          if (q.correctOptionIds.contains(selectedId)) {
+            _answerStates[qId] = AnswerState.correct;
+          } else {
+            _answerStates[qId] = AnswerState.wrong;
+          }
+        }
+      }
+      _isFabExpanded = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم تصحيح كافة الأسئلة المجابة', textAlign: TextAlign.right)),
+    );
+  }
+
+  void _checkMyAnswers() {
+    setState(() {
+      _showAnswers = true;
+      _isFabExpanded = false;
+    });
+  }
+
+  void _onOptionSelected(String qId, String optionId) {
+    setState(() {
+      _selectedOptions[qId] = optionId;
+    });
+  }
+
+  void _onCheckAnswer(String qId, QuizQuestion question) {
+    if (_selectedOptions[qId] == null) return;
+    
+    setState(() {
+      _checkedQuestions.add(qId);
+      final selectedId = _selectedOptions[qId];
+      if (question.correctOptionIds.contains(selectedId)) {
+        _answerStates[qId] = AnswerState.correct;
+      } else {
+        _answerStates[qId] = AnswerState.wrong;
+      }
+    });
+  }
+
+  Widget _buildExpandableFab() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isFabExpanded) ...[
+          _buildFabMenuItem(
             icon: Icons.refresh_rounded,
-            label: 'تصغير الإجابات',
-            color: AppColors.primaryBlue,
-            bg: const Color(0xFFEFF6FF),
-            onTap: onReset,
+            label: 'تصفير الإجابات',
+            onTap: _resetAnswers,
           ),
-          const Spacer(),
-          // Correct all
-          _ActionBtn(
+          const SizedBox(height: 12),
+          _buildFabMenuItem(
             icon: Icons.done_all_rounded,
             label: 'تصحيح الكل',
-            color: const Color(0xFF16A34A),
-            bg: const Color(0xFFF0FDF4),
-            onTap: onCorrectAll,
+            onTap: _checkAll,
           ),
-          const Spacer(),
-          // Wrong mark
-          GestureDetector(
-            onTap: onMarkCorrect,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.cancel_rounded,
-                color: Color(0xFFDC2626),
-                size: 24,
+          const SizedBox(height: 12),
+          _buildFabMenuItem(
+            icon: Icons.check_circle_rounded,
+            label: 'تصحيح إجاباتي',
+            onTap: _checkMyAnswers,
+          ),
+          const SizedBox(height: 12),
+        ],
+        FloatingActionButton(
+          onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
+          backgroundColor: Colors.white,
+          elevation: 4,
+          shape: const CircleBorder(),
+          child: Icon(
+            _isFabExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+            color: const Color(0xFFDC2626), // Red for wrong answers
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFabMenuItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+              ],
+            ),
+            child: Icon(icon, color: const Color(0xFFDC2626), size: 22),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+              ],
+            ),
+            child: Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -373,55 +292,304 @@ class _WrongModeBar extends StatelessWidget {
       ),
     );
   }
-}
 
-class _ActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color bg;
-  final VoidCallback onTap;
-
-  const _ActionBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.bg,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+  Widget _buildFilterButton() {
+    return InkWell(
+      onTap: () => setState(() => _showFilters = !_showFilters),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
+          color: _showFilters ? const Color(0xFFDC2626).withValues(alpha: 0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _showFilters ? const Color(0xFFDC2626) : AppColors.borderLight),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
             Text(
-              label,
+              _showFilters ? 'إخفاء الفلاتر' : 'الفلاتر',
               style: GoogleFonts.cairo(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
+                fontWeight: FontWeight.bold,
+                color: _showFilters ? const Color(0xFFDC2626) : AppColors.textSecondary,
               ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.filter_list_rounded,
+              size: 16,
+              color: _showFilters ? const Color(0xFFDC2626) : AppColors.textSecondary,
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildSortButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'حسب الامتحان',
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Icon(
+            Icons.sort_rounded,
+            size: 16,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_user == null) {
+      return Scaffold(
+        body: Center(child: Text('يرجى تسجيل الدخول', style: GoogleFonts.cairo())),
+      );
+    }
+
+    // Filter questions based on search
+    final filteredQuestions = _searchQuery.isEmpty 
+        ? _wrongQuestions 
+        : _wrongQuestions.where((q) => q.text.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      floatingActionButton: filteredQuestions.isNotEmpty ? _buildExpandableFab() : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: _isSearching
+            ? IconButton(
+                icon: const Icon(Icons.close, color: Colors.black),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                },
+              )
+            : IconButton(
+                icon: const Icon(Icons.search, color: Colors.black),
+                onPressed: () => setState(() => _isSearching = true),
+              ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: GoogleFonts.cairo(),
+                decoration: InputDecoration(
+                  hintText: 'البحث في الأخطاء...',
+                  hintStyle: GoogleFonts.cairo(color: Colors.grey),
+                  border: InputBorder.none,
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                  });
+                },
+              )
+            : Text(
+                'الإجابات الخاطئة',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          QuizHud(
+            current: _answeredCount,
+            total: filteredQuestions.length,
+            correctCount: _correctCount,
+            wrongCount: _wrongCount,
+            elapsed: _stopwatch.elapsed,
+            isTimerRunning: _isTimerRunning,
+            onToggleTimer: _toggleTimer,
+            onCorrectTap: () {},
+            onWrongTap: () {},
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    _buildFilterButton(),
+                    const SizedBox(width: 8),
+                    _buildSortButton(),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '${filteredQuestions.length} سؤال',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFDC2626),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.close_rounded, color: Color(0xFFDC2626), size: 18),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredQuestions.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            const Icon(Icons.check_circle_outline_rounded, size: 80, color: Color(0xFF16A34A)),
+                            const SizedBox(height: 24),
+                            Text(
+                              'لا توجد أخطاء مسجلة',
+                              style: GoogleFonts.cairo(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                'ممتاز! لقد أجبت على جميع الأسئلة بشكل صحيح حتى الآن.',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        itemCount: _orderedExams.length,
+                        itemBuilder: (context, sectionIndex) {
+                          final examName = _orderedExams[sectionIndex];
+                          final questionsInSection = _groupedQuestions[examName]!;
+                          
+                          // Filter questions for this section
+                          final filteredSection = _searchQuery.isEmpty 
+                              ? questionsInSection 
+                              : questionsInSection.where((q) => q.text.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+
+                          if (filteredSection.isEmpty) return const SizedBox.shrink();
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ExamBreadcrumb(examTitle: examName),
+                              ...filteredSection.map((question) {
+                                final qId = question.id ?? question.number.toString();
+                                return Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                      child: QuestionCard(
+                                        question: question,
+                                        isSelected: _selectedOptions[qId] != null,
+                                        selectedOptionId: _selectedOptions[qId],
+                                        answerState: _answerStates[qId] ?? AnswerState.unanswered,
+                                        showCorrect: _showAnswers || _checkedQuestions.contains(qId),
+                                        isFavorite: _favorites.contains(qId),
+                                        onFavoriteToggle: () async {
+                                          final user = FirebaseAuth.instance.currentUser;
+                                          if (user == null) return;
+                                          final favoritesRef = FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(user.uid)
+                                              .collection('favorites');
+
+                                          setState(() {
+                                            if (_favorites.contains(qId)) {
+                                              _favorites.remove(qId);
+                                              favoritesRef.doc(qId).delete();
+                                            } else {
+                                              _favorites.add(qId);
+                                              favoritesRef.doc(qId).set({
+                                                'questionId': qId,
+                                                'savedAt': FieldValue.serverTimestamp(),
+                                                'questionData': question.toMap(),
+                                              });
+                                            }
+                                          });
+                                        },
+                                        onOptionSelected: (optId) => _onOptionSelected(qId, optId),
+                                        note: _notes[qId],
+                                        onNoteChanged: (note) {
+                                          setState(() {
+                                            _notes[qId] = note;
+                                          });
+                                        },
+                                        onCheckAnswer: () => _onCheckAnswer(qId, question),
+                                        isChecked: _checkedQuestions.contains(qId),
+                                      ),
+                                    ),
+                                    const _QuestionDivider(),
+                                  ],
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────
-//  Exam Breadcrumb (source label per question)
+//  Exam Breadcrumb (Section Header)
 // ─────────────────────────────────────────
 class _ExamBreadcrumb extends StatelessWidget {
   final String examTitle;
@@ -430,25 +598,25 @@ class _ExamBreadcrumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFFFEF2F2),
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFECACA)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.arrow_back_ios_rounded,
-                size: 12, color: AppColors.textSecondary),
-            const SizedBox(width: 4),
+            const Icon(Icons.assignment_rounded, size: 16, color: Color(0xFFDC2626)),
+            const SizedBox(width: 8),
             Text(
               examTitle,
               style: GoogleFonts.cairo(
-                fontSize: 11,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: const Color(0xFFDC2626),
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -459,56 +627,15 @@ class _ExamBreadcrumb extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────
-//  Stat Pill (reusable in stats bar)
+//  Divider between questions
 // ─────────────────────────────────────────
-class _StatPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color iconColor;
-  final Color bgColor;
-
-  const _StatPill({
-    required this.icon,
-    required this.label,
-    required this.iconColor,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: iconColor),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: iconColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Shared divider (copied locally to avoid circular imports)
 class _QuestionDivider extends StatelessWidget {
   const _QuestionDivider();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: List.generate(
           40,

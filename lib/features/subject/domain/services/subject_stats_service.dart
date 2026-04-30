@@ -61,4 +61,24 @@ class SubjectStatsService {
         .snapshots()
         .map((snap) => snap.size);
   }
+
+  /// Stream of total questions count for a subject (Search counter)
+  Stream<int> streamQuestionsCount(String subjectId) {
+    return _db
+        .collection('questions')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('status', isEqualTo: 'approved')
+        .snapshots()
+        .map((snap) => snap.size);
+  }
+
+  /// Stream of custom practice sessions created by the user
+  Stream<int> streamPracticeCount(String userId, String subjectId) {
+    return _db
+        .collection('practice_sessions')
+        .where('userId', isEqualTo: userId)
+        .where('subjectId', isEqualTo: subjectId)
+        .snapshots()
+        .map((snap) => snap.size);
+  }
 }

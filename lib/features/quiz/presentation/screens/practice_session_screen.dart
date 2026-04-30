@@ -8,6 +8,7 @@ import 'package:quizzly/features/quiz/domain/services/smart_quiz_service.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PracticeSessionScreen extends StatefulWidget {
   final String subjectId;
@@ -191,7 +192,6 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     if (userId != null && _userAnswers.isNotEmpty) {
       // 1. Update Mastery levels
       _smartService.updateTopicPerformance(userId, widget.subjectId, _userAnswers, _questions);
-      
       // 2. Update Gamification (XP, Streak, Level)
       final mappedAnswers = _userAnswers.map((a) => {
         'questionId': a['questionId'],
@@ -199,6 +199,16 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         'timeSpent': 30,
       }).toList();
       _gamificationService.processQuizAttempt(userId, mappedAnswers, _questions);
+
+      FirebaseFirestore.instance.collection('practice_sessions').add({
+        'userId': userId,
+        'subjectId': widget.subjectId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'totalQuestions': _questions.length,
+        'correctAnswers': _correct,
+        'wrongAnswers': _wrong,
+        'topicIds': widget.topicIds,
+      });
     }
 
     final total = _correct + _wrong;

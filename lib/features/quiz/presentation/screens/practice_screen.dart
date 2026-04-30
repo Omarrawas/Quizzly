@@ -52,9 +52,34 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
   Future<void> _loadTopics() async {
     try {
       final topics = await _service.getTopicsForSubject(widget.subjectId);
+      
       if (mounted) {
+        final chapters = <String, String>{};
+        for (var t in topics) {
+          if (t['type'] == 'chapter') {
+            chapters[t['id']] = t['name'] as String;
+          }
+        }
+
+        final compositeTopics = <Map<String, dynamic>>[];
+        for (var t in topics) {
+          if (t['type'] == 'lesson' || t['parentId'] != null) {
+            final parentId = t['parentId'] as String?;
+            final parentName = parentId != null ? chapters[parentId] : null;
+            final currentName = t['name'] as String;
+            final compositeName = parentName != null ? '$parentName - $currentName' : currentName;
+            
+            // Create a modified copy of the topic
+            final modifiedTopic = Map<String, dynamic>.from(t);
+            modifiedTopic['name'] = compositeName;
+            compositeTopics.add(modifiedTopic);
+          } else if (t['type'] != 'chapter') {
+            compositeTopics.add(t);
+          }
+        }
+
         setState(() {
-          _topics = topics;
+          _topics = compositeTopics;
           _loading = false;
         });
       }
@@ -334,15 +359,10 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
       children: _topics.map((topic) {
         final id = topic['id'] as String;
         final name = topic['name'] as String? ?? '';
-        final type = topic['type'] as String? ?? 'topic';
         final isSelected = _selectedTopicIds.contains(id);
 
-        double indent = 0;
-        if (type == 'lesson') indent = 16;
-        if (type == 'subtopic') indent = 32;
-
         return Padding(
-          padding: EdgeInsets.only(left: indent, bottom: 8),
+          padding: const EdgeInsets.only(bottom: 8),
           child: GestureDetector(
             onTap: () => _toggleTopic(id),
             child: AnimatedContainer(
@@ -387,15 +407,6 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                       ),
                     ),
                   ),
-                  if (type == 'chapter')
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text('فصل', style: GoogleFonts.cairo(fontSize: 9, color: AppColors.primaryBlue)),
-                    ),
                 ],
               ),
             ),
