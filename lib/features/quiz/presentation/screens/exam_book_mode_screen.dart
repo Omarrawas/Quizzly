@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 
 class ExamBookModeScreen extends StatefulWidget {
   final ExamConfig config;
@@ -50,9 +51,12 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   // State tracking
   final Map<int, String?> _selectedOptions = {};
   final Map<int, AnswerState> _answerStates = {};
-  final Set<int> _favorites = {};
+  final Set<String> _favoriteIds = {};
   final Set<int> _checkedQuestions = {};
   final Map<int, String> _notes = {};
+
+  final _favoriteService = FavoriteService();
+  StreamSubscription? _favoriteSubscription;
 
   int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
   int get _wrongCount => _answerStates.values.where((s) => s == AnswerState.wrong).length;
@@ -72,7 +76,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       if (_filterWrongOnly && _answerStates[index] != AnswerState.wrong) return false;
 
       // Checkbox filters from bottom sheet
-      if (_filterFavorites && !_favorites.contains(index)) return false;
+      if (_filterFavorites && (q.id == null || !_favoriteIds.contains(q.id))) return false;
       if (_filterCorrected && !_checkedQuestions.contains(index)) return false;
       if (_filterWrong && _answerStates[index] != AnswerState.wrong) return false;
       if (_filterCorrect && _answerStates[index] != AnswerState.correct) return false;
@@ -108,11 +112,24 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       if (mounted && _isTimerRunning) setState(() {});
     });
     _loadState();
+    _setupFavoriteSync();
+  }
+
+  void _setupFavoriteSync() {
+    _favoriteSubscription = _favoriteService.streamFavoriteIds().listen((ids) {
+      if (mounted) {
+        setState(() {
+          _favoriteIds.clear();
+          _favoriteIds.addAll(ids);
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    _favoriteSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -154,11 +171,19 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   }
 
   void _toggleFavorite(int questionIndex) {
+    final question = widget.questions[questionIndex];
+    _favoriteService.toggleFavorite(question);
+    
+    // We don't necessarily need to setState here because the stream listener 
+    // will update _favoriteIds and trigger a rebuild, but adding it for immediate UI feedback
     setState(() {
-      if (_favorites.contains(questionIndex)) {
-        _favorites.remove(questionIndex);
-      } else {
-        _favorites.add(questionIndex);
+      final qId = question.id;
+      if (qId != null) {
+        if (_favoriteIds.contains(qId)) {
+          _favoriteIds.remove(qId);
+        } else {
+          _favoriteIds.add(qId);
+        }
       }
     });
     _saveState();
@@ -182,7 +207,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     final state = {
       'selectedOptions': _selectedOptions.map((k, v) => MapEntry(k.toString(), v)),
       'answerStates': _answerStates.map((k, v) => MapEntry(k.toString(), v.name)),
-      'favorites': _favorites.toList(),
+      'favorites': _favoriteIds.toList(),
       'checkedQuestions': _checkedQuestions.toList(),
       'notes': _notes.map((k, v) => MapEntry(k.toString(), v)),
       'elapsedMs': _stopwatch.elapsedMilliseconds + _elapsedOffset.inMilliseconds,
@@ -207,7 +232,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
           });
         }
         if (state['favorites'] != null) {
-          _favorites.addAll((state['favorites'] as List).cast<int>());
+          _favoriteIds.addAll((state['favorites'] as List).cast<String>());
         }
         if (state['checkedQuestions'] != null) {
           _checkedQuestions.addAll((state['checkedQuestions'] as List).cast<int>());
@@ -537,7 +562,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       answerState: _answerStates[realIndex] ?? AnswerState.unanswered,
                       showCorrect: _showAnswers || _checkedQuestions.contains(realIndex),
                       onOptionSelected: (optId) => _onOptionSelected(realIndex, optId),
-                      isFavorite: _favorites.contains(realIndex),
+                      isFavorite: q.id != null && _favoriteIds.contains(q.id),
                       onFavoriteToggle: () => _toggleFavorite(realIndex),
                       note: _notes[realIndex],
                       onNoteChanged: (note) => _addNote(realIndex, note),

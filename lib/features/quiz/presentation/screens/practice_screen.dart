@@ -5,6 +5,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/practice_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/practice_session_screen.dart';
+import 'package:quizzly/features/quiz/presentation/screens/practice_history_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Practice Setup Screen — Topic Selector + Mode Config
@@ -141,6 +142,20 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.history_rounded, color: Colors.white),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PracticeHistoryScreen(
+                      subjectId: widget.subjectId,
+                      subjectName: widget.subjectName,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(

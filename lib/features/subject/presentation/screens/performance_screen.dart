@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_quiz_service.dart';
+import 'package:quizzly/features/quiz/presentation/screens/practice_history_screen.dart';
 
 class PerformanceScreen extends StatefulWidget {
   final String subjectId;
@@ -63,6 +64,20 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.history_rounded, color: isDark ? Colors.white : AppColors.textPrimary),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PracticeHistoryScreen(
+                  subjectId: widget.subjectId,
+                  subjectName: widget.subjectName,
+                ),
+              ),
+            ),
+          ),
+        ],
         centerTitle: true,
       ),
       body: _loading

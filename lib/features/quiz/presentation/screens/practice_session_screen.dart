@@ -9,6 +9,8 @@ import 'package:quizzly/features/gamification/domain/services/gamification_servi
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
+import 'dart:async';
 
 class PracticeSessionScreen extends StatefulWidget {
   final String subjectId;
@@ -33,6 +35,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   final PracticeService _service = PracticeService();
   final SmartQuizService _smartService = SmartQuizService();
   final GamificationService _gamificationService = GamificationService();
+  final FavoriteService _favoriteService = FavoriteService();
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
@@ -41,6 +44,8 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   bool _showExplanation = false;
   bool _loading = true;
   bool _loadingSimilar = false;
+  final Set<String> _favoriteIds = {};
+  StreamSubscription? _favoriteSubscription;
 
   // Track answers for mastery update
   final List<Map<String, dynamic>> _userAnswers = [];
@@ -64,11 +69,24 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
     _loadQuestions();
+    _setupFavoriteSync();
+  }
+
+  void _setupFavoriteSync() {
+    _favoriteSubscription = _favoriteService.streamFavoriteIds().listen((ids) {
+      if (mounted) {
+        setState(() {
+          _favoriteIds.clear();
+          _favoriteIds.addAll(ids);
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _slideController.dispose();
+    _favoriteSubscription?.cancel();
     super.dispose();
   }
 
@@ -208,6 +226,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         'correctAnswers': _correct,
         'wrongAnswers': _wrong,
         'topicIds': widget.topicIds,
+        'topicNames': widget.topicNames,
       });
     }
 
@@ -460,9 +479,21 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                     style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: diffColor),
                   ),
                 ),
-              const Spacer(),
+              const SizedBox(width: 8),
               if (q.tagLabel != null)
                 Text(q.tagLabel!, style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary)),
+              const Spacer(),
+              IconButton(
+                icon: Icon(
+                  q.id != null && _favoriteIds.contains(q.id) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: q.id != null && _favoriteIds.contains(q.id) ? Colors.red : AppColors.textSecondary,
+                  size: 20,
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  _favoriteService.toggleFavorite(q);
+                },
+              ),
             ],
           ),
           const SizedBox(height: 14),

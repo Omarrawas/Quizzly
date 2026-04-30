@@ -42,9 +42,10 @@ class SubjectStatsService {
   /// Stream of favorites count for a subject
   Stream<int> streamFavoritesCount(String userId, String subjectId) {
     return _db
+        .collection('users')
+        .doc(userId)
         .collection('favorites')
-        .where('userId', isEqualTo: userId)
-        .where('subjectId', isEqualTo: subjectId)
+        .where('questionData.subjectId', isEqualTo: subjectId)
         .snapshots()
         .map((snap) => snap.size);
   }
