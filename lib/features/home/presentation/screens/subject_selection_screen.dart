@@ -167,6 +167,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                       _collegeName = 'الكلية';
                       _selectedDepartmentId = null;
                       _departmentName = 'القسم';
+                      _selectedYearId = null;
+                      _yearName = 'السنة';
                     });
                   }),
                   if (_selectedCollegeId != null)
@@ -174,6 +176,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                       setState(() {
                         _selectedDepartmentId = null;
                         _departmentName = 'القسم';
+                        _selectedYearId = null;
+                        _yearName = 'السنة';
                       });
                     }),
                   if (_selectedDepartmentId != null)
@@ -183,6 +187,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                         _yearName = 'السنة';
                       });
                     }),
+                  if (_selectedYearId != null)
+                    _buildBreadcrumb(_yearName, () {}),
                 ],
               ),
             ),
@@ -281,7 +287,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
           itemCount: semesters.length,
           itemBuilder: (context, index) {
             final semDoc = semesters[index];
-            return _SemesterExpansionTile(
+            return _SemesterCard(
               semesterId: semDoc.id,
               semesterName: semDoc['name'],
               contentService: contentService,
@@ -361,13 +367,13 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   }
 }
 
-class _SemesterExpansionTile extends StatelessWidget {
+class _SemesterCard extends StatelessWidget {
   final String semesterId;
   final String semesterName;
   final ContentService contentService;
   final Set<String> activeSubjectIds;
 
-  const _SemesterExpansionTile({
+  const _SemesterCard({
     required this.semesterId,
     required this.semesterName,
     required this.contentService,
@@ -377,30 +383,49 @@ class _SemesterExpansionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: AppColors.borderLight.withValues(alpha: 0.5)),
       ),
-      child: ExpansionTile(
-        title: Text(semesterName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
-        leading: const Icon(Icons.folder_open_rounded, color: AppColors.primaryBlue),
-        childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        trailing: ElevatedButton(
-          onPressed: () => _addFullSemester(context, authService.user?.uid),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          child: Text('إضافة الكل', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : AppColors.primaryBlue.withValues(alpha: 0.05),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.folder_open_rounded, color: AppColors.primaryBlue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(semesterName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _addFullSemester(context, authService.user?.uid),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  icon: const Icon(Icons.add_task_rounded, size: 16),
+                  label: Text('إضافة الكل', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          
+          // Subjects List
           StreamBuilder<QuerySnapshot>(
             stream: contentService.getSubjects(semesterId),
             builder: (context, snapshot) {
@@ -408,27 +433,32 @@ class _SemesterExpansionTile extends StatelessWidget {
               final subjects = snapshot.data?.docs ?? [];
               if (subjects.isEmpty) {
                 return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text('لا توجد مواد في هذا الفصل', style: GoogleFonts.cairo(fontSize: 12)),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text('لا توجد مواد في هذا الفصل', style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary)),
+                  ),
                 );
               }
 
-              return Column(
-                children: subjects.map((subj) {
-                  final isAdded = activeSubjectIds.contains(subj.id);
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(subj['name'], style: GoogleFonts.cairo(fontSize: 14, fontWeight: isAdded ? FontWeight.bold : FontWeight.normal)),
-                    subtitle: Text('كود: ${subj['code']}', style: GoogleFonts.cairo(fontSize: 11)),
-                    trailing: isAdded
-                      ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24)
-                      : TextButton.icon(
-                          onPressed: () => _addSubject(context, authService.user?.uid, subj.id),
-                          icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-                          label: Text('إضافة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                        ),
-                  );
-                }).toList(),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: subjects.map((subj) {
+                    final isAdded = activeSubjectIds.contains(subj.id);
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(subj['name'], style: GoogleFonts.cairo(fontSize: 14, fontWeight: isAdded ? FontWeight.bold : FontWeight.normal)),
+                      subtitle: Text('كود: ${subj['code']}', style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary)),
+                      trailing: isAdded
+                        ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24)
+                        : TextButton.icon(
+                            onPressed: () => _addSubject(context, authService.user?.uid, subj.id),
+                            icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                            label: Text('إضافة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                          ),
+                    );
+                  }).toList(),
+                ),
               );
             },
           ),
