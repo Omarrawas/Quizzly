@@ -18,6 +18,7 @@ import 'package:quizzly/features/quiz/domain/services/exam_generator_service.dar
 import 'package:quizzly/features/quiz/presentation/screens/active_recall_session_screen.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_tags_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/subject_search_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -304,7 +305,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         );
         break;
       case 2: // البحث
-        _showComingSoon('البحث');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SubjectSearchScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
         break;
       case 3: // المفضلة
         _showComingSoon('المفضلة');

@@ -11,12 +11,14 @@ class ExamBookModeScreen extends StatefulWidget {
   final ExamConfig config;
   final List<QuizQuestion> questions;
   final bool isSubExam;
+  final bool isGlobalSearch;
 
   const ExamBookModeScreen({
     super.key,
     required this.config,
     required this.questions,
     this.isSubExam = false,
+    this.isGlobalSearch = false,
   });
 
   @override
@@ -38,6 +40,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   bool _filterCorrected = false;
   bool _filterWrong = false;
   bool _filterCorrect = false;
+  String _filterPaperType = 'all'; // 'all', 'exam', 'bank'
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   bool _isFabExpanded = false;
@@ -73,6 +76,10 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       if (_filterCorrected && !_checkedQuestions.contains(index)) return false;
       if (_filterWrong && _answerStates[index] != AnswerState.wrong) return false;
       if (_filterCorrect && _answerStates[index] != AnswerState.correct) return false;
+      
+      // Paper type filter
+      if (_filterPaperType == 'exam' && q.examTags.isEmpty) return false;
+      if (_filterPaperType == 'bank' && q.examTags.isNotEmpty) return false;
       
       // Search filter
       if (_searchQuery.isNotEmpty && !q.text.contains(_searchQuery)) {
@@ -267,6 +274,87 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     _saveState();
   }
 
+  bool get _isSearchEmptyState {
+    return widget.isGlobalSearch &&
+        _searchQuery.isEmpty &&
+        _selectedTags.isEmpty &&
+        _filterPaperType == 'all' &&
+        !_filterCorrectOnly &&
+        !_filterWrongOnly &&
+        !_filterFavorites &&
+        !_filterImportant &&
+        !_filterCorrected &&
+        !_filterWrong &&
+        !_filterCorrect;
+  }
+
+  Widget _buildEmptySearchState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 40),
+          Icon(Icons.search_rounded, size: 80, color: const Color(0xFF1E3A8A)),
+          const SizedBox(height: 24),
+          Text(
+            'ابدأ البحث',
+            style: GoogleFonts.cairo(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'استخدم الفلاتر أعلاه للبحث عن الأسئلة. يمكنك البحث بالوسوم، نوع الورقة، أو خصائص أخرى',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterButton() {
+    return InkWell(
+      onTap: () => setState(() => _showFilters = !_showFilters),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _showFilters ? AppColors.primaryBlue.withValues(alpha: 0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _showFilters ? AppColors.primaryBlue : AppColors.borderLight),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _showFilters ? 'إخفاء الفلاتر' : 'الفلاتر',
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: _showFilters ? AppColors.primaryBlue : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.filter_list_rounded,
+              size: 16,
+              color: _showFilters ? AppColors.primaryBlue : AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Mock exam data for the header
@@ -291,7 +379,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         title: Row(
           children: [
             // Back Button (Far Right in RTL)
-            if (widget.isSubExam)
+            if (widget.isSubExam && !widget.isGlobalSearch)
               TextButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black),
@@ -387,47 +475,57 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                 _filterCorrectOnly = false;
               });
             },
-            additionalAction: InkWell(
-              onTap: () => setState(() => _showFilters = !_showFilters),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _showFilters ? AppColors.primaryBlue.withValues(alpha: 0.1) : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _showFilters ? AppColors.primaryBlue : AppColors.borderLight),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _showFilters ? 'إخفاء الفلاتر' : 'إظهار الفلاتر',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: _showFilters ? AppColors.primaryBlue : AppColors.textSecondary,
+            additionalAction: widget.isGlobalSearch ? null : _buildFilterButton(),
+          ),
+          if (widget.isGlobalSearch)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderLight),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFilterButton(),
+                  Row(
+                    children: [
+                      Text(
+                        '${widget.questions.length} سؤال',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E3A8A), // Dark blue
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.filter_list_rounded,
-                      size: 16,
-                      color: _showFilters ? AppColors.primaryBlue : AppColors.textSecondary,
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.description_outlined, color: Color(0xFF1E3A8A), size: 18),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
           if (_showFilters) _buildFilterPanel(),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [
-                QuizExamHeader(exam: realExam),
-                const SizedBox(height: 8),
-                ..._filteredQuestions.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final q = entry.value;
+            child: _isSearchEmptyState
+                ? _buildEmptySearchState()
+                : ListView(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    children: [
+                      if (!widget.isGlobalSearch) QuizExamHeader(exam: realExam),
+                      const SizedBox(height: 8),
+                      ..._filteredQuestions.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final q = entry.value;
                   final realIndex = widget.questions.indexOf(q);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -582,10 +680,72 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                     const Expanded(child: SizedBox()),
                   ],
                 ),
+                if (widget.isGlobalSearch) ...[
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'نوع الورقة',
+                      style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildPaperTypeButton('الكل', 'all', Icons.check_rounded),
+                      const SizedBox(width: 8),
+                      _buildPaperTypeButton('امتحانات', 'exam', Icons.description_outlined),
+                      const SizedBox(width: 8),
+                      _buildPaperTypeButton('بنك الأسئلة', 'bank', Icons.account_balance_outlined),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaperTypeButton(String label, String value, IconData icon) {
+    final isSelected = _filterPaperType == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _filterPaperType = value),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF2563EB) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF2563EB) : AppColors.borderLight,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
