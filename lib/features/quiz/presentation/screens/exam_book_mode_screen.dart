@@ -10,11 +10,13 @@ import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 class ExamBookModeScreen extends StatefulWidget {
   final ExamConfig config;
   final List<QuizQuestion> questions;
+  final bool isSubExam;
 
   const ExamBookModeScreen({
     super.key,
     required this.config,
     required this.questions,
+    this.isSubExam = false,
   });
 
   @override
@@ -289,15 +291,30 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         title: Row(
           children: [
             // Back Button (Far Right in RTL)
-            IconButton(
-              icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const SizedBox(width: 4),
+            if (widget.isSubExam)
+              TextButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black),
+                label: Text('العودة للدورة', style: GoogleFonts.cairo(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold)),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  backgroundColor: Colors.grey.shade100,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+            const SizedBox(width: 8),
             // Title
-            Text(
-              widget.config.title,
-              style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            Expanded(
+              child: Text(
+                widget.config.title,
+                style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const Spacer(),
             // Show Solution Toggle
@@ -436,7 +453,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                         if (filteredQuestions.isNotEmpty) {
                           final newConfig = ExamConfig(
                             id: '${widget.config.id}_$tag',
-                            title: '${widget.config.title} - $tag',
+                            title: tag,
                             type: widget.config.type,
                             durationSeconds: widget.config.durationSeconds,
                             totalQuestions: filteredQuestions.length,
@@ -457,6 +474,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                               builder: (_) => ExamBookModeScreen(
                                 config: newConfig,
                                 questions: filteredQuestions,
+                                isSubExam: true,
                               ),
                             ),
                           );
