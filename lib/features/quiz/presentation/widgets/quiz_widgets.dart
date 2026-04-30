@@ -468,8 +468,8 @@ class QuestionCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Tag Labels (examTags + tagLabel)
-          if (question.examTags.isNotEmpty || question.tagLabel != null)
+          // Topic Labels
+          if (question.topicNames != null && question.topicNames!.isNotEmpty)
             Align(
               alignment: Alignment.centerRight,
               child: Padding(
@@ -479,15 +479,10 @@ class QuestionCard extends StatelessWidget {
                   runSpacing: 8,
                   alignment: WrapAlignment.end,
                   children: [
-                    if (question.tagLabel != null && !question.examTags.contains(question.tagLabel))
+                    for (final topic in question.topicNames!)
                       _TagChip(
-                        label: question.tagLabel!,
-                        onTap: onTagTap != null ? () => onTagTap!(question.tagLabel!) : null,
-                      ),
-                    for (final tag in question.examTags)
-                      _TagChip(
-                        label: tag,
-                        onTap: onTagTap != null ? () => onTagTap!(tag) : null,
+                        label: topic,
+                        onTap: onTagTap != null ? () => onTagTap!(topic) : null,
                       ),
                   ],
                 ),

@@ -444,7 +444,7 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
 
   Future<void> _loadProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('exam_book_state_${widget.config.id}');
+    final data = prefs.getString('quiz_state_${widget.config.title}');
     if (data != null) {
       try {
         final state = json.decode(data) as Map<String, dynamic>;
@@ -455,9 +455,9 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
            final states = state['answerStates'] as Map<String, dynamic>;
            states.forEach((k, v) {
              final stateVal = v as String;
-             if (stateVal == 'AnswerState.correct') {
+             if (stateVal == 'correct') {
                correct++;
-             } else if (stateVal == 'AnswerState.wrong') {
+             } else if (stateVal == 'wrong') {
                wrong++;
              }
            });

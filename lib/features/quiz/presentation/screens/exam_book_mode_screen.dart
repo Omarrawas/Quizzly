@@ -430,7 +430,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       isChecked: _checkedQuestions.contains(realIndex),
                       onTagTap: (tag) {
                         final filteredQuestions = widget.questions.where((q) {
-                          return q.tagLabel == tag || q.examTags.contains(tag);
+                          return q.topicNames?.contains(tag) ?? false;
                         }).toList();
 
                         if (filteredQuestions.isNotEmpty) {
