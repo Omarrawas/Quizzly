@@ -95,120 +95,150 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     final authService = context.watch<AuthService>();
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'تصفح المواد',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          if (_selectedUniversityId != null)
-            IconButton(
-              onPressed: _saveAsDefault,
-              icon: const Icon(Icons.bookmark_added_rounded),
-              tooltip: 'حفظ كإفتراضي',
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      body: CustomScrollView(
+        slivers: [
+          // 1. Modern Header / App Bar
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: true,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            centerTitle: true,
+            title: Text(
+              'تصفح المواد',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
             ),
-          IconButton(
-            onPressed: () => _showAddCodeDialog(contentService, authService.user?.uid),
-            icon: const Icon(Icons.vpn_key_rounded),
-            tooltip: 'تفعيل بواسطة كود',
-          ),
-          IconButton(
-            onPressed: _resetFilters,
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'إعادة ضبط',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // 1. Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+            actions: [
+              if (_selectedUniversityId != null)
+                IconButton(
+                  onPressed: _saveAsDefault,
+                  icon: const Icon(Icons.bookmark_added_rounded),
+                  tooltip: 'حفظ كإفتراضي',
+                ),
+              IconButton(
+                onPressed: () => _showAddCodeDialog(contentService, authService.user?.uid),
+                icon: const Icon(Icons.vpn_key_rounded, color: AppColors.primaryBlue),
+                tooltip: 'تفعيل بواسطة كود',
               ),
-              child: TextField(
-                controller: _searchController,
-                textAlign: TextAlign.right,
-                style: GoogleFonts.cairo(fontSize: 15),
-                decoration: InputDecoration(
-                  hintText: 'ابحث عن مادة محددة...',
-                  hintStyle: GoogleFonts.cairo(
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+              IconButton(
+                onPressed: _resetFilters,
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'إعادة ضبط',
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: isDark 
+                      ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                      : [Colors.white, const Color(0xFFF1F6FF)],
                   ),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: AppColors.primaryBlue,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
           ),
 
-          // 2. Breadcrumbs / Selected Path (Optional visual aid)
-          if (_selectedUniversityId != null)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildBreadcrumb('الكل', () => _resetFilters()),
-                  _buildBreadcrumb(_universityName, () {
-                    setState(() {
-                      _selectedCollegeId = null;
-                      _collegeName = 'الكلية';
-                      _selectedDepartmentId = null;
-                      _departmentName = 'القسم';
-                      _selectedYearId = null;
-                      _yearName = 'السنة';
-                    });
-                  }),
-                  if (_selectedCollegeId != null)
-                    _buildBreadcrumb(_collegeName, () {
-                      setState(() {
-                        _selectedDepartmentId = null;
-                        _departmentName = 'القسم';
-                        _selectedYearId = null;
-                        _yearName = 'السنة';
-                      });
-                    }),
-                  if (_selectedDepartmentId != null)
-                    _buildBreadcrumb(_departmentName, () {
-                      setState(() {
-                        _selectedYearId = null;
-                        _yearName = 'السنة';
-                      });
-                    }),
-                  if (_selectedYearId != null)
-                    _buildBreadcrumb(_yearName, () {}),
-                ],
-              ),
+          // 2. Search & Breadcrumbs Section
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      textAlign: TextAlign.right,
+                      style: GoogleFonts.cairo(fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText: 'ابحث عن مادة محددة...',
+                        hintStyle: GoogleFonts.cairo(
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: AppColors.primaryBlue,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Breadcrumbs
+                if (_selectedUniversityId != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          _buildBreadcrumb('الكل', () => _resetFilters(), isFirst: true),
+                          _buildBreadcrumb(_universityName, () {
+                            setState(() {
+                              _selectedCollegeId = null;
+                              _collegeName = 'الكلية';
+                              _selectedDepartmentId = null;
+                              _departmentName = 'القسم';
+                              _selectedYearId = null;
+                              _yearName = 'السنة';
+                            });
+                          }),
+                          if (_selectedCollegeId != null)
+                            _buildBreadcrumb(_collegeName, () {
+                              setState(() {
+                                _selectedDepartmentId = null;
+                                _departmentName = 'القسم';
+                                _selectedYearId = null;
+                                _yearName = 'السنة';
+                              });
+                            }),
+                          if (_selectedDepartmentId != null)
+                            _buildBreadcrumb(_departmentName, () {
+                              setState(() {
+                                _selectedYearId = null;
+                                _yearName = 'السنة';
+                              });
+                            }),
+                          if (_selectedYearId != null)
+                            _buildBreadcrumb(_yearName, () {}, isLast: true),
+                        ],
+                      ),
+                    ),
+                  ),
+                
+                const SizedBox(height: 10),
+              ],
             ),
+          ),
 
-          const Divider(height: 24, thickness: 0.5),
-
-          // 3. Main Discovery Area
-          Expanded(
+          // 3. Content Area
+          SliverFillRemaining(
+            hasScrollBody: true,
             child: authService.user == null
                 ? const Center(child: CircularProgressIndicator())
                 : StreamBuilder<Set<String>>(
                     stream: contentService.getUserActiveSubjectIds(authService.user!.uid),
                     builder: (context, activeSnapshot) {
                       final activeIds = activeSnapshot.data ?? {};
-                      
                       return _buildDrillDownContent(contentService, activeIds);
                     },
                   ),
@@ -218,16 +248,29 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     );
   }
 
-  Widget _buildBreadcrumb(String label, VoidCallback onTap) {
+  Widget _buildBreadcrumb(String label, VoidCallback onTap, {bool isFirst = false, bool isLast = false}) {
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isLast ? AppColors.primaryBlue.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue)),
-            const Icon(Icons.chevron_left_rounded, size: 16, color: AppColors.textSecondary),
+            if (!isFirst) 
+              const Icon(Icons.chevron_left_rounded, size: 18, color: AppColors.textSecondary),
+            Text(
+              label, 
+              style: GoogleFonts.cairo(
+                fontSize: 13, 
+                fontWeight: isLast ? FontWeight.bold : FontWeight.w600,
+                color: isLast ? AppColors.primaryBlue : AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
@@ -539,44 +582,75 @@ class _SemesterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = context.watch<AuthService>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authService = Provider.of<AuthService>(context, listen: false);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.borderLight.withValues(alpha: 0.5)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? Colors.black : AppColors.primaryBlue).withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : AppColors.primaryBlue.withValues(alpha: 0.05),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              gradient: LinearGradient(
+                colors: isDark 
+                  ? [const Color(0xFF334155), const Color(0xFF1E293B)]
+                  : [AppColors.primaryBlue.withValues(alpha: 0.1), AppColors.primaryBlue.withValues(alpha: 0.02)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.folder_open_rounded, color: AppColors.primaryBlue),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_stories_rounded, color: AppColors.primaryBlue, size: 20),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(semesterName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(
+                    semesterName,
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: isDark ? Colors.white : AppColors.primaryBlue,
+                    ),
+                  ),
                 ),
-                ElevatedButton.icon(
+                TextButton.icon(
                   onPressed: () => _addFullSemester(context, authService.user?.uid),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  style: TextButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
-                  icon: const Icon(Icons.add_task_rounded, size: 16),
-                  label: Text('إضافة الكل', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.library_add_rounded, size: 18, color: AppColors.primaryBlue),
+                  label: Text(
+                    'تفعيل الكل',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -586,33 +660,107 @@ class _SemesterCard extends StatelessWidget {
           StreamBuilder<QuerySnapshot>(
             stream: contentService.getSubjects(semesterId),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) return const LinearProgressIndicator();
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                );
+              }
               final subjects = snapshot.data?.docs ?? [];
               if (subjects.isEmpty) {
                 return Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Center(
-                    child: Text('لا توجد مواد في هذا الفصل', style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary)),
+                    child: Text(
+                      'لا توجد مواد مضافة بعد',
+                      style: GoogleFonts.cairo(color: AppColors.textSecondary),
+                    ),
                   ),
                 );
               }
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   children: subjects.map((subj) {
                     final isAdded = activeSubjectIds.contains(subj.id);
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(subj['name'], style: GoogleFonts.cairo(fontSize: 14, fontWeight: isAdded ? FontWeight.bold : FontWeight.normal)),
-                      subtitle: Text('كود: ${subj['code']}', style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary)),
-                      trailing: isAdded
-                        ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24)
-                        : TextButton.icon(
-                            onPressed: () => _addSubject(context, authService.user?.uid, subj.id),
-                            icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-                            label: Text('إضافة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isAdded 
+                          ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.2 : 0.05)
+                          : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isAdded 
+                            ? AppColors.primaryBlue.withValues(alpha: 0.3)
+                            : Colors.transparent,
+                        ),
+                      ),
+                      child: ListTile(
+                        onTap: isAdded ? null : () => _addSubject(context, authService.user?.uid, subj.id),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        leading: CircleAvatar(
+                          backgroundColor: isAdded ? AppColors.primaryBlue : AppColors.borderLight,
+                          radius: 18,
+                          child: Text(
+                            subj['name'].substring(0, 1),
+                            style: GoogleFonts.cairo(
+                              color: isAdded ? Colors.white : AppColors.textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                        ),
+                        title: Text(
+                          subj['name'],
+                          style: GoogleFonts.cairo(
+                            fontSize: 15,
+                            fontWeight: isAdded ? FontWeight.bold : FontWeight.w500,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'كود المادة: ${subj['code']}',
+                          style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                        trailing: isAdded
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'مفعلة',
+                                    style: GoogleFonts.cairo(
+                                      color: Colors.green,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                onPressed: () => _addSubject(context, authService.user?.uid, subj.id),
+                                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(8),
+                              ),
+                            ),
+                      ),
                     );
                   }).toList(),
                 ),
@@ -629,22 +777,22 @@ class _SemesterCard extends StatelessWidget {
     try {
       await contentService.addUserSemester(userId, semesterId);
       if (!context.mounted) return;
-      _showSuccess(context, 'تم إضافة الفصل بالكامل للرئيسية ✅');
+      _showSuccess(context, 'تم تفعيل الفصل بالكامل بنجاح ✅');
     } catch (e) {
       if (!context.mounted) return;
-      _showError(context, 'حدث خطأ أثناء الإضافة');
+      _showError(context, 'حدث خطأ أثناء التفعيل');
     }
   }
 
-  Future<void> _addSubject(BuildContext context, String? userId, String subjectId) async {
+  void _addSubject(BuildContext context, String? userId, String subjectId) async {
     if (userId == null) return;
     try {
       await contentService.addUserSubject(userId, subjectId);
       if (!context.mounted) return;
-      _showSuccess(context, 'تم إضافة المادة للرئيسية ✅');
+      _showSuccess(context, 'تم تفعيل المادة بنجاح ✨');
     } catch (e) {
       if (!context.mounted) return;
-      _showError(context, 'حدث خطأ أثناء الإضافة');
+      _showError(context, 'حدث خطأ أثناء التفعيل');
     }
   }
 
