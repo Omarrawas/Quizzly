@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
@@ -22,6 +24,7 @@ class ExamBookModeScreen extends StatefulWidget {
 class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   late Stopwatch _stopwatch;
   late Timer _timer;
+  Duration _elapsedOffset = Duration.zero;
   bool _isTimerRunning = false;
   bool _showAnswers = false;
   bool _showFilters = false;
@@ -36,6 +39,8 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   bool _isFabExpanded = false;
+  bool _filterCorrectOnly = false;
+  bool _filterWrongOnly = false;
 
   // State tracking
   final Map<int, String?> _selectedOptions = {};
@@ -57,7 +62,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         return false;
       }
       
-      // Other filters
+      // Status pill filters (Toggle functionality)
+      if (_filterCorrectOnly && _answerStates[index] != AnswerState.correct) return false;
+      if (_filterWrongOnly && _answerStates[index] != AnswerState.wrong) return false;
+
+      // Checkbox filters from bottom sheet
       if (_filterFavorites && !_favorites.contains(index)) return false;
       if (_filterCorrected && !_checkedQuestions.contains(index)) return false;
       if (_filterWrong && _answerStates[index] != AnswerState.wrong) return false;
@@ -89,6 +98,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _isTimerRunning) setState(() {});
     });
+    _loadState();
   }
 
   @override
@@ -113,6 +123,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     setState(() {
       _selectedOptions[questionIndex] = optionId;
     });
+    _saveState();
   }
 
   void _onCheckAnswer(int questionIndex) {
@@ -130,6 +141,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         _answerStates[questionIndex] = AnswerState.wrong;
       }
     });
+    _saveState();
   }
 
   void _toggleFavorite(int questionIndex) {
@@ -140,6 +152,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         _favorites.add(questionIndex);
       }
     });
+    _saveState();
   }
 
   void _addNote(int questionIndex, String note) {
@@ -150,16 +163,71 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         _notes[questionIndex] = note;
       }
     });
+    _saveState();
   }
 
-  void _resetAnswers() {
+  String get _storageKey => 'quiz_state_${widget.config.title}';
+
+  Future<void> _saveState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final state = {
+      'selectedOptions': _selectedOptions.map((k, v) => MapEntry(k.toString(), v)),
+      'answerStates': _answerStates.map((k, v) => MapEntry(k.toString(), v.name)),
+      'favorites': _favorites.toList(),
+      'checkedQuestions': _checkedQuestions.toList(),
+      'notes': _notes.map((k, v) => MapEntry(k.toString(), v)),
+      'elapsedMs': _stopwatch.elapsedMilliseconds + _elapsedOffset.inMilliseconds,
+    };
+    await prefs.setString(_storageKey, jsonEncode(state));
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_storageKey);
+    if (saved != null) {
+      final state = jsonDecode(saved) as Map<String, dynamic>;
+      setState(() {
+        if (state['selectedOptions'] != null) {
+          (state['selectedOptions'] as Map).forEach((k, v) {
+            _selectedOptions[int.parse(k)] = v;
+          });
+        }
+        if (state['answerStates'] != null) {
+          (state['answerStates'] as Map).forEach((k, v) {
+            _answerStates[int.parse(k)] = AnswerState.values.byName(v);
+          });
+        }
+        if (state['favorites'] != null) {
+          _favorites.addAll((state['favorites'] as List).cast<int>());
+        }
+        if (state['checkedQuestions'] != null) {
+          _checkedQuestions.addAll((state['checkedQuestions'] as List).cast<int>());
+        }
+        if (state['notes'] != null) {
+          (state['notes'] as Map).forEach((k, v) {
+            _notes[int.parse(k)] = v;
+          });
+        }
+        if (state['elapsedMs'] != null) {
+          _elapsedOffset = Duration(milliseconds: state['elapsedMs'] as int);
+        }
+      });
+    }
+  }
+
+  Future<void> _resetAnswers() async {
     setState(() {
       _selectedOptions.clear();
       _answerStates.clear();
       _checkedQuestions.clear();
       _showAnswers = false;
       _isFabExpanded = false;
+      _elapsedOffset = Duration.zero;
+      _stopwatch.reset();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_storageKey);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('تم تصفير كافة الإجابات', textAlign: TextAlign.right)),
     );
@@ -194,6 +262,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       _showAnswers = true;
       _isFabExpanded = false;
     });
+    _saveState();
   }
 
   @override
@@ -286,9 +355,21 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             total: widget.questions.length,
             correctCount: _correctCount,
             wrongCount: _wrongCount,
-            elapsed: _stopwatch.elapsed,
+            elapsed: _stopwatch.elapsed + _elapsedOffset,
             isTimerRunning: _isTimerRunning,
             onToggleTimer: _toggleTimer,
+            onCorrectTap: () {
+              setState(() {
+                _filterCorrectOnly = !_filterCorrectOnly;
+                _filterWrongOnly = false;
+              });
+            },
+            onWrongTap: () {
+              setState(() {
+                _filterWrongOnly = !_filterWrongOnly;
+                _filterCorrectOnly = false;
+              });
+            },
             additionalAction: InkWell(
               onTap: () => setState(() => _showFilters = !_showFilters),
               child: Container(
@@ -347,6 +428,40 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       onNoteChanged: (note) => _addNote(realIndex, note),
                       onCheckAnswer: () => _onCheckAnswer(realIndex),
                       isChecked: _checkedQuestions.contains(realIndex),
+                      onTagTap: (tag) {
+                        final filteredQuestions = widget.questions.where((q) {
+                          return q.tagLabel == tag || q.examTags.contains(tag);
+                        }).toList();
+
+                        if (filteredQuestions.isNotEmpty) {
+                          final newConfig = ExamConfig(
+                            id: '${widget.config.id}_$tag',
+                            title: '${widget.config.title} - $tag',
+                            type: widget.config.type,
+                            durationSeconds: widget.config.durationSeconds,
+                            totalQuestions: filteredQuestions.length,
+                            passingScore: widget.config.passingScore,
+                            subjectId: widget.config.subjectId,
+                            sectionId: widget.config.sectionId,
+                            category: widget.config.category,
+                            staticQuestionIds: filteredQuestions.map((q) => q.id ?? '').toList(),
+                            generationRules: widget.config.generationRules,
+                            isFree: widget.config.isFree,
+                            lastUpdated: widget.config.lastUpdated,
+                            createdAt: widget.config.createdAt,
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ExamBookModeScreen(
+                                config: newConfig,
+                                questions: filteredQuestions,
+                              ),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   );
                 }),

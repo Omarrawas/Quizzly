@@ -18,6 +18,8 @@ class QuizHud extends StatelessWidget {
   final bool isTimerRunning;
   final VoidCallback onToggleTimer;
   final Widget? additionalAction;
+  final VoidCallback? onCorrectTap;
+  final VoidCallback? onWrongTap;
 
   const QuizHud({
     super.key,
@@ -29,6 +31,8 @@ class QuizHud extends StatelessWidget {
     required this.isTimerRunning,
     required this.onToggleTimer,
     this.additionalAction,
+    this.onCorrectTap,
+    this.onWrongTap,
   });
 
   String _formatTime(Duration d) {
@@ -64,9 +68,11 @@ class QuizHud extends StatelessWidget {
             color: const Color(0xFF2563EB),
             bgColor: const Color(0xFFEFF6FF),
           ),
-          const SizedBox(width: 12),
           // 3. Filters button (additionalAction)
-          if (additionalAction case final action?) action,
+          if (additionalAction != null) ...[
+            const SizedBox(width: 12),
+            additionalAction!,
+          ],
           const Spacer(),
           // Wrong Pill
           _HudPill(
@@ -74,6 +80,7 @@ class QuizHud extends StatelessWidget {
             label: '$wrongCount',
             color: const Color(0xFFDC2626),
             bgColor: const Color(0xFFFEF2F2),
+            onTap: onWrongTap,
           ),
           const SizedBox(width: 8),
           // Correct Pill
@@ -82,6 +89,7 @@ class QuizHud extends StatelessWidget {
             label: '$correctCount',
             color: const Color(0xFF16A34A),
             bgColor: const Color(0xFFF0FDF4),
+            onTap: onCorrectTap,
           ),
           const SizedBox(width: 8),
           // Progress Pill
@@ -102,39 +110,43 @@ class _HudPill extends StatelessWidget {
   final String label;
   final Color color;
   final Color bgColor;
+  final VoidCallback? onTap;
 
   const _HudPill({
     required this.icon,
     required this.label,
     required this.color,
     required this.bgColor,
+    this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: color,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -327,6 +339,7 @@ class QuestionCard extends StatelessWidget {
   final bool isChecked;
   final bool isSelected;
   final int? displayIndex;
+  final void Function(String tag)? onTagTap;
 
   const QuestionCard({
     super.key,
@@ -343,6 +356,7 @@ class QuestionCard extends StatelessWidget {
     this.isChecked = false,
     this.isSelected = false,
     this.displayIndex,
+    this.onTagTap,
   });
 
   void _showNoteDialog(BuildContext context) {
@@ -454,13 +468,29 @@ class QuestionCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Tag Label if exists
-          if (question.tagLabel != null)
+          // Tag Labels (examTags + tagLabel)
+          if (question.examTags.isNotEmpty || question.tagLabel != null)
             Align(
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: const EdgeInsets.only(right: 16, bottom: 12),
-                child: _TagChip(label: question.tagLabel!),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    if (question.tagLabel != null && !question.examTags.contains(question.tagLabel))
+                      _TagChip(
+                        label: question.tagLabel!,
+                        onTap: onTagTap != null ? () => onTagTap!(question.tagLabel!) : null,
+                      ),
+                    for (final tag in question.examTags)
+                      _TagChip(
+                        label: tag,
+                        onTap: onTagTap != null ? () => onTagTap!(tag) : null,
+                      ),
+                  ],
+                ),
               ),
             ),
 
@@ -473,6 +503,10 @@ class QuestionCard extends StatelessWidget {
             onCheckTap: onCheckAnswer,
             isChecked: isChecked,
             canCheck: isSelected && !isChecked,
+            onExplanationTap: (question.explanation != null && question.explanation!.isNotEmpty) ||
+                              (question.explanationImageUrl != null && question.explanationImageUrl!.isNotEmpty)
+                ? () => showExplanationDialog(context, question)
+                : null,
           ),
         ],
       ),
@@ -583,23 +617,28 @@ class _OptionTile extends StatelessWidget {
 // ─────────────────────────────────────────
 class _TagChip extends StatelessWidget {
   final String label;
-  const _TagChip({required this.label});
+  final VoidCallback? onTap;
+  const _TagChip({required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF1F2),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFECDD3)),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.cairo(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFFE11D48),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFECDD3)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFFE11D48),
+          ),
         ),
       ),
     );
@@ -1053,6 +1092,7 @@ class QuestionBottomBar extends StatelessWidget {
   final VoidCallback onCheckTap;
   final bool isChecked;
   final bool canCheck;
+  final VoidCallback? onExplanationTap;
 
   const QuestionBottomBar({
     super.key,
@@ -1063,6 +1103,7 @@ class QuestionBottomBar extends StatelessWidget {
     required this.onCheckTap,
     this.isChecked = false,
     this.canCheck = false,
+    this.onExplanationTap,
   });
 
   @override
@@ -1076,6 +1117,12 @@ class QuestionBottomBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
+          if (onExplanationTap != null)
+            _ActionButton(
+              icon: Icons.lightbulb_rounded,
+              color: Colors.amber.shade600,
+              onTap: onExplanationTap,
+            ),
           _ActionButton(
             icon: hasNote ? Icons.note_alt_rounded : Icons.note_add_outlined,
             color: hasNote ? const Color(0xFF16A34A) : null,

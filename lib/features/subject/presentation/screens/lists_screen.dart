@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
@@ -418,15 +420,71 @@ class _ModeOption extends StatelessWidget {
   }
 }
 
-class _ExamConfigTile extends StatelessWidget {
+class _ExamConfigTile extends StatefulWidget {
   final ExamConfig config;
   final VoidCallback onTap;
 
   const _ExamConfigTile({required this.config, required this.onTap});
 
   @override
+  State<_ExamConfigTile> createState() => _ExamConfigTileState();
+}
+
+class _ExamConfigTileState extends State<_ExamConfigTile> {
+  int _correctCount = 0;
+  int _wrongCount = 0;
+  int _answeredCount = 0;
+  bool _hasProgress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('exam_book_state_${widget.config.id}');
+    if (data != null) {
+      try {
+        final state = json.decode(data) as Map<String, dynamic>;
+        int correct = 0;
+        int wrong = 0;
+        int answered = 0;
+        if (state['answerStates'] != null) {
+           final states = state['answerStates'] as Map<String, dynamic>;
+           states.forEach((k, v) {
+             final stateVal = v as String;
+             if (stateVal == 'AnswerState.correct') {
+               correct++;
+             } else if (stateVal == 'AnswerState.wrong') {
+               wrong++;
+             }
+           });
+        }
+        if (state['checkedQuestions'] != null) {
+          answered = (state['checkedQuestions'] as List).length;
+        }
+        if (mounted) {
+          setState(() {
+            _correctCount = correct;
+            _wrongCount = wrong;
+            _answeredCount = answered;
+            _hasProgress = answered > 0;
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDora = config.type == ExamType.dora;
+    final isDora = widget.config.type == ExamType.dora;
+    final total = widget.config.totalQuestions;
+    final unanswered = total > _answeredCount ? total - _answeredCount : 0;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -435,7 +493,7 @@ class _ExamConfigTile extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)],
       ),
       child: ListTile(
-        onTap: onTap,
+        onTap: widget.onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           width: 48,
@@ -453,11 +511,11 @@ class _ExamConfigTile extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                config.title,
+                widget.config.title,
                 style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),
-            if (!config.isFree)
+            if (!widget.config.isFree)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -478,21 +536,75 @@ class _ExamConfigTile extends StatelessWidget {
               ),
           ],
         ),
-        subtitle: Row(
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.timer_outlined, size: 12, color: AppColors.textSecondary),
-            const SizedBox(width: 4),
-            Text(
-              '${config.durationSeconds ~/ 60} دقيقة',
-              style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.timer_outlined, size: 12, color: AppColors.textSecondary),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.config.durationSeconds ~/ 60} دقيقة',
+                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                Icon(Icons.help_outline_rounded, size: 12, color: AppColors.textSecondary),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.config.totalQuestions} سؤال',
+                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Icon(Icons.help_outline_rounded, size: 12, color: AppColors.textSecondary),
-            const SizedBox(width: 4),
-            Text(
-              '${config.totalQuestions} سؤال',
-              style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
-            ),
+            if (_hasProgress && total > 0) ...[
+              const SizedBox(height: 12),
+              // Progress Bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  height: 6,
+                  width: double.infinity,
+                  color: Colors.grey.shade200,
+                  child: Row(
+                    children: [
+                      if (_correctCount > 0)
+                        Expanded(
+                          flex: _correctCount,
+                          child: Container(color: const Color(0xFF16A34A)),
+                        ),
+                      if (_wrongCount > 0)
+                        Expanded(
+                          flex: _wrongCount,
+                          child: Container(color: const Color(0xFFDC2626)),
+                        ),
+                      if (unanswered > 0)
+                        Expanded(
+                          flex: unanswered,
+                          child: Container(color: Colors.grey.shade300), // neutral
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'تم حل $_answeredCount من $total',
+                    style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary),
+                  ),
+                  Row(
+                    children: [
+                      Text('$_correctCount', style: GoogleFonts.cairo(fontSize: 10, color: const Color(0xFF16A34A), fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      Text('$_wrongCount', style: GoogleFonts.cairo(fontSize: 10, color: const Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
         trailing: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: Colors.grey),
