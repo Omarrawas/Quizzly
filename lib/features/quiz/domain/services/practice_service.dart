@@ -21,21 +21,29 @@ class PracticeService {
     Difficulty? difficulty,
     int limit = 20,
   }) async {
-    Query query = _db
+    final snap = await _db
         .collection('questions')
         .where('subjectId', isEqualTo: subjectId)
-        .where('status', isEqualTo: QuestionStatus.approved.name);
+        .where('status', isEqualTo: QuestionStatus.approved.name)
+        .get();
+
+    List<QuizQuestion> questions = snap.docs.map((d) => QuizQuestion.fromFirestore(d)).toList();
 
     if (topicIds != null && topicIds.isNotEmpty) {
-      query = query.where('topicIds', arrayContainsAny: topicIds);
-    }
-    if (difficulty != null) {
-      query = query.where('difficulty', isEqualTo: difficulty.name);
+      questions = questions.where((q) {
+        if (q.topicIds == null) return false;
+        return q.topicIds!.any((id) => topicIds.contains(id));
+      }).toList();
     }
 
-    final snap = await query.limit(limit).get();
-    final questions = snap.docs.map((d) => QuizQuestion.fromFirestore(d)).toList();
-    questions.shuffle(); // Randomize order
+    if (difficulty != null) {
+      questions = questions.where((q) => q.difficulty == difficulty).toList();
+    }
+
+    questions.shuffle();
+    if (questions.length > limit) {
+      questions = questions.sublist(0, limit);
+    }
     return questions;
   }
 
@@ -52,14 +60,16 @@ class PracticeService {
         .collection('questions')
         .where('subjectId', isEqualTo: subjectId)
         .where('status', isEqualTo: QuestionStatus.approved.name)
-        .where('topicIds', arrayContainsAny: topicIds)
         .where('difficulty', isEqualTo: difficulty.name)
-        .limit(10)
         .get();
 
     final filtered = snap.docs
-        .where((d) => d.id != currentQuestionId)
         .map((d) => QuizQuestion.fromFirestore(d))
+        .where((q) => q.id != currentQuestionId)
+        .where((q) {
+          if (q.topicIds == null) return false;
+          return q.topicIds!.any((id) => topicIds.contains(id));
+        })
         .toList();
 
     if (filtered.isEmpty) return null;

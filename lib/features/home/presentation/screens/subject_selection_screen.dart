@@ -284,7 +284,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         title: 'اختر الجامعة',
         onTap: (doc) => setState(() {
           _selectedUniversityId = doc.id;
-          _universityName = doc['name'];
+          final data = doc.data() as Map<String, dynamic>?;
+          _universityName = data?['name'] ?? 'الجامعة';
         }),
       );
     }
@@ -295,7 +296,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         title: 'اختر الكلية',
         onTap: (doc) => setState(() {
           _selectedCollegeId = doc.id;
-          _collegeName = doc['name'];
+          final data = doc.data() as Map<String, dynamic>?;
+          _collegeName = data?['name'] ?? 'الكلية';
         }),
       );
     }
@@ -306,7 +308,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         title: 'اختر القسم / التخصص',
         onTap: (doc) => setState(() {
           _selectedDepartmentId = doc.id;
-          _departmentName = doc['name'];
+          final data = doc.data() as Map<String, dynamic>?;
+          _departmentName = data?['name'] ?? 'القسم';
         }),
       );
     }
@@ -317,7 +320,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         title: 'اختر السنة الدراسية',
         onTap: (doc) => setState(() {
           _selectedYearId = doc.id;
-          _yearName = doc['name'];
+          final data = doc.data() as Map<String, dynamic>?;
+          _yearName = data?['name'] ?? 'السنة';
         }),
       );
     }
@@ -337,7 +341,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
             final semDoc = semesters[index];
             return _SemesterCard(
               semesterId: semDoc.id,
-              semesterName: semDoc['name'],
+              semesterName: (semDoc.data() as Map<String, dynamic>?)?['name']?.toString() ?? 'فصل دراسي',
               contentService: contentService,
               activeSubjectIds: activeIds,
             );
@@ -377,11 +381,17 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                     margin: const EdgeInsets.only(bottom: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: AppColors.borderLight.withValues(alpha: 0.5)),
                     ),
                     child: ListTile(
                       onTap: () => onTap(doc),
-                      title: Text(doc['name'], style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                      title: Text(
+                        (doc.data() as Map<String, dynamic>?)?['name']?.toString() ?? 'بدون اسم',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        (doc.data() as Map<String, dynamic>?)?['code']?.toString() ?? '',
+                        style: GoogleFonts.cairo(fontSize: 12),
+                      ),
                       trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.primaryBlue),
                     ),
                   );
@@ -684,6 +694,10 @@ class _SemesterCard extends StatelessWidget {
                 child: Column(
                   children: subjects.map((subj) {
                     final isAdded = activeSubjectIds.contains(subj.id);
+                    final data = subj.data() as Map<String, dynamic>?;
+                    final String name = data?['name']?.toString() ?? 'مادة بدون اسم';
+                    final String code = data?['code']?.toString() ?? 'N/A';
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -705,7 +719,7 @@ class _SemesterCard extends StatelessWidget {
                           backgroundColor: isAdded ? AppColors.primaryBlue : AppColors.borderLight,
                           radius: 18,
                           child: Text(
-                            subj['name'].substring(0, 1),
+                            name.isNotEmpty ? name.substring(0, 1) : '?',
                             style: GoogleFonts.cairo(
                               color: isAdded ? Colors.white : AppColors.textSecondary,
                               fontWeight: FontWeight.bold,
@@ -713,7 +727,7 @@ class _SemesterCard extends StatelessWidget {
                           ),
                         ),
                         title: Text(
-                          subj['name'],
+                          name,
                           style: GoogleFonts.cairo(
                             fontSize: 15,
                             fontWeight: isAdded ? FontWeight.bold : FontWeight.w500,
@@ -721,7 +735,7 @@ class _SemesterCard extends StatelessWidget {
                           ),
                         ),
                         subtitle: Text(
-                          'كود المادة: ${subj['code']}',
+                          'كود المادة: $code',
                           style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         trailing: isAdded

@@ -153,7 +153,12 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
   }
 
   Widget _buildAnswerSection(QuizQuestion q) {
-    final correctOption = q.options?.firstWhere((o) => q.correctOptionIds.contains(o.id));
+    final correctOption = (q.options ?? []).isEmpty 
+        ? null 
+        : (q.options ?? []).cast<QuizOption?>().firstWhere(
+            (o) => o != null && q.correctOptionIds.contains(o.id),
+            orElse: () => null,
+          );
     return Column(
       children: [
         Text(

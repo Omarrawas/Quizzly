@@ -171,10 +171,11 @@ class ExamResultScreen extends StatelessWidget {
           final pct = corrects / total;
           
           final tid = entry.key;
-          final topicName = questions.firstWhere(
+          final List<String> topicNames = questions.firstWhere(
             (q) => (q.topicIds ?? []).contains(tid),
             orElse: () => questions.first,
-          ).topicNames?.first ?? 'موضوع #$tid';
+          ).topicNames ?? [];
+          final String topicName = topicNames.isEmpty ? 'موضوع #$tid' : topicNames.first;
           
           return Container(
             margin: const EdgeInsets.only(bottom: 8),

@@ -225,7 +225,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
 
     return Column(
       children: topics.map((t) {
-        final double m = t['mastery'];
+        final double m = (t['mastery'] as num?)?.toDouble() ?? 0.0;
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),

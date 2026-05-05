@@ -60,8 +60,8 @@ class PracticeHistoryScreen extends StatelessWidget {
                   ..sort((a, b) {
                     final dataA = a.data() as Map<String, dynamic>;
                     final dataB = b.data() as Map<String, dynamic>;
-                    final timeA = dataA['createdAt'] as Timestamp?;
-                    final timeB = dataB['createdAt'] as Timestamp?;
+                    final timeA = dataA['createdAt'] is Timestamp ? dataA['createdAt'] as Timestamp : null;
+                    final timeB = dataB['createdAt'] is Timestamp ? dataB['createdAt'] as Timestamp : null;
                     if (timeA == null) return 1;
                     if (timeB == null) return -1;
                     return timeB.compareTo(timeA);
@@ -102,9 +102,9 @@ class PracticeHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildSessionCard(BuildContext context, Map<String, dynamic> data) {
-    final date = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-    final correct = data['correctAnswers'] as int? ?? 0;
-    final total = data['totalQuestions'] as int? ?? 0;
+    final date = (data['createdAt'] is Timestamp ? data['createdAt'] as Timestamp : null)?.toDate() ?? DateTime.now();
+    final correct = (data['correctAnswers'] as num?)?.toInt() ?? 0;
+    final total = (data['totalQuestions'] as num?)?.toInt() ?? 0;
     final pct = total > 0 ? (correct / total * 100).round() : 0;
     final topicNames = data['topicNames'] as List<dynamic>?;
 
