@@ -31,8 +31,9 @@ class PracticeService {
 
     if (topicIds != null && topicIds.isNotEmpty) {
       questions = questions.where((q) {
-        if (q.topicIds == null) return false;
-        return q.topicIds!.any((id) => topicIds.contains(id));
+        bool matchesArray = q.topicIds != null && q.topicIds!.any((id) => topicIds.contains(id));
+        bool matchesPrimary = q.primaryTopicId != null && topicIds.contains(q.primaryTopicId);
+        return matchesArray || matchesPrimary;
       }).toList();
     }
 
@@ -67,8 +68,9 @@ class PracticeService {
         .map((d) => QuizQuestion.fromFirestore(d))
         .where((q) => q.id != currentQuestionId)
         .where((q) {
-          if (q.topicIds == null) return false;
-          return q.topicIds!.any((id) => topicIds.contains(id));
+          bool matchesArray = q.topicIds != null && q.topicIds!.any((id) => topicIds.contains(id));
+          bool matchesPrimary = q.primaryTopicId != null && topicIds.contains(q.primaryTopicId);
+          return matchesArray || matchesPrimary;
         })
         .toList();
 

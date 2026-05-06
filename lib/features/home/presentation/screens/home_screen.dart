@@ -20,11 +20,49 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
 
+  bool _isSyncing = false;
+
   void _openActivationFlow() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SubjectSelectionScreen()),
     );
+  }
+
+  Future<void> _syncDataForOffline() async {
+    final authService = context.read<AuthService>();
+    final contentService = context.read<ContentService>();
+    
+    if (authService.user == null) return;
+
+    setState(() => _isSyncing = true);
+    
+    try {
+      await contentService.syncOfflineData(authService.user!.uid);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تحديث البيانات، التطبيق جاهز للعمل بدون إنترنت ✅', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء التحديث', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
   }
 
   @override
@@ -110,18 +148,26 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           tooltip: 'المفضلة',
         ),
-        Container(
-          width: 32,
-          height: 32,
-          margin: const EdgeInsets.only(left: 16),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFF8500),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.download_rounded,
-            color: Colors.white,
-            size: 18,
+        GestureDetector(
+          onTap: _isSyncing ? null : _syncDataForOffline,
+          child: Container(
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.only(left: 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFF8500),
+              shape: BoxShape.circle,
+            ),
+            child: _isSyncing 
+                ? const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : const Icon(
+                    Icons.refresh_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
           ),
         ),
         const SizedBox(width: 8),

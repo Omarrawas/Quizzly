@@ -8,7 +8,7 @@ import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:provider/provider.dart';
-
+import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
@@ -67,7 +67,10 @@ class AppDrawer extends StatelessWidget {
                     context,
                     icon: Icons.notifications_none_rounded,
                     label: 'الإشعارات',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                    },
                   ),
                   _buildMenuItem(
                     context,

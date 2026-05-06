@@ -9,7 +9,7 @@ import 'package:quizzly/features/gamification/domain/services/gamification_servi
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
+import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'dart:async';
 
 class PracticeSessionScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   final PracticeService _service = PracticeService();
   final SmartQuizService _smartService = SmartQuizService();
   final GamificationService _gamificationService = GamificationService();
-  final FavoriteService _favoriteService = FavoriteService();
+  final ListService _listService = ListService();
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
@@ -44,8 +44,15 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   bool _showExplanation = false;
   bool _loading = true;
   bool _loadingSimilar = false;
-  final Set<String> _favoriteIds = {};
-  StreamSubscription? _favoriteSubscription;
+
+  // Lists state
+  List<UserList> _userLists = [];
+  String _primaryListId = 'favorites';
+  final Set<String> _primaryQuestionIds = {};
+
+  StreamSubscription? _listsSubscription;
+  StreamSubscription? _primaryListSubscription;
+  StreamSubscription? _primaryQuestionsSubscription;
 
   // Track answers for mastery update
   final List<Map<String, dynamic>> _userAnswers = [];
@@ -68,16 +75,30 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       begin: const Offset(1, 0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+    
+    _listService.initializeDefaultLists();
+    _setupListsSync();
     _loadQuestions();
-    _setupFavoriteSync();
   }
 
-  void _setupFavoriteSync() {
-    _favoriteSubscription = _favoriteService.streamFavoriteIds().listen((ids) {
+  void _setupListsSync() {
+    _listsSubscription = _listService.streamLists().listen((lists) {
+      if (mounted) setState(() => _userLists = lists);
+    });
+
+    _primaryListSubscription = _listService.streamPrimaryListId().listen((listId) {
       if (mounted) {
         setState(() {
-          _favoriteIds.clear();
-          _favoriteIds.addAll(ids);
+          _primaryListId = listId;
+          _primaryQuestionsSubscription?.cancel();
+          _primaryQuestionsSubscription = _listService.streamListQuestionIds(listId).listen((ids) {
+            if (mounted) {
+              setState(() {
+                _primaryQuestionIds.clear();
+                _primaryQuestionIds.addAll(ids);
+              });
+            }
+          });
         });
       }
     });
@@ -86,7 +107,9 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   @override
   void dispose() {
     _slideController.dispose();
-    _favoriteSubscription?.cancel();
+    _listsSubscription?.cancel();
+    _primaryListSubscription?.cancel();
+    _primaryQuestionsSubscription?.cancel();
     super.dispose();
   }
 
@@ -483,16 +506,41 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               if (q.tagLabel != null)
                 Text(q.tagLabel!, style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary)),
               const Spacer(),
-              IconButton(
-                icon: Icon(
-                  q.id != null && _favoriteIds.contains(q.id) ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: q.id != null && _favoriteIds.contains(q.id) ? Colors.red : AppColors.textSecondary,
-                  size: 20,
-                ),
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   HapticFeedback.lightImpact();
-                  _favoriteService.toggleFavorite(q);
+                  _listService.toggleQuestionInList(_primaryListId, q);
                 },
+                onLongPress: () {
+                  HapticFeedback.heavyImpact();
+                  _showListsMenu(context, q);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Builder(
+                    builder: (context) {
+                      final primaryList = _userLists.firstWhere(
+                        (l) => l.id == _primaryListId, 
+                        orElse: () => UserList(id: '', name: '', iconCodePoint: Icons.favorite_rounded.codePoint),
+                      );
+                      final inPrimary = q.id != null && _primaryQuestionIds.contains(q.id);
+                      final isHeart = primaryList.iconCodePoint == Icons.favorite_rounded.codePoint;
+                      
+                      IconData displayIcon;
+                      if (isHeart) {
+                        displayIcon = inPrimary ? Icons.favorite_rounded : Icons.favorite_border_rounded;
+                      } else {
+                        displayIcon = IconData(primaryList.iconCodePoint, fontFamily: 'MaterialIcons');
+                      }
+                      
+                      return Icon(
+                        displayIcon,
+                        color: inPrimary ? (isHeart ? Colors.red : AppColors.primaryBlue) : AppColors.textSecondary,
+                        size: 24,
+                      );
+                    }
+                  ),
+                ),
               ),
             ],
           ),
@@ -734,6 +782,125 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showListsMenu(BuildContext context, QuizQuestion q) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return _ListsMenuSheet(
+          question: q,
+          userLists: _userLists,
+          listService: _listService,
+        );
+      },
+    );
+  }
+}
+
+class _ListsMenuSheet extends StatefulWidget {
+  final QuizQuestion question;
+  final List<UserList> userLists;
+  final ListService listService;
+
+  const _ListsMenuSheet({
+    required this.question,
+    required this.userLists,
+    required this.listService,
+  });
+
+  @override
+  State<_ListsMenuSheet> createState() => _ListsMenuSheetState();
+}
+
+class _ListsMenuSheetState extends State<_ListsMenuSheet> {
+  final Map<String, bool> _listStates = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStates();
+  }
+
+  Future<void> _loadStates() async {
+    for (final list in widget.userLists) {
+      if (widget.question.id != null) {
+        _listStates[list.id] = await widget.listService.isQuestionInList(list.id, widget.question.id!);
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'حفظ في قائمة',
+            style: GoogleFonts.cairo(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...widget.userLists.map((list) {
+            final isInList = _listStates[list.id] ?? false;
+            return ListTile(
+              leading: Icon(
+                IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'),
+                color: isInList ? AppColors.primaryBlue : Colors.grey,
+              ),
+              title: Text(
+                list.name,
+                style: GoogleFonts.cairo(
+                  fontWeight: isInList ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              trailing: isInList
+                  ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue)
+                  : null,
+              onTap: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                setState(() {
+                  _listStates[list.id] = !isInList;
+                });
+                await widget.listService.toggleQuestionInList(list.id, widget.question);
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isInList ? 'تمت الإزالة من ${list.name}' : 'تمت الإضافة إلى ${list.name}',
+                        style: GoogleFonts.cairo(),
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            );
+          }),
+        ],
       ),
     );
   }

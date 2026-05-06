@@ -196,8 +196,10 @@ class QuizQuestion {
       cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']),
       estimatedTime: data['estimatedTime'],
       primaryTopicId: data['primaryTopicId'],
-      topicIds: List<String>.from(data['topicIds'] ?? []),
-      topicNames: List<String>.from(data['topicNames'] ?? []),
+      topicIds: data['topicIds'] is List 
+          ? List<String>.from(data['topicIds']) 
+          : (data['topicIds'] is String ? [data['topicIds'].toString()] : []),
+      topicNames: data['topicNames'] is List ? List<String>.from(data['topicNames']) : [],
       topicWeights: (data['topicWeights'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toDouble())),
       discriminationIndex: (data['discriminationIndex'] ?? 0.5).toDouble(),
       isFrequentlyWrong: data['isFrequentlyWrong'] ?? false,

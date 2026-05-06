@@ -142,4 +142,30 @@ class ContentService {
       'name': data['name'],
     };
   }
+
+  // --- Offline Sync ---
+  /// Downloads and caches active subjects, their topics, and questions for offline usage.
+  Future<void> syncOfflineData(String userId) async {
+    // 1. Fetch active subjects directly from server to update cache
+    final snapshot = await _db.collection('users').doc(userId).collection('active_subjects')
+        .get(const GetOptions(source: Source.server));
+    
+    for (var doc in snapshot.docs) {
+      final subjectId = doc.get('subjectId') as String;
+      
+      // 2. Fetch subject details
+      await _db.collection('subjects').doc(subjectId).get(const GetOptions(source: Source.server));
+      
+      // 3. Fetch topics for this subject
+      await _db.collection('topics')
+          .where('subjectId', isEqualTo: subjectId)
+          .get(const GetOptions(source: Source.server));
+          
+      // 4. Fetch all approved questions for this subject
+      await _db.collection('questions')
+          .where('subjectId', isEqualTo: subjectId)
+          .where('status', isEqualTo: 'approved')
+          .get(const GetOptions(source: Source.server));
+    }
+  }
 }
