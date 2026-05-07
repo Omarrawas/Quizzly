@@ -26,6 +26,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _db.collection('activation_codes').count().get(),
         _db.collection('questions').count().get(),
         _db.collection('exam_attempts').count().get(),
+        // Content Hierarchy
+        _db.collection('universities').count().get(),
+        _db.collection('colleges').count().get(),
+        _db.collection('departments').count().get(),
+        _db.collection('subjects').count().get(),
       ]);
 
       return {
@@ -33,13 +38,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'codes': results[1].count.toString(),
         'questions': results[2].count.toString(),
         'exams': results[3].count.toString(),
+        'unis': results[4].count.toString(),
+        'colleges': results[5].count.toString(),
+        'depts': results[6].count.toString(),
+        'subjects': results[7].count.toString(),
       };
     } catch (e) {
       return {
-        'users': '0',
-        'codes': '0',
-        'questions': '0',
-        'exams': '0',
+        'users': '0', 'codes': '0', 'questions': '0', 'exams': '0',
+        'unis': '0', 'colleges': '0', 'depts': '0', 'subjects': '0',
       };
     }
   }
@@ -109,43 +116,64 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               future: _fetchStats(),
               builder: (context, snapshot) {
                 final stats = snapshot.data ?? {
-                  'users': '...',
-                  'codes': '...',
-                  'questions': '...',
-                  'exams': '...',
+                  'users': '...', 'codes': '...', 'questions': '...', 'exams': '...',
+                  'unis': '...', 'colleges': '...', 'depts': '...', 'subjects': '...',
                 };
 
-                return GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.8,
+                return Column(
                   children: [
-                    _buildStatCard(
-                      icon: Icons.people_alt_rounded,
-                      label: 'المستخدمين',
-                      value: stats['users']!,
-                      color: const Color(0xFF3B82F6),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.8,
+                      children: [
+                        _buildStatCard(
+                          icon: Icons.people_alt_rounded,
+                          label: 'المستخدمين',
+                          value: stats['users']!,
+                          color: const Color(0xFF3B82F6),
+                        ),
+                        _buildStatCard(
+                          icon: Icons.vpn_key_rounded,
+                          label: 'الأكواد النشطة',
+                          value: stats['codes']!,
+                          color: const Color(0xFF10B981),
+                        ),
+                        _buildStatCard(
+                          icon: Icons.quiz_rounded,
+                          label: 'الأسئلة الكلية',
+                          value: stats['questions']!,
+                          color: const Color(0xFFF59E0B),
+                        ),
+                        _buildStatCard(
+                          icon: Icons.assignment_turned_in_rounded,
+                          label: 'اختبارات منجزة',
+                          value: stats['exams']!,
+                          color: const Color(0xFF8B5CF6),
+                        ),
+                      ],
                     ),
-                    _buildStatCard(
-                      icon: Icons.vpn_key_rounded,
-                      label: 'الأكواد النشطة',
-                      value: stats['codes']!,
-                      color: const Color(0xFF10B981),
-                    ),
-                    _buildStatCard(
-                      icon: Icons.quiz_rounded,
-                      label: 'الأسئلة الكلية',
-                      value: stats['questions']!,
-                      color: const Color(0xFFF59E0B),
-                    ),
-                    _buildStatCard(
-                      icon: Icons.assignment_turned_in_rounded,
-                      label: 'اختبارات منجزة',
-                      value: stats['exams']!,
-                      color: const Color(0xFF8B5CF6),
+                    const SizedBox(height: 16),
+                    // Content Stats
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildMiniStat('جامعات', stats['unis']!, Icons.account_balance_rounded),
+                          _buildMiniStat('كليات', stats['colleges']!, Icons.school_rounded),
+                          _buildMiniStat('أقسام', stats['depts']!, Icons.category_rounded),
+                          _buildMiniStat('مواد', stats['subjects']!, Icons.book_rounded),
+                        ],
+                      ),
                     ),
                   ],
                 );
@@ -210,6 +238,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   MaterialPageRoute(builder: (_) => const ReportsManagementScreen()),
                 );
               },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.build_circle_rounded,
+              title: 'صيانة قاعدة البيانات',
+              subtitle: 'إصلاح الهيكلية والبيانات المفقودة',
+              onTap: () => _showMaintenanceDialog(context),
               isDark: isDark,
             ),
 
@@ -337,6 +372,80 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
       ),
     );
+  }
+
+  Widget _buildMiniStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const SizedBox(height: 4),
+        Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(label, style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary)),
+      ],
+    );
+  }
+
+  void _showMaintenanceDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('صيانة قاعدة البيانات', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Text('سيقوم هذا الإجراء بفحص وإصلاح هيكلية البيانات، وإضافة الحقول المفقودة (مثل الترتيب) لضمان ظهور المحتوى.', style: GoogleFonts.cairo()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _repairDatabase();
+            },
+            child: Text('بدء الإصلاح', style: GoogleFonts.cairo()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _repairDatabase() async {
+    setState(() => _isLoading = true);
+    try {
+      final batch = _db.batch();
+      int totalFixed = 0;
+
+      final collections = [
+        'universities',
+        'colleges',
+        'departments',
+        'academic_years',
+        'semesters',
+        'subjects',
+        'sections',
+        'topics',
+        'questions'
+      ];
+
+      for (var col in collections) {
+        final snap = await _db.collection(col).get();
+        for (var doc in snap.docs) {
+          final data = doc.data();
+          if (!data.containsKey('order')) {
+            batch.update(doc.reference, {'order': 0});
+            totalFixed++;
+          }
+        }
+      }
+
+      await batch.commit();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تمت عملية الإصلاح بنجاح. تم تحديث $totalFixed مستند.')),
+        );
+        _refresh();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الإصلاح: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Widget _buildStatusRow(String service, String status, Color color) {
