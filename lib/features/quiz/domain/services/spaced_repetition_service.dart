@@ -100,4 +100,34 @@ class SpacedRepetitionService {
 
     return snap.docs.map((d) => d.id).toList();
   }
+
+  /// Get mastery data for a specific question
+  Future<QuestionMastery?> getQuestionMastery(String userId, String questionId) async {
+    final snap = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .doc(questionId)
+        .get();
+    
+    if (!snap.exists) return null;
+    return QuestionMastery.fromMap(snap.data()!);
+  }
+
+  /// Save or update a personal mnemonic for a question
+  Future<void> updateMnemonic(String userId, String questionId, String subjectId, String mnemonic) async {
+    final docRef = _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .doc(questionId);
+
+    await docRef.set({
+      'mnemonic': mnemonic,
+      'subjectId': subjectId,
+      'questionId': questionId,
+      'lastReview': DateTime.now().toIso8601String(),
+      'nextReview': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+  }
 }

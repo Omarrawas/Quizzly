@@ -183,89 +183,96 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
       }
     }
 
-    // Show loading indicator
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-    }
+    try {
+      // Show loading indicator
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+      }
 
-    // Calculate Results
-    int correctCount = 0;
-    List<Map<String, dynamic>> results = [];
+      // Calculate Results
+      int correctCount = 0;
+      List<Map<String, dynamic>> results = [];
 
-    for (int i = 0; i < _sessionQuestions.length; i++) {
-      final q = _sessionQuestions[i];
-      final userAns = _userAnswers[i];
-      
-      // Only count the FIRST attempt for the official score
-      // We can identify first attempts by checking if it's the first time this question ID appears
-      bool isFirstOccurrence = true;
-      for(int j=0; j<i; j++) {
-        if(_sessionQuestions[j].id == q.id) {
-          isFirstOccurrence = false;
-          break;
+      for (int i = 0; i < _sessionQuestions.length; i++) {
+        final q = _sessionQuestions[i];
+        final userAns = _userAnswers[i];
+
+        bool isFirstOccurrence = true;
+        for (int j = 0; j < i; j++) {
+          if (_sessionQuestions[j].id == q.id) {
+            isFirstOccurrence = false;
+            break;
+          }
+        }
+
+        if (isFirstOccurrence) {
+          final isCorrect = q.correctOptionIds.contains(userAns);
+          if (isCorrect) correctCount++;
+
+          results.add({
+            'questionId': q.id,
+            'selectedOptionId': userAns,
+            'isCorrect': isCorrect,
+            'topicIds': q.topicIds,
+          });
         }
       }
 
-      if (isFirstOccurrence) {
-        final isCorrect = q.correctOptionIds.contains(userAns);
-        if (isCorrect) correctCount++;
-        
-        results.add({
-          'questionId': q.id,
-          'selectedOptionId': userAns,
-          'isCorrect': isCorrect,
-          'topicIds': q.topicIds,
-        });
-      }
-    }
+      final totalOriginal = widget.questions.length;
+      final score = (correctCount / totalOriginal) * 100;
+      final timeSpent = widget.config.durationSeconds - _timeLeft;
 
-    final totalOriginal = widget.questions.length;
-    final score = (correctCount / totalOriginal) * 100;
-    final timeSpent = widget.config.durationSeconds - _timeLeft;
-
-    final userId = authService.user?.uid;
-    if (userId != null && widget.config.id != null) {
-      // Record official exam attempt
-      await _examService.recordExamAttempt(
-        userId: userId,
-        examId: widget.config.id!,
-        score: score,
-        timeSpentSeconds: timeSpent,
-        answers: results,
-      );
-
-      // Update Spaced Repetition Mastery for each question
-      for (var res in results) {
-        await _srsService.updateMastery(
+      final userId = authService.user?.uid;
+      if (userId != null && widget.config.id != null) {
+        // Record official exam attempt
+        await _examService.recordExamAttempt(
           userId: userId,
-          questionId: res['questionId'],
-          subjectId: widget.config.subjectId,
-          quality: res['isCorrect'] ? 5 : 0,
+          examId: widget.config.id!,
+          score: score,
+          timeSpentSeconds: timeSpent,
+          answers: results,
+        );
+
+        // Update Spaced Repetition Mastery
+        for (var res in results) {
+          await _srsService.updateMastery(
+            userId: userId,
+            questionId: res['questionId'],
+            subjectId: widget.config.subjectId,
+            quality: res['isCorrect'] ? 5 : 0,
+          );
+        }
+      }
+
+      if (mounted) {
+        navigator.pop(); // Close loading dialog
+      }
+
+      navigator.pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => ExamResultScreen(
+            config: widget.config,
+            score: score,
+            correctCount: correctCount,
+            totalCount: widget.questions.length,
+            timeSpentSeconds: timeSpent,
+            questions: widget.questions,
+            userAnswers: _userAnswers,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        navigator.pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ أثناء حفظ النتائج: $e')),
         );
       }
     }
-
-    if (mounted) {
-      navigator.pop(); // Close loading dialog
-    }
-
-    navigator.pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => ExamResultScreen(
-          config: widget.config,
-          score: score,
-          correctCount: correctCount,
-          totalCount: widget.questions.length,
-          timeSpentSeconds: timeSpent,
-          questions: widget.questions,
-          userAnswers: _userAnswers,
-        ),
-      ),
-    );
   }
 
   @override
@@ -298,8 +305,10 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
               ),
             ),
           ),
-          _buildNavigationFooter(),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: _buildNavigationFooter(),
       ),
     );
   }

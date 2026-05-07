@@ -7,7 +7,6 @@ import 'package:quizzly/features/quiz/presentation/screens/wrong_answers_screen.
 import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/favorites_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
-import 'package:quizzly/features/subject/presentation/screens/performance_screen.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:quizzly/features/gamification/data/models/gamification_profile.dart';
 import 'package:quizzly/features/subject/domain/services/subject_stats_service.dart';
@@ -21,6 +20,10 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_tags_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_search_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/practical_section_screen.dart';
+import 'package:quizzly/features/subject/domain/services/readiness_service.dart';
+import 'package:quizzly/features/subject/presentation/screens/readiness_detail_screen.dart';
+import 'package:quizzly/features/quiz/domain/services/cram_mode_service.dart';
+import 'package:quizzly/features/quiz/presentation/screens/cram_mode_session_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -44,6 +47,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
   final SubjectStatsService _statsService = SubjectStatsService();
   final SpacedRepetitionService _srsService = SpacedRepetitionService();
   final ExamGeneratorService _generatorService = ExamGeneratorService();
+  final ReadinessService _readinessService = ReadinessService();
+  final CramModeService _cramModeService = CramModeService();
   GamificationProfile? _profile;
 
   @override
@@ -104,7 +109,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PerformanceScreen(
+                  builder: (_) => ReadinessDetailScreen(
                     subjectId: widget.subjectId,
                     subjectName: widget.subjectName,
                   ),
@@ -115,6 +120,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
           ),
 
           _buildSmartCoachSliver(),
+          _buildCramModeSliver(),
 
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -220,65 +226,80 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
   }
 
   Widget _buildHeaderStats() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'المستوى ${_profile?.level ?? 1}',
-                    style: GoogleFonts.cairo(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    'الإتقان الكلي للمادة: 65%',
-                    style: GoogleFonts.cairo(
-                      color: Colors.white70,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+    final userId = context.read<AuthService>().user?.uid ?? '';
+    return StreamBuilder<double>(
+      stream: _readinessService.streamReadinessScore(userId, widget.subjectId),
+      initialData: 0.0,
+      builder: (context, snapshot) {
+        final readiness = snapshot.data ?? 0.0;
+        final percentage = (readiness * 100).toInt();
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
-              _buildGamificationInfo(),
             ],
           ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.65,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 6,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'المستوى ${_profile?.level ?? 1}',
+                        style: GoogleFonts.cairo(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        'جاهزيتك للامتحان: $percentage%',
+                        style: GoogleFonts.cairo(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  _buildGamificationInfo(),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: readiness),
+                  duration: const Duration(milliseconds: 1000),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, _) => LinearProgressIndicator(
+                    value: value,
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    minHeight: 6,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -466,6 +487,116 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
         );
       },
     );
+  }
+
+  Widget _buildCramModeSliver() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amber.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.bolt_rounded, color: Colors.amber, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'وضع اللمسات الأخيرة',
+                    style: GoogleFonts.cairo(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    'مراجعة مكثفة لأهم الأسئلة والثغرات',
+                    style: GoogleFonts.cairo(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _startCramMode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                'ابدأ الآن',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startCramMode() async {
+    final userId = context.read<AuthService>().user?.uid;
+    if (userId == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.amber)),
+    );
+
+    try {
+      final questions = await _cramModeService.generateCramSession(userId, widget.subjectId);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Close loader
+
+      if (questions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا يوجد أسئلة كافية للمراجعة المكثفة بعد.')),
+        );
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CramModeSessionScreen(
+            questions: questions,
+            subjectId: widget.subjectId,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في بدء المراجعة: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _startSmartReview(String userId) async {
