@@ -145,65 +145,65 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
             style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
             textAlign: TextAlign.center,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'اختر طريقة عرض أو بدء الاختبار المفضل لديك:',
-                style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.0,
+                children: [
+                  _ModeOption(
+                    index: 0,
+                    title: 'تصفح ككتاب',
+                    subtitle: 'عرض الأسئلة مع الحلول',
+                    icon: Icons.menu_book_rounded,
+                    color: Colors.orange,
+                    isSelected: selectedMode == 0,
+                    onTap: () => setDialogState(() => selectedMode = 0),
+                  ),
+                  _ModeOption(
+                    index: 1,
+                    title: 'وضع "احفظني"',
+                    subtitle: 'الاسترجاع النشط الفعال',
+                    icon: Icons.psychology_rounded,
+                    color: Colors.red,
+                    isSelected: selectedMode == 1,
+                    onTap: () => setDialogState(() => selectedMode = 1),
+                  ),
+                  _ModeOption(
+                    index: 2,
+                    title: 'امتحان بمؤقت',
+                    subtitle: 'اختبار تجريبي مؤقت',
+                    icon: Icons.timer_rounded,
+                    color: AppColors.primaryBlue,
+                    isSelected: selectedMode == 2,
+                    onTap: () => setDialogState(() => selectedMode = 2),
+                  ),
+                  _ModeOption(
+                    index: 3,
+                    title: 'بطاقات ذكية',
+                    subtitle: 'مراجعة عبر قلب البطاقات',
+                    icon: Icons.style_rounded,
+                    color: Colors.purple,
+                    isSelected: selectedMode == 3,
+                    onTap: () => setDialogState(() => selectedMode = 3),
+                  ),
+                  _ModeOption(
+                    index: 4,
+                    title: 'تحدي السرعة ⚡',
+                    subtitle: '10 ثوانٍ لكل سؤال',
+                    icon: Icons.bolt_rounded,
+                    color: Colors.amber,
+                    isSelected: selectedMode == 4,
+                    onTap: () => setDialogState(() => selectedMode = 4),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              _ModeOption(
-                index: 0,
-                title: 'تصفح ككتاب',
-                subtitle: 'عرض كافة الأسئلة مع الحلول والشرح',
-                icon: Icons.menu_book_rounded,
-                color: Colors.orange,
-                isSelected: selectedMode == 0,
-                onTap: () => setDialogState(() => selectedMode = 0),
-              ),
-              const SizedBox(height: 12),
-              _ModeOption(
-                index: 1,
-                title: 'وضع "احفظني" (عالمي)',
-                subtitle: 'أقوى وسيلة للحفظ عبر الاسترجاع النشط',
-                icon: Icons.psychology_rounded,
-                color: Colors.red,
-                isSelected: selectedMode == 1,
-                onTap: () => setDialogState(() => selectedMode = 1),
-              ),
-              const SizedBox(height: 12),
-              _ModeOption(
-                index: 2,
-                title: 'امتحان مؤقت (أتمتة)',
-                subtitle: 'اختبار تجريبي مع مؤقت تنازلي وحساب نقاط',
-                icon: Icons.timer_rounded,
-                color: AppColors.primaryBlue,
-                isSelected: selectedMode == 2,
-                onTap: () => setDialogState(() => selectedMode = 2),
-              ),
-              const SizedBox(height: 12),
-              _ModeOption(
-                index: 3,
-                title: 'بطاقات ذكية',
-                subtitle: 'مراجعة سريعة وحفظ عبر قلب البطاقات',
-                icon: Icons.style_rounded,
-                color: Colors.purple,
-                isSelected: selectedMode == 3,
-                onTap: () => setDialogState(() => selectedMode = 3),
-              ),
-              const SizedBox(height: 12),
-              _ModeOption(
-                index: 4,
-                title: 'تحدي السرعة ⚡',
-                subtitle: '10 ثوانٍ فقط لكل سؤال لإتقان السرعة',
-                icon: Icons.bolt_rounded,
-                color: Colors.amber,
-                isSelected: selectedMode == 4,
-                onTap: () => setDialogState(() => selectedMode = 4),
-              ),
-            ],
+            ),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           actions: [
@@ -256,13 +256,16 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
         case 1: // Memory mode
           screen = ActiveRecallSessionScreen(config: config, questions: questions);
           break;
+        case 2: // Timed Exam
+          screen = ExamSessionScreen(config: config, questions: questions);
+          break;
         case 3: // Flashcards
           screen = ExamFlashcardsScreen(config: config, questions: questions);
           break;
         case 4: // Speed mode
           screen = SpeedModeSessionScreen(config: config, questions: questions);
           break;
-        default: // Exam mode
+        default: // Fallback
           screen = ExamSessionScreen(config: config, questions: questions);
       }
 
@@ -386,33 +389,58 @@ class _ModeOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade200, width: isSelected ? 2 : 1),
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
         ),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
-                  Text(subtitle, style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary)),
-                ],
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: isSelected ? color : AppColors.textPrimary,
               ),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle_rounded, color: color, size: 20),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(
+                fontSize: 9,
+                color: isSelected
+                    ? color.withValues(alpha: 0.7)
+                    : AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),

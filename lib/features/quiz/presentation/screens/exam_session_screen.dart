@@ -34,6 +34,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   Timer? _timer;
   late List<QuizQuestion> _sessionQuestions;
   final Set<String> _incorrectQuestionIds = {};
+  final Set<int> _processedIndices = {}; // Track which questions have been "processed" for smart re-entry
 
   @override
   void initState() {
@@ -67,32 +68,49 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   void _selectOption(String optionId) {
-    if (_userAnswers.containsKey(_currentIndex)) return; // Prevent changing answer in practice mode logic
+    // Allow changing the answer if it hasn't been "confirmed" by clicking Next
+    if (_processedIndices.contains(_currentIndex)) return;
 
-    final q = _sessionQuestions[_currentIndex];
-    final isCorrect = q.correctOptionIds.contains(optionId);
-    
     setState(() {
       _userAnswers[_currentIndex] = optionId;
     });
 
-    if (!isCorrect) {
-      _incorrectQuestionIds.add(q.id!);
-      // Smart Re-entry: Add to queue again after 4 questions
-      final insertAt = (_currentIndex + 5).clamp(0, _sessionQuestions.length);
-      setState(() {
-        _sessionQuestions.insert(insertAt, q);
-      });
+    HapticFeedback.selectionClick();
+  }
+
+  void _handleNext() {
+    if (!_userAnswers.containsKey(_currentIndex)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى اختيار إجابة أولاً'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
     }
 
-    HapticFeedback.selectionClick();
-    
-    // Auto advance after short delay to show feedback if wanted (optional)
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted && _currentIndex < _sessionQuestions.length - 1) {
-        setState(() => _currentIndex++);
+    // Process the answer for smart re-entry if not already processed
+    if (!_processedIndices.contains(_currentIndex)) {
+      final q = _sessionQuestions[_currentIndex];
+      final userAns = _userAnswers[_currentIndex];
+      final isCorrect = q.correctOptionIds.contains(userAns);
+
+      if (!isCorrect) {
+        _incorrectQuestionIds.add(q.id!);
+        // Smart Re-entry: Add to queue again after 4 questions
+        final insertAt = (_currentIndex + 5).clamp(0, _sessionQuestions.length);
+        setState(() {
+          _sessionQuestions.insert(insertAt, q);
+        });
       }
-    });
+      _processedIndices.add(_currentIndex);
+    }
+
+    if (_currentIndex < _sessionQuestions.length - 1) {
+      setState(() => _currentIndex++);
+    } else {
+      _submitExam();
+    }
   }
 
   Future<void> _submitExam({bool auto = false}) async {
@@ -102,21 +120,76 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     final navigator = Navigator.of(context);
 
     if (!auto) {
-      final confirm = await showDialog<bool>(
+      final String? action = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('إنهاء الاختبار؟', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-          content: Text('هل أنت متأكد من رغبتك في تسليم الإجابات؟', style: GoogleFonts.cairo()),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'إنهاء الاختبار؟',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            'هل تريد تسليم إجاباتك الحالية أم الخروج دون حفظ النتيجة؟',
+            style: GoogleFonts.cairo(),
+            textAlign: TextAlign.center,
+          ),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('إلغاء', style: GoogleFonts.cairo())),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text('تسليم', style: GoogleFonts.cairo())),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, 'submit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text('تسليم الإجابات', style: GoogleFonts.cairo(color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, 'exit'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text('إنهاء دون تسليم', style: GoogleFonts.cairo(color: Colors.red)),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'cancel'),
+                  child: Text('إكمال الاختبار', style: GoogleFonts.cairo(color: Colors.grey)),
+                ),
+              ],
+            ),
           ],
         ),
       );
-      if (confirm != true) {
+
+      if (action == 'submit') {
+        // Proceed to calculation
+      } else if (action == 'exit') {
+        navigator.pop();
+        return;
+      } else {
         _startTimer();
         return;
       }
+    }
+
+    // Show loading indicator
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
     }
 
     // Calculate Results
@@ -176,6 +249,10 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
       }
     }
 
+    if (mounted) {
+      navigator.pop(); // Close loading dialog
+    }
+
     navigator.pushReplacement(
       MaterialPageRoute(
         builder: (_) => ExamResultScreen(
@@ -225,6 +302,13 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         ],
       ),
     );
+  }
+
+  // Handle back button
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This can be used for PopScope if needed in newer Flutter versions
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -358,9 +442,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             const SizedBox(width: 80),
           
           ElevatedButton(
-            onPressed: _currentIndex < _sessionQuestions.length - 1
-                ? () => setState(() => _currentIndex++)
-                : () => _submitExam(),
+            onPressed: _handleNext,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               foregroundColor: Colors.white,

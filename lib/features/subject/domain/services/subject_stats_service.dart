@@ -80,4 +80,14 @@ class SubjectStatsService {
         .snapshots()
         .map((snap) => snap.size);
   }
+
+  /// Stream of practical topics count for a subject
+  Stream<int> streamPracticalTopicsCount(String subjectId) {
+    return _db
+        .collection('topics')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('type', isEqualTo: 'practical')
+        .snapshots()
+        .map((snap) => snap.size);
+  }
 }

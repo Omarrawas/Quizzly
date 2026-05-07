@@ -20,6 +20,7 @@ import 'package:quizzly/features/quiz/presentation/screens/active_recall_session
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_tags_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_search_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/practical_section_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -58,7 +59,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
   Future<void> _loadProfile() async {
     final userId = context.read<AuthService>().user?.uid;
     if (userId == null) return;
-    
+
     final profile = await _gamificationService.getProfile(userId);
     if (mounted) setState(() => _profile = profile);
   }
@@ -85,8 +86,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
     final headerStatsHeight = 160.0;
-    final availableHeight = screenHeight - appBarHeight - headerStatsHeight - 100;
-    
+    final availableHeight =
+        screenHeight - appBarHeight - headerStatsHeight - 100;
+
     final double cardHeight = (availableHeight / 3).clamp(120.0, 180.0);
     final double cardWidth = (MediaQuery.of(context).size.width - 56) / 2;
     final double aspectRatio = cardWidth / cardHeight;
@@ -96,7 +98,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(),
-          
+
           SliverToBoxAdapter(
             child: GestureDetector(
               onTap: () => Navigator.push(
@@ -124,12 +126,64 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
                 childAspectRatio: aspectRatio,
               ),
               delegate: SliverChildListDelegate([
-                _buildActionCard(0, Icons.assignment_rounded, 'الامتحانات', const Color(0xFF2563EB), _statsService.streamExamsCount(widget.subjectId)),
-                _buildActionCard(1, Icons.sell_rounded, 'التصنيفات', const Color(0xFFEA580C), _statsService.streamTopicsCount(widget.subjectId)),
-                _buildActionCard(2, Icons.search_rounded, 'البحث', const Color(0xFF16A34A), _statsService.streamQuestionsCount(widget.subjectId)),
-                _buildActionCard(3, Icons.favorite_rounded, 'المفضلة', const Color(0xFFEF4444), _statsService.streamFavoritesCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
-                _buildActionCard(4, Icons.close_rounded, 'الإجابات الخاطئة', const Color(0xFFDC2626), _statsService.streamWrongAnswersCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
-                _buildActionCard(5, Icons.school_rounded, 'تدرب بنفسك', const Color(0xFF0EA5E9), _statsService.streamPracticeCount(context.read<AuthService>().user?.uid ?? '', widget.subjectId)),
+                _buildActionCard(
+                  0,
+                  Icons.assignment_rounded,
+                  'الامتحانات',
+                  const Color(0xFF2563EB),
+                  _statsService.streamExamsCount(widget.subjectId),
+                ),
+                _buildActionCard(
+                  1,
+                  Icons.sell_rounded,
+                  'التصنيفات',
+                  const Color(0xFFEA580C),
+                  _statsService.streamTopicsCount(widget.subjectId),
+                ),
+                _buildActionCard(
+                  2,
+                  Icons.search_rounded,
+                  'البحث',
+                  const Color(0xFF16A34A),
+                  _statsService.streamQuestionsCount(widget.subjectId),
+                ),
+                _buildActionCard(
+                  3,
+                  Icons.favorite_rounded,
+                  'المفضلة',
+                  const Color(0xFFEF4444),
+                  _statsService.streamFavoritesCount(
+                    context.read<AuthService>().user?.uid ?? '',
+                    widget.subjectId,
+                  ),
+                ),
+                _buildActionCard(
+                  4,
+                  Icons.close_rounded,
+                  'الإجابات الخاطئة',
+                  const Color(0xFFDC2626),
+                  _statsService.streamWrongAnswersCount(
+                    context.read<AuthService>().user?.uid ?? '',
+                    widget.subjectId,
+                  ),
+                ),
+                _buildActionCard(
+                  5,
+                  Icons.school_rounded,
+                  'تدرب بنفسك',
+                  const Color(0xFF0EA5E9),
+                  _statsService.streamPracticeCount(
+                    context.read<AuthService>().user?.uid ?? '',
+                    widget.subjectId,
+                  ),
+                ),
+                _buildActionCard(
+                  6,
+                  Icons.science_rounded,
+                  'القسم العملي',
+                  const Color(0xFF0D9488),
+                  _statsService.streamPracticalTopicsCount(widget.subjectId),
+                ),
               ]),
             ),
           ),
@@ -140,7 +194,13 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     );
   }
 
-  Widget _buildActionCard(int index, IconData icon, String label, Color bg, Stream<int> countStream) {
+  Widget _buildActionCard(
+    int index,
+    IconData icon,
+    String label,
+    Color bg,
+    Stream<int> countStream,
+  ) {
     return StreamBuilder<int>(
       stream: countStream,
       initialData: 0,
@@ -155,7 +215,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
           ),
           onTap: () => _onActionTap(index),
         );
-      }
+      },
     );
   }
 
@@ -189,11 +249,18 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
                 children: [
                   Text(
                     'المستوى ${_profile?.level ?? 1}',
-                    style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: GoogleFonts.cairo(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   Text(
                     'الإتقان الكلي للمادة: 65%',
-                    style: GoogleFonts.cairo(color: Colors.white70, fontSize: 11),
+                    style: GoogleFonts.cairo(
+                      color: Colors.white70,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -218,9 +285,17 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
   Widget _buildGamificationInfo() {
     return Row(
       children: [
-        _buildStatItem(Icons.bolt_rounded, '${_profile?.xp ?? 0}', Colors.amber),
+        _buildStatItem(
+          Icons.bolt_rounded,
+          '${_profile?.xp ?? 0}',
+          Colors.amber,
+        ),
         const SizedBox(width: 12),
-        _buildStatItem(Icons.local_fire_department_rounded, '${_profile?.currentStreak ?? 0}', Colors.orange),
+        _buildStatItem(
+          Icons.local_fire_department_rounded,
+          '${_profile?.currentStreak ?? 0}',
+          Colors.orange,
+        ),
       ],
     );
   }
@@ -262,7 +337,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
             turns: _syncController,
             child: Icon(
               Icons.sync_rounded,
-              color: _isSyncing ? AppColors.primaryBlue : AppColors.textSecondary,
+              color: _isSyncing
+                  ? AppColors.primaryBlue
+                  : AppColors.textSecondary,
               size: 24,
             ),
           ),
@@ -270,12 +347,20 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
       ],
       title: Text(
         widget.subjectName,
-        style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        style: GoogleFonts.cairo(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
       ),
       centerTitle: true,
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: AppColors.textPrimary,
+          size: 20,
+        ),
       ),
     );
   }
@@ -319,9 +404,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
       case 3: // المفضلة
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const FavoritesScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const FavoritesScreen()),
         );
         break;
       case 4: // الإجابات الخاطئة
@@ -346,20 +429,33 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
           ),
         );
         break;
+      case 6: // القسم العملي
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PracticalSectionScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
+        break;
     }
   }
 
-
-
   Widget _buildSmartCoachSliver() {
     final userId = context.read<AuthService>().user?.uid;
-    if (userId == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    if (userId == null) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return StreamBuilder<int>(
       stream: _statsService.streamDueQuestionsCount(userId, widget.subjectId),
       builder: (context, snapshot) {
         final count = snapshot.data ?? 0;
-        if (count == 0) return const SliverToBoxAdapter(child: SizedBox.shrink());
+        if (count == 0) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
 
         return SliverToBoxAdapter(
           child: SmartCoachBanner(
@@ -380,9 +476,12 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     );
 
     try {
-      final dueIds = await _srsService.getDueQuestionIds(userId, widget.subjectId);
+      final dueIds = await _srsService.getDueQuestionIds(
+        userId,
+        widget.subjectId,
+      );
       final questions = await _generatorService.getQuestionsByIds(dueIds);
-      
+
       if (!mounted) return;
       Navigator.pop(context); // Close loader
 
@@ -408,9 +507,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen>
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في جلب الأسئلة: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في جلب الأسئلة: $e')));
       }
     }
   }
