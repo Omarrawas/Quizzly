@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
+import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanation.dart';
 
 class QuestionReviewScreen extends StatelessWidget {
   final List<QuizQuestion> questions;
@@ -138,6 +139,14 @@ class QuestionReviewScreen extends StatelessWidget {
                         errorBuilder: (context, error, stackTrace) => const SizedBox(),
                       ),
                     ),
+                  ],
+                  if (question.explanationVideoUrl != null && question.explanationVideoUrl!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    QuickExplanationVideo(videoUrl: question.explanationVideoUrl!),
+                  ],
+                  if (question.explanationAudioUrl != null && question.explanationAudioUrl!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    AudioExplanationPlayer(audioUrl: question.explanationAudioUrl!),
                   ],
                 ],
               ],

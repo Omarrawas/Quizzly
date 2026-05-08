@@ -28,15 +28,24 @@ class CramModeService {
     criticalIds.addAll(favoritesSnap.docs.map((d) => d.id));
 
     // 3. Get low mastery questions (those with consecutiveCorrect < 2)
-    final lowMasterySnap = await _db
+    // We filter in memory to avoid needing a composite index in Firestore
+    final masterySnap = await _db
         .collection('users')
         .doc(userId)
         .collection('mastery')
         .where('subjectId', isEqualTo: subjectId)
-        .where('consecutiveCorrect', isLessThan: 2)
-        .limit(20) // Don't overwhelm
         .get();
-    criticalIds.addAll(lowMasterySnap.docs.map((d) => d.id));
+    
+    final lowMasteryIds = masterySnap.docs
+        .where((doc) {
+          final data = doc.data();
+          final consecutiveCorrect = data['consecutiveCorrect'] as num? ?? 0;
+          return consecutiveCorrect < 2;
+        })
+        .map((doc) => doc.id)
+        .take(20);
+        
+    criticalIds.addAll(lowMasteryIds);
 
     if (criticalIds.isEmpty) {
       // Fallback: If no critical questions, just get some random ones from the bank

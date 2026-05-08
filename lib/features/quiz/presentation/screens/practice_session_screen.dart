@@ -10,6 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
+import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
+import 'package:quizzly/features/quiz/presentation/widgets/mnemonic_card.dart';
 import 'dart:async';
 
 class PracticeSessionScreen extends StatefulWidget {
@@ -36,6 +38,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   final SmartQuizService _smartService = SmartQuizService();
   final GamificationService _gamificationService = GamificationService();
   final ListService _listService = ListService();
+  final SpacedRepetitionService _srsService = SpacedRepetitionService();
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
@@ -44,6 +47,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   bool _showExplanation = false;
   bool _loading = true;
   bool _loadingSimilar = false;
+  String? _currentMnemonic;
 
   // Lists state
   List<UserList> _userLists = [];
@@ -127,11 +131,83 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
           _questions = questions;
           _loading = false;
         });
+        _loadMnemonic();
         _slideController.forward(from: 0);
       }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loadMnemonic() async {
+    final q = _current;
+    if (q == null || q.id == null) return;
+    final userId = context.read<AuthService>().user?.uid;
+    if (userId == null) return;
+
+    final mastery = await _srsService.getQuestionMastery(userId, q.id!);
+    if (mounted) {
+      setState(() {
+        _currentMnemonic = mastery?.mnemonic;
+      });
+    }
+  }
+
+  void _showMnemonicDialog() {
+    final controller = TextEditingController(text: _currentMnemonic);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        title: Text(
+          'رابط ذهني للحفظ',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.right,
+        ),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          textAlign: TextAlign.right,
+          decoration: InputDecoration(
+            hintText: 'اكتب شيئاً يساعدك على التذكر...',
+            hintStyle: GoogleFonts.cairo(color: Colors.grey[400]),
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final userId = context.read<AuthService>().user?.uid;
+              if (userId != null && _current?.id != null) {
+                await _srsService.updateMnemonic(
+                  userId,
+                  _current!.id!,
+                  widget.subjectId,
+                  controller.text,
+                );
+                setState(() => _currentMnemonic = controller.text);
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFB923C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('حفظ', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   QuizQuestion? get _current =>
@@ -179,6 +255,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         _answerState = AnswerState.unanswered;
         _showExplanation = false;
       });
+      _loadMnemonic();
       _slideController.forward(from: 0);
     } else {
       _showResultsSheet();
@@ -403,6 +480,11 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                               if (_answerState != AnswerState.unanswered &&
                                   _current?.explanation != null)
                                 _buildExplanationCard(isDark),
+                              const SizedBox(height: 16),
+                              MnemonicCard(
+                                mnemonic: _currentMnemonic,
+                                onTap: _showMnemonicDialog,
+                              ),
                               const SizedBox(height: 80),
                             ],
                           ),

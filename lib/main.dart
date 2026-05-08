@@ -9,12 +9,16 @@ import 'package:quizzly/firebase_options.dart';
 import 'package:quizzly/features/home/domain/services/college_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
+import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Smart Notifications
+  await SmartNotificationService().init();
 
   // Enable 100% offline persistence to store data, results, and queue writes automatically.
   FirebaseFirestore.instance.settings = const Settings(

@@ -61,6 +61,8 @@ class QuizQuestion {
   final String? essayAnswer;     
   final String? explanation;     
   final String? explanationImageUrl; 
+  final String? explanationVideoUrl; 
+  final String? explanationAudioUrl; 
   final Difficulty? difficulty;
   final CognitiveLevel? cognitiveLevel;
   final int? estimatedTime;      
@@ -95,6 +97,8 @@ class QuizQuestion {
     this.essayAnswer,
     this.explanation,
     this.explanationImageUrl,
+    this.explanationVideoUrl,
+    this.explanationAudioUrl,
     this.difficulty,
     this.cognitiveLevel,
     this.estimatedTime,
@@ -125,6 +129,8 @@ class QuizQuestion {
     String? essayAnswer,
     String? explanation,
     String? explanationImageUrl,
+    String? explanationVideoUrl,
+    String? explanationAudioUrl,
     Difficulty? difficulty,
     CognitiveLevel? cognitiveLevel,
     int? estimatedTime,
@@ -154,6 +160,8 @@ class QuizQuestion {
       essayAnswer: essayAnswer ?? this.essayAnswer,
       explanation: explanation ?? this.explanation,
       explanationImageUrl: explanationImageUrl ?? this.explanationImageUrl,
+      explanationVideoUrl: explanationVideoUrl ?? this.explanationVideoUrl,
+      explanationAudioUrl: explanationAudioUrl ?? this.explanationAudioUrl,
       difficulty: difficulty ?? this.difficulty,
       cognitiveLevel: cognitiveLevel ?? this.cognitiveLevel,
       estimatedTime: estimatedTime ?? this.estimatedTime,
@@ -192,6 +200,8 @@ class QuizQuestion {
       essayAnswer: data['essayAnswer'],
       explanation: data['explanation'],
       explanationImageUrl: data['explanationImageUrl'],
+      explanationVideoUrl: data['explanationVideoUrl'],
+      explanationAudioUrl: data['explanationAudioUrl'],
       difficulty: _parseDifficulty(data['difficulty']),
       cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']),
       estimatedTime: data['estimatedTime'],
@@ -248,6 +258,8 @@ class QuizQuestion {
       'essayAnswer': essayAnswer,
       'explanation': explanation,
       'explanationImageUrl': explanationImageUrl,
+      'explanationVideoUrl': explanationVideoUrl,
+      'explanationAudioUrl': explanationAudioUrl,
       'difficulty': difficulty?.name,
       'cognitiveLevel': cognitiveLevel?.name,
       'estimatedTime': estimatedTime,

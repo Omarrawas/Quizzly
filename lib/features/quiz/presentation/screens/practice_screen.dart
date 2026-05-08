@@ -100,25 +100,30 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     });
   }
 
-  Future<void> _startPractice() async {
+  Future<void> _startPractice({
+    List<String>? topicIds,
+    List<String>? topicNames,
+    Difficulty? difficulty,
+  }) async {
     HapticFeedback.mediumImpact();
 
-    final topicIds = _selectedTopicIds.isEmpty ? null : _selectedTopicIds.toList();
-    final topicNames = _selectedTopicIds.isEmpty
+    final finalTopicIds = topicIds ?? (_selectedTopicIds.isEmpty ? null : _selectedTopicIds.toList());
+    final finalTopicNames = topicNames ?? (_selectedTopicIds.isEmpty
         ? ['جميع المواضيع']
         : _topics
             .where((t) => _selectedTopicIds.contains(t['id']))
             .map((t) => t['name'] as String)
-            .toList();
+            .toList());
+    final finalDifficulty = difficulty ?? _selectedDifficulty;
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PracticeSessionScreen(
           subjectId: widget.subjectId,
-          topicIds: topicIds,
-          topicNames: topicNames,
-          selectedDifficulty: _selectedDifficulty,
+          topicIds: finalTopicIds,
+          topicNames: finalTopicNames,
+          selectedDifficulty: finalDifficulty,
         ),
       ),
     );
@@ -232,8 +237,14 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                           _buildInfoCard(isDark),
                           const SizedBox(height: 24),
 
+                          // Smart Presets
+                          _buildSectionTitle('جلسات ذكية (سريعة)', Icons.bolt_rounded),
+                          const SizedBox(height: 12),
+                          _buildPresetsRow(),
+                          const SizedBox(height: 24),
+
                           // Difficulty filter
-                          _buildSectionTitle('الصعوبة', Icons.tune_rounded),
+                          _buildSectionTitle('أو خصص تدريبك: الصعوبة', Icons.tune_rounded),
                           const SizedBox(height: 12),
                           _buildDifficultySelector(),
                           const SizedBox(height: 24),
@@ -304,6 +315,78 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
             Text(label, style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue), textAlign: TextAlign.center),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPresetsRow() {
+    final presets = [
+      {
+        'title': 'تحديث سريع',
+        'subtitle': '15 دقيقة',
+        'icon': Icons.timer_outlined,
+        'color': const Color(0xFF2563EB),
+      },
+      {
+        'title': 'جلسة تركيز',
+        'subtitle': '30 دقيقة',
+        'icon': Icons.center_focus_strong_outlined,
+        'color': const Color(0xFF7C3AED),
+      },
+      {
+        'title': 'تحدي الوحش',
+        'subtitle': 'صعب فقط',
+        'icon': Icons.whatshot_rounded,
+        'color': const Color(0xFFDC2626),
+      },
+    ];
+
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: presets.length,
+        itemBuilder: (context, index) {
+          final p = presets[index];
+          final color = p['color'] as Color;
+          return GestureDetector(
+            onTap: () {
+              if (index == 0) {
+                _startPractice(difficulty: null); // Quick Refresh
+              } else if (index == 1) {
+                _startPractice(difficulty: null); // Focus (All diffs but more questions)
+              } else {
+                _startPractice(difficulty: Difficulty.hard); // Beast Mode
+              }
+            },
+            child: Container(
+              width: 130,
+              margin: const EdgeInsets.only(left: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: color.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(p['icon'] as IconData, color: color, size: 20),
+                  const SizedBox(height: 4),
+                  Text(
+                    p['title'] as String,
+                    style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+                  ),
+                  Text(
+                    p['subtitle'] as String,
+                    style: GoogleFonts.cairo(fontSize: 10, color: color.withValues(alpha: 0.7)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

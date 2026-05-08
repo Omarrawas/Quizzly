@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
+import 'package:rxdart/rxdart.dart';
 
 class SubjectStatsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -89,5 +91,68 @@ class SubjectStatsService {
         .where('type', isEqualTo: 'practical')
         .snapshots()
         .map((snap) => snap.size);
+  }
+
+  /// Stream of favorite questions for a subject
+  Stream<List<QuizQuestion>> streamFavoriteQuestions(String userId, String subjectId) {
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('favorites')
+        .where('questionData.subjectId', isEqualTo: subjectId)
+        .snapshots()
+        .map((snap) {
+          return snap.docs.map((doc) {
+            final data = doc.data();
+            final qData = data['questionData'] as Map<String, dynamic>;
+            return QuizQuestion.fromMap(qData, doc.id);
+          }).toList();
+        });
+  }
+
+  /// Stream of questions answered incorrectly
+  Stream<List<QuizQuestion>> streamWrongQuestions(String userId, String subjectId) {
+    return _db
+        .collection('user_history')
+        .doc(userId)
+        .snapshots()
+        .switchMap((userSnap) {
+          if (!userSnap.exists) return Stream.value([]);
+          final data = userSnap.data() as Map<String, dynamic>;
+          final List<dynamic> wrongIds = data['wrongAnswers_$subjectId'] ?? [];
+          if (wrongIds.isEmpty) return Stream.value([]);
+
+          // Firestore has a limit of 10-30 in 'whereIn'. For simplicity, fetch all subject questions and filter.
+          // In a high-scale app, we would fetch by individual IDs or chunks.
+          return _db
+              .collection('questions')
+              .where('subjectId', isEqualTo: subjectId)
+              .snapshots()
+              .map((qSnap) {
+                return qSnap.docs
+                    .map((doc) => QuizQuestion.fromFirestore(doc))
+                    .where((q) => wrongIds.contains(q.id))
+                    .toList();
+              });
+        });
+  }
+
+  /// Combined stream of favorites and wrong answers
+  Stream<List<QuizQuestion>> streamAllProblematicQuestions(String userId, String subjectId) {
+    return Rx.combineLatest2(
+      streamFavoriteQuestions(userId, subjectId),
+      streamWrongQuestions(userId, subjectId),
+      (List<QuizQuestion> favs, List<QuizQuestion> wrongs) {
+        // Merge and remove duplicates
+        final Map<String, QuizQuestion> all = {};
+        for (var q in favs) {
+          if (q.id != null) all[q.id!] = q;
+        }
+        for (var q in wrongs) {
+          if (q.id != null) all[q.id!] = q;
+        }
+        return all.values.toList();
+      },
+    );
   }
 }

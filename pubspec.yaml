@@ -29,6 +29,11 @@ dependencies:
   qr_flutter: ^4.1.0
   intl: ^0.20.2
   flutter_math_fork: ^0.7.4
+  video_player: ^2.9.1
+  audioplayers: ^6.1.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:
