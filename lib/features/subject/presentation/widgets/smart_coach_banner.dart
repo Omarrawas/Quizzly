@@ -17,49 +17,37 @@ class SmartCoachBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFEF2F2), // Light red/pink
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFFEE2E2)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Icon(Icons.psychology_rounded, color: Color(0xFFDC2626), size: 28),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+          child: const Icon(Icons.psychology_rounded, color: Color(0xFFDC2626), size: 28),
+        ),
+        title: Text(
+          'تنبيه المدرب الذكي 🧠',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF991B1B)),
+        ),
+        subtitle: Text(
+          message,
+          style: GoogleFonts.cairo(fontSize: 11, color: const Color(0xFFB91C1C)),
+        ),
+        trailing: ElevatedButton(
+          onPressed: onAction,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFDC2626),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'تنبيه المدرب الذكي 🧠',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF991B1B)),
-                ),
-                Text(
-                  message,
-                  style: GoogleFonts.cairo(fontSize: 11, color: const Color(0xFFB91C1C)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: onAction,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(actionLabel, style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
-          ),
-        ],
+          child: Text(actionLabel, style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+        ),
       ),
     );
   }
