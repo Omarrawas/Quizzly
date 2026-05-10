@@ -16,6 +16,7 @@ import 'package:quizzly/features/subject/presentation/screens/practical_section_
 import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
 import 'package:quizzly/features/subject/domain/services/readiness_service.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_battles_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -45,17 +46,22 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(userId),
-          SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
-          SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
-          _buildCramModeSliver(userId),
-          SliverToBoxAdapter(
-            child: _buildActionsGrid(userId),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(userId),
+              SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
+              SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
+              _buildCramModeSliver(userId),
+              SliverToBoxAdapter(
+                child: _buildActionsGrid(userId),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+        ),
       ),
     );
   }
@@ -208,20 +214,26 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: GridView.count(
+      child: GridView.builder(
         shrinkWrap: true,
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 1.1,
         physics: const NeverScrollableScrollPhysics(),
-        children: actions.map((a) => _buildActionCard(
-          icon: a.$1,
-          label: a.$2,
-          color: a.$3,
-          countStream: a.$4,
-          onTap: () => _onActionTap(a.$5),
-        )).toList(),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 200,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.1,
+        ),
+        itemCount: actions.length,
+        itemBuilder: (context, index) {
+          final a = actions[index];
+          return _buildActionCard(
+            icon: a.$1,
+            label: a.$2,
+            color: a.$3,
+            countStream: a.$4,
+            onTap: () => _onActionTap(a.$5),
+          );
+        },
       ),
     );
   }
@@ -324,9 +336,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   void _onActionTap(int index) {
     switch (index) {
       case 0:
-        // Exams — coming soon
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('قسم الامتحانات قادم في التحديث القادم!')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ExamsListScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
         );
         break;
       case 1:
