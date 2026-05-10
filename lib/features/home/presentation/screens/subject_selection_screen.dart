@@ -690,93 +690,132 @@ class _SemesterCard extends StatelessWidget {
               }
 
               return Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: subjects.map((subj) {
+                padding: const EdgeInsets.all(16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.95,
+                  ),
+                  itemCount: subjects.length,
+                  itemBuilder: (context, index) {
+                    final subj = subjects[index];
                     final isAdded = activeSubjectIds.contains(subj.id);
                     final data = subj.data() as Map<String, dynamic>?;
                     final String name = data?['name']?.toString() ?? 'مادة بدون اسم';
                     final String code = data?['code']?.toString() ?? 'N/A';
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: isAdded 
-                          ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.2 : 0.05)
-                          : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isAdded 
-                            ? AppColors.primaryBlue.withValues(alpha: 0.3)
-                            : Colors.transparent,
+                    final vibrantColors = [
+                      (const Color(0xFF4F46E5), const Color(0xFF818CF8)), // Indigo
+                      (const Color(0xFFE11D48), const Color(0xFFFB7185)), // Rose
+                      (const Color(0xFF0D9488), const Color(0xFF2DD4BF)), // Teal
+                      (const Color(0xFFD97706), const Color(0xFFFBBF24)), // Amber
+                      (const Color(0xFF0284C7), const Color(0xFF38BDF8)), // Sky
+                      (const Color(0xFF7C3AED), const Color(0xFFA78BFA)), // Violet
+                    ];
+                    final (colorMain, colorLight) = vibrantColors[index % vibrantColors.length];
+
+                    return GestureDetector(
+                      onTap: isAdded ? null : () => _addSubject(context, authService.user?.uid, subj.id),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [colorMain, colorLight],
+                            begin: Alignment.bottomRight,
+                            end: Alignment.topLeft,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colorMain.withValues(alpha: 0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            )
+                          ],
                         ),
-                      ),
-                      child: ListTile(
-                        onTap: isAdded ? null : () => _addSubject(context, authService.user?.uid, subj.id),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        leading: CircleAvatar(
-                          backgroundColor: isAdded ? AppColors.primaryBlue : AppColors.borderLight,
-                          radius: 18,
-                          child: Text(
-                            name.isNotEmpty ? name.substring(0, 1) : '?',
-                            style: GoogleFonts.cairo(
-                              color: isAdded ? Colors.white : AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Top Row: Icon & Status
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                                ),
+                                if (isAdded)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(Icons.check_rounded, color: colorMain, size: 16),
+                                  )
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.3),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                                  ),
+                              ],
                             ),
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: GoogleFonts.cairo(
-                            fontSize: 15,
-                            fontWeight: isAdded ? FontWeight.bold : FontWeight.w500,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'كود المادة: $code',
-                          style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
-                        ),
-                        trailing: isAdded
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                            const Spacer(),
+                            // Title
+                            Text(
+                              name,
+                              style: GoogleFonts.cairo(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                height: 1.3,
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'مفعلة',
-                                    style: GoogleFonts.cairo(
-                                      color: Colors.green,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            // Subtitle (Code + Locked info)
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    code,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 1,
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
-                                ],
-                              ),
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryBlue,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                onPressed: () => _addSubject(context, authService.user?.uid, subj.id),
-                                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.all(8),
-                              ),
+                                ),
+                                const Spacer(),
+                                if (!isAdded)
+                                  Icon(Icons.lock_outline_rounded, color: Colors.white.withValues(alpha: 0.7), size: 14),
+                              ],
                             ),
+                          ],
+                        ),
                       ),
                     );
-                  }).toList(),
+                  },
                 ),
               );
             },
