@@ -216,20 +216,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => SubjectCard(
-                      subject: subjects[index],
-                      index: index, // Kept for alternating colors if needed
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SubjectHubScreen(
-                              subjectId: subjects[index]['id'],
-                              subjectName: subjects[index]['name'],
-                            ),
-                          ),
-                        );
-                      },
+                    (context, index) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: SubjectCard(
+                          subject: subjects[index],
+                          index: index, // Kept for alternating colors if needed
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SubjectHubScreen(
+                                  subjectId: subjects[index]['id'],
+                                  subjectName: subjects[index]['name'],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                     childCount: subjects.length,
                   ),
