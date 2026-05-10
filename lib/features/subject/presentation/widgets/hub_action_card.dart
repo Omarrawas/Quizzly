@@ -9,6 +9,7 @@ class HubAction {
   final Color iconColor;
   final Color iconBackground;
   final int badgeCount;
+  final bool showBadge;
 
   const HubAction({
     required this.icon,
@@ -16,6 +17,7 @@ class HubAction {
     required this.iconColor,
     required this.iconBackground,
     this.badgeCount = 0,
+    this.showBadge = true,
   });
 }
 
@@ -52,28 +54,29 @@ class HubActionCard extends StatelessWidget {
         child: Stack(
           children: [
             // ── Badge in top-left (RTL: top-start)
-            Positioned(
-              top: 12,
-              left: 12,
-              child: Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF60A5FA).withValues(alpha: 0.6), // Light blue from image
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '${action.badgeCount}',
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1D4ED8), // Darker blue from image
+            if (action.showBadge && action.badgeCount > 0)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: action.iconColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${action.badgeCount}',
+                      style: GoogleFonts.cairo(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: action.iconColor,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-
             // ── Main Content (Icon and Label)
             Center(
               child: Column(

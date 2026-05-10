@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
+import 'package:quizzly/features/subject/presentation/screens/subject_hub_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/subject_activation_screen.dart';
 
 class SubjectSelectionScreen extends StatefulWidget {
   const SubjectSelectionScreen({super.key});
@@ -706,7 +708,7 @@ class _SemesterCard extends StatelessWidget {
                     final isAdded = activeSubjectIds.contains(subj.id);
                     final data = subj.data() as Map<String, dynamic>?;
                     final String name = data?['name']?.toString() ?? 'مادة بدون اسم';
-                    final String code = data?['code']?.toString() ?? 'N/A';
+                    final String code = data?['code']?.toString() ?? 'مجاني';
 
                     final vibrantColors = [
                       (const Color(0xFF4F46E5), const Color(0xFF818CF8)), // Indigo
@@ -719,7 +721,30 @@ class _SemesterCard extends StatelessWidget {
                     final (colorMain, colorLight) = vibrantColors[index % vibrantColors.length];
 
                     return GestureDetector(
-                      onTap: isAdded ? null : () => _addSubject(context, authService.user?.uid, subj.id),
+                      onTap: () {
+                        if (isAdded) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SubjectHubScreen(
+                                subjectId: subj.id,
+                                subjectName: name,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SubjectActivationScreen(
+                                subjectId: subj.id,
+                                subjectName: name,
+                                subjectCode: code,
+                              ),
+                            ),
+                          );
+                        }
+                      },
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -837,17 +862,7 @@ class _SemesterCard extends StatelessWidget {
     }
   }
 
-  void _addSubject(BuildContext context, String? userId, String subjectId) async {
-    if (userId == null) return;
-    try {
-      await contentService.addUserSubject(userId, subjectId);
-      if (!context.mounted) return;
-      _showSuccess(context, 'تم تفعيل المادة بنجاح ✨');
-    } catch (e) {
-      if (!context.mounted) return;
-      _showError(context, 'حدث خطأ أثناء التفعيل');
-    }
-  }
+
 
   void _showSuccess(BuildContext context, String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

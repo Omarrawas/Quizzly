@@ -3,14 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/presentation/widgets/hub_action_card.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
-import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
+import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/domain/services/cram_mode_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/cram_mode_session_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/mastery_dashboard_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_explore_screen.dart';
 import 'package:quizzly/features/subject/domain/services/subject_stats_service.dart';
 import 'package:provider/provider.dart';
-import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/subject/presentation/widgets/smart_coach_banner.dart';
 import 'package:quizzly/features/subject/presentation/screens/practical_section_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
@@ -52,9 +51,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
           SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
           _buildCramModeSliver(userId),
-          SliverToBoxAdapter(
-            child: _buildActionsGrid(userId),
-          ),
+          SliverToBoxAdapter(child: _buildActionsGrid(userId)),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -127,17 +124,28 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                   children: [
                     Text(
                       'نسبة الاستعداد للامتحان',
-                      style: GoogleFonts.cairo(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.cairo(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       statusText,
-                      style: GoogleFonts.cairo(color: statusColor, fontSize: 20, fontWeight: FontWeight.w900),
+                      style: GoogleFonts.cairo(
+                        color: statusColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'بناءً على إتقانك وتغطية المنهج',
-                      style: GoogleFonts.cairo(color: Colors.white30, fontSize: 10),
+                      style: GoogleFonts.cairo(
+                        color: Colors.white30,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),
@@ -157,7 +165,11 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                   ),
                   Text(
                     '%$percentage',
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
@@ -175,23 +187,31 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       pinned: true,
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: AppColors.textPrimary,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
         IconButton(
           onPressed: () => _showMasteryMap(context, userId),
-          icon: const Icon(Icons.map_outlined, color: AppColors.textPrimary, size: 24),
+          icon: const Icon(
+            Icons.map_outlined,
+            color: AppColors.textPrimary,
+            size: 24,
+          ),
           tooltip: 'خارطة الإتقان',
-        ),
-        IconButton(
-          onPressed: () => SmartNotificationService().sendSampleFlashQuiz(),
-          icon: const Icon(Icons.notifications_active_rounded, color: Colors.amber, size: 24),
         ),
       ],
       title: Text(
         widget.subjectName,
-        style: GoogleFonts.cairo(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
+        style: GoogleFonts.cairo(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
       ),
     );
   }
@@ -199,12 +219,48 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   // Grid built with a normal GridView (not SliverGrid) to avoid height calculation issues
   Widget _buildActionsGrid(String userId) {
     final List<(IconData, String, Color, Stream<int>, int)> actions = [
-      (Icons.assignment_rounded,          'الامتحانات',       const Color(0xFF2563EB), _statsService.streamExamsCount(widget.subjectId),              0),
-      (Icons.explore_rounded,             'استكشاف المحتوى',  const Color(0xFF6366F1), _statsService.streamTopicsCount(widget.subjectId),              1),
-      (Icons.auto_awesome_motion_rounded, 'مركز الإتقان',     const Color(0xFF0F172A), _statsService.streamWrongAnswersCount(userId, widget.subjectId), 2),
-      (Icons.school_rounded,              'تدرب بنفسك',       const Color(0xFF0EA5E9), _statsService.streamPracticeCount(userId, widget.subjectId),     3),
-      (Icons.science_rounded,             'القسم العملي',     const Color(0xFF0D9488), _statsService.streamPracticalTopicsCount(widget.subjectId),      4),
-      (Icons.groups_rounded,              'معارك المواد',     const Color(0xFFE11D48), Stream<int>.value(0),                                            5),
+      (
+        Icons.assignment_rounded,
+        'الامتحانات',
+        const Color(0xFF2563EB),
+        _statsService.streamExamsCount(widget.subjectId),
+        0,
+      ),
+      (
+        Icons.explore_rounded,
+        'استكشاف المحتوى',
+        const Color(0xFF6366F1),
+        _statsService.streamTopicsCount(widget.subjectId),
+        1,
+      ),
+      (
+        Icons.auto_awesome_motion_rounded,
+        'مركز الإتقان',
+        const Color(0xFF0F172A),
+        _statsService.streamWrongAnswersCount(userId, widget.subjectId),
+        2,
+      ),
+      (
+        Icons.school_rounded,
+        'تدرب بنفسك',
+        const Color(0xFF0EA5E9),
+        _statsService.streamPracticeCount(userId, widget.subjectId),
+        3,
+      ),
+      (
+        Icons.science_rounded,
+        'القسم العملي',
+        const Color(0xFF0D9488),
+        _statsService.streamPracticalTopicsCount(widget.subjectId),
+        4,
+      ),
+      (
+        Icons.groups_rounded,
+        'معارك المواد',
+        const Color(0xFFE11D48),
+        Stream<int>.value(0),
+        5,
+      ),
     ];
 
     return Padding(
@@ -226,6 +282,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             label: a.$2,
             color: a.$3,
             countStream: a.$4,
+            showBadge:
+                index < 2, // Only show badges for first two: Exams and Explore
             onTap: () => _onActionTap(a.$5),
           );
         },
@@ -238,6 +296,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     required String label,
     required Color color,
     required Stream<int> countStream,
+    required bool showBadge,
     required VoidCallback onTap,
   }) {
     return StreamBuilder<int>(
@@ -251,6 +310,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             iconColor: color,
             iconBackground: color.withValues(alpha: 0.1),
             badgeCount: count,
+            showBadge: showBadge,
           ),
           onTap: onTap,
         );
@@ -268,7 +328,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             return const SizedBox.shrink();
           }
           // Error or empty — hide gracefully
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          if (snapshot.hasError ||
+              !snapshot.hasData ||
+              snapshot.data!.isEmpty) {
             return const SizedBox.shrink();
           }
           final count = snapshot.data!.length;
@@ -283,7 +345,11 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.offline_bolt_rounded, color: Colors.amber, size: 32),
+                const Icon(
+                  Icons.offline_bolt_rounded,
+                  color: Colors.amber,
+                  size: 32,
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -292,11 +358,17 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     children: [
                       Text(
                         'وضع اللمسات الأخيرة',
-                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       Text(
                         'لديك $count سؤال تحتاج لمراجعتها الآن',
-                        style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900]),
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          color: Colors.amber[900],
+                        ),
                       ),
                     ],
                   ),
@@ -315,10 +387,18 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     backgroundColor: Colors.amber,
                     foregroundColor: Colors.black,
                     minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: Text('ابدأ الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'ابدأ الآن',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -342,16 +422,48 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         );
         break;
       case 1:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => SubjectExploreScreen(subjectId: widget.subjectId, subjectName: widget.subjectName)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SubjectExploreScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
         break;
       case 2:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => MasteryDashboardScreen(subjectId: widget.subjectId, subjectName: widget.subjectName)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MasteryDashboardScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
         break;
       case 3:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => PracticeScreen(subjectId: widget.subjectId, subjectName: widget.subjectName)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PracticeScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
         break;
       case 4:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => PracticalSectionScreen(subjectId: widget.subjectId, subjectName: widget.subjectName)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PracticalSectionScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
+        );
         break;
       case 5:
         Navigator.push(
@@ -372,7 +484,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _MasteryMapSheet(userId: userId, subjectId: widget.subjectId),
+      builder: (context) =>
+          _MasteryMapSheet(userId: userId, subjectId: widget.subjectId),
     );
   }
 }
@@ -398,13 +511,20 @@ class _MasteryMapSheet extends StatelessWidget {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 24),
           Text(
             'خارطة إتقان المادة',
-            style: GoogleFonts.cairo(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: GoogleFonts.cairo(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -412,7 +532,9 @@ class _MasteryMapSheet extends StatelessWidget {
               future: ReadinessService().getTopicReadiness(userId, subjectId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.amber));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.amber),
+                  );
                 }
                 final topics = snapshot.data ?? {};
                 if (topics.isEmpty) {
@@ -420,7 +542,10 @@ class _MasteryMapSheet extends StatelessWidget {
                     child: Text(
                       'لا توجد بيانات كافية بعد.\nابدأ بحل بعض الأسئلة لترى تحليل إتقانك هنا.',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.cairo(color: Colors.white54, height: 1.6),
+                      style: GoogleFonts.cairo(
+                        color: Colors.white54,
+                        height: 1.6,
+                      ),
                     ),
                   );
                 }
@@ -428,16 +553,24 @@ class _MasteryMapSheet extends StatelessWidget {
                   itemCount: topics.length,
                   itemBuilder: (context, index) {
                     final score = topics.values.elementAt(index);
-                    final color = score > 0.8 ? Colors.greenAccent : (score > 0.4 ? Colors.amberAccent : Colors.redAccent);
+                    final color = score > 0.8
+                        ? Colors.greenAccent
+                        : (score > 0.4 ? Colors.amberAccent : Colors.redAccent);
                     return ListTile(
                       leading: Icon(Icons.circle, color: color, size: 12),
                       title: Text(
                         topics.keys.elementAt(index),
-                        style: GoogleFonts.cairo(color: Colors.white, fontSize: 14),
+                        style: GoogleFonts.cairo(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
                       ),
                       trailing: Text(
                         '%${(score * 100).toInt()}',
-                        style: GoogleFonts.cairo(color: color, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.cairo(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     );
                   },

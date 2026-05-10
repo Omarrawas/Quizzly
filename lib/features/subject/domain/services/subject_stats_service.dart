@@ -14,13 +14,26 @@ class SubjectStatsService {
         .map((snap) => snap.size);
   }
 
-  /// Stream of total topics/classifications count for a subject
+  /// Stream of total unique topics/tags found in questions
   Stream<int> streamTopicsCount(String subjectId) {
     return _db
-        .collection('topics')
+        .collection('questions')
         .where('subjectId', isEqualTo: subjectId)
         .snapshots()
-        .map((snap) => snap.size);
+        .map((snap) {
+          final Set<String> tags = {};
+          for (var doc in snap.docs) {
+            final data = doc.data();
+            final List<dynamic>? names = data['topicNames'];
+            if (names != null) {
+              for (var name in names) {
+                final tag = name.toString().trim();
+                if (tag.isNotEmpty) tags.add(tag);
+              }
+            }
+          }
+          return tags.length;
+        });
   }
 
   /// Stream of wrong answers count for a specific subject
