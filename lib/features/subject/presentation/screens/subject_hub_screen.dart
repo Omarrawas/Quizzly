@@ -37,7 +37,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthService>().user;
-    if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final userId = user.uid;
 
     return Scaffold(
@@ -46,23 +48,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         slivers: [
           _buildSliverAppBar(userId),
           SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
-          SliverToBoxAdapter(
-            child: SmartCoachBanner(
-              message: 'لديك فجوات في فهم المواضيع العملية، هل تريد مراجعتها الآن؟',
-              actionLabel: 'مراجعة فورية',
-              onAction: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PracticalSectionScreen(
-                      subjectId: widget.subjectId,
-                      subjectName: widget.subjectName,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
           _buildCramModeSliver(userId),
           SliverPadding(
             padding: const EdgeInsets.all(20),
@@ -138,13 +124,40 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
+  // ── Dynamic banner: only shown when readiness score < 50%
+  Widget _buildDynamicCoachBanner(String userId) {
+    return StreamBuilder<double>(
+      stream: ReadinessService().streamReadinessScore(userId, widget.subjectId),
+      builder: (context, snapshot) {
+        final score = snapshot.data ?? 0.0;
+        // Only show the banner when the student genuinely has gaps
+        if (score >= 0.5) return const SizedBox.shrink();
+        return SmartCoachBanner(
+          message: 'لديك فجوات في تغطية المنهج، هل تريد مراجعتها الآن؟',
+          actionLabel: 'مراجعة فورية',
+          onAction: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PracticalSectionScreen(
+                  subjectId: widget.subjectId,
+                  subjectName: widget.subjectName,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildReadinessHeader(String userId) {
     return StreamBuilder<double>(
       stream: ReadinessService().streamReadinessScore(userId, widget.subjectId),
       builder: (context, snapshot) {
         final score = snapshot.data ?? 0.0;
         final percentage = (score * 100).toInt();
-        
+
         Color statusColor = Colors.redAccent;
         String statusText = 'غير مستعد';
         if (score > 0.8) {
@@ -276,8 +289,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       child: FutureBuilder<List<QuizQuestion>>(
         future: _cramModeService.generateCramSession(userId, widget.subjectId),
         builder: (context, snapshot) {
-          final count = snapshot.data?.length ?? 0;
-          if (count == 0) return const SizedBox.shrink();
+          // Still loading — don't block the rest of the UI
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox.shrink();
+          }
+          // Error or empty — hide gracefully
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          final count = snapshot.data!.length;
 
           return Container(
             margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -334,7 +354,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   void _onActionTap(int index) {
     switch (index) {
       case 0:
-        // Exams logic
+        // Exams — coming soon
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('قسم الامتحانات قادم في التحديث القادم!')),
+        );
         break;
       case 1:
         Navigator.push(context, MaterialPageRoute(builder: (_) => SubjectExploreScreen(subjectId: widget.subjectId, subjectName: widget.subjectName)));
@@ -383,16 +406,36 @@ class _MasteryMapSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2)))),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
           const SizedBox(height: 24),
-          Text('خارطة إتقان المادة', style: GoogleFonts.cairo(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            'خارطة إتقان المادة',
+            style: GoogleFonts.cairo(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           Expanded(
             child: FutureBuilder<Map<String, double>>(
               future: ReadinessService().getTopicReadiness(userId, subjectId),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.amber));
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.amber));
+                }
                 final topics = snapshot.data ?? {};
+                if (topics.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'لا توجد بيانات كافية بعد.\nابدأ بحل بعض الأسئلة لترى تحليل إتقانك هنا.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cairo(color: Colors.white54, height: 1.6),
+                    ),
+                  );
+                }
                 return ListView.builder(
                   itemCount: topics.length,
                   itemBuilder: (context, index) {
@@ -401,7 +444,10 @@ class _MasteryMapSheet extends StatelessWidget {
                     return ListTile(
                       leading: Icon(Icons.circle, color: color, size: 12),
                       title: Text('موضوع رقم ${index + 1}', style: GoogleFonts.cairo(color: Colors.white)),
-                      trailing: Text('%${(score * 100).toInt()}', style: GoogleFonts.cairo(color: color, fontWeight: FontWeight.bold)),
+                      trailing: Text(
+                        '%${(score * 100).toInt()}',
+                        style: GoogleFonts.cairo(color: color, fontWeight: FontWeight.bold),
+                      ),
                     );
                   },
                 );
