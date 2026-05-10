@@ -212,7 +212,33 @@ class ReadinessDetailScreen extends StatelessWidget {
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             final scores = snapshot.data!;
-            if (scores.isEmpty) return Text('لا توجد بيانات كافية بعد.', style: GoogleFonts.cairo(color: Colors.grey));
+            if (scores.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.map_rounded, size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'خارطة إتقان المادة',
+                      style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'لا توجد بيانات كافية بعد.\nابدأ بحل بعض الأسئلة لنرى تحليل إتقانك هنا!',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cairo(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              );
+            }
 
             return Column(
               children: scores.entries.map((e) => _buildTopicItem(e.key, e.value)).toList(),

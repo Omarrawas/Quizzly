@@ -15,6 +15,7 @@ import 'package:quizzly/features/subject/presentation/widgets/smart_coach_banner
 import 'package:quizzly/features/subject/presentation/screens/practical_section_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart';
 import 'package:quizzly/features/subject/domain/services/readiness_service.dart';
+import 'package:quizzly/features/subject/presentation/screens/subject_battles_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -50,73 +51,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
           SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
           _buildCramModeSliver(userId),
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 1.1,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  switch (index) {
-                    case 0:
-                      return _buildActionCard(
-                        icon: Icons.assignment_rounded,
-                        label: 'الامتحانات',
-                        color: const Color(0xFF2563EB),
-                        countStream: _statsService.streamExamsCount(widget.subjectId),
-                        onTap: () => _onActionTap(0),
-                      );
-                    case 1:
-                      return _buildActionCard(
-                        icon: Icons.explore_rounded,
-                        label: 'استكشاف المحتوى',
-                        color: const Color(0xFF6366F1),
-                        countStream: _statsService.streamTopicsCount(widget.subjectId),
-                        onTap: () => _onActionTap(1),
-                      );
-                    case 2:
-                      return _buildActionCard(
-                        icon: Icons.auto_awesome_motion_rounded,
-                        label: 'مركز الإتقان',
-                        color: const Color(0xFF0F172A),
-                        countStream: _statsService.streamWrongAnswersCount(userId, widget.subjectId),
-                        onTap: () => _onActionTap(2),
-                      );
-                    case 3:
-                      return _buildActionCard(
-                        icon: Icons.school_rounded,
-                        label: 'تدرب بنفسك',
-                        color: const Color(0xFF0EA5E9),
-                        countStream: _statsService.streamPracticeCount(userId, widget.subjectId),
-                        onTap: () => _onActionTap(3),
-                      );
-                    case 4:
-                      return _buildActionCard(
-                        icon: Icons.science_rounded,
-                        label: 'القسم العملي',
-                        color: const Color(0xFF0D9488),
-                        countStream: _statsService.streamPracticalTopicsCount(widget.subjectId),
-                        onTap: () => _onActionTap(4),
-                      );
-                    case 5:
-                      return _buildActionCard(
-                        icon: Icons.groups_rounded,
-                        label: 'معارك المواد',
-                        color: const Color(0xFFE11D48),
-                        countStream: Stream.value(0),
-                        onTap: () => _onActionTap(5),
-                      );
-                    default:
-                      return const SizedBox.shrink();
-                  }
-                },
-                childCount: 6,
-              ),
-            ),
+          SliverToBoxAdapter(
+            child: _buildActionsGrid(userId),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
@@ -259,6 +195,45 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
+  // Grid built with a normal GridView (not SliverGrid) to avoid height calculation issues
+  Widget _buildActionsGrid(String userId) {
+    final List<(IconData, String, Color, Stream<int>, int)> actions = [
+      (Icons.assignment_rounded,          'الامتحانات',       const Color(0xFF2563EB), _statsService.streamExamsCount(widget.subjectId),              0),
+      (Icons.explore_rounded,             'استكشاف المحتوى',  const Color(0xFF6366F1), _statsService.streamTopicsCount(widget.subjectId),              1),
+      (Icons.auto_awesome_motion_rounded, 'مركز الإتقان',     const Color(0xFF0F172A), _statsService.streamWrongAnswersCount(userId, widget.subjectId), 2),
+      (Icons.school_rounded,              'تدرب بنفسك',       const Color(0xFF0EA5E9), _statsService.streamPracticeCount(userId, widget.subjectId),     3),
+      (Icons.science_rounded,             'القسم العملي',     const Color(0xFF0D9488), _statsService.streamPracticalTopicsCount(widget.subjectId),      4),
+      (Icons.groups_rounded,              'معارك المواد',     const Color(0xFFE11D48), Stream<int>.value(0),                                            5),
+    ];
+
+    // 3 rows × 160px each + spacing
+    const double cardHeight = 160;
+    const double spacing = 16;
+    const int rows = 3;
+    const double gridHeight = rows * cardHeight + (rows - 1) * spacing;
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        height: gridHeight,
+        child: GridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childAspectRatio: 1.1,
+          physics: const NeverScrollableScrollPhysics(),
+          children: actions.map((a) => _buildActionCard(
+            icon: a.$1,
+            label: a.$2,
+            color: a.$3,
+            countStream: a.$4,
+            onTap: () => _onActionTap(a.$5),
+          )).toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionCard({
     required IconData icon,
     required String label,
@@ -372,8 +347,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (_) => PracticalSectionScreen(subjectId: widget.subjectId, subjectName: widget.subjectName)));
         break;
       case 5:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ميزة معارك المواد قادمة في التحديث القادم!')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SubjectBattlesScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+            ),
+          ),
         );
         break;
     }
