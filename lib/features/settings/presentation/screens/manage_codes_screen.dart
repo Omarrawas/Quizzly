@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:intl/intl.dart' as intl;
 
 class ManageCodesScreen extends StatefulWidget {
   const ManageCodesScreen({super.key});
@@ -10,7 +13,8 @@ class ManageCodesScreen extends StatefulWidget {
 }
 
 class _ManageCodesScreenState extends State<ManageCodesScreen> {
-  int _selectedIndex = 0; // 0: الأكواد, 1: التفعيلات التجريبية
+  int _selectedIndex = 0; // 0: الأكواد, 1: التفعيلات المجانية
+  final DatabaseService _dbService = DatabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         shadowColor: Colors.black.withValues(alpha: 0.06),
         automaticallyImplyLeading: false,
         leading: IconButton(
-          onPressed: () {}, // Refresh logic
+          onPressed: () => setState(() {}),
           icon: const Icon(
             Icons.refresh_rounded,
             color: AppColors.textSecondary,
@@ -54,26 +58,194 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           child: _buildTabs(),
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.qr_code_scanner_rounded, // Assuming an icon that looks like crossed barcode
-              size: 80,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'لا يوجد',
-              style: GoogleFonts.cairo(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+      body: _selectedIndex == 0 ? _buildCodesList() : _buildActivationsList(),
+    );
+  }
+
+  Widget _buildCodesList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _dbService.getBatches(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue));
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState(Icons.qr_code_rounded, 'لا يوجد دفعات أكواد حالياً');
+        }
+
+        final docs = snapshot.data!.docs;
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            final date = data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : DateTime.now();
+            
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
               ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded, color: AppColors.primaryBlue, size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['name'] ?? 'دفعة بدون اسم',
+                          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        Text(
+                          '${data['quantity']} كود • ${intl.DateFormat('yyyy/MM/dd').format(date)}',
+                          style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_left_rounded, color: Colors.grey),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildActivationsList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _dbService.getActivations(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue));
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState(Icons.person_add_alt_1_rounded, 'لا توجد تفعيلات حالياً');
+        }
+
+        final docs = snapshot.data!.docs;
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final userId = data['userId'] as String;
+            final subjectId = data['subjectId'] as String;
+            final date = data['activatedAt'] != null ? (data['activatedAt'] as Timestamp).toDate() : DateTime.now();
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FutureBuilder<DocumentSnapshot>(
+                          future: _dbService.getUser(userId),
+                          builder: (context, userSnap) {
+                            final name = (userSnap.data?.data() as Map<String, dynamic>?)?['displayName'] ?? 'تحميل المستخدم...';
+                            return Text(
+                              name,
+                              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        FutureBuilder<DocumentSnapshot>(
+                          future: _dbService.getSubject(subjectId),
+                          builder: (context, subjSnap) {
+                            final name = (subjSnap.data?.data() as Map<String, dynamic>?)?['name'] ?? 'تحميل المادة...';
+                            return Text(
+                              name,
+                              style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                            );
+                          },
+                        ),
+                        Text(
+                          intl.DateFormat('yyyy/MM/dd HH:mm').format(date),
+                          style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _confirmDeleteActivation(doc.id),
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteActivation(String id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('حذف التفعيل', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text('هل أنت متأكد من حذف هذا التفعيل؟ سيتم قفل المادة عند المستخدم فوراً.', style: GoogleFonts.cairo()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          TextButton(
+            onPressed: () async {
+              await _dbService.deleteActivation(id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text('حذف', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 80,
+            color: AppColors.textSecondary.withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -90,9 +262,9 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         child: Row(
           children: [
             _buildTab(
-              title: 'التفعيلات التجريبية',
+              title: 'التفعيلات المجانية',
               index: 1,
-              icon: Icons.science_outlined,
+              icon: Icons.person_add_alt_1_rounded,
             ),
             _buildTab(
                title: 'الأكواد',

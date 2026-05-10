@@ -446,4 +446,22 @@ class DatabaseService {
 
     await batch.commit();
   }
+  // --- Activation Management ---
+  Stream<QuerySnapshot> getActivations() {
+    return _db.collection('user_subjects')
+        .orderBy('activatedAt', descending: true)
+        .snapshots();
+  }
+
+  Future<void> deleteActivation(String activationId) {
+    return _db.collection('user_subjects').doc(activationId).delete();
+  }
+
+  Future<DocumentSnapshot> getUser(String userId) {
+    return _db.collection('users').doc(userId).get();
+  }
+
+  Future<DocumentSnapshot> getSubject(String subjectId) {
+    return _db.collection('subjects').doc(subjectId).get();
+  }
 }

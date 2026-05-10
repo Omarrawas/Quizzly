@@ -9,12 +9,16 @@ class SubjectActivationScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
   final String subjectCode;
+  final double? basePrice;
+  final double? discount;
 
   const SubjectActivationScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
     required this.subjectCode,
+    this.basePrice,
+    this.discount,
   });
 
   @override
@@ -199,7 +203,11 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600, letterSpacing: 1),
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 24),
+                  // Price Section
+                  if (widget.basePrice != null && widget.basePrice! > 0) 
+                    _buildPriceSection(),
+                  const SizedBox(height: 32),
                   // Options Section
                   _buildActivationOption(
                     title: 'تفعيل مجاني',
@@ -232,6 +240,70 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
               color: Colors.white.withValues(alpha: 0.8),
               child: const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceSection() {
+    final double discount = widget.discount ?? 0;
+    final double finalPrice = widget.basePrice! * (1 - discount / 100);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'تكلفة تفعيل المادة',
+                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (discount > 0) ...[
+                    Text(
+                      '${widget.basePrice!.toStringAsFixed(0)} ل.س',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '%${discount.toStringAsFixed(0)}-',
+                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Text(
+                    '${finalPrice.toStringAsFixed(0)} ل.س',
+                    style: GoogleFonts.cairo(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );

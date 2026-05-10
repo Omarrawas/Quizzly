@@ -733,6 +733,9 @@ class _SemesterCard extends StatelessWidget {
                             ),
                           );
                         } else {
+                          final double? price = (data?['price'] as num?)?.toDouble();
+                          final double? discount = (data?['discount'] as num?)?.toDouble();
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -740,6 +743,8 @@ class _SemesterCard extends StatelessWidget {
                                 subjectId: subj.id,
                                 subjectName: name,
                                 subjectCode: code,
+                                basePrice: price,
+                                discount: discount,
                               ),
                             ),
                           );
