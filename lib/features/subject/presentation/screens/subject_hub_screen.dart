@@ -106,6 +106,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
         return Container(
           margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(30),
@@ -117,46 +118,49 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               ),
             ],
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            title: Text(
-              'نسبة الاستعداد للامتحان',
-              style: GoogleFonts.cairo(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  statusText,
-                  style: GoogleFonts.cairo(color: statusColor, fontSize: 20, fontWeight: FontWeight.w900),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'نسبة الاستعداد للامتحان',
+                      style: GoogleFonts.cairo(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      statusText,
+                      style: GoogleFonts.cairo(color: statusColor, fontSize: 20, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'بناءً على إتقانك وتغطية المنهج',
+                      style: GoogleFonts.cairo(color: Colors.white30, fontSize: 10),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'بناءً على إتقانك وتغطية المنهج',
-                  style: GoogleFonts.cairo(color: Colors.white30, fontSize: 10),
-                ),
-              ],
-            ),
-            trailing: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 70,
-                  height: 70,
-                  child: CircularProgressIndicator(
-                    value: score,
-                    strokeWidth: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.05),
-                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+              ),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: CircularProgressIndicator(
+                      value: score,
+                      strokeWidth: 8,
+                      backgroundColor: Colors.white.withValues(alpha: 0.05),
+                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                    ),
                   ),
-                ),
-                Text(
-                  '%$percentage',
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
+                  Text(
+                    '%$percentage',
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -264,39 +268,52 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
           return Container(
             margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.amber[50],
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.amber[200]!),
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              leading: const Icon(Icons.offline_bolt_rounded, color: Colors.amber, size: 32),
-              title: Text(
-                'وضع اللمسات الأخيرة',
-                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              subtitle: Text(
-                'لديك $count سؤال تحتاج لمراجعتها الآن',
-                style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900]),
-              ),
-              trailing: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CramModeSessionScreen(
-                      questions: snapshot.data!,
-                      subjectId: widget.subjectId,
-                    ),
+            child: Row(
+              children: [
+                const Icon(Icons.offline_bolt_rounded, color: Colors.amber, size: 32),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'وضع اللمسات الأخيرة',
+                        style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        'لديك $count سؤال تحتاج لمراجعتها الآن',
+                        style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900]),
+                      ),
+                    ],
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CramModeSessionScreen(
+                        questions: snapshot.data!,
+                        subjectId: widget.subjectId,
+                      ),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('ابدأ الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
                 ),
-                child: Text('ابدأ الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-              ),
+              ],
             ),
           );
         },
