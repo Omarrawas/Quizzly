@@ -46,22 +46,17 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(userId),
-              SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
-              SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
-              _buildCramModeSliver(userId),
-              SliverToBoxAdapter(
-                child: _buildActionsGrid(userId),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+      body: CustomScrollView(
+        slivers: [
+          _buildSliverAppBar(userId),
+          SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
+          SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
+          _buildCramModeSliver(userId),
+          SliverToBoxAdapter(
+            child: _buildActionsGrid(userId),
           ),
-        ),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
       ),
     );
   }

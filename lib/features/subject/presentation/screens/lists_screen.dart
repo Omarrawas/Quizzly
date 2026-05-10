@@ -145,8 +145,9 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
             style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
             textAlign: TextAlign.center,
           ),
-          content: SizedBox(
+          content: Container(
             width: double.maxFinite,
+            constraints: const BoxConstraints(maxWidth: 500),
             child: SingleChildScrollView(
               child: GridView.count(
                 shrinkWrap: true,

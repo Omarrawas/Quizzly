@@ -24,7 +24,6 @@ class PracticeService {
     final snap = await _db
         .collection('questions')
         .where('subjectId', isEqualTo: subjectId)
-        .where('status', isEqualTo: QuestionStatus.approved.name)
         .get();
 
     List<QuizQuestion> questions = snap.docs.map((d) => QuizQuestion.fromFirestore(d)).toList();
@@ -60,7 +59,6 @@ class PracticeService {
     final snap = await _db
         .collection('questions')
         .where('subjectId', isEqualTo: subjectId)
-        .where('status', isEqualTo: QuestionStatus.approved.name)
         .where('difficulty', isEqualTo: difficulty.name)
         .get();
 
