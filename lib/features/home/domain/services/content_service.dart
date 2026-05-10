@@ -47,26 +47,52 @@ class ContentService {
   // --- User Content Management ---
 
   /// Adds a single subject to the user's home screen
-  Future<void> addUserSubject(String userId, String subjectId) async {
-    final ref = _db.collection('users').doc(userId).collection('active_subjects').doc(subjectId);
-    await ref.set({
+  Future<void> addUserSubject(String userId, String subjectId, {String? activationCode}) async {
+    final batch = _db.batch();
+    
+    // 1. Per-user record for fast home screen loading
+    final userRef = _db.collection('users').doc(userId).collection('active_subjects').doc(subjectId);
+    batch.set(userRef, {
       'subjectId': subjectId,
       'addedAt': FieldValue.serverTimestamp(),
+      'activationCode': activationCode,
     });
+
+    // 2. Global record for admin visibility
+    final globalRef = _db.collection('user_subjects').doc('${userId}_$subjectId');
+    batch.set(globalRef, {
+      'userId': userId,
+      'subjectId': subjectId,
+      'activatedAt': FieldValue.serverTimestamp(),
+      'activationCode': activationCode, // null if free
+    });
+
+    await batch.commit();
   }
 
   /// Adds an entire semester (all subjects in it) to the user's home screen
-  Future<void> addUserSemester(String userId, String semesterId) async {
+  Future<void> addUserSemester(String userId, String semesterId, {String? activationCode}) async {
     final subjectsSnapshot = await _db.collection('subjects')
         .where('parentId', isEqualTo: semesterId)
         .get();
 
     final batch = _db.batch();
     for (var doc in subjectsSnapshot.docs) {
-      final ref = _db.collection('users').doc(userId).collection('active_subjects').doc(doc.id);
-      batch.set(ref, {
+      // 1. Per-user records
+      final userRef = _db.collection('users').doc(userId).collection('active_subjects').doc(doc.id);
+      batch.set(userRef, {
         'subjectId': doc.id,
         'addedAt': FieldValue.serverTimestamp(),
+        'activationCode': activationCode,
+      });
+
+      // 2. Global records for admin visibility
+      final globalRef = _db.collection('user_subjects').doc('${userId}_${doc.id}');
+      batch.set(globalRef, {
+        'userId': userId,
+        'subjectId': doc.id,
+        'activatedAt': FieldValue.serverTimestamp(),
+        'activationCode': activationCode,
       });
     }
     
@@ -75,6 +101,7 @@ class ContentService {
     batch.set(semRef, {
       'semesterId': semesterId,
       'addedAt': FieldValue.serverTimestamp(),
+      'activationCode': activationCode,
     });
 
     await batch.commit();

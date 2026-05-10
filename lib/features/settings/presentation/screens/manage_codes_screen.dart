@@ -13,7 +13,7 @@ class ManageCodesScreen extends StatefulWidget {
 }
 
 class _ManageCodesScreenState extends State<ManageCodesScreen> {
-  int _selectedIndex = 0; // 0: الأكواد, 1: التفعيلات المجانية
+  int _selectedIndex = 0; // 0: التفعيلات المدفوعة, 1: التفعيلات المجانية
   final DatabaseService _dbService = DatabaseService();
 
   @override
@@ -58,85 +58,24 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           child: _buildTabs(),
         ),
       ),
-      body: _selectedIndex == 0 ? _buildCodesList() : _buildActivationsList(),
+      body: _buildActivationsList(isPaid: _selectedIndex == 0),
     );
   }
 
-  Widget _buildCodesList() {
+
+
+  Widget _buildActivationsList({required bool isPaid}) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _dbService.getBatches(),
+      stream: _dbService.getActivations(isPaid: isPaid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState(Icons.qr_code_rounded, 'لا يوجد دفعات أكواد حالياً');
-        }
-
-        final docs = snapshot.data!.docs;
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final date = data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : DateTime.now();
-            
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.inventory_2_rounded, color: AppColors.primaryBlue, size: 20),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data['name'] ?? 'دفعة بدون اسم',
-                          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 15),
-                        ),
-                        Text(
-                          '${data['quantity']} كود • ${intl.DateFormat('yyyy/MM/dd').format(date)}',
-                          style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_left_rounded, color: Colors.grey),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildActivationsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _dbService.getActivations(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState(Icons.person_add_alt_1_rounded, 'لا توجد تفعيلات حالياً');
+          return _buildEmptyState(
+            isPaid ? Icons.account_balance_wallet_rounded : Icons.person_add_alt_1_rounded,
+            isPaid ? 'لا توجد تفعيلات مدفوعة حالياً' : 'لا توجد تفعيلات مجانية حالياً',
+          );
         }
 
         final docs = snapshot.data!.docs;
@@ -148,6 +87,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
             final data = doc.data() as Map<String, dynamic>;
             final userId = data['userId'] as String;
             final subjectId = data['subjectId'] as String;
+            final activationCode = data['activationCode'] as String?;
             final date = data['activatedAt'] != null ? (data['activatedAt'] as Timestamp).toDate() : DateTime.now();
 
             return Container(
@@ -155,11 +95,31 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey[100]!),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isPaid ? AppColors.primaryBlue.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isPaid ? Icons.verified_rounded : Icons.person_rounded,
+                      color: isPaid ? AppColors.primaryBlue : Colors.green,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,34 +127,74 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                         FutureBuilder<DocumentSnapshot>(
                           future: _dbService.getUser(userId),
                           builder: (context, userSnap) {
-                            final name = (userSnap.data?.data() as Map<String, dynamic>?)?['displayName'] ?? 'تحميل المستخدم...';
+                            final name = (userSnap.data?.data() as Map<String, dynamic>?)?['displayName'] ?? '...';
                             return Text(
                               name,
-                              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
                             );
                           },
                         ),
-                        const SizedBox(height: 4),
-                        FutureBuilder<DocumentSnapshot>(
-                          future: _dbService.getSubject(subjectId),
-                          builder: (context, subjSnap) {
-                            final name = (subjSnap.data?.data() as Map<String, dynamic>?)?['name'] ?? 'تحميل المادة...';
-                            return Text(
-                              name,
-                              style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
-                            );
-                          },
+                        Row(
+                          children: [
+                            Icon(Icons.book_rounded, size: 12, color: isPaid ? Colors.blue[800] : AppColors.primaryBlue),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: FutureBuilder<DocumentSnapshot>(
+                                future: _dbService.getSubject(subjectId),
+                                builder: (context, subjSnap) {
+                                  final name = (subjSnap.data?.data() as Map<String, dynamic>?)?['name'] ?? '...';
+                                  return Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 13, 
+                                      color: isPaid ? Colors.blue[800] : AppColors.primaryBlue, 
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
+                        if (isPaid && activationCode != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4, bottom: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.grey[200]!),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.vpn_key_rounded, size: 10, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  activationCode,
+                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[700], letterSpacing: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
                         Text(
-                          intl.DateFormat('yyyy/MM/dd HH:mm').format(date),
-                          style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey),
+                          intl.DateFormat('yyyy/MM/dd • HH:mm').format(date),
+                          style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[400]),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => _confirmDeleteActivation(doc.id),
-                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: Colors.red.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    child: IconButton(
+                      onPressed: () => _confirmDeleteActivation(doc.id),
+                      icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 22),
+                      tooltip: 'حذف التفعيل',
+                    ),
                   ),
                 ],
               ),
@@ -262,14 +262,14 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         child: Row(
           children: [
             _buildTab(
+              title: 'التفعيلات المدفوعة',
+              index: 0,
+              icon: Icons.verified_user_rounded,
+            ),
+            _buildTab(
               title: 'التفعيلات المجانية',
               index: 1,
               icon: Icons.person_add_alt_1_rounded,
-            ),
-            _buildTab(
-               title: 'الأكواد',
-               index: 0,
-               icon: Icons.qr_code_rounded,
             ),
           ],
         ),

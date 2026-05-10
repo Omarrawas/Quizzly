@@ -104,9 +104,9 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                   _showError('الكود الذي أدخلته غير صحيح');
                 } else {
                   if (result['type'] == 'subject') {
-                    await contentService.addUserSubject(userId, result['targetId']);
+                    await contentService.addUserSubject(userId, result['targetId'], activationCode: code);
                   } else {
-                    await contentService.addUserSemester(userId, result['targetId']);
+                    await contentService.addUserSemester(userId, result['targetId'], activationCode: code);
                   }
                   _showSuccess('تم التفعيل بنجاح ✅');
                   if (mounted) Navigator.pop(this.context);
@@ -199,7 +199,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      widget.subjectCode == 'مجاني' ? 'هذه المادة متاحة مجاناً ✨' : 'رمز المادة: ${widget.subjectCode}',
+                      'رمز المادة: ${widget.subjectCode}',
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600, letterSpacing: 1),
                     ),
                   ),
@@ -211,15 +211,15 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                   // Options Section
                   _buildActivationOption(
                     title: 'تفعيل مجاني',
-                    subtitle: 'تفعيل المادة مباشرة وبشكل مجاني تماماً',
+                    subtitle: 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',
                     icon: Icons.auto_awesome_rounded,
                     color: Colors.amber,
                     onTap: _activateFree,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   _buildActivationOption(
                     title: 'تفعيل بواسطة كود',
-                    subtitle: 'استخدم كود التفعيل الخاص بالمادة من المكتبة',
+                    subtitle: 'افتح كامل المادة بشكل غير محدود',
                     icon: Icons.vpn_key_rounded,
                     color: AppColors.primaryBlue,
                     onTap: _showCodeDialog,

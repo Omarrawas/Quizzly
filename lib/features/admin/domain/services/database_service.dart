@@ -447,10 +447,16 @@ class DatabaseService {
     await batch.commit();
   }
   // --- Activation Management ---
-  Stream<QuerySnapshot> getActivations() {
-    return _db.collection('user_subjects')
-        .orderBy('activatedAt', descending: true)
-        .snapshots();
+  Stream<QuerySnapshot> getActivations({required bool isPaid}) {
+    Query<Map<String, dynamic>> query = _db.collection('user_subjects');
+    
+    if (isPaid) {
+      query = query.where('activationCode', isNotEqualTo: null);
+    } else {
+      query = query.where('activationCode', isEqualTo: null);
+    }
+
+    return query.orderBy('activatedAt', descending: true).snapshots();
   }
 
   Future<void> deleteActivation(String activationId) {
