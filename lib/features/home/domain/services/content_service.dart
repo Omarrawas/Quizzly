@@ -80,6 +80,8 @@ class ContentService {
     await batch.commit();
   }
 
+  final Map<String, Map<String, String>> _hierarchyCache = {};
+
   /// Fetches subjects added by the user
   Stream<List<Map<String, dynamic>>> getUserActiveSubjects(String userId) {
     return _db.collection('users').doc(userId).collection('active_subjects')
@@ -90,10 +92,53 @@ class ContentService {
             final subjectId = doc.get('subjectId');
             final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
             if (subjectDoc.exists) {
+              final subjectData = subjectDoc.data()!;
+              final semesterId = subjectData['parentId'];
+              
+              Map<String, String> hierarchy = {};
+              if (semesterId != null) {
+                if (_hierarchyCache.containsKey(semesterId)) {
+                  hierarchy = _hierarchyCache[semesterId]!;
+                } else {
+                  try {
+                    final semDoc = await _db.collection('semesters').doc(semesterId).get();
+                    final semName = semDoc.data()?['name'] ?? 'فصل غير محدد';
+                    final yearId = semDoc.data()?['parentId'];
+
+                    final yearDoc = await _db.collection('academic_years').doc(yearId).get();
+                    final yearName = yearDoc.data()?['name'] ?? 'سنة غير محددة';
+                    final depId = yearDoc.data()?['parentId'];
+
+                    final depDoc = await _db.collection('departments').doc(depId).get();
+                    final depName = depDoc.data()?['name'] ?? 'قسم غير محدد';
+                    final colId = depDoc.data()?['parentId'];
+
+                    final colDoc = await _db.collection('colleges').doc(colId).get();
+                    final colName = colDoc.data()?['name'] ?? 'كلية غير محددة';
+                    final uniId = colDoc.data()?['parentId'];
+
+                    final uniDoc = await _db.collection('universities').doc(uniId).get();
+                    final uniName = uniDoc.data()?['name'] ?? 'جامعة غير محددة';
+
+                    hierarchy = {
+                      'semesterName': semName,
+                      'yearName': yearName,
+                      'departmentName': depName,
+                      'collegeName': colName,
+                      'universityName': uniName,
+                    };
+                    _hierarchyCache[semesterId] = hierarchy;
+                  } catch (e) {
+                    // Ignore errors, will use fallback
+                  }
+                }
+              }
+
               subjects.add({
-                ...subjectDoc.data()!,
+                ...subjectData,
                 'id': subjectDoc.id,
                 'addedAt': doc.get('addedAt'),
+                ...hierarchy,
               });
             }
           }
