@@ -214,17 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.95,
-                  ),
+                sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => SubjectCard(
                       subject: subjects[index],
-                      index: index, // Passing index to alternate colors!
+                      index: index, // Kept for alternating colors if needed
                       onTap: () {
                         Navigator.push(
                           context,
