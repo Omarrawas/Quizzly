@@ -17,7 +17,6 @@ class ReadinessService {
             final totalQuestionsSnap = await _db
                 .collection('questions')
                 .where('subjectId', isEqualTo: subjectId)
-                .where('status', isEqualTo: 'approved')
                 .get();
 
             final totalQuestions = totalQuestionsSnap.size;
@@ -70,13 +69,13 @@ class ReadinessService {
       final questionsSnap = await _db
           .collection('questions')
           .where('subjectId', isEqualTo: subjectId)
-          .where('status', isEqualTo: 'approved')
           .get();
 
       Map<String, List<String>> topicToQuestions = {};
       for (var doc in questionsSnap.docs) {
         final data = doc.data();
-        final List<String> topics = List<String>.from(data['topicIds'] ?? []);
+        // Use topicNames or topicIds for grouping (topicNames is usually more human-readable for the UI)
+        final List<String> topics = List<String>.from(data['topicNames'] ?? data['topicIds'] ?? []);
         for (var tId in topics) {
           topicToQuestions.putIfAbsent(tId, () => []).add(doc.id);
         }

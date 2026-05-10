@@ -41,6 +41,15 @@ class PracticeService {
     }
 
     questions.shuffle();
+    
+    // Also shuffle options for each question to ensure variety
+    for (int i = 0; i < questions.length; i++) {
+      if (questions[i].options != null && questions[i].options!.isNotEmpty) {
+        final shuffledOptions = List<QuizOption>.from(questions[i].options!)..shuffle();
+        questions[i] = questions[i].copyWith(options: shuffledOptions);
+      }
+    }
+
     if (questions.length > limit) {
       questions = questions.sublist(0, limit);
     }

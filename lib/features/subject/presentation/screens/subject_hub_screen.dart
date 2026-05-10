@@ -76,7 +76,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => PracticalSectionScreen(
+                builder: (_) => PracticeScreen(
                   subjectId: widget.subjectId,
                   subjectName: widget.subjectName,
                 ),
@@ -431,7 +431,10 @@ class _MasteryMapSheet extends StatelessWidget {
                     final color = score > 0.8 ? Colors.greenAccent : (score > 0.4 ? Colors.amberAccent : Colors.redAccent);
                     return ListTile(
                       leading: Icon(Icons.circle, color: color, size: 12),
-                      title: Text('موضوع رقم ${index + 1}', style: GoogleFonts.cairo(color: Colors.white)),
+                      title: Text(
+                        topics.keys.elementAt(index),
+                        style: GoogleFonts.cairo(color: Colors.white, fontSize: 14),
+                      ),
                       trailing: Text(
                         '%${(score * 100).toInt()}',
                         style: GoogleFonts.cairo(color: color, fontWeight: FontWeight.bold),

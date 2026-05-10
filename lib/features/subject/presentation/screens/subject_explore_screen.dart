@@ -225,7 +225,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           maxCrossAxisExtent: 200,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
+          childAspectRatio: 1.0,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) => _buildTagCard(_tagsData[index]),
@@ -285,8 +285,6 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
             Text(
               name,
               textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),

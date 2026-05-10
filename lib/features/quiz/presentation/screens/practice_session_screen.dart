@@ -585,8 +585,18 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                   ),
                 ),
               const SizedBox(width: 8),
-              if (q.tagLabel != null)
-                Text(q.tagLabel!, style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary)),
+              if (q.tagLabel != null || (q.topicNames != null && q.topicNames!.isNotEmpty))
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.tag_rounded, size: 12, color: AppColors.textSecondary.withValues(alpha: 0.6)),
+                    const SizedBox(width: 2),
+                    Text(
+                      q.tagLabel ?? q.topicNames!.first,
+                      style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
               const Spacer(),
               GestureDetector(
                 onTap: () {
@@ -644,8 +654,12 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
 
   Widget _buildOptions(bool isDark) {
     final q = _current!;
+    final optionLabels = ['أ', 'ب', 'ج', 'د', 'هـ', 'و'];
+    
     return Column(
-      children: q.options!.map((option) {
+      children: q.options!.asMap().entries.map((entry) {
+        final index = entry.key;
+        final option = entry.value;
         final isSelected = _selectedOptionId == option.id;
         final isCorrect = q.correctOptionIds.contains(option.id);
         final revealed = _answerState != AnswerState.unanswered;
@@ -701,7 +715,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                   ),
                   child: Center(
                     child: Text(
-                      option.id.toUpperCase(),
+                      index < optionLabels.length ? optionLabels[index] : (index + 1).toString(),
                       style: GoogleFonts.cairo(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
