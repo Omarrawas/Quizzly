@@ -413,7 +413,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   if (isEdit) {
                     await _dbService.updateDoc(DatabaseService.colExams, examId!, config.toMap());
                   } else {
-                    final docRef = await FirebaseFirestore.instance.collection(DatabaseService.colExams).add(config.toMap());
+                    final docRef = await _dbService.addExam(config.toMap());
                     newExamId = docRef.id;
                   }
                   

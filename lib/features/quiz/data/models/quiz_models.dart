@@ -372,6 +372,7 @@ class ExamConfig {
       'staticQuestions': staticQuestionIds,
       'isFree': isFree,
       'lastUpdated': lastUpdated != null ? Timestamp.fromDate(lastUpdated!) : null,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       if (type == ExamType.bank && generationRules != null)
         'generationRules': generationRules!.toMap(),
     };
