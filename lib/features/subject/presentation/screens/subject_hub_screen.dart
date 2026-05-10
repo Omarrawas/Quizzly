@@ -206,30 +206,22 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       (Icons.groups_rounded,              'معارك المواد',     const Color(0xFFE11D48), Stream<int>.value(0),                                            5),
     ];
 
-    // 3 rows × 160px each + spacing
-    const double cardHeight = 160;
-    const double spacing = 16;
-    const int rows = 3;
-    const double gridHeight = rows * cardHeight + (rows - 1) * spacing;
-
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: SizedBox(
-        height: gridHeight,
-        child: GridView.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: spacing,
-          crossAxisSpacing: spacing,
-          childAspectRatio: 1.1,
-          physics: const NeverScrollableScrollPhysics(),
-          children: actions.map((a) => _buildActionCard(
-            icon: a.$1,
-            label: a.$2,
-            color: a.$3,
-            countStream: a.$4,
-            onTap: () => _onActionTap(a.$5),
-          )).toList(),
-        ),
+      child: GridView.count(
+        shrinkWrap: true,
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.1,
+        physics: const NeverScrollableScrollPhysics(),
+        children: actions.map((a) => _buildActionCard(
+          icon: a.$1,
+          label: a.$2,
+          color: a.$3,
+          countStream: a.$4,
+          onTap: () => _onActionTap(a.$5),
+        )).toList(),
       ),
     );
   }
@@ -288,6 +280,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
