@@ -8,6 +8,7 @@ import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 
 class QuizScreen extends StatefulWidget {
   final QuizExam exam;

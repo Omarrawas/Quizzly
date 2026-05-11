@@ -125,10 +125,15 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     if (userId == null || widget.config.subjectId.isEmpty) return;
 
     try {
-      final cloudNotes = await _srsService.getAllSubjectMnemonics(userId, widget.config.subjectId);
+      final subjectData = await _srsService.getAllSubjectData(userId, widget.config.subjectId);
       if (mounted) {
         setState(() {
-          _notesByQuestionId.addAll(cloudNotes);
+          // Merge both mnemonics and notes into the local notes map
+          final mergedNotes = subjectData.map((key, value) {
+            final note = value['note'] ?? value['mnemonic'] ?? '';
+            return MapEntry(key, note);
+          });
+          _notesByQuestionId.addAll(mergedNotes);
         });
       }
     } catch (e) {
