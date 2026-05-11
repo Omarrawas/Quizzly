@@ -109,7 +109,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     await contentService.addUserSemester(userId, result['targetId'], activationCode: code);
                   }
                   _showSuccess('تم التفعيل بنجاح ✅');
-                  if (mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
                 }
               } catch (e) {
                 _showError('حدث خطأ أثناء معالجة الكود');

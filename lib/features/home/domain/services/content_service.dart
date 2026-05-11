@@ -50,18 +50,23 @@ class ContentService {
   Future<void> addUserSubject(String userId, String subjectId, {String? activationCode}) async {
     final batch = _db.batch();
     
-    // 1. Per-user record for fast home screen loading (Keep it minimal as requested)
-    final userRef = _db.collection('users').doc(userId).collection('active_subjects').doc(subjectId);
+    // 0. Ensure user document exists (needed for some security rules)
+    final userDocRef = _db.collection('users').doc(userId);
+    batch.set(userDocRef, {
+      'lastActive': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // 1. Per-user record for fast home screen loading
+    final userRef = userDocRef.collection('active_subjects').doc(subjectId);
     batch.set(userRef, {
       'subjectId': subjectId,
       'addedAt': FieldValue.serverTimestamp(),
     });
 
-    // 2. Global record for admin visibility (Store detailed activation info here)
-    // Using auto-generated ID to avoid potential path issues
+    // 2. Global record for admin visibility
     final globalRef = _db.collection('user_subjects').doc(); 
     batch.set(globalRef, {
-      'activationId': globalRef.id, // Store ID for easy deletion
+      'activationId': globalRef.id,
       'userId': userId,
       'subjectId': subjectId,
       'activatedAt': FieldValue.serverTimestamp(),
@@ -79,9 +84,16 @@ class ContentService {
         .get();
 
     final batch = _db.batch();
+    
+    // 0. Ensure user document exists
+    final userDocRef = _db.collection('users').doc(userId);
+    batch.set(userDocRef, {
+      'lastActive': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
     for (var doc in subjectsSnapshot.docs) {
-      // 1. Per-user records (Minimal)
-      final userRef = _db.collection('users').doc(userId).collection('active_subjects').doc(doc.id);
+      // 1. Per-user records
+      final userRef = userDocRef.collection('active_subjects').doc(doc.id);
       batch.set(userRef, {
         'subjectId': doc.id,
         'addedAt': FieldValue.serverTimestamp(),
@@ -100,7 +112,7 @@ class ContentService {
     }
     
     // Optionally track that the full semester was added
-    final semRef = _db.collection('users').doc(userId).collection('active_semesters').doc(semesterId);
+    final semRef = userDocRef.collection('active_semesters').doc(semesterId);
     batch.set(semRef, {
       'semesterId': semesterId,
       'addedAt': FieldValue.serverTimestamp(),

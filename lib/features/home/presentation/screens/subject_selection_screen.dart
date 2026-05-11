@@ -708,7 +708,7 @@ class _SemesterCard extends StatelessWidget {
                     final isAdded = activeSubjectIds.contains(subj.id);
                     final data = subj.data() as Map<String, dynamic>?;
                     final String name = data?['name']?.toString() ?? 'مادة بدون اسم';
-                    final String code = data?['code']?.toString() ?? 'مجاني';
+                    final String code = data?['code']?.toString() ?? 'N/A';
 
                     final double? price = (data?['price'] as num?)?.toDouble();
                     final double? discount = (data?['discount'] as num?)?.toDouble();
@@ -831,7 +831,7 @@ class _SemesterCard extends StatelessWidget {
                                     children: [
                                       if (price != null && price > 0 && discount != null && discount > 0) ...[
                                         Text(
-                                          '${price.toStringAsFixed(0)}',
+                                          price.toStringAsFixed(0),
                                           style: GoogleFonts.cairo(
                                             color: Colors.white.withValues(alpha: 0.6),
                                             fontSize: 10,
