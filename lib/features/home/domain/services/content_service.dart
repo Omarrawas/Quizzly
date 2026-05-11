@@ -54,10 +54,11 @@ class ContentService {
       'lastActive': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // 1. Per-user record
+    // 1. Per-user record (Store activationType for easy display)
     await userDocRef.collection('active_subjects').doc(subjectId).set({
       'subjectId': subjectId,
       'addedAt': FieldValue.serverTimestamp(),
+      'activationType': activationCode != null ? 'code' : 'free',
     });
 
     // 2. Global record for admin
@@ -89,6 +90,7 @@ class ContentService {
       await userDocRef.collection('active_subjects').doc(doc.id).set({
         'subjectId': doc.id,
         'addedAt': FieldValue.serverTimestamp(),
+        'activationType': activationCode != null ? 'code' : 'free',
       });
 
       // 2. Global records
@@ -107,6 +109,7 @@ class ContentService {
     await userDocRef.collection('active_semesters').doc(semesterId).set({
       'semesterId': semesterId,
       'addedAt': FieldValue.serverTimestamp(),
+      'activationType': activationCode != null ? 'code' : 'free',
     });
   }
 
@@ -168,6 +171,7 @@ class ContentService {
                 ...subjectData,
                 'id': subjectDoc.id,
                 'addedAt': doc.get('addedAt'),
+                'activationType': doc.data().containsKey('activationType') ? doc.get('activationType') : null,
                 ...hierarchy,
               });
             }

@@ -124,12 +124,13 @@ class SubjectCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'كود المادة: $code',
-                style: GoogleFonts.inter(
+                subject['activationType'] == 'free' 
+                    ? 'التفعيل: مجاني' 
+                    : (subject['activationType'] == 'code' ? 'التفعيل: بواسطة كود' : 'كود المادة: $code'),
+                style: GoogleFonts.cairo(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 1,
                 ),
               ),
             ),
