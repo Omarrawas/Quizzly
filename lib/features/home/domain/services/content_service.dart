@@ -48,24 +48,21 @@ class ContentService {
 
   /// Adds a single subject to the user's home screen
   Future<void> addUserSubject(String userId, String subjectId, {String? activationCode}) async {
-    final batch = _db.batch();
-    
-    // 0. Ensure user document exists (needed for some security rules)
+    // 0. Ensure user document exists
     final userDocRef = _db.collection('users').doc(userId);
-    batch.set(userDocRef, {
+    await userDocRef.set({
       'lastActive': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // 1. Per-user record for fast home screen loading
-    final userRef = userDocRef.collection('active_subjects').doc(subjectId);
-    batch.set(userRef, {
+    // 1. Per-user record
+    await userDocRef.collection('active_subjects').doc(subjectId).set({
       'subjectId': subjectId,
       'addedAt': FieldValue.serverTimestamp(),
     });
 
-    // 2. Global record for admin visibility
+    // 2. Global record for admin
     final globalRef = _db.collection('user_subjects').doc(); 
-    batch.set(globalRef, {
+    await globalRef.set({
       'activationId': globalRef.id,
       'userId': userId,
       'subjectId': subjectId,
@@ -73,8 +70,6 @@ class ContentService {
       'activationType': activationCode != null ? 'code' : 'free',
       'activationCode': activationCode, 
     });
-
-    await batch.commit();
   }
 
   /// Adds an entire semester (all subjects in it) to the user's home screen
@@ -83,25 +78,22 @@ class ContentService {
         .where('parentId', isEqualTo: semesterId)
         .get();
 
-    final batch = _db.batch();
-    
     // 0. Ensure user document exists
     final userDocRef = _db.collection('users').doc(userId);
-    batch.set(userDocRef, {
+    await userDocRef.set({
       'lastActive': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     for (var doc in subjectsSnapshot.docs) {
       // 1. Per-user records
-      final userRef = userDocRef.collection('active_subjects').doc(doc.id);
-      batch.set(userRef, {
+      await userDocRef.collection('active_subjects').doc(doc.id).set({
         'subjectId': doc.id,
         'addedAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Global records for admin visibility
+      // 2. Global records
       final globalRef = _db.collection('user_subjects').doc();
-      batch.set(globalRef, {
+      await globalRef.set({
         'activationId': globalRef.id,
         'userId': userId,
         'subjectId': doc.id,
@@ -112,13 +104,10 @@ class ContentService {
     }
     
     // Optionally track that the full semester was added
-    final semRef = userDocRef.collection('active_semesters').doc(semesterId);
-    batch.set(semRef, {
+    await userDocRef.collection('active_semesters').doc(semesterId).set({
       'semesterId': semesterId,
       'addedAt': FieldValue.serverTimestamp(),
     });
-
-    await batch.commit();
   }
 
   final Map<String, Map<String, String>> _hierarchyCache = {};

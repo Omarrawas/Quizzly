@@ -42,7 +42,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
       _showSuccess('تم تفعيل المادة بنجاح ✨ استمتع بالدراسة!');
       Navigator.pop(context); // Go back to selection
     } catch (e) {
-      _showError('حدث خطأ أثناء التفعيل، حاول مرة أخرى');
+      _showError('حدث خطأ أثناء التفعيل: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -112,7 +112,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                   if (context.mounted) Navigator.pop(context);
                 }
               } catch (e) {
-                _showError('حدث خطأ أثناء معالجة الكود');
+                _showError('حدث خطأ أثناء معالجة الكود: ${e.toString()}');
               } finally {
                 if (mounted) setState(() => _isLoading = false);
               }
