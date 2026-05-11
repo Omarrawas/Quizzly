@@ -449,15 +449,10 @@ class DatabaseService {
   }
   // --- Activation Management ---
   Stream<QuerySnapshot> getActivations({required bool isPaid}) {
-    Query<Map<String, dynamic>> query = _db.collection('user_subjects');
-    
-    if (isPaid) {
-      query = query.where('activationCode', isNotEqualTo: null);
-    } else {
-      query = query.where('activationCode', isEqualTo: null);
-    }
-
-    return query.orderBy('activatedAt', descending: true).snapshots();
+    return _db.collection('user_subjects')
+        .where('activationType', isEqualTo: isPaid ? 'code' : 'free')
+        .orderBy('activatedAt', descending: true)
+        .snapshots();
   }
 
   Future<void> deleteActivation(String activationId) async {

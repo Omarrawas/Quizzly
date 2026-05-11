@@ -62,7 +62,7 @@ class ContentService {
     });
 
     // 2. Global record for admin
-    final globalRef = _db.collection('user_subjects').doc(); 
+    final globalRef = _db.collection('user_subjects').doc('${userId}_$subjectId'); 
     await globalRef.set({
       'activationId': globalRef.id,
       'userId': userId,
@@ -94,7 +94,7 @@ class ContentService {
       });
 
       // 2. Global records
-      final globalRef = _db.collection('user_subjects').doc();
+      final globalRef = _db.collection('user_subjects').doc('${userId}_${doc.id}');
       await globalRef.set({
         'activationId': globalRef.id,
         'userId': userId,
