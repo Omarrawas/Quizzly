@@ -459,8 +459,30 @@ class DatabaseService {
     return query.orderBy('activatedAt', descending: true).snapshots();
   }
 
-  Future<void> deleteActivation(String activationId) {
-    return _db.collection('user_subjects').doc(activationId).delete();
+  Future<void> deleteActivation(String activationId) async {
+    try {
+      final doc = await _db.collection('user_subjects').doc(activationId).get();
+      if (!doc.exists) return;
+
+      final data = doc.data() as Map<String, dynamic>;
+      final userId = data['userId'];
+      final subjectId = data['subjectId'];
+
+      final batch = _db.batch();
+
+      // 1. Remove from global activations
+      batch.delete(_db.collection('user_subjects').doc(activationId));
+
+      // 2. Remove from user's personal active list
+      if (userId != null && subjectId != null) {
+        batch.delete(_db.collection('users').doc(userId).collection('active_subjects').doc(subjectId));
+      }
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Error deleting activation: $e');
+      rethrow;
+    }
   }
 
   Future<DocumentSnapshot> getUser(String userId) {
