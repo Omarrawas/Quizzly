@@ -448,9 +448,8 @@ class DatabaseService {
     await batch.commit();
   }
   // --- Activation Management ---
-  Stream<QuerySnapshot> getActivations({required bool isPaid}) {
+  Stream<QuerySnapshot> getActivations() {
     return _db.collection('user_subjects')
-        .where('activationType', isEqualTo: isPaid ? 'code' : 'free')
         .orderBy('activatedAt', descending: true)
         .snapshots();
   }

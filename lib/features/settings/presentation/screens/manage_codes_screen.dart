@@ -15,6 +15,13 @@ class ManageCodesScreen extends StatefulWidget {
 class _ManageCodesScreenState extends State<ManageCodesScreen> {
   int _selectedIndex = 0; // 0: التفعيلات المدفوعة, 1: التفعيلات المجانية
   final DatabaseService _dbService = DatabaseService();
+  late Stream<QuerySnapshot> _activationsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _activationsStream = _dbService.getActivations();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +43,9 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () => setState(() {}),
+            onPressed: () => setState(() {
+              _activationsStream = _dbService.getActivations();
+            }),
             icon: const Icon(
               Icons.refresh_rounded,
               color: AppColors.textSecondary,
@@ -62,23 +71,38 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     );
   }
 
-
-
   Widget _buildActivationsList({required bool isPaid}) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _dbService.getActivations(isPaid: isPaid),
+      stream: _activationsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue));
         }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        
+        final allDocs = snapshot.data?.docs ?? [];
+        
+        // Smart filtering for both old and new data
+        final docs = allDocs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final type = data['activationType']?.toString();
+          final code = data['activationCode']?.toString();
+          
+          if (isPaid) {
+            // Document is 'paid' if type is 'code' OR if it has a non-empty activationCode
+            return type == 'code' || (code != null && code.isNotEmpty && code != 'null');
+          } else {
+            // Document is 'free' if type is 'free' OR if it explicitly has no code
+            return type == 'free' || code == null || code.isEmpty || code == 'null';
+          }
+        }).toList();
+
+        if (docs.isEmpty) {
           return _buildEmptyState(
             isPaid ? Icons.account_balance_wallet_rounded : Icons.person_add_alt_1_rounded,
             isPaid ? 'لا توجد تفعيلات مدفوعة حالياً' : 'لا توجد تفعيلات مجانية حالياً',
           );
         }
 
-        final docs = snapshot.data!.docs;
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: docs.length,
