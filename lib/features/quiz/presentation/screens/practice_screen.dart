@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -95,47 +97,6 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     }
   }
 
-  void _toggleTopic(String id) {
-    if (widget.isFree) return; // Disable selection for free users
-    HapticFeedback.selectionClick();
-    setState(() {
-      if (_selectedTopicIds.contains(id)) {
-        _selectedTopicIds.remove(id);
-      } else {
-        _selectedTopicIds.add(id);
-      }
-    });
-  }
-
-  Future<void> _startPractice({
-    List<String>? topicIds,
-    List<String>? topicNames,
-    Difficulty? difficulty,
-  }) async {
-    HapticFeedback.mediumImpact();
-
-    final finalTopicIds = topicIds ?? (_selectedTopicIds.isEmpty ? null : _selectedTopicIds.toList());
-    final finalTopicNames = topicNames ?? (_selectedTopicIds.isEmpty
-        ? ['جميع المواضيع']
-        : _topics
-            .where((t) => _selectedTopicIds.contains(t['id']))
-            .map((t) => t['name'] as String)
-            .toList());
-    final finalDifficulty = difficulty ?? _selectedDifficulty;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PracticeSessionScreen(
-          subjectId: widget.subjectId,
-          topicIds: finalTopicIds,
-          topicNames: finalTopicNames,
-          selectedDifficulty: finalDifficulty,
-          isFree: widget.isFree,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,6 +360,89 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     );
   }
 
+  void _toggleTopic(String id) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_selectedTopicIds.contains(id)) {
+        _selectedTopicIds.remove(id);
+      } else {
+        _selectedTopicIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _startPractice({
+    List<String>? topicIds,
+    List<String>? topicNames,
+    Difficulty? difficulty,
+  }) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    // Check attempts limit for free users
+    if (widget.isFree) {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      
+      final snapshot = await FirebaseFirestore.instance
+          .collection('practice_sessions')
+          .where('userId', isEqualTo: userId)
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get();
+      
+      if (snapshot.docs.length >= 2) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text('انتهت محاولاتك اليوم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold), textAlign: TextAlign.right),
+              content: Text('لقد استنفدت المحاولتين المجانيتين لهذا اليوم. يمكنك العودة غداً أو الاشتراك لفتح عدد غير محدود من التدريبات!', style: GoogleFonts.cairo(), textAlign: TextAlign.right),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: Text('فهمت', style: GoogleFonts.cairo())),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // Navigate to subscription or show price
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: Text('اشترك الآن', style: GoogleFonts.cairo(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    HapticFeedback.mediumImpact();
+
+    final finalTopicIds = topicIds ?? (_selectedTopicIds.isEmpty ? null : _selectedTopicIds.toList());
+    final finalTopicNames = topicNames ?? (_selectedTopicIds.isEmpty
+        ? ['جميع المواضيع']
+        : _topics
+            .where((t) => _selectedTopicIds.contains(t['id']))
+            .map((t) => t['name'] as String)
+            .toList());
+    final finalDifficulty = difficulty ?? _selectedDifficulty;
+    
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PracticeSessionScreen(
+          subjectId: widget.subjectId,
+          topicIds: finalTopicIds,
+          topicNames: finalTopicNames,
+          selectedDifficulty: finalDifficulty,
+          isFree: widget.isFree,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
       children: [
@@ -411,10 +455,10 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
 
   Widget _buildDifficultySelector() {
     final List<Map<String, dynamic>> options = [
-      {'label': 'الكل', 'value': null, 'color': const Color(0xFF64748B), 'icon': Icons.all_inclusive_rounded, 'locked': widget.isFree},
+      {'label': 'الكل', 'value': null, 'color': const Color(0xFF64748B), 'icon': Icons.all_inclusive_rounded, 'locked': false},
       {'label': 'سهل', 'value': Difficulty.easy, 'color': const Color(0xFF16A34A), 'icon': Icons.signal_cellular_alt_1_bar_rounded, 'locked': false},
-      {'label': 'متوسط', 'value': Difficulty.medium, 'color': const Color(0xFFD97706), 'icon': Icons.signal_cellular_alt_2_bar_rounded, 'locked': widget.isFree},
-      {'label': 'صعب', 'value': Difficulty.hard, 'color': const Color(0xFFDC2626), 'icon': Icons.signal_cellular_alt_rounded, 'locked': widget.isFree},
+      {'label': 'متوسط', 'value': Difficulty.medium, 'color': const Color(0xFFD97706), 'icon': Icons.signal_cellular_alt_2_bar_rounded, 'locked': false},
+      {'label': 'صعب', 'value': Difficulty.hard, 'color': const Color(0xFFDC2626), 'icon': Icons.signal_cellular_alt_rounded, 'locked': false},
     ];
 
     return Row(
@@ -488,42 +532,36 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                   width: isSelected ? 1.5 : 1,
                 ),
               ),
-              child: Opacity(
-                opacity: widget.isFree ? 0.5 : 1.0,
-                child: Row(
-                  children: [
-                    if (widget.isFree)
-                       const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.grey)
-                    else
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
-                            width: 2,
-                          ),
-                        ),
-                        child: isSelected
-                            ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                            : null,
-                      ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        name,
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
-                        ),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
+                        width: 2,
                       ),
                     ),
-                  ],
-                ),
+                    child: isSelected
+                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
