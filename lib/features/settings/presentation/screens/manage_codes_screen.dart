@@ -27,20 +27,20 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         shadowColor: Colors.black.withValues(alpha: 0.06),
         automaticallyImplyLeading: false,
         leading: IconButton(
-          onPressed: () => setState(() {}),
+          onPressed: () => Navigator.maybePop(context),
           icon: const Icon(
-            Icons.refresh_rounded,
-            color: AppColors.textSecondary,
-            size: 24,
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
           ),
         ),
         actions: [
           IconButton(
-            onPressed: () => Navigator.maybePop(context),
+            onPressed: () => setState(() {}),
             icon: const Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AppColors.textPrimary,
-              size: 20,
+              Icons.refresh_rounded,
+              color: AppColors.textSecondary,
+              size: 24,
             ),
           ),
         ],

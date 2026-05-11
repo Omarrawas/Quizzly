@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:quizzly/core/theme/app_theme.dart';
 import 'package:quizzly/core/theme/theme_service.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
@@ -52,13 +53,16 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeService.themeMode,
-          // Adding RTL support for the Arabic interface
-          builder: (context, child) {
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: child!,
-            );
-          },
+          // Proper Arabic RTL Support
+          locale: const Locale('ar'),
+          supportedLocales: const [
+            Locale('ar'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: const SplashScreen(),
         );
       },

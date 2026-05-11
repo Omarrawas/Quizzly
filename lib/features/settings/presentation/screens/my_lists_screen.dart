@@ -176,33 +176,6 @@ class _MyListsScreenState extends State<MyListsScreen> {
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => _showEditSheet(index),
-                    icon: const Icon(Icons.edit_rounded, color: AppColors.textSecondary, size: 20),
-                  ),
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        list['name'],
-                        style: GoogleFonts.cairo(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      if (list['isDefault'])
-                        Text(
-                          'افتراضي',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
                   Container(
                     width: 48,
                     height: 48,
@@ -215,6 +188,34 @@ class _MyListsScreenState extends State<MyListsScreen> {
                       color: AppColors.primaryBlue,
                       size: 24,
                     ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          list['name'],
+                          style: GoogleFonts.cairo(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (list['isDefault'])
+                          Text(
+                            'افتراضي',
+                            style: GoogleFonts.cairo(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _showEditSheet(index),
+                    icon: const Icon(Icons.edit_rounded, color: AppColors.textSecondary, size: 20),
                   ),
                 ],
               ),
