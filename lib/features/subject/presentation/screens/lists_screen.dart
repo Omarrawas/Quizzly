@@ -8,9 +8,7 @@ import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_generator_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_session_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
-import 'package:quizzly/features/quiz/presentation/screens/exam_flashcards_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/active_recall_session_screen.dart';
-import 'package:quizzly/features/quiz/presentation/screens/speed_mode_session_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/domain/services/activation_service.dart';
 import 'package:provider/provider.dart';
@@ -132,96 +130,84 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 
   // ─── حوار خيارات بدء الامتحان ──────────────────────────────────────────
   void _showExamOptions(ExamConfig config) {
-    int selectedMode = 1; // Default to Timed Exam
+    int selectedPillar = 1; // 0: Browse, 1: Memory, 2: Exam
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          titlePadding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-          title: Text(
-            config.title,
-            style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
-            textAlign: TextAlign.center,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          title: Column(
+            children: [
+              Text(
+                config.title,
+                style: GoogleFonts.cairo(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.textPrimary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'اختر ركيزة التدريب المناسبة لك',
+                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
           content: Container(
             width: double.maxFinite,
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 400),
             child: SingleChildScrollView(
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ModeOption(
-                    index: 0,
-                    title: 'تصفح ككتاب',
-                    subtitle: 'عرض الأسئلة مع الحلول',
-                    icon: Icons.menu_book_rounded,
-                    color: Colors.orange,
-                    isSelected: selectedMode == 0,
-                    onTap: () => setDialogState(() => selectedMode = 0),
-                  ),
-                  _ModeOption(
-                    index: 1,
-                    title: 'وضع "احفظني"',
-                    subtitle: 'الاسترجاع النشط الفعال',
+                  const SizedBox(height: 16),
+                  _PillarOption(
+                    title: 'الحفظ والتمكين',
+                    subtitle: 'تثبيت المعلومات عبر المراجعة النشطة والبطاقات الذكية',
                     icon: Icons.psychology_rounded,
                     color: Colors.red,
-                    isSelected: selectedMode == 1,
-                    onTap: () => setDialogState(() => selectedMode = 1),
+                    isSelected: selectedPillar == 1,
+                    onTap: () => setDialogState(() => selectedPillar = 1),
                   ),
-                  _ModeOption(
-                    index: 2,
-                    title: 'امتحان بمؤقت',
-                    subtitle: 'اختبار تجريبي مؤقت',
+                  const SizedBox(height: 12),
+                  _PillarOption(
+                    title: 'المحاكاة والاختبار',
+                    subtitle: 'تدريب على جو الامتحان الحقيقي أو تحدي السرعة',
                     icon: Icons.timer_rounded,
                     color: AppColors.primaryBlue,
-                    isSelected: selectedMode == 2,
-                    onTap: () => setDialogState(() => selectedMode = 2),
+                    isSelected: selectedPillar == 2,
+                    onTap: () => setDialogState(() => selectedPillar = 2),
                   ),
-                  _ModeOption(
-                    index: 3,
-                    title: 'بطاقات ذكية',
-                    subtitle: 'مراجعة عبر قلب البطاقات',
-                    icon: Icons.style_rounded,
-                    color: Colors.purple,
-                    isSelected: selectedMode == 3,
-                    onTap: () => setDialogState(() => selectedMode = 3),
-                  ),
-                  _ModeOption(
-                    index: 4,
-                    title: 'تحدي السرعة ⚡',
-                    subtitle: '10 ثوانٍ لكل سؤال',
-                    icon: Icons.bolt_rounded,
-                    color: Colors.amber,
-                    isSelected: selectedMode == 4,
-                    onTap: () => setDialogState(() => selectedMode = 4),
+                  const SizedBox(height: 12),
+                  _PillarOption(
+                    title: 'التصفح والمراجعة',
+                    subtitle: 'الاطلاع السريع على الأسئلة والأجوبة النموذجية',
+                    icon: Icons.menu_book_rounded,
+                    color: Colors.orange,
+                    isSelected: selectedPillar == 0,
+                    onTap: () => setDialogState(() => selectedPillar = 0),
                   ),
                 ],
               ),
             ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions: [
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context); // Close dialog
-                  _launchExamMode(config, selectedMode);
+                  _launchExamMode(config, selectedPillar);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text('بدء الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: Text('ابدأ التدريب الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],
@@ -230,7 +216,43 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     );
   }
 
-  Future<void> _launchExamMode(ExamConfig config, int mode) async {
+  Future<void> _launchExamMode(ExamConfig config, int pillar) async {
+    if (pillar == 2) {
+      // Show sub-choice for Exam pillar
+      final String? choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text('نوع الاختبار', style: GoogleFonts.cairo(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SubModeTile(
+                title: 'امتحان شامل',
+                subtitle: 'محاكاة لجو الامتحان الرسمي بمؤقت كلي',
+                icon: Icons.timer_rounded,
+                onTap: () => Navigator.pop(context, 'normal'),
+              ),
+              const SizedBox(height: 12),
+              _SubModeTile(
+                title: 'تحدي السرعة',
+                subtitle: '10 ثوانٍ لكل سؤال لزيادة سرعة البديهة',
+                icon: Icons.bolt_rounded,
+                onTap: () => Navigator.pop(context, 'speed'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (choice == null) return;
+      _startExamSession(config, choice == 'speed');
+    } else {
+      _startExamSession(config, false, pillar: pillar);
+    }
+  }
+
+  Future<void> _startExamSession(ExamConfig config, bool isSpeed, {int pillar = 2}) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -250,33 +272,19 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
       }
 
       Widget screen;
-      switch (mode) {
-        case 0: // Book mode
-          screen = ExamBookModeScreen(config: config, questions: questions);
-          break;
-        case 1: // Memory mode
-          screen = ActiveRecallSessionScreen(config: config, questions: questions);
-          break;
-        case 2: // Timed Exam
-          screen = ExamSessionScreen(config: config, questions: questions);
-          break;
-        case 3: // Flashcards
-          screen = ExamFlashcardsScreen(config: config, questions: questions);
-          break;
-        case 4: // Speed mode
-          screen = SpeedModeSessionScreen(config: config, questions: questions);
-          break;
-        default: // Fallback
-          screen = ExamSessionScreen(config: config, questions: questions);
+      if (pillar == 0) {
+        screen = ExamBookModeScreen(config: config, questions: questions);
+      } else if (pillar == 1) {
+        screen = ActiveRecallSessionScreen(config: config, questions: questions);
+      } else {
+        screen = ExamSessionScreen(config: config, questions: questions, initialSpeedMode: isSpeed);
       }
 
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ أثناء تجهيز الاختبار: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
@@ -367,8 +375,8 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
   }
 }
 
-class _ModeOption extends StatelessWidget {
-  final int index;
+
+class _PillarOption extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
@@ -376,8 +384,7 @@ class _ModeOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _ModeOption({
-    required this.index,
+  const _PillarOption({
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -391,57 +398,70 @@ class _ModeOption extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade200,
+            color: isSelected ? color : Colors.grey.shade100,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+                    color: color.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   )
                 ]
-              : [],
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: isSelected ? color : AppColors.textPrimary,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: isSelected ? color : AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.cairo(
+                      fontSize: 10,
+                      height: 1.3,
+                      color: isSelected
+                          ? color.withValues(alpha: 0.8)
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(
-                fontSize: 9,
-                color: isSelected
-                    ? color.withValues(alpha: 0.7)
-                    : AppColors.textSecondary,
-              ),
-            ),
+            if (isSelected)
+              Icon(Icons.check_circle_rounded, color: color, size: 20),
           ],
         ),
       ),
@@ -687,6 +707,42 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(message, style: GoogleFonts.cairo(color: AppColors.textSecondary)),
         ],
+      ),
+    );
+  }
+}
+
+
+class _SubModeTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SubModeTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBlue.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: AppColors.primaryBlue),
+      ),
+      title: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(subtitle, style: GoogleFonts.cairo(fontSize: 10)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
     );
   }

@@ -26,6 +26,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
   late List<QuizQuestion> _queue;
   int _currentIndex = 0;
   bool _showAnswer = false;
+  bool _isFlashcardMode = false;
 
   @override
   void initState() {
@@ -52,7 +53,6 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
     }
 
     if (quality < 3) {
-      // Smart Re-entry: Add to queue again after 3-5 positions
       final currentQ = _queue[_currentIndex];
       final insertAt = (_currentIndex + 4).clamp(0, _queue.length);
       setState(() {
@@ -85,13 +85,29 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'وضع الحفظ (Active Recall)',
+          _isFlashcardMode ? 'البطاقات الذكية' : 'وضع الحفظ (Active Recall)',
           style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
         ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                _buildModeTab(Icons.style_rounded, true),
+                _buildModeTab(Icons.list_alt_rounded, false),
+              ],
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -115,35 +131,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  // Question Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          q.text,
-                          style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, height: 1.6),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (_showAnswer) ...[
-                          const SizedBox(height: 24),
-                          const Divider(),
-                          const SizedBox(height: 24),
-                          _buildAnswerSection(q),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              child: _isFlashcardMode ? _buildFlashcard(q) : _buildActiveRecallCard(q),
             ),
           ),
           _buildFooter(),
@@ -152,20 +140,136 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
     );
   }
 
-  Widget _buildAnswerSection(QuizQuestion q) {
-    final correctOption = (q.options ?? []).isEmpty 
-        ? null 
-        : (q.options ?? []).cast<QuizOption?>().firstWhere(
-            (o) => o != null && q.correctOptionIds.contains(o.id),
-            orElse: () => null,
+  Widget _buildModeTab(IconData icon, bool isFlash) {
+    final isSelected = _isFlashcardMode == isFlash;
+    return GestureDetector(
+      onTap: () => setState(() {
+        _isFlashcardMode = isFlash;
+        _showAnswer = false;
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 18),
+      ),
+    );
+  }
+
+  Widget _buildActiveRecallCard(QuizQuestion q) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+      ),
+      child: Column(
+        children: [
+          Text(
+            q.text,
+            style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, height: 1.6),
+            textAlign: TextAlign.center,
+          ),
+          if (_showAnswer) ...[
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 24),
+            _buildAnswerSection(q),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlashcard(QuizQuestion q) {
+    return GestureDetector(
+      onTap: _toggleAnswer,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        transitionBuilder: (child, animation) {
+          final rotate = Tween(begin: 3.14, end: 0.0).animate(animation);
+          return AnimatedBuilder(
+            animation: rotate,
+            builder: (context, child) {
+              return Transform(
+                transform: Matrix4.rotationY(rotate.value),
+                alignment: Alignment.center,
+                child: child,
+              );
+            },
           );
+        },
+        child: _showAnswer ? _buildFlashcardBack(q) : _buildFlashcardFront(q.text),
+      ),
+    );
+  }
+
+  Widget _buildFlashcardFront(String text) {
+    return Container(
+      key: const ValueKey(true),
+      width: double.infinity,
+      height: 350,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, height: 1.6),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlashcardBack(QuizQuestion q) {
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.rotationY(3.14),
+      child: Container(
+        key: const ValueKey(false),
+        width: double.infinity,
+        height: 350,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFF16A34A), width: 2),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: _buildAnswerSection(q),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnswerSection(QuizQuestion q) {
+    final correctOption = (q.options ?? []).isEmpty
+        ? null
+        : (q.options ?? []).cast<QuizOption?>().firstWhere(
+              (o) => o != null && q.correctOptionIds.contains(o.id),
+              orElse: () => null,
+            );
     return Column(
       children: [
-        Text(
-          'الجواب الصحيح:',
-          style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 8),
+        if (!_isFlashcardMode)
+          Text(
+            'الجواب الصحيح:',
+            style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textSecondary),
+          ),
+        if (_isFlashcardMode)
+          const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 40),
+        const SizedBox(height: 12),
         Text(
           correctOption?.text ?? 'غير محدد',
           style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF166534)),
@@ -176,7 +280,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: _isFlashcardMode ? Colors.white.withValues(alpha: 0.5) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -209,7 +313,8 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text('عرض الإجابة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: Text(_isFlashcardMode ? 'اقلب البطاقة' : 'عرض الإجابة',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             )
           : Column(
