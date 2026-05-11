@@ -7,6 +7,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
+import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -55,9 +56,10 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   final Map<int, AnswerState> _answerStates = {};
   final Set<String> _favoriteIds = {};
   final Set<int> _checkedQuestions = {};
-  final Map<int, String> _notes = {};
+  final Map<String, String> _notesByQuestionId = {}; // QuestionID -> Note
 
   final _favoriteService = FavoriteService();
+  final _srsService = SpacedRepetitionService();
   StreamSubscription? _favoriteSubscription;
 
   int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
@@ -114,10 +116,27 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       if (mounted && _isTimerRunning) setState(() {});
     });
     _loadState();
-    _setupFavoriteSync();
+    _setupFavoritesSync();
+    _loadCloudNotes();
   }
 
-  void _setupFavoriteSync() {
+  Future<void> _loadCloudNotes() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null || widget.config.subjectId.isEmpty) return;
+
+    try {
+      final cloudNotes = await _srsService.getAllSubjectMnemonics(userId, widget.config.subjectId);
+      if (mounted) {
+        setState(() {
+          _notesByQuestionId.addAll(cloudNotes);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading cloud notes: $e');
+    }
+  }
+
+  void _setupFavoritesSync() {
     _favoriteSubscription = _favoriteService.streamFavoriteIds().listen((ids) {
       if (mounted) {
         setState(() {
@@ -218,13 +237,23 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   }
 
   void _addNote(int questionIndex, String note) {
-    setState(() {
-      if (note.trim().isEmpty) {
-        _notes.remove(questionIndex);
-      } else {
-        _notes[questionIndex] = note;
+    final question = widget.questions[questionIndex];
+    final qId = question.id;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (qId != null) {
+      setState(() {
+        if (note.trim().isEmpty) {
+          _notesByQuestionId.remove(qId);
+        } else {
+          _notesByQuestionId[qId] = note;
+        }
+      });
+
+      if (userId != null && widget.config.subjectId.isNotEmpty) {
+        _srsService.updateMnemonic(userId, qId, widget.config.subjectId, note);
       }
-    });
+    }
     _saveState();
   }
 
@@ -237,7 +266,6 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       'answerStates': _answerStates.map((k, v) => MapEntry(k.toString(), v.name)),
       'favorites': _favoriteIds.toList(),
       'checkedQuestions': _checkedQuestions.toList(),
-      'notes': _notes.map((k, v) => MapEntry(k.toString(), v)),
       'elapsedMs': _stopwatch.elapsedMilliseconds + _elapsedOffset.inMilliseconds,
     };
     await prefs.setString(_storageKey, jsonEncode(state));
@@ -264,11 +292,6 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         }
         if (state['checkedQuestions'] != null) {
           _checkedQuestions.addAll((state['checkedQuestions'] as List).cast<int>());
-        }
-        if (state['notes'] != null) {
-          (state['notes'] as Map).forEach((k, v) {
-            _notes[int.parse(k)] = v;
-          });
         }
         if (state['elapsedMs'] != null) {
           _elapsedOffset = Duration(milliseconds: state['elapsedMs'] as int);
@@ -592,7 +615,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       onOptionSelected: (optId) => _onOptionSelected(realIndex, optId),
                       isFavorite: q.id != null && _favoriteIds.contains(q.id),
                       onFavoriteToggle: () => _toggleFavorite(realIndex),
-                      note: _notes[realIndex],
+                      note: q.id != null ? _notesByQuestionId[q.id] : null,
                       onNoteChanged: (note) => _addNote(realIndex, note),
                       onCheckAnswer: () => _onCheckAnswer(realIndex),
                       isChecked: _checkedQuestions.contains(realIndex),

@@ -192,7 +192,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     style: GoogleFonts.cairo(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 12),
-                  if (widget.subjectCode != 'N/A' && widget.subjectCode.isNotEmpty) ...[
+                  if ((widget.subjectCode != 'N/A' && widget.subjectCode.isNotEmpty) || (widget.basePrice == 0)) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
@@ -200,7 +200,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'رمز المادة: ${widget.subjectCode}',
+                        (widget.basePrice == 0) ? 'تفعيل مجاني' : 'رمز المادة: ${widget.subjectCode}',
                         style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600, letterSpacing: 1),
                       ),
                     ),

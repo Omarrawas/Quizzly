@@ -130,4 +130,23 @@ class SpacedRepetitionService {
       'nextReview': DateTime.now().toIso8601String(),
     }, SetOptions(merge: true));
   }
+
+  /// Get all mnemonics for a subject for the user
+  Future<Map<String, String>> getAllSubjectMnemonics(String userId, String subjectId) async {
+    final snap = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    
+    final mnemonics = <String, String>{};
+    for (var doc in snap.docs) {
+      final data = doc.data();
+      if (data.containsKey('mnemonic') && data['mnemonic'] != null && data['mnemonic'].toString().isNotEmpty) {
+        mnemonics[doc.id] = data['mnemonic'].toString();
+      }
+    }
+    return mnemonics;
+  }
 }
