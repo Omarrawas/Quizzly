@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quizzly/features/auth/domain/services/activation_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/presentation/widgets/hub_action_card.dart';
@@ -34,11 +35,33 @@ class SubjectHubScreen extends StatefulWidget {
 class _SubjectHubScreenState extends State<SubjectHubScreen> {
   final SubjectStatsService _statsService = SubjectStatsService();
   final CramModeService _cramModeService = CramModeService();
+  final ActivationService _activationService = ActivationService();
+  bool _isActivated = false;
+  bool _checkingActivation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkActivation();
+  }
+
+  Future<void> _checkActivation() async {
+    final userId = context.read<AuthService>().user?.uid;
+    if (userId != null) {
+      final active = await _activationService.isSubjectActivated(userId, widget.subjectId);
+      if (mounted) {
+        setState(() {
+          _isActivated = active;
+          _checkingActivation = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthService>().user;
-    if (user == null) {
+    if (user == null || _checkingActivation) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final userId = user.uid;
@@ -60,11 +83,11 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   // ── Dynamic banner: only shown when readiness score < 50%
   Widget _buildDynamicCoachBanner(String userId) {
+    if (!_isActivated) return const SizedBox.shrink(); // Hide coach for free users to keep it clean
     return StreamBuilder<double>(
       stream: ReadinessService().streamReadinessScore(userId, widget.subjectId),
       builder: (context, snapshot) {
         final score = snapshot.data ?? 0.0;
-        // Only show the banner when the student genuinely has gaps
         if (score >= 0.5) return const SizedBox.shrink();
         return SmartCoachBanner(
           message: 'لديك فجوات في تغطية المنهج، هل تريد مراجعتها الآن؟',
@@ -141,7 +164,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'بناءً على إتقانك وتغطية المنهج',
+                      _isActivated ? 'بناءً على إتقانك وتغطية المنهج' : 'اشترك لتفعيل خارطة الإتقان الكاملة',
                       style: GoogleFonts.cairo(
                         color: Colors.white30,
                         fontSize: 10,
@@ -218,13 +241,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   // Grid built with a normal GridView (not SliverGrid) to avoid height calculation issues
   Widget _buildActionsGrid(String userId) {
-    final List<(IconData, String, Color, Stream<int>, int)> actions = [
+    final List<(IconData, String, Color, Stream<int>, int, bool)> actions = [
       (
         Icons.assignment_rounded,
         'الامتحانات',
         const Color(0xFF2563EB),
         _statsService.streamExamsCount(widget.subjectId),
         0,
+        false, // Always protected at exam level
       ),
       (
         Icons.explore_rounded,
@@ -232,6 +256,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         const Color(0xFF6366F1),
         _statsService.streamTopicsCount(widget.subjectId),
         1,
+        !_isActivated, // Show lock if not activated
       ),
       (
         Icons.auto_awesome_motion_rounded,
@@ -239,6 +264,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         const Color(0xFF0F172A),
         _statsService.streamWrongAnswersCount(userId, widget.subjectId),
         2,
+        !_isActivated,
       ),
       (
         Icons.school_rounded,
@@ -246,6 +272,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         const Color(0xFF0EA5E9),
         _statsService.streamPracticeCount(userId, widget.subjectId),
         3,
+        !_isActivated,
       ),
       (
         Icons.science_rounded,
@@ -253,6 +280,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         const Color(0xFF0D9488),
         _statsService.streamPracticalTopicsCount(widget.subjectId),
         4,
+        !_isActivated,
       ),
       (
         Icons.groups_rounded,
@@ -260,6 +288,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         const Color(0xFFE11D48),
         Stream<int>.value(0),
         5,
+        !_isActivated,
       ),
     ];
 
@@ -282,8 +311,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             label: a.$2,
             color: a.$3,
             countStream: a.$4,
-            showBadge:
-                index < 2, // Only show badges for first two: Exams and Explore
+            showBadge: index < 2,
+            isLocked: a.$6,
             onTap: () => _onActionTap(a.$5),
           );
         },
@@ -297,28 +326,40 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     required Color color,
     required Stream<int> countStream,
     required bool showBadge,
+    required bool isLocked,
     required VoidCallback onTap,
   }) {
     return StreamBuilder<int>(
       stream: countStream,
       builder: (context, snapshot) {
         final count = snapshot.data ?? 0;
-        return HubActionCard(
-          action: HubAction(
-            icon: icon,
-            label: label,
-            iconColor: color,
-            iconBackground: color.withValues(alpha: 0.1),
-            badgeCount: count,
-            showBadge: showBadge,
-          ),
-          onTap: onTap,
+        return Stack(
+          children: [
+            HubActionCard(
+              action: HubAction(
+                icon: icon,
+                label: label,
+                iconColor: color,
+                iconBackground: color.withValues(alpha: 0.1),
+                badgeCount: count,
+                showBadge: showBadge,
+              ),
+              onTap: onTap,
+            ),
+            if (isLocked)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Icon(Icons.lock_outline_rounded, color: color.withValues(alpha: 0.5), size: 16),
+              ),
+          ],
         );
       },
     );
   }
 
   Widget _buildCramModeSliver(String userId) {
+    if (!_isActivated) return const SliverToBoxAdapter(child: SizedBox.shrink());
     return SliverToBoxAdapter(
       child: FutureBuilder<List<QuizQuestion>>(
         future: _cramModeService.generateCramSession(userId, widget.subjectId),
@@ -408,46 +449,213 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
+  void _showPaywall() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.amber[50],
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 32),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'افتح المحتوى الكامل الآن',
+              style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'اشترك لتتمكن من الوصول لجميع الدروس، الاختبارات، وتحليل الأخطاء المتقدم.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(color: AppColors.textSecondary, height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showActivationDialog();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text('تفعيل المادة بالكود', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('ربما لاحقاً', style: GoogleFonts.cairo(color: Colors.grey)),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showActivationDialog() {
+    final controller = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'تفعيل المادة',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'يرجى إدخال كود تفعيل مادة ${widget.subjectName} لفتح جميع المميزات.',
+                style: GoogleFonts.cairo(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'أدخل الكود هنا...',
+                  hintStyle: GoogleFonts.cairo(fontSize: 13),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 2),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: isLoading ? null : () async {
+                if (controller.text.isEmpty) return;
+                
+                setDialogState(() => isLoading = true);
+                final userId = context.read<AuthService>().user?.uid;
+                final result = await _activationService.activateWithCode(
+                  userId: userId!,
+                  code: controller.text,
+                  subjectId: widget.subjectId,
+                );
+                
+                if (!mounted) return;
+                setDialogState(() => isLoading = false);
+
+                if (result['success']) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context); // Close dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result['message'], style: GoogleFonts.cairo())),
+                  );
+                  // Refresh Hub
+                  setState(() => _isActivated = true);
+                  _checkActivation();
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result['message'], style: GoogleFonts.cairo()), backgroundColor: Colors.red),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: isLoading 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text('تفعيل الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _onActionTap(int index) {
+    // 1. Exams (Allows entry for free users, limits applied inside)
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ExamsListScreen(
+            subjectId: widget.subjectId,
+            subjectName: widget.subjectName,
+            isFree: !_isActivated,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 2. Explore (Allows entry for free users, limits applied inside)
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SubjectExploreScreen(
+            subjectId: widget.subjectId,
+            subjectName: widget.subjectName,
+            isFree: !_isActivated,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 3. Practice (Allows entry for free users, limits applied inside)
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PracticeScreen(
+            subjectId: widget.subjectId,
+            subjectName: widget.subjectName,
+            isFree: !_isActivated,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 4. Other sections (Locked for free users)
+    if (!_isActivated) {
+      _showPaywall();
+      return;
+    }
+
     switch (index) {
-      case 0:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ExamsListScreen(
-              subjectId: widget.subjectId,
-              subjectName: widget.subjectName,
-            ),
-          ),
-        );
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SubjectExploreScreen(
-              subjectId: widget.subjectId,
-              subjectName: widget.subjectName,
-            ),
-          ),
-        );
-        break;
       case 2:
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => MasteryDashboardScreen(
-              subjectId: widget.subjectId,
-              subjectName: widget.subjectName,
-            ),
-          ),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PracticeScreen(
               subjectId: widget.subjectId,
               subjectName: widget.subjectName,
             ),

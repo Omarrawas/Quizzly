@@ -9,11 +9,13 @@ import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen
 class SubjectExploreScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
+  final bool isFree;
 
   const SubjectExploreScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
+    this.isFree = false,
   });
 
   @override
@@ -106,6 +108,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
   }
 
   void _onSearch(String query) {
+    if (widget.isFree) return; // Disable search for free users
     setState(() {
       _searchQuery = query;
       if (query.isEmpty) {
@@ -125,7 +128,31 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(),
-          _buildSearchBarSliver(),
+          if (!widget.isFree) _buildSearchBarSliver(),
+          if (widget.isFree) 
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.amber[100]!),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: Colors.amber),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'أنت تتصفح العينة المجانية للمادة. اشترك لفتح كل المواضيع والبحث.',
+                        style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (_searchQuery.isNotEmpty) 
             _buildSearchResultsSliver()
           else ...[
@@ -228,84 +255,106 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           childAspectRatio: 1.0,
         ),
         delegate: SliverChildBuilderDelegate(
-          (context, index) => _buildTagCard(_tagsData[index]),
+          (context, index) => _buildTagCard(_tagsData[index], index),
           childCount: _tagsData.length,
         ),
       ),
     );
   }
 
-  Widget _buildTagCard(Map<String, dynamic> tag) {
+  Widget _buildTagCard(Map<String, dynamic> tag, int index) {
     final String name = tag['name'];
     final int count = tag['count'];
     final bool hasViewed = _viewedTags.contains(name);
     final stats = _tagsStats[name];
     final bool hasStats = stats != null && stats['answered']! > 0;
+    
+    // Protection logic: Only first 3 tags are free
+    final bool isLocked = widget.isFree && index >= 3;
 
     return InkWell(
-      onTap: () => _openTagQuestions(name),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEEF2FF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.local_offer_rounded, color: Color(0xFF6366F1), size: 24),
-                ),
-                if (!hasViewed)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
+      onTap: isLocked ? _showLockInfo : () => _openTagQuestions(name),
+      child: Opacity(
+        opacity: isLocked ? 0.6 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEEF2FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isLocked ? Icons.lock_outline_rounded : Icons.local_offer_rounded, 
+                      color: const Color(0xFF6366F1), 
+                      size: 24
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              name,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '$count سؤال',
-              style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
-            ),
-            if (hasStats) ...[
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: stats['answered']! / count,
-                  backgroundColor: Colors.grey[100],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
-                  minHeight: 3,
-                ),
+                  if (!hasViewed && !isLocked)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
               ),
+              const SizedBox(height: 12),
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isLocked ? 'محتوى مدفوع' : '$count سؤال',
+                style: GoogleFonts.cairo(fontSize: 11, color: isLocked ? Colors.red[300] : Colors.grey),
+              ),
+              if (hasStats && !isLocked) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: stats['answered']! / count,
+                    backgroundColor: Colors.grey[100],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                    minHeight: 3,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  void _showLockInfo() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('هذا الموضوع مخصص للمشتركين. اشترك الآن لفتحه!', style: GoogleFonts.cairo()),
+        backgroundColor: const Color(0xFF0F172A),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

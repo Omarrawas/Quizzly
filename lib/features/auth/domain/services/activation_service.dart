@@ -3,19 +3,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ActivationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  /// Checks if a user has activated a specific subject
+  Future<bool> isSubjectActivated(String userId, String subjectId) async {
+    try {
+      final subjectDoc = await _db
+          .collection('users')
+          .doc(userId)
+          .collection('active_subjects')
+          .doc(subjectId)
+          .get();
+      
+      return subjectDoc.exists && (subjectDoc.data()?['isActivated'] ?? false);
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Checks if a user has access to a specific exam
   Future<bool> hasExamAccess(String userId, String examId, String subjectId) async {
     // 1. Check if the subject itself is activated for this user
-    final subjectDoc = await _db
-        .collection('users')
-        .doc(userId)
-        .collection('active_subjects')
-        .doc(subjectId)
-        .get();
-    
-    if (subjectDoc.exists && (subjectDoc.data()?['isActivated'] ?? false)) {
-      return true;
-    }
+    if (await isSubjectActivated(userId, subjectId)) return true;
 
     // 2. Check if this specific exam is activated for this user
     final examDoc = await _db

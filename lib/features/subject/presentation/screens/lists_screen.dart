@@ -16,11 +16,13 @@ import 'package:provider/provider.dart';
 class ExamsListScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
+  final bool isFree;
 
   const ExamsListScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
+    this.isFree = false,
   });
 
   @override
@@ -111,26 +113,20 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
   }
 
   Future<void> _handleExamTap(ExamConfig config) async {
-    if (config.isFree) {
+    // If subject is free (activated) or the exam itself is free, show all options
+    if (config.isFree || !widget.isFree) {
       _showExamOptions(config);
       return;
     }
 
-    final userId = context.read<AuthService>().user?.uid;
-    if (userId == null) return;
-
-    // Check if subject is activated
-    final hasAccess = await _activationService.hasExamAccess(userId, config.id!, widget.subjectId);
-    if (hasAccess) {
-      _showExamOptions(config);
-    } else {
-      _showActivationDialog(config);
-    }
+    // For free users on a paid subject: 
+    // We allow them to see the options (Pillars) but they will be restricted inside _showExamOptions
+    _showExamOptions(config);
   }
 
   // ─── حوار خيارات بدء الامتحان ──────────────────────────────────────────
   void _showExamOptions(ExamConfig config) {
-    int selectedPillar = 1; // 0: Browse, 1: Memory, 2: Exam
+    int selectedPillar = widget.isFree ? 0 : 1; // Default to Browse for free, Memory for paid
 
     showDialog(
       context: context,
@@ -166,8 +162,15 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                     subtitle: 'تثبيت المعلومات عبر المراجعة النشطة والبطاقات الذكية',
                     icon: Icons.psychology_rounded,
                     color: Colors.red,
+                    isLocked: widget.isFree,
                     isSelected: selectedPillar == 1,
-                    onTap: () => setDialogState(() => selectedPillar = 1),
+                    onTap: () {
+                      if (widget.isFree) {
+                        _showSubscriptionMsg();
+                        return;
+                      }
+                      setDialogState(() => selectedPillar = 1);
+                    },
                   ),
                   const SizedBox(height: 12),
                   _PillarOption(
@@ -175,8 +178,15 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                     subtitle: 'تدريب على جو الامتحان الحقيقي أو تحدي السرعة',
                     icon: Icons.timer_rounded,
                     color: AppColors.primaryBlue,
+                    isLocked: widget.isFree,
                     isSelected: selectedPillar == 2,
-                    onTap: () => setDialogState(() => selectedPillar = 2),
+                    onTap: () {
+                      if (widget.isFree) {
+                        _showSubscriptionMsg();
+                        return;
+                      }
+                      setDialogState(() => selectedPillar = 2);
+                    },
                   ),
                   const SizedBox(height: 12),
                   _PillarOption(
@@ -213,6 +223,12 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showSubscriptionMsg() {
+     ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('هذا النمط يتطلب اشتراكاً مفعلاً للمادة.', style: GoogleFonts.cairo()), backgroundColor: AppColors.primaryBlue),
     );
   }
 
@@ -383,6 +399,7 @@ class _PillarOption extends StatelessWidget {
   final Color color;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isLocked;
 
   const _PillarOption({
     required this.title,
@@ -391,6 +408,7 @@ class _PillarOption extends StatelessWidget {
     required this.color,
     required this.isSelected,
     required this.onTap,
+    this.isLocked = false,
   });
 
   @override
@@ -402,10 +420,10 @@ class _PillarOption extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.05) : (isLocked ? Colors.grey[50] : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade100,
+            color: isSelected ? color : (isLocked ? Colors.grey[200]! : Colors.grey.shade100),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -424,45 +442,50 @@ class _PillarOption extends StatelessWidget {
                   )
                 ],
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
+        child: Opacity(
+          opacity: isLocked ? 0.6 : 1.0,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isLocked ? Colors.grey[200] : color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(isLocked ? Icons.lock_outline_rounded : icon, color: isLocked ? Colors.grey[600] : color, size: 28),
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.cairo(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: isSelected ? color : AppColors.textPrimary,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: isSelected ? color : AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.cairo(
-                      fontSize: 10,
-                      height: 1.3,
-                      color: isSelected
-                          ? color.withValues(alpha: 0.8)
-                          : AppColors.textSecondary,
+                    Text(
+                      isLocked ? 'محتوى مدفوع للمشتركين' : subtitle,
+                      style: GoogleFonts.cairo(
+                        fontSize: 10,
+                        height: 1.3,
+                        color: isLocked 
+                          ? Colors.red[300]
+                          : (isSelected
+                              ? color.withValues(alpha: 0.8)
+                              : AppColors.textSecondary),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_circle_rounded, color: color, size: 20),
-          ],
+              if (isSelected)
+                Icon(Icons.check_circle_rounded, color: color, size: 20),
+            ],
+          ),
         ),
       ),
     );

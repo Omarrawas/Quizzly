@@ -19,6 +19,7 @@ class PracticeSessionScreen extends StatefulWidget {
   final List<String>? topicIds;
   final List<String> topicNames;
   final Difficulty? selectedDifficulty;
+  final bool isFree;
 
   const PracticeSessionScreen({
     super.key,
@@ -26,6 +27,7 @@ class PracticeSessionScreen extends StatefulWidget {
     this.topicIds,
     required this.topicNames,
     this.selectedDifficulty,
+    this.isFree = false,
   });
 
   @override
@@ -124,7 +126,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         subjectId: widget.subjectId,
         topicIds: widget.topicIds,
         difficulty: widget.selectedDifficulty,
-        limit: 30,
+        limit: widget.isFree ? 5 : 30,
       );
       if (mounted) {
         setState(() {
@@ -378,6 +380,15 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               'انتهت الجلسة!',
               style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+            if (widget.isFree)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'لقد أتممت العينة المجانية. اشترك الآن للوصول لآلاف الأسئلة الأخرى والميزات المتقدمة!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                ),
+              ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

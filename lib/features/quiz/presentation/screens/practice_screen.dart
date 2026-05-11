@@ -13,11 +13,13 @@ import 'package:quizzly/features/quiz/presentation/screens/practice_history_scre
 class PracticeScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
+  final bool isFree;
 
   const PracticeScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
+    this.isFree = false,
   });
 
   @override
@@ -42,6 +44,10 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
       duration: const Duration(milliseconds: 400),
     )..forward();
     _loadTopics();
+    
+    if (widget.isFree) {
+       _selectedDifficulty = Difficulty.easy; // Force easy for free users sample
+    }
   }
 
   @override
@@ -90,6 +96,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
   }
 
   void _toggleTopic(String id) {
+    if (widget.isFree) return; // Disable selection for free users
     HapticFeedback.selectionClick();
     setState(() {
       if (_selectedTopicIds.contains(id)) {
@@ -124,6 +131,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           topicIds: finalTopicIds,
           topicNames: finalTopicNames,
           selectedDifficulty: finalDifficulty,
+          isFree: widget.isFree,
         ),
       ),
     );
@@ -138,7 +146,6 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0F4FF),
       body: CustomScrollView(
         slivers: [
-          // ── Sliver App Bar ──────────────────────────────
           SliverAppBar(
             expandedHeight: 160,
             pinned: true,
@@ -148,18 +155,19 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.history_rounded, color: Colors.white),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PracticeHistoryScreen(
-                      subjectId: widget.subjectId,
-                      subjectName: widget.subjectName,
+              if (!widget.isFree)
+                IconButton(
+                  icon: const Icon(Icons.history_rounded, color: Colors.white),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PracticeHistoryScreen(
+                        subjectId: widget.subjectId,
+                        subjectName: widget.subjectName,
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -219,7 +227,6 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
             ),
           ),
 
-          // ── Body Content ────────────────────────────────
           SliverToBoxAdapter(
             child: _loading
                 ? const Padding(
@@ -233,23 +240,17 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Info card
-                          _buildInfoCard(isDark),
+                          if (widget.isFree) _buildFreeNotice(),
+                          _buildInfoCard(),
                           const SizedBox(height: 24),
-
-                          // Smart Presets
                           _buildSectionTitle('جلسات ذكية (سريعة)', Icons.bolt_rounded),
                           const SizedBox(height: 12),
                           _buildPresetsRow(),
                           const SizedBox(height: 24),
-
-                          // Difficulty filter
                           _buildSectionTitle('أو خصص تدريبك: الصعوبة', Icons.tune_rounded),
                           const SizedBox(height: 12),
                           _buildDifficultySelector(),
                           const SizedBox(height: 24),
-
-                          // Topics selector
                           _buildSectionTitle(
                             _selectedTopicIds.isEmpty
                                 ? 'اختر المواضيع (أو اتركه فارغاً للكل)'
@@ -260,7 +261,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                           _topics.isEmpty
                               ? _buildEmptyTopics(isDark)
                               : _buildTopicsList(isDark),
-                          const SizedBox(height: 100), // Space for FAB
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
@@ -268,14 +269,36 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           ),
         ],
       ),
-      floatingActionButton: _loading
-          ? null
-          : _buildStartButton(),
+      floatingActionButton: _loading ? null : _buildStartButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _buildInfoCard(bool isDark) {
+  Widget _buildFreeNotice() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber[200]!),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.stars_rounded, color: Colors.amber),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'أنت في وضع العينة المجانية. يمكنك حل 5 أسئلة فقط في الجلسة الواحدة لتجربة المحرك.',
+              style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900], fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -321,24 +344,9 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
 
   Widget _buildPresetsRow() {
     final presets = [
-      {
-        'title': 'تحديث سريع',
-        'subtitle': '15 دقيقة',
-        'icon': Icons.timer_outlined,
-        'color': const Color(0xFF2563EB),
-      },
-      {
-        'title': 'جلسة تركيز',
-        'subtitle': '30 دقيقة',
-        'icon': Icons.center_focus_strong_outlined,
-        'color': const Color(0xFF7C3AED),
-      },
-      {
-        'title': 'تحدي الوحش',
-        'subtitle': 'صعب فقط',
-        'icon': Icons.whatshot_rounded,
-        'color': const Color(0xFFDC2626),
-      },
+      {'title': 'تحديث سريع', 'subtitle': '15 دقيقة', 'icon': Icons.timer_outlined, 'color': const Color(0xFF2563EB), 'locked': false},
+      {'title': 'جلسة تركيز', 'subtitle': '30 دقيقة', 'icon': Icons.center_focus_strong_outlined, 'color': const Color(0xFF7C3AED), 'locked': widget.isFree},
+      {'title': 'تحدي الوحش', 'subtitle': 'صعب فقط', 'icon': Icons.whatshot_rounded, 'color': const Color(0xFFDC2626), 'locked': widget.isFree},
     ];
 
     return SizedBox(
@@ -350,44 +358,44 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
         itemBuilder: (context, index) {
           final p = presets[index];
           final color = p['color'] as Color;
+          final bool isLocked = p['locked'] as bool;
+          
           return GestureDetector(
             onTap: () {
-              if (index == 0) {
-                _startPractice(difficulty: null); // Quick Refresh
-              } else if (index == 1) {
-                _startPractice(difficulty: null); // Focus (All diffs but more questions)
-              } else {
-                _startPractice(difficulty: Difficulty.hard); // Beast Mode
-              }
+              if (isLocked) { _showSubscriptionMsg(); return; }
+              _startPractice(difficulty: index == 2 ? Difficulty.hard : null);
             },
-            child: Container(
-              width: 130,
-              margin: const EdgeInsets.only(left: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: color.withValues(alpha: 0.2)),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(p['icon'] as IconData, color: color, size: 20),
-                  const SizedBox(height: 4),
-                  Text(
-                    p['title'] as String,
-                    style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: color),
-                  ),
-                  Text(
-                    p['subtitle'] as String,
-                    style: GoogleFonts.cairo(fontSize: 10, color: color.withValues(alpha: 0.7)),
-                  ),
-                ],
+            child: Opacity(
+              opacity: isLocked ? 0.6 : 1.0,
+              child: Container(
+                width: 130,
+                margin: const EdgeInsets.only(left: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(isLocked ? Icons.lock_outline_rounded : p['icon'] as IconData, color: color, size: 20),
+                    const SizedBox(height: 4),
+                    Text(p['title'] as String, style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+                    Text(isLocked ? 'للمشتركين' : p['subtitle'] as String, style: GoogleFonts.cairo(fontSize: 10, color: color.withValues(alpha: 0.7))),
+                  ],
+                ),
               ),
             ),
           );
         },
       ),
+    );
+  }
+
+  void _showSubscriptionMsg() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('هذا الوضع يتطلب اشتراكاً مفعلاً للمادة.', style: GoogleFonts.cairo()), backgroundColor: AppColors.primaryBlue),
     );
   }
 
@@ -403,19 +411,22 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
 
   Widget _buildDifficultySelector() {
     final List<Map<String, dynamic>> options = [
-      {'label': 'الكل', 'value': null, 'color': const Color(0xFF64748B), 'icon': Icons.all_inclusive_rounded},
-      {'label': 'سهل', 'value': Difficulty.easy, 'color': const Color(0xFF16A34A), 'icon': Icons.signal_cellular_alt_1_bar_rounded},
-      {'label': 'متوسط', 'value': Difficulty.medium, 'color': const Color(0xFFD97706), 'icon': Icons.signal_cellular_alt_2_bar_rounded},
-      {'label': 'صعب', 'value': Difficulty.hard, 'color': const Color(0xFFDC2626), 'icon': Icons.signal_cellular_alt_rounded},
+      {'label': 'الكل', 'value': null, 'color': const Color(0xFF64748B), 'icon': Icons.all_inclusive_rounded, 'locked': widget.isFree},
+      {'label': 'سهل', 'value': Difficulty.easy, 'color': const Color(0xFF16A34A), 'icon': Icons.signal_cellular_alt_1_bar_rounded, 'locked': false},
+      {'label': 'متوسط', 'value': Difficulty.medium, 'color': const Color(0xFFD97706), 'icon': Icons.signal_cellular_alt_2_bar_rounded, 'locked': widget.isFree},
+      {'label': 'صعب', 'value': Difficulty.hard, 'color': const Color(0xFFDC2626), 'icon': Icons.signal_cellular_alt_rounded, 'locked': widget.isFree},
     ];
 
     return Row(
       children: options.map((opt) {
+        final bool isLocked = opt['locked'] as bool;
         final isSelected = _selectedDifficulty == opt['value'];
         final color = opt['color'] as Color;
+        
         return Expanded(
           child: GestureDetector(
             onTap: () {
+              if (isLocked) { _showSubscriptionMsg(); return; }
               HapticFeedback.selectionClick();
               setState(() => _selectedDifficulty = opt['value'] as Difficulty?);
             },
@@ -427,23 +438,24 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                 color: isSelected ? color : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isSelected ? color : AppColors.borderLight),
-                boxShadow: isSelected
-                    ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]
-                    : [],
+                boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
               ),
-              child: Column(
-                children: [
-                  Icon(opt['icon'] as IconData, color: isSelected ? Colors.white : color, size: 18),
-                  const SizedBox(height: 4),
-                  Text(
-                    opt['label'] as String,
-                    style: GoogleFonts.cairo(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : color,
+              child: Opacity(
+                opacity: isLocked ? 0.4 : 1.0,
+                child: Column(
+                  children: [
+                    Icon(isLocked ? Icons.lock_outline_rounded : opt['icon'] as IconData, color: isSelected ? Colors.white : color, size: 18),
+                    const SizedBox(height: 4),
+                    Text(
+                      opt['label'] as String,
+                      style: GoogleFonts.cairo(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : color,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -476,36 +488,42 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                   width: isSelected ? 1.5 : 1,
                 ),
               ),
-              child: Row(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
-                        width: 2,
+              child: Opacity(
+                opacity: widget.isFree ? 0.5 : 1.0,
+                child: Row(
+                  children: [
+                    if (widget.isFree)
+                       const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.grey)
+                    else
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
+                            width: 2,
+                          ),
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                            : null,
+                      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                        ),
                       ),
                     ),
-                    child: isSelected
-                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -553,7 +571,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               const Icon(Icons.play_arrow_rounded, size: 22),
               const SizedBox(width: 8),
               Text(
-                _selectedTopicIds.isEmpty ? 'ابدأ التدريب (جميع المواضيع)' : 'ابدأ التدريب (${_selectedTopicIds.length} مواضيع)',
+                widget.isFree ? 'ابدأ العينة المجانية' : (_selectedTopicIds.isEmpty ? 'ابدأ التدريب (جميع المواضيع)' : 'ابدأ التدريب (${_selectedTopicIds.length} مواضيع)'),
                 style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ],
