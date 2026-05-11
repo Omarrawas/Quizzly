@@ -7,6 +7,7 @@ class QuestionMastery {
   final double easeFactor;
   final int consecutiveCorrect;
   final String? mnemonic; // User's personal memory anchor
+  final String? note; // User's personal note
 
   QuestionMastery({
     required this.questionId,
@@ -17,6 +18,7 @@ class QuestionMastery {
     this.easeFactor = 2.5,
     this.consecutiveCorrect = 0,
     this.mnemonic,
+    this.note,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class QuestionMastery {
       'easeFactor': easeFactor,
       'consecutiveCorrect': consecutiveCorrect,
       'mnemonic': mnemonic,
+      'note': note,
     };
   }
 
@@ -42,6 +45,7 @@ class QuestionMastery {
       easeFactor: (map['easeFactor'] as num?)?.toDouble() ?? 2.5,
       consecutiveCorrect: map['consecutiveCorrect'] ?? 0,
       mnemonic: map['mnemonic'],
+      note: map['note'],
     );
   }
 }

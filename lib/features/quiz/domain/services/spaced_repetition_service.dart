@@ -131,8 +131,25 @@ class SpacedRepetitionService {
     }, SetOptions(merge: true));
   }
 
-  /// Get all mnemonics for a subject for the user
-  Future<Map<String, String>> getAllSubjectMnemonics(String userId, String subjectId) async {
+  /// Save or update a personal note for a question
+  Future<void> updateNote(String userId, String questionId, String subjectId, String note) async {
+    final docRef = _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .doc(questionId);
+
+    await docRef.set({
+      'note': note,
+      'subjectId': subjectId,
+      'questionId': questionId,
+      'lastReview': DateTime.now().toIso8601String(),
+      'nextReview': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Get all mnemonics and notes for a subject for the user
+  Future<Map<String, Map<String, String>>> getAllSubjectData(String userId, String subjectId) async {
     final snap = await _db
         .collection('users')
         .doc(userId)
@@ -140,13 +157,20 @@ class SpacedRepetitionService {
         .where('subjectId', isEqualTo: subjectId)
         .get();
     
-    final mnemonics = <String, String>{};
+    final result = <String, Map<String, String>>{};
     for (var doc in snap.docs) {
       final data = doc.data();
-      if (data.containsKey('mnemonic') && data['mnemonic'] != null && data['mnemonic'].toString().isNotEmpty) {
-        mnemonics[doc.id] = data['mnemonic'].toString();
+      final questionData = <String, String>{};
+      if (data['mnemonic'] != null && data['mnemonic'].toString().isNotEmpty) {
+        questionData['mnemonic'] = data['mnemonic'].toString();
+      }
+      if (data['note'] != null && data['note'].toString().isNotEmpty) {
+        questionData['note'] = data['note'].toString();
+      }
+      if (questionData.isNotEmpty) {
+        result[doc.id] = questionData;
       }
     }
-    return mnemonics;
+    return result;
   }
 }

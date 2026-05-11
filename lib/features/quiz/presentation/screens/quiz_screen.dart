@@ -31,6 +31,7 @@ class _QuizScreenState extends State<QuizScreen> {
   final Set<int> _favorites = {};
   final Set<int> _revealed = {}; // which questions have been checked
   final Map<int, String> _notes = {};
+  final SpacedRepetitionService _srsService = SpacedRepetitionService();
 
   // Timer
   bool _timerRunning = true;
@@ -47,6 +48,30 @@ class _QuizScreenState extends State<QuizScreen> {
   void initState() {
     super.initState();
     _startTimer();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.exam.subjectId.isEmpty) return;
+
+    try {
+      final subjectData = await _srsService.getAllSubjectData(user.uid, widget.exam.subjectId);
+      if (mounted) {
+        setState(() {
+          for (int i = 0; i < widget.exam.questions.length; i++) {
+            final q = widget.exam.questions[i];
+            final qId = q.id ?? q.number.toString();
+            if (subjectData.containsKey(qId)) {
+              final note = subjectData[qId]!['note'];
+              if (note != null) _notes[i] = note;
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading initial quiz data: $e');
+    }
   }
 
   @override
@@ -170,7 +195,10 @@ class _QuizScreenState extends State<QuizScreen> {
                         });
                       },
                       note: _notes[qIndex],
-                      onNoteChanged: (note) {
+                      onNoteChanged: (note) async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        final qId = question.id ?? question.number.toString();
+                        
                         setState(() {
                           if (note.isEmpty) {
                             _notes.remove(qIndex);
@@ -178,6 +206,15 @@ class _QuizScreenState extends State<QuizScreen> {
                             _notes[qIndex] = note;
                           }
                         });
+
+                        if (user != null && widget.exam.subjectId.isNotEmpty) {
+                          await _srsService.updateNote(
+                            user.uid,
+                            qId,
+                            widget.exam.subjectId,
+                            note,
+                          );
+                        }
                       },
                       onOptionSelected: (id) {
                         setState(() {
