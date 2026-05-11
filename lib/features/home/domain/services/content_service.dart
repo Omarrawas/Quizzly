@@ -50,21 +50,21 @@ class ContentService {
   Future<void> addUserSubject(String userId, String subjectId, {String? activationCode}) async {
     final batch = _db.batch();
     
-    // 1. Per-user record for fast home screen loading
+    // 1. Per-user record for fast home screen loading (Keep it minimal as requested)
     final userRef = _db.collection('users').doc(userId).collection('active_subjects').doc(subjectId);
     batch.set(userRef, {
       'subjectId': subjectId,
       'addedAt': FieldValue.serverTimestamp(),
-      'activationCode': activationCode,
     });
 
-    // 2. Global record for admin visibility
+    // 2. Global record for admin visibility (Store detailed activation info here)
     final globalRef = _db.collection('user_subjects').doc('${userId}_$subjectId');
     batch.set(globalRef, {
       'userId': userId,
       'subjectId': subjectId,
       'activatedAt': FieldValue.serverTimestamp(),
-      'activationCode': activationCode, // null if free
+      'activationType': activationCode != null ? 'code' : 'free',
+      'activationCode': activationCode, 
     });
 
     await batch.commit();
@@ -78,12 +78,11 @@ class ContentService {
 
     final batch = _db.batch();
     for (var doc in subjectsSnapshot.docs) {
-      // 1. Per-user records
+      // 1. Per-user records (Minimal)
       final userRef = _db.collection('users').doc(userId).collection('active_subjects').doc(doc.id);
       batch.set(userRef, {
         'subjectId': doc.id,
         'addedAt': FieldValue.serverTimestamp(),
-        'activationCode': activationCode,
       });
 
       // 2. Global records for admin visibility
@@ -92,6 +91,7 @@ class ContentService {
         'userId': userId,
         'subjectId': doc.id,
         'activatedAt': FieldValue.serverTimestamp(),
+        'activationType': activationCode != null ? 'code' : 'free',
         'activationCode': activationCode,
       });
     }
@@ -101,7 +101,6 @@ class ContentService {
     batch.set(semRef, {
       'semesterId': semesterId,
       'addedAt': FieldValue.serverTimestamp(),
-      'activationCode': activationCode,
     });
 
     await batch.commit();

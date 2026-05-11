@@ -710,6 +710,9 @@ class _SemesterCard extends StatelessWidget {
                     final String name = data?['name']?.toString() ?? 'مادة بدون اسم';
                     final String code = data?['code']?.toString() ?? 'مجاني';
 
+                    final double? price = (data?['price'] as num?)?.toDouble();
+                    final double? discount = (data?['discount'] as num?)?.toDouble();
+
                     final vibrantColors = [
                       (const Color(0xFF4F46E5), const Color(0xFF818CF8)), // Indigo
                       (const Color(0xFFE11D48), const Color(0xFFFB7185)), // Rose
@@ -733,9 +736,6 @@ class _SemesterCard extends StatelessWidget {
                             ),
                           );
                         } else {
-                          final double? price = (data?['price'] as num?)?.toDouble();
-                          final double? discount = (data?['discount'] as num?)?.toDouble();
-
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -817,7 +817,7 @@ class _SemesterCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 8),
-                            // Subtitle (Code + Locked info)
+                            // Subtitle (Price/Code)
                             Row(
                               children: [
                                 Container(
@@ -827,12 +827,11 @@ class _SemesterCard extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    code,
-                                    style: GoogleFonts.inter(
+                                    (price != null && price > 0) ? '${price.toStringAsFixed(0)} ل.س' : 'مجاني',
+                                    style: GoogleFonts.cairo(
                                       color: Colors.white,
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
