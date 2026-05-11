@@ -29,8 +29,8 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
   bool _isLoading = false;
 
   Future<void> _activateFree() async {
-    final authService = context.read<AuthService>();
-    final contentService = context.read<ContentService>();
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final contentService = Provider.of<ContentService>(context, listen: false);
     final userId = authService.user?.uid;
 
     if (userId == null) return;
@@ -109,7 +109,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     await contentService.addUserSemester(userId, result['targetId'], activationCode: code);
                   }
                   _showSuccess('تم التفعيل بنجاح ✅');
-                  if (mounted) Navigator.pop(this.context);
+                  if (mounted) Navigator.pop(context);
                 }
               } catch (e) {
                 _showError('حدث خطأ أثناء معالجة الكود');

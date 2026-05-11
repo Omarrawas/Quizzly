@@ -58,8 +58,10 @@ class ContentService {
     });
 
     // 2. Global record for admin visibility (Store detailed activation info here)
-    final globalRef = _db.collection('user_subjects').doc('${userId}_$subjectId');
+    // Using auto-generated ID to avoid potential path issues
+    final globalRef = _db.collection('user_subjects').doc(); 
     batch.set(globalRef, {
+      'activationId': globalRef.id, // Store ID for easy deletion
       'userId': userId,
       'subjectId': subjectId,
       'activatedAt': FieldValue.serverTimestamp(),
@@ -86,8 +88,9 @@ class ContentService {
       });
 
       // 2. Global records for admin visibility
-      final globalRef = _db.collection('user_subjects').doc('${userId}_${doc.id}');
+      final globalRef = _db.collection('user_subjects').doc();
       batch.set(globalRef, {
+        'activationId': globalRef.id,
         'userId': userId,
         'subjectId': doc.id,
         'activatedAt': FieldValue.serverTimestamp(),

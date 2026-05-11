@@ -826,13 +826,39 @@ class _SemesterCard extends StatelessWidget {
                                     color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(
-                                    (price != null && price > 0) ? '${price.toStringAsFixed(0)} ل.س' : 'مجاني',
-                                    style: GoogleFonts.cairo(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (price != null && price > 0 && discount != null && discount > 0) ...[
+                                        Text(
+                                          '${price.toStringAsFixed(0)}',
+                                          style: GoogleFonts.cairo(
+                                            color: Colors.white.withValues(alpha: 0.6),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            decoration: TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${(price - discount).toStringAsFixed(0)} ل.س',
+                                          style: GoogleFonts.cairo(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        Text(
+                                          (price != null && price > 0) ? '${price.toStringAsFixed(0)} ل.س' : 'مجاني',
+                                          style: GoogleFonts.cairo(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                                 const Spacer(),
