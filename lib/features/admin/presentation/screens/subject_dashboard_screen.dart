@@ -168,7 +168,11 @@ class SubjectDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildDashboardGrid(BuildContext context, bool isDark) {
-    final items = [
+    final isPractical = sectionName?.contains('عملي') == true;
+    final isTheory   = sectionName?.contains('نظري') == true;
+
+    // ── Theory-only cards ──────────────────────────────────────
+    final theoryCards = <Widget>[
       _buildDashboardCard(
         context,
         title: 'بنك الأسئلة',
@@ -183,25 +187,6 @@ class SubjectDashboardScreen extends StatelessWidget {
               sectionId: sectionId!,
               sectionName: sectionName!,
               subjectId: subjectId,
-              breadcrumbs: [...breadcrumbs, sectionName!],
-            ),
-          ),
-        ),
-      ),
-      _buildDashboardCard(
-        context,
-        title: 'إدارة الاختبارات',
-        subtitle: 'الدورات والاختبارات',
-        icon: Icons.assignment_rounded,
-        color: Colors.purple,
-        isDark: isDark,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ExamManagementScreen(
-              subjectId: subjectId,
-              sectionId: sectionId!,
-              subjectName: subjectName,
               breadcrumbs: [...breadcrumbs, sectionName!],
             ),
           ),
@@ -227,25 +212,55 @@ class SubjectDashboardScreen extends StatelessWidget {
           ),
         ),
       ),
-      _buildDashboardCard(
+    ];
+
+    // ── Practical-only card ─────────────────────────────────────
+    final practicalCard = _buildDashboardCard(
+      context,
+      title: 'إدارة المحتوى العملي',
+      subtitle: 'المذاكرات والرسومات والتجارب',
+      icon: Icons.science_rounded,
+      color: Colors.teal,
+      isDark: isDark,
+      onTap: () => Navigator.push(
         context,
-        title: 'إدارة المحتوى العملي',
-        subtitle: 'المذاكرات والرسومات والتجارب',
-        icon: Icons.science_rounded,
-        color: Colors.teal,
-        isDark: isDark,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PracticalManagementScreen(
-              subjectId: subjectId,
-              subjectName: subjectName,
-              sectionId: sectionId!,
-              sectionName: sectionName!,
-            ),
+        MaterialPageRoute(
+          builder: (context) => PracticalManagementScreen(
+            subjectId: subjectId,
+            subjectName: subjectName,
+            sectionId: sectionId!,
+            sectionName: sectionName!,
           ),
         ),
       ),
+    );
+
+    // ── Exams card — shown in both sections ─────────────────────
+    final examsCard = _buildDashboardCard(
+      context,
+      title: 'إدارة الاختبارات',
+      subtitle: 'الدورات والاختبارات',
+      icon: Icons.assignment_rounded,
+      color: Colors.purple,
+      isDark: isDark,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ExamManagementScreen(
+            subjectId: subjectId,
+            sectionId: sectionId!,
+            subjectName: subjectName,
+            breadcrumbs: [...breadcrumbs, sectionName!],
+          ),
+        ),
+      ),
+    );
+
+    // ── Build final list based on section type ──────────────────
+    final items = <Widget>[
+      if (isTheory) ...theoryCards,
+      if (isPractical) practicalCard,
+      examsCard,
     ];
 
     return GridView.builder(
