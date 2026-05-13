@@ -102,13 +102,12 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                 final result = await contentService.resolveContentCode(code);
                 if (result == null) {
                   _showError('الكود الذي أدخلته غير صحيح');
+                } else if (result['isUsed'] == true) {
+                  _showError('هذا الكود مستخدم مسبقاً');
                 } else {
-                  if (result['type'] == 'subject') {
-                    await contentService.addUserSubject(userId, result['targetId'], activationCode: code);
-                  } else {
-                    await contentService.addUserSemester(userId, result['targetId'], activationCode: code);
-                  }
-                  _showSuccess('تم التفعيل بنجاح ✅');
+                  await contentService.activateCode(userId, code, result);
+                  final count = (result['subjectIds'] as List).length;
+                  _showSuccess(count > 1 ? 'تم تفعيل باقة ($count مواد) بنجاح ✅' : 'تم تفعيل المادة بنجاح ✅');
                   if (context.mounted) Navigator.pop(context);
                 }
               } catch (e) {

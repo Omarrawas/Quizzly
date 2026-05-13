@@ -203,9 +203,19 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                               ],
                             ),
                           ),
-                        Text(
-                          intl.DateFormat('yyyy/MM/dd • HH:mm').format(date),
-                          style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[400]),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              intl.DateFormat('yyyy/MM/dd • HH:mm').format(date),
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[400]),
+                            ),
+                            if (data['expiresAt'] != null)
+                              Text(
+                                'ينتهي: ${intl.DateFormat('yyyy/MM/dd').format((data['expiresAt'] as Timestamp).toDate())}',
+                                style: GoogleFonts.cairo(fontSize: 10, color: Colors.red[300], fontWeight: FontWeight.bold),
+                              ),
+                          ],
                         ),
                       ],
                     ),

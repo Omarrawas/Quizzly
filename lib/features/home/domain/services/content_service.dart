@@ -205,21 +205,77 @@ class ContentService {
 
   // --- Content Codes ---
 
-  /// Resolves a code to a specific subject or semester
+  /// Resolves a code from the new activation system
   Future<Map<String, dynamic>?> resolveContentCode(String code) async {
-    final snapshot = await _db.collection('content_codes')
-        .where('code', isEqualTo: code.trim().toUpperCase())
-        .limit(1)
+    final snapshot = await _db.collection('activation_codes')
+        .doc(code.trim().toUpperCase())
         .get();
 
-    if (snapshot.docs.isEmpty) return null;
+    if (!snapshot.exists) {
+      // Fallback to searching by field if ID is not the code (for safety)
+      final fallback = await _db.collection('activation_codes')
+          .where('code', isEqualTo: code.trim().toUpperCase())
+          .limit(1)
+          .get();
+      if (fallback.docs.isEmpty) return null;
+      return _parseActivationCode(fallback.docs.first);
+    }
     
-    final data = snapshot.docs.first.data();
+    return _parseActivationCode(snapshot);
+  }
+
+  Map<String, dynamic> _parseActivationCode(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return {
-      'type': data['type'], // 'subject' or 'semester'
-      'targetId': data['targetId'],
-      'name': data['name'],
+      'code': doc.id,
+      'subjectIds': data['subjectIds'] as List? ?? [],
+      'isUsed': data['isUsed'] ?? false,
+      'durationDays': data['durationDays'] ?? 0,
+      'type': (data['subjectIds'] as List? ?? []).length > 1 ? 'package' : 'subject',
     };
+  }
+
+  /// Specialized method to activate a code and link it to the user
+  Future<void> activateCode(String userId, String code, Map<String, dynamic> codeData) async {
+    final List subjectIds = codeData['subjectIds'] as List? ?? [];
+    final int durationDays = codeData['durationDays'] as int? ?? 180;
+    
+    final batch = _db.batch();
+    
+    // 1. Mark code as used
+    batch.update(_db.collection('activation_codes').doc(code), {
+      'isUsed': true,
+      'usedBy': userId,
+      'usedAt': FieldValue.serverTimestamp(),
+      'expiresAt': DateTime.now().add(Duration(days: durationDays)),
+    });
+
+    // 2. Add each subject to user
+    for (String subjectId in subjectIds) {
+      // Per-user record
+      final userSubRef = _db.collection('users').doc(userId).collection('active_subjects').doc(subjectId);
+      batch.set(userSubRef, {
+        'subjectId': subjectId,
+        'addedAt': FieldValue.serverTimestamp(),
+        'activationType': 'code',
+        'activationCode': code,
+        'expiresAt': DateTime.now().add(Duration(days: durationDays)),
+      });
+
+      // Global record for admin
+      final globalRef = _db.collection('user_subjects').doc('${userId}_$subjectId');
+      batch.set(globalRef, {
+        'activationId': globalRef.id,
+        'userId': userId,
+        'subjectId': subjectId,
+        'activatedAt': FieldValue.serverTimestamp(),
+        'activationType': 'code',
+        'activationCode': code,
+        'expiresAt': DateTime.now().add(Duration(days: durationDays)),
+      });
+    }
+
+    await batch.commit();
   }
 
   // --- Offline Sync ---
