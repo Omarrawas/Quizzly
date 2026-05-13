@@ -194,11 +194,17 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
           final rotate = Tween(begin: 3.14, end: 0.0).animate(animation);
           return AnimatedBuilder(
             animation: rotate,
-            builder: (context, child) {
+            child: child,
+            builder: (context, widgetChild) {
+              // Add perspective with setEntry(3, 2, 0.001)
+              final transform = Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateY(rotate.value);
+                
               return Transform(
-                transform: Matrix4.rotationY(rotate.value),
+                transform: transform,
                 alignment: Alignment.center,
-                child: child,
+                child: widgetChild,
               );
             },
           );

@@ -36,7 +36,6 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   bool _isSpeedMode = false;
   Timer? _timer;
   late List<QuizQuestion> _sessionQuestions;
-  final Set<String> _incorrectQuestionIds = {};
   final Set<int> _processedIndices = {}; 
 
   @override
@@ -106,17 +105,6 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
     // Process answer
     if (!_processedIndices.contains(_currentIndex)) {
-      final q = _sessionQuestions[_currentIndex];
-      final userAns = _userAnswers[_currentIndex];
-      final isCorrect = userAns != null && q.correctOptionIds.contains(userAns);
-
-      if (!isCorrect) {
-        _incorrectQuestionIds.add(q.id!);
-        final insertAt = (_currentIndex + 5).clamp(0, _sessionQuestions.length);
-        setState(() {
-          _sessionQuestions.insert(insertAt, q);
-        });
-      }
       _processedIndices.add(_currentIndex);
     }
 
@@ -166,15 +154,16 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
       for (int i = 0; i < _sessionQuestions.length; i++) {
         final q = _sessionQuestions[i];
-        if (countedIds.contains(q.id)) continue;
-        countedIds.add(q.id!);
+        final String qId = q.id ?? 'mock_q_${q.number}';
+        if (countedIds.contains(qId)) continue;
+        countedIds.add(qId);
 
         final userAns = _userAnswers[i];
         final isCorrect = userAns != null && q.correctOptionIds.contains(userAns);
         if (isCorrect) correctCount++;
 
         results.add({
-          'questionId': q.id,
+          'questionId': qId,
           'selectedOptionId': userAns,
           'isCorrect': isCorrect,
           'topicIds': q.topicIds,
@@ -256,9 +245,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
               ),
             ),
           ),
+          if (!_isSpeedMode) SafeArea(child: _buildNavigationFooter()),
         ],
       ),
-      bottomNavigationBar: _isSpeedMode ? null : SafeArea(child: _buildNavigationFooter()),
     );
   }
 
