@@ -545,14 +545,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   selectedOptionId: _selectedOptions[qId],
                                   answerState: _answerStates[qId] ?? AnswerState.unanswered,
                                   showCorrect: _showAnswers || _checkedQuestions.contains(qId),
-                                  isFavorite: listId == 'favorites',
-                                  onFavoriteToggle: () {
-                                    context.read<ListService>().toggleQuestionInList('favorites', question);
+                                  isInPrimaryList: true,
+                                  onListToggle: () {
+                                    context.read<ListService>().toggleQuestionInList(listId, question);
                                   },
-                                  isImportant: listId == 'important',
-                                  onImportantToggle: () {
-                                    context.read<ListService>().toggleQuestionInList('important', question);
-                                  },
+                                  onListLongPress: () {},
+                                  listIcon: listId == 'favorites' ? Icons.favorite_rounded : (listId == 'important' ? Icons.star_rounded : Icons.list_rounded),
+                                  listColor: listId == 'favorites' ? Colors.red : (listId == 'important' ? Colors.amber : AppColors.primaryBlue),
                                   onOptionSelected: (optId) => _onOptionSelected(qId, optId),
                                   note: _notes[qId],
                                   onNoteChanged: (note) {

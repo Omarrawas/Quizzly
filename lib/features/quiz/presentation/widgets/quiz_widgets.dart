@@ -331,10 +331,11 @@ class QuestionCard extends StatelessWidget {
   final AnswerState answerState;
   final bool showCorrect;
   final Function(String) onOptionSelected;
-  final bool isFavorite;
-  final VoidCallback onFavoriteToggle;
-  final bool isImportant;
-  final VoidCallback onImportantToggle;
+  final bool isInPrimaryList;
+  final VoidCallback onListToggle;
+  final VoidCallback onListLongPress;
+  final IconData listIcon;
+  final Color listColor;
   final String? note;
   final Function(String) onNoteChanged;
   final VoidCallback onCheckAnswer;
@@ -350,10 +351,11 @@ class QuestionCard extends StatelessWidget {
     this.answerState = AnswerState.unanswered,
     this.showCorrect = false,
     required this.onOptionSelected,
-    this.isFavorite = false,
-    required this.onFavoriteToggle,
-    this.isImportant = false,
-    required this.onImportantToggle,
+    this.isInPrimaryList = false,
+    required this.onListToggle,
+    required this.onListLongPress,
+    required this.listIcon,
+    required this.listColor,
     this.note,
     required this.onNoteChanged,
     required this.onCheckAnswer,
@@ -495,10 +497,11 @@ class QuestionCard extends StatelessWidget {
 
           // Bottom Bar
           QuestionBottomBar(
-            isFavorite: isFavorite,
-            onFavoriteToggle: onFavoriteToggle,
-            isImportant: isImportant,
-            onImportantToggle: onImportantToggle,
+            isInPrimaryList: isInPrimaryList,
+            onListToggle: onListToggle,
+            onListLongPress: onListLongPress,
+            listIcon: listIcon,
+            listColor: listColor,
             hasNote: note != null && note!.isNotEmpty,
             onNoteTap: () => _showNoteDialog(context),
             onCheckTap: onCheckAnswer,
@@ -1086,10 +1089,11 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
 //  شريط الأدوات السفلي للسؤال
 // ═══════════════════════════════════════════════════════
 class QuestionBottomBar extends StatelessWidget {
-  final bool isFavorite;
-  final VoidCallback onFavoriteToggle;
-  final bool isImportant;
-  final VoidCallback onImportantToggle;
+  final bool isInPrimaryList;
+  final VoidCallback onListToggle;
+  final VoidCallback onListLongPress;
+  final IconData listIcon;
+  final Color listColor;
   final bool hasNote;
   final VoidCallback onNoteTap;
   final VoidCallback onCheckTap;
@@ -1099,10 +1103,11 @@ class QuestionBottomBar extends StatelessWidget {
 
   const QuestionBottomBar({
     super.key,
-    this.isFavorite = false,
-    required this.onFavoriteToggle,
-    this.isImportant = false,
-    required this.onImportantToggle,
+    this.isInPrimaryList = false,
+    required this.onListToggle,
+    required this.onListLongPress,
+    required this.listIcon,
+    required this.listColor,
     this.hasNote = false,
     required this.onNoteTap,
     required this.onCheckTap,
@@ -1134,14 +1139,10 @@ class QuestionBottomBar extends StatelessWidget {
             onTap: onNoteTap,
           ),
           _ActionButton(
-            icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            color: isFavorite ? Colors.red : null,
-            onTap: onFavoriteToggle,
-          ),
-          _ActionButton(
-            icon: isImportant ? Icons.star_rounded : Icons.star_border_rounded,
-            color: isImportant ? Colors.amber : null,
-            onTap: onImportantToggle,
+            icon: listIcon,
+            color: isInPrimaryList ? listColor : null,
+            onTap: onListToggle,
+            onLongPress: onListLongPress,
           ),
           _ActionButton(
             icon: isChecked ? Icons.check_circle_rounded : Icons.check_circle_outlined,
@@ -1157,11 +1158,13 @@ class QuestionBottomBar extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final Color? color;
 
   const _ActionButton({
     required this.icon,
     this.onTap,
+    this.onLongPress,
     this.color,
   });
 
@@ -1171,6 +1174,7 @@ class _ActionButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(8),

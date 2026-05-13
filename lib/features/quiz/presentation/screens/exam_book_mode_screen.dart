@@ -63,6 +63,13 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   final _srsService = SpacedRepetitionService();
   StreamSubscription? _favoriteSubscription;
   StreamSubscription? _importantSubscription;
+  
+  String _primaryListId = 'favorites';
+  List<UserList> _userLists = [];
+  final Set<String> _primaryListIds = {};
+  StreamSubscription? _userListsSubscription;
+  StreamSubscription? _primaryListIdSubscription;
+  StreamSubscription? _primaryListSyncSubscription;
 
   int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
   int get _wrongCount => _answerStates.values.where((s) => s == AnswerState.wrong).length;
@@ -120,6 +127,16 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     _loadState();
     _setupFavoritesSync();
     _setupImportantSync();
+    _userListsSubscription = _listService.streamLists().listen((lists) {
+      if (mounted) setState(() => _userLists = lists);
+    });
+    _primaryListIdSubscription = _listService.streamPrimaryListId().listen((listId) {
+      if (mounted) {
+        setState(() => _primaryListId = listId);
+        _setupPrimaryListSync(listId);
+      }
+    });
+    _setupPrimaryListSync('favorites'); // Fallback until stream emits
     _loadCloudNotes();
   }
 
@@ -142,6 +159,18 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     } catch (e) {
       debugPrint('Error loading cloud notes: $e');
     }
+  }
+
+  void _setupPrimaryListSync(String listId) {
+    _primaryListSyncSubscription?.cancel();
+    _primaryListSyncSubscription = _listService.streamListQuestionIds(listId).listen((ids) {
+      if (mounted) {
+        setState(() {
+          _primaryListIds.clear();
+          _primaryListIds.addAll(ids);
+        });
+      }
+    });
   }
 
   void _setupFavoritesSync() {
@@ -171,6 +200,9 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     _timer.cancel();
     _favoriteSubscription?.cancel();
     _importantSubscription?.cancel();
+    _primaryListSyncSubscription?.cancel();
+    _userListsSubscription?.cancel();
+    _primaryListIdSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -237,15 +269,60 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     _saveState();
   }
 
-  void _toggleFavorite(int questionIndex) {
-    final question = widget.questions[questionIndex];
-    _listService.toggleQuestionInList('favorites', question);
-    _saveState();
+  IconData _getPrimaryListIcon(bool isFilled) {
+    UserList? list;
+    try {
+      list = _userLists.firstWhere((l) => l.id == _primaryListId);
+    } catch (_) {
+      list = null;
+    }
+    
+    if (_primaryListId == 'favorites') {
+      return isFilled ? Icons.favorite_rounded : Icons.favorite_border_rounded;
+    } else if (_primaryListId == 'important') {
+      return isFilled ? Icons.star_rounded : Icons.star_border_rounded;
+    }
+    
+    if (list != null) {
+      return IconData(list.iconCodePoint, fontFamily: 'MaterialIcons');
+    }
+    return isFilled ? Icons.favorite_rounded : Icons.favorite_border_rounded;
   }
 
-  void _toggleImportant(int questionIndex) {
-    final question = widget.questions[questionIndex];
-    _listService.toggleQuestionInList('important', question);
+  Color _getPrimaryListColor() {
+    if (_primaryListId == 'favorites') return Colors.red;
+    if (_primaryListId == 'important') return Colors.amber;
+    return AppColors.primaryBlue;
+  }
+
+  void _showListSelectionDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('اختر القائمة السريعة', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ..._userLists.map((list) {
+                return ListTile(
+                  leading: Icon(IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'), color: _primaryListId == list.id ? AppColors.primaryBlue : AppColors.textSecondary),
+                  title: Text(list.name, style: GoogleFonts.cairo(fontWeight: _primaryListId == list.id ? FontWeight.bold : FontWeight.normal)),
+                  trailing: _primaryListId == list.id ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                  onTap: () {
+                    _listService.setPrimaryListId(list.id);
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      }
+    );
   }
 
   void _addNote(int questionIndex, String note) {
@@ -625,10 +702,15 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       answerState: _answerStates[realIndex] ?? AnswerState.unanswered,
                       showCorrect: _showAnswers || _checkedQuestions.contains(realIndex),
                       onOptionSelected: (optId) => _onOptionSelected(realIndex, optId),
-                      isFavorite: q.id != null && _favoriteIds.contains(q.id),
-                      onFavoriteToggle: () => _toggleFavorite(realIndex),
-                      isImportant: q.id != null && _importantIds.contains(q.id),
-                      onImportantToggle: () => _toggleImportant(realIndex),
+                      isInPrimaryList: q.id != null && _primaryListIds.contains(q.id),
+                      onListToggle: () {
+                        if (q.id != null) {
+                          _listService.toggleQuestionInList(_primaryListId, q);
+                        }
+                      },
+                      onListLongPress: () => _showListSelectionDialog(),
+                      listIcon: _getPrimaryListIcon(q.id != null && _primaryListIds.contains(q.id)),
+                      listColor: _getPrimaryListColor(),
                       note: q.id != null ? _notesByQuestionId[q.id] : null,
                       onNoteChanged: (note) => _addNote(realIndex, note),
                       onCheckAnswer: () => _onCheckAnswer(realIndex),

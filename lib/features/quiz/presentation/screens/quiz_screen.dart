@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,7 +10,7 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
-import 'package:provider/provider.dart';
+
 
 class QuizScreen extends StatefulWidget {
   final QuizExam exam;
@@ -31,11 +31,17 @@ class _QuizScreenState extends State<QuizScreen> {
   int _currentIndex = 0;
   final Map<int, String> _selectedAnswers = {};
   final Map<int, AnswerState> _answerStates = {};
-  final Set<int> _favorites = {};
-  final Set<int> _important = {};
   final Set<int> _revealed = {}; // which questions have been checked
   final Map<int, String> _notes = {};
   final SpacedRepetitionService _srsService = SpacedRepetitionService();
+  final ListService _listService = ListService();
+
+  String _primaryListId = 'favorites';
+  List<UserList> _userLists = [];
+  final Set<String> _primaryListIds = {};
+  StreamSubscription? _userListsSubscription;
+  StreamSubscription? _primaryListIdSubscription;
+  StreamSubscription? _primaryListSyncSubscription;
 
   // Timer
   bool _timerRunning = true;
@@ -53,6 +59,29 @@ class _QuizScreenState extends State<QuizScreen> {
     super.initState();
     _startTimer();
     _loadInitialData();
+    
+    _userListsSubscription = _listService.streamLists().listen((lists) {
+      if (mounted) setState(() => _userLists = lists);
+    });
+    _primaryListIdSubscription = _listService.streamPrimaryListId().listen((listId) {
+      if (mounted) {
+        setState(() => _primaryListId = listId);
+        _setupPrimaryListSync(listId);
+      }
+    });
+    _setupPrimaryListSync('favorites');
+  }
+
+  void _setupPrimaryListSync(String listId) {
+    _primaryListSyncSubscription?.cancel();
+    _primaryListSyncSubscription = _listService.streamListQuestionIds(listId).listen((ids) {
+      if (mounted) {
+        setState(() {
+          _primaryListIds.clear();
+          _primaryListIds.addAll(ids);
+        });
+      }
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -61,42 +90,17 @@ class _QuizScreenState extends State<QuizScreen> {
 
     try {
       final subjectData = await _srsService.getAllSubjectData(user.uid, widget.exam.subjectId);
-      // Load favorites and important
-      final favoritesSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('user_lists')
-          .doc('favorites')
-          .collection('questions')
-          .get();
-      
-      final importantSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('user_lists')
-          .doc('important')
-          .collection('questions')
-          .get();
-
-      final favoritedIds = favoritesSnap.docs.map((d) => d.id).toSet();
-      final importantIds = importantSnap.docs.map((d) => d.id).toSet();
-
-      if (mounted) {
         setState(() {
           for (int i = 0; i < widget.exam.questions.length; i++) {
             final q = widget.exam.questions[i];
             final qId = q.id ?? q.number.toString();
             
-            if (favoritedIds.contains(qId)) _favorites.add(i);
-            if (importantIds.contains(qId)) _important.add(i);
-
             if (subjectData.containsKey(qId)) {
               final note = subjectData[qId]!['note'];
               if (note != null) _notes[i] = note;
             }
           }
         });
-      }
     } catch (e) {
       debugPrint('Error loading initial quiz data: $e');
     }
@@ -105,7 +109,66 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _userListsSubscription?.cancel();
+    _primaryListIdSubscription?.cancel();
+    _primaryListSyncSubscription?.cancel();
     super.dispose();
+  }
+
+  IconData _getPrimaryListIcon(bool isFilled) {
+    UserList? list;
+    try {
+      list = _userLists.firstWhere((l) => l.id == _primaryListId);
+    } catch (_) {
+      list = null;
+    }
+    
+    if (_primaryListId == 'favorites') {
+      return isFilled ? Icons.favorite_rounded : Icons.favorite_border_rounded;
+    } else if (_primaryListId == 'important') {
+      return isFilled ? Icons.star_rounded : Icons.star_border_rounded;
+    }
+    
+    if (list != null) {
+      return IconData(list.iconCodePoint, fontFamily: 'MaterialIcons');
+    }
+    return isFilled ? Icons.favorite_rounded : Icons.favorite_border_rounded;
+  }
+
+  Color _getPrimaryListColor() {
+    if (_primaryListId == 'favorites') return Colors.red;
+    if (_primaryListId == 'important') return Colors.amber;
+    return AppColors.primaryBlue;
+  }
+
+  void _showListSelectionDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('اختر القائمة السريعة', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ..._userLists.map((list) {
+                return ListTile(
+                  leading: Icon(IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'), color: _primaryListId == list.id ? AppColors.primaryBlue : AppColors.textSecondary),
+                  title: Text(list.name, style: GoogleFonts.cairo(fontWeight: _primaryListId == list.id ? FontWeight.bold : FontWeight.normal)),
+                  trailing: _primaryListId == list.id ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                  onTap: () {
+                    _listService.setPrimaryListId(list.id);
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      }
+    );
   }
 
   void _startTimer() {
@@ -172,28 +235,15 @@ class _QuizScreenState extends State<QuizScreen> {
                       selectedOptionId: selected,
                       answerState: state,
                       showCorrect: showCorrect,
-                      isFavorite: _favorites.contains(qIndex),
-                      onFavoriteToggle: () {
-                        context.read<ListService>().toggleQuestionInList('favorites', question);
-                        setState(() {
-                          if (_favorites.contains(qIndex)) {
-                            _favorites.remove(qIndex);
-                          } else {
-                            _favorites.add(qIndex);
-                          }
-                        });
+                      isInPrimaryList: question.id != null && _primaryListIds.contains(question.id),
+                      onListToggle: () {
+                        if (question.id != null) {
+                          _listService.toggleQuestionInList(_primaryListId, question);
+                        }
                       },
-                      isImportant: _important.contains(qIndex),
-                      onImportantToggle: () {
-                        context.read<ListService>().toggleQuestionInList('important', question);
-                        setState(() {
-                          if (_important.contains(qIndex)) {
-                            _important.remove(qIndex);
-                          } else {
-                            _important.add(qIndex);
-                          }
-                        });
-                      },
+                      onListLongPress: () => _showListSelectionDialog(),
+                      listIcon: _getPrimaryListIcon(question.id != null && _primaryListIds.contains(question.id)),
+                      listColor: _getPrimaryListColor(),
                       onCheckAnswer: () {
                         final sel = _selectedAnswers[qIndex];
                         if (sel == null) return;
