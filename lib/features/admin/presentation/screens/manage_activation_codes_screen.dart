@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/batch_codes_preview_screen.dart';
+import 'package:quizzly/features/admin/presentation/widgets/generate_codes_dialog.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -296,10 +297,12 @@ class _ManageActivationCodesScreenState
       body: StreamBuilder<QuerySnapshot>(
         stream: _dbService.getBatches(),
         builder: (context, snapshot) {
-          if (snapshot.hasError)
+          if (snapshot.hasError) {
             return Center(child: Text('خطأ: ${snapshot.error}'));
-          if (!snapshot.hasData)
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           final batches = snapshot.data!.docs;
           if (batches.isEmpty) {
@@ -400,6 +403,23 @@ class _ManageActivationCodesScreenState
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const GenerateCodesDialog(),
+          );
+        },
+        backgroundColor: AppColors.primaryBlue,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          'توليد أكواد جديدة',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }

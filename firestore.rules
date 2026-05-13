@@ -68,5 +68,10 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow read, write: if isAdmin();
     }
+
+    match /question_reports/{id} {
+      allow create: if request.auth != null;
+      allow read, write: if isAdmin();
+    }
   }
 }

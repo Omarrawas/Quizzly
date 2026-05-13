@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
-import 'package:quizzly/features/admin/presentation/widgets/generate_codes_dialog.dart';
 import 'package:quizzly/features/admin/presentation/screens/manage_activation_codes_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/database_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
@@ -45,8 +44,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       };
     } catch (e) {
       return {
-        'users': '0', 'codes': '0', 'questions': '0', 'exams': '0',
-        'unis': '0', 'colleges': '0', 'depts': '0', 'subjects': '0',
+        'users': '0',
+        'codes': '0',
+        'questions': '0',
+        'exams': '0',
+        'unis': '0',
+        'colleges': '0',
+        'depts': '0',
+        'subjects': '0',
       };
     }
   }
@@ -85,9 +90,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         actions: [
           IconButton(
             onPressed: _refresh,
-            icon: _isLoading 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.refresh_rounded),
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
             color: AppColors.primaryBlue,
           ),
         ],
@@ -104,10 +113,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 _buildSectionTitle('إحصائيات النظام', isDark),
                 TextButton.icon(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AnalyticsDashboardScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AnalyticsDashboardScreen(),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.analytics_outlined, size: 16),
-                  label: Text('تحليلات مفصلة', style: GoogleFonts.cairo(fontSize: 12)),
+                  label: Text(
+                    'تحليلات مفصلة',
+                    style: GoogleFonts.cairo(fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -115,10 +132,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             FutureBuilder<Map<String, String>>(
               future: _fetchStats(),
               builder: (context, snapshot) {
-                final stats = snapshot.data ?? {
-                  'users': '...', 'codes': '...', 'questions': '...', 'exams': '...',
-                  'unis': '...', 'colleges': '...', 'depts': '...', 'subjects': '...',
-                };
+                final stats =
+                    snapshot.data ??
+                    {
+                      'users': '...',
+                      'codes': '...',
+                      'questions': '...',
+                      'exams': '...',
+                      'unis': '...',
+                      'colleges': '...',
+                      'depts': '...',
+                      'subjects': '...',
+                    };
 
                 return Column(
                   children: [
@@ -126,12 +151,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 220,  // بطاقة لا تتجاوز 220px
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 1.9,    // نسبة عرض/ارتفاع ثابتة
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 220, // بطاقة لا تتجاوز 220px
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 1.9, // نسبة عرض/ارتفاع ثابتة
+                          ),
                       itemCount: 4,
                       itemBuilder: (context, index) {
                         final cards = [
@@ -168,23 +194,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white10
+                              : AppColors.borderLight,
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildMiniStat('جامعات', stats['unis']!, Icons.account_balance_rounded),
-                          _buildMiniStat('كليات', stats['colleges']!, Icons.school_rounded),
-                          _buildMiniStat('أقسام', stats['depts']!, Icons.category_rounded),
-                          _buildMiniStat('مواد', stats['subjects']!, Icons.book_rounded),
+                          _buildMiniStat(
+                            'جامعات',
+                            stats['unis']!,
+                            Icons.account_balance_rounded,
+                          ),
+                          _buildMiniStat(
+                            'كليات',
+                            stats['colleges']!,
+                            Icons.school_rounded,
+                          ),
+                          _buildMiniStat(
+                            'أقسام',
+                            stats['depts']!,
+                            Icons.category_rounded,
+                          ),
+                          _buildMiniStat(
+                            'مواد',
+                            stats['subjects']!,
+                            Icons.book_rounded,
+                          ),
                         ],
                       ),
                     ),
                   ],
                 );
-              }
+              },
             ),
 
             const SizedBox(height: 32),
@@ -193,25 +241,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _buildSectionTitle('إجراءات سريعة', isDark),
             const SizedBox(height: 16),
             _buildActionTile(
-              icon: Icons.add_moderator_rounded,
-              title: 'توليد أكواد تفعيل جديدة',
-              subtitle: 'إنشاء مفاتيح وصول للمستخدمين الجدد',
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => const GenerateCodesDialog(),
-                );
-              },
-              isDark: isDark,
-            ),
-            _buildActionTile(
               icon: Icons.vpn_key_rounded,
               title: 'إدارة مجموعات الأكواد',
               subtitle: 'عرض، طباعة، وحذف دفعات الأكواد',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ManageActivationCodesScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const ManageActivationCodesScreen(),
+                  ),
                 );
               },
               isDark: isDark,
@@ -230,7 +268,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const DatabaseManagementScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const DatabaseManagementScreen(),
+                  ),
                 );
               },
               isDark: isDark,
@@ -242,7 +282,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ReportsManagementScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const ReportsManagementScreen(),
+                  ),
                 );
               },
               isDark: isDark,
@@ -265,7 +307,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               decoration: BoxDecoration(
                 color: isDark ? theme.cardColor : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
+                border: Border.all(
+                  color: isDark ? Colors.white10 : AppColors.borderLight,
+                ),
               ),
               child: Column(
                 children: [
@@ -349,7 +393,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         contentPadding: const EdgeInsets.all(12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight),
+          side: BorderSide(
+            color: isDark ? Colors.white10 : AppColors.borderLight,
+          ),
         ),
         tileColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         leading: Container(
@@ -376,7 +422,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             color: AppColors.textSecondary,
           ),
         ),
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
@@ -386,8 +435,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       children: [
         Icon(icon, size: 18, color: AppColors.textSecondary),
         const SizedBox(height: 4),
-        Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
-        Text(label, style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary)),
+        Text(
+          value,
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: 10,
+            color: AppColors.textSecondary,
+          ),
+        ),
       ],
     );
   }
@@ -396,10 +454,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('صيانة قاعدة البيانات', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: Text('سيقوم هذا الإجراء بفحص وإصلاح هيكلية البيانات، وإضافة الحقول المفقودة (مثل الترتيب) لضمان ظهور المحتوى.', style: GoogleFonts.cairo()),
+        title: Text(
+          'صيانة قاعدة البيانات',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'سيقوم هذا الإجراء بفحص وإصلاح هيكلية البيانات، وإضافة الحقول المفقودة (مثل الترتيب) لضمان ظهور المحتوى.',
+          style: GoogleFonts.cairo(),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -427,7 +494,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'subjects',
         'sections',
         'topics',
-        'questions'
+        'questions',
       ];
 
       for (var col in collections) {
@@ -444,14 +511,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       await batch.commit();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تمت عملية الإصلاح بنجاح. تم تحديث $totalFixed مستند.')),
+          SnackBar(
+            content: Text(
+              'تمت عملية الإصلاح بنجاح. تم تحديث $totalFixed مستند.',
+            ),
+          ),
         );
         _refresh();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل الإصلاح: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('فشل الإصلاح: $e')));
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

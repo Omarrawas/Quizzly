@@ -441,12 +441,10 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_forward_ios_rounded),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
         automaticallyImplyLeading: false,
       ),
       body: Column(
