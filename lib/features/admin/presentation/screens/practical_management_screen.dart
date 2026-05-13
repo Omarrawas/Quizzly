@@ -61,8 +61,9 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _query.snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final docs = snapshot.data!.docs;
 
           if (docs.isEmpty) {
@@ -363,11 +364,12 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      if (_imageUrlCtrl.text.isNotEmpty)
+                      if (_imageUrlCtrl.text.isNotEmpty) {
                         setState(() {
                           _imageUrls.add(_imageUrlCtrl.text.trim());
                           _imageUrlCtrl.clear();
                         });
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,

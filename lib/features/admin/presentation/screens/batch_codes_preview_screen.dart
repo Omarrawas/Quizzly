@@ -113,7 +113,7 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
   // ── Toggle activation ───────────────────────────────────
   Future<void> _toggleActivation(
       String codeId, bool currentlyUsed) async {
-    final action = currentlyUsed ? 'إلغاء تفعيل' : 'تفعيل';
+    final action = currentlyUsed ? 'إعادة تنشيط' : 'تعطيل يدوي';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -123,7 +123,7 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
         content: Text(
           currentlyUsed
               ? 'هل تريد إعادة الكود إلى حالة "نشط"؟'
-              : 'هل تريد تعيين الكود كـ"مستخدم" يدوياً؟',
+              : 'هل تريد تعيين الكود كـ"مستخدم" (تعطيله يدويًا)؟',
           style: GoogleFonts.cairo(),
         ),
         actions: [
@@ -139,7 +139,7 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                   borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(action,
+            child: Text(currentlyUsed ? 'تنشيط' : 'تعطيل',
                 style: GoogleFonts.cairo(color: Colors.white)),
           ),
         ],
@@ -573,6 +573,28 @@ class _CodeTile extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: code));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('تم نسخ: $code',
+                                      style: GoogleFonts.cairo()),
+                                  duration:
+                                      const Duration(seconds: 1),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(10)),
+                                ),
+                              );
+                            },
+                            child: Icon(Icons.copy_rounded,
+                                size: 18,
+                                color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 12),
                           // Type Badge
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -592,28 +614,6 @@ class _CodeTile extends StatelessWidget {
                                 color: typeColor,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          GestureDetector(
-                            onTap: () {
-                              Clipboard.setData(
-                                  ClipboardData(text: code));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('تم نسخ: $code',
-                                      style: GoogleFonts.cairo()),
-                                  duration:
-                                      const Duration(seconds: 1),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10)),
-                                ),
-                              );
-                            },
-                            child: Icon(Icons.copy_rounded,
-                                size: 14,
-                                color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -741,8 +741,8 @@ class _CodeTile extends StatelessWidget {
                 _ActionBtn(
                   icon: isUsed
                       ? Icons.lock_open_rounded
-                      : Icons.lock_rounded,
-                  label: isUsed ? 'إلغاء تفعيل' : 'تفعيل',
+                      : Icons.person_add_disabled_rounded,
+                  label: isUsed ? 'إعادة تنشيط' : 'تعطيل يدوي',
                   color:
                       isUsed ? AppColors.iconGreen : Colors.orange,
                   onTap: onToggle,
@@ -787,7 +787,8 @@ class _ActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: TextButton.icon(
         onPressed: onTap,
         style: TextButton.styleFrom(
@@ -797,12 +798,16 @@ class _ActionBtn extends StatelessWidget {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8)),
         ),
-        icon: Icon(icon, size: 15, color: color),
-        label: Text(label,
-            style: GoogleFonts.cairo(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: color)),
+        icon: Icon(icon, size: 14, color: color),
+        label: Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }

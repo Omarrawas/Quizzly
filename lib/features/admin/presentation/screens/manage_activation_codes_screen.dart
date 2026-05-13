@@ -70,10 +70,13 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
     }
   }
 
-  pw.Widget _buildQrCell(Map<String, dynamic> code, pw.Font boldFont, pw.ImageProvider logo) {
-    final List subjectIds = code['subjectIds'] as List? ?? [];
+  pw.Widget _buildQrCell(Map<String, dynamic> codeData, pw.Font boldFont, pw.ImageProvider logo) {
+    final String code = codeData['code']?.toString() ?? 'N/A';
+    final List subjectIds = codeData['subjectIds'] as List? ?? [];
     final int subjectsCount = subjectIds.length;
     final String typeLabel = subjectsCount > 1 ? 'كود باقة ($subjectsCount مواد)' : 'كود مادة';
+    final String batchName = codeData['batchName']?.toString() ?? '-';
+    final int duration = (codeData['durationDays'] as int?) ?? 0;
 
     return pw.Container(
       margin: const pw.EdgeInsets.all(5),
@@ -87,7 +90,7 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
         children: [
           pw.Text(
             'Quizzly Activation',
-            style: pw.TextStyle(fontSize: 7, color: PdfColors.blue900, font: boldFont),
+            style: pw.TextStyle(fontSize: 8, color: PdfColors.blue900, font: boldFont),
           ),
           pw.SizedBox(height: 2),
           pw.Container(
@@ -98,45 +101,52 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
             ),
             child: pw.Text(
               typeLabel,
-              style: pw.TextStyle(fontSize: 6, font: boldFont, color: PdfColors.blue800),
+              style: pw.TextStyle(fontSize: 6.5, font: boldFont, color: PdfColors.blue800),
             ),
           ),
-          pw.SizedBox(height: 4),
+          pw.SizedBox(height: 5),
           // QR with Logo
-          pw.Stack(
-            alignment: pw.Alignment.center,
-            children: [
-              pw.BarcodeWidget(
-                data: code['code'],
-                barcode: pw.Barcode.qrCode(),
-                width: 75,
-                height: 75,
-              ),
-              pw.Container(
-                width: 18,
-                height: 18,
-                padding: const pw.EdgeInsets.all(1),
-                decoration: const pw.BoxDecoration(
-                  color: PdfColors.white,
-                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+          pw.Directionality(
+            textDirection: pw.TextDirection.ltr,
+            child: pw.Stack(
+              alignment: pw.Alignment.center,
+              children: [
+                pw.BarcodeWidget(
+                  data: code,
+                  barcode: pw.Barcode.qrCode(),
+                  width: 65,
+                  height: 65,
+                  color: PdfColors.black,
                 ),
-                child: pw.Image(logo),
-              ),
-            ],
+                pw.Container(
+                  width: 14,
+                  height: 14,
+                  padding: const pw.EdgeInsets.all(1),
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+                  ),
+                  child: pw.Image(logo),
+                ),
+              ],
+            ),
           ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            code['code'],
-            style: pw.TextStyle(fontSize: 9, font: boldFont, letterSpacing: 1),
+          pw.SizedBox(height: 5),
+          pw.Directionality(
+            textDirection: pw.TextDirection.ltr,
+            child: pw.Text(
+              code,
+              style: pw.TextStyle(fontSize: 10, font: boldFont, letterSpacing: 1, color: PdfColors.black),
+            ),
           ),
-          pw.SizedBox(height: 2),
+          pw.SizedBox(height: 3),
           pw.Text(
-            'Batch: ${code['batchName']}',
-            style: const pw.TextStyle(fontSize: 5, color: PdfColors.grey700),
+            'Batch: $batchName',
+            style: const pw.TextStyle(fontSize: 5.5, color: PdfColors.grey800),
           ),
           pw.Text(
-            'Duration: ${code['durationDays']} Days',
-            style: const pw.TextStyle(fontSize: 5, color: PdfColors.grey700),
+            'Duration: $duration Days',
+            style: const pw.TextStyle(fontSize: 5.5, color: PdfColors.grey800),
           ),
         ],
       ),

@@ -401,7 +401,14 @@ class DatabaseService {
         .where('batchName', isEqualTo: batchName)
         .orderBy('createdAt', descending: true)
         .get();
-    return snap.docs.map((d) => d.data()).toList();
+    return snap.docs.map((d) {
+      final data = d.data();
+      // Ensure 'code' is present by using doc ID as fallback
+      if (data['code'] == null) {
+        data['code'] = d.id;
+      }
+      return data;
+    }).toList();
   }
 
   Stream<QuerySnapshot> streamActivationCodesByBatch(String batchName) {
