@@ -9,6 +9,7 @@ import 'package:intl/intl.dart' as intl;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:barcode/barcode.dart';
 // qr_flutter removed as it's unused here (PDF uses pw.BarcodeWidget)
 
 class ManageActivationCodesScreen extends StatefulWidget {
@@ -111,16 +112,23 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
             child: pw.Stack(
               alignment: pw.Alignment.center,
               children: [
-                pw.BarcodeWidget(
-                  data: code,
-                  barcode: pw.Barcode.qrCode(),
-                  width: 52,
-                  height: 52,
-                  color: PdfColors.black,
+                pw.Container(
+                  color: PdfColors.white,
+                  padding: const pw.EdgeInsets.all(2),
+                  child: pw.BarcodeWidget(
+                    data: code,
+                    barcode: pw.Barcode.qrCode(
+                      errorCorrectLevel: BarcodeQRCorrectionLevel.high,
+                    ),
+                    width: 55,
+                    height: 55,
+                    color: PdfColors.black,
+                    drawText: false,
+                  ),
                 ),
                 pw.Container(
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   padding: const pw.EdgeInsets.all(0.5),
                   decoration: const pw.BoxDecoration(
                     color: PdfColors.white,
