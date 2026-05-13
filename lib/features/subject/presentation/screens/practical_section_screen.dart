@@ -3,9 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
+import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:quizzly/features/admin/presentation/screens/practical_management_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:quizzly/features/subject/presentation/screens/practical_lesson_detail_screen.dart';
 
-class PracticalSectionScreen extends StatelessWidget {
+class PracticalSectionScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
 
@@ -15,10 +18,51 @@ class PracticalSectionScreen extends StatelessWidget {
     required this.subjectName,
   });
 
+  @override
+  State<PracticalSectionScreen> createState() => _PracticalSectionScreenState();
+}
+
+class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
+  String? _sectionId;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final auth = context.read<AuthService>();
+    final sId = await _fetchPracticalSectionId();
+    
+    if (mounted) {
+      setState(() {
+        _sectionId = sId;
+        _isLoading = false;
+      });
+
+      // If admin, redirect to management immediately
+      if (auth.isAdmin && sId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PracticalManagementScreen(
+              subjectId: widget.subjectId,
+              subjectName: widget.subjectName,
+              sectionId: sId,
+              sectionName: 'القسم العملي',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   Future<String?> _fetchPracticalSectionId() async {
     final snap = await FirebaseFirestore.instance
         .collection('sections')
-        .where('parentId', isEqualTo: subjectId)
+        .where('parentId', isEqualTo: widget.subjectId)
         .get();
     for (final doc in snap.docs) {
       final name = (doc.data()['name'] ?? '') as String;
@@ -31,6 +75,23 @@ class PracticalSectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_sectionId == null) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: Text('الدفتر العملي - ${widget.subjectName}', style: GoogleFonts.cairo()),
+        ),
+        body: _buildEmptyState(isDark),
+      );
+    }
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -38,7 +99,7 @@ class PracticalSectionScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'الدفتر العملي - $subjectName',
+          'الدفتر العملي - ${widget.subjectName}',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary),
         ),
         leading: IconButton(
@@ -46,38 +107,27 @@ class PracticalSectionScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: FutureBuilder<String?>(
-        future: _fetchPracticalSectionId(),
-        builder: (context, sectionSnap) {
-          if (sectionSnap.connectionState == ConnectionState.waiting) {
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('topics')
+            .where('subjectId', isEqualTo: widget.subjectId)
+            .where('sectionId', isEqualTo: _sectionId)
+            .where('type', isEqualTo: 'practical')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, lessonSnap) {
+          if (lessonSnap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final sectionId = sectionSnap.data;
-          if (sectionId == null) return _buildEmptyState(isDark);
+          final docs = lessonSnap.data?.docs ?? [];
+          if (docs.isEmpty) return _buildEmptyState(isDark);
 
-          return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('topics')
-                .where('subjectId', isEqualTo: subjectId)
-                .where('sectionId', isEqualTo: sectionId)
-                .where('type', isEqualTo: 'practical')
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
-            builder: (context, lessonSnap) {
-              if (lessonSnap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final docs = lessonSnap.data?.docs ?? [];
-              if (docs.isEmpty) return _buildEmptyState(isDark);
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  final item = PracticalItem.fromFirestore(docs[index]);
-                  return _buildLessonCard(context, item, isDark);
-                },
-              );
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final item = PracticalItem.fromFirestore(docs[index]);
+              return _buildLessonCard(context, item, isDark);
             },
           );
         },

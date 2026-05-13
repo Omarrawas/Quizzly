@@ -11,7 +11,7 @@ class FavoriteService {
   CollectionReference? get _favoritesCol {
     final uid = _uid;
     if (uid == null) return null;
-    return _db.collection('users').doc(uid).collection('favorites');
+    return _db.collection('users').doc(uid).collection('user_lists').doc('favorites').collection('questions');
   }
 
   /// Toggles favorite status in Firestore

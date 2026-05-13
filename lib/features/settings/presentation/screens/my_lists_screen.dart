@@ -74,50 +74,26 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (nameController.text.isNotEmpty) {
-                            context.read<ListService>().updateList(list.id, nameController.text, list.iconCodePoint);
-                            Navigator.pop(context);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryBlue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'حفظ التعديلات',
-                          style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.isNotEmpty) {
+                      context.read<ListService>().updateList(list.id, nameController.text, list.iconCodePoint);
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
                   ),
-                  if (!list.isSystem) ...[
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      height: 52,
-                      width: 52,
-                      child: IconButton.filled(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _confirmDelete(list);
-                        },
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFFEF2F2),
-                          foregroundColor: const Color(0xFFDC2626),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        icon: const Icon(Icons.delete_outline_rounded),
-                      ),
-                    ),
-                  ],
-                ],
+                  child: Text(
+                    'حفظ التعديلات',
+                    style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ],
           ),
@@ -237,39 +213,61 @@ class _MyListsScreenState extends State<MyListsScreen> {
           child: Container(height: 1, color: const Color(0xFFF1F5F9)),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'أنشئ قوائمك أو عدِّل القوائم الافتراضية (المفضلة، مهم).\nاستخدم القوائم لتنظيم الأسئلة من الشاشة الرئيسية.',
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          StreamBuilder<List<UserList>>(
-            stream: context.read<ListService>().streamLists(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final lists = snapshot.data ?? [];
-              
-              return ListView.separated(
+      body: StreamBuilder<List<UserList>>(
+        stream: context.read<ListService>().streamLists(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final lists = snapshot.data ?? [];
+          
+          if (lists.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.list_alt_rounded, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'لا توجد قوائم بعد',
+                    style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'أنشئ قوائمك لتنظيم أسئلتك المفضلة',
+                    style: GoogleFonts.cairo(color: Colors.grey, fontSize: 13),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+            children: [
+              Text(
+                'نظم أسئلتك في قوائم مخصصة للوصول السريع.\nتظهر هذه القوائم عند حفظ أي سؤال.',
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: lists.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) => const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   final list = lists[index];
                   return _buildListCard(list);
                 },
-              );
-            },
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
@@ -284,11 +282,12 @@ class _MyListsScreenState extends State<MyListsScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
-              elevation: 0,
+              elevation: 4,
+              shadowColor: AppColors.primaryBlue.withValues(alpha: 0.3),
             ),
             icon: const Icon(Icons.add_rounded, color: Colors.white),
             label: Text(
-              'قائمة جديدة',
+              'إنشاء قائمة جديدة',
               style: GoogleFonts.cairo(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -305,110 +304,197 @@ class _MyListsScreenState extends State<MyListsScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FavoritesScreen(
-                listId: list.id,
-                listName: list.name,
-              ),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'),
-                  color: AppColors.primaryBlue,
-                  size: 24,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FavoritesScreen(
+                  listId: list.id,
+                  listName: list.name,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      list.name,
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryBlue,
+                        AppColors.primaryBlue.withValues(alpha: 0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    Text(
-                      list.isSystem ? 'قائمة نظام' : 'قائمة مخصصة',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryBlue.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
+                    ],
+                  ),
+                  child: Icon(
+                    IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'),
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        list.name,
+                        style: GoogleFonts.cairo(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: list.isSystem 
+                                ? Colors.blue.withValues(alpha: 0.1) 
+                                : Colors.amber.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              list.isSystem ? 'أساسية' : 'مخصصة',
+                              style: GoogleFonts.cairo(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: list.isSystem ? Colors.blue[700] : Colors.amber[800],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          StreamBuilder<Set<String>>(
+                            stream: context.read<ListService>().streamListQuestionIds(list.id),
+                            builder: (context, snap) {
+                              final count = snap.data?.length ?? 0;
+                              return Text(
+                                '$count سؤال',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (!list.isSystem) ...[
+                  IconButton(
+                    onPressed: () => _showEditSheet(list),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: Colors.blueGrey, size: 20),
                     ),
-                  ],
-                ),
-              ),
-              if (!list.isSystem) ...[
-                IconButton(
-                  onPressed: () => _showEditSheet(list),
-                  icon: const Icon(Icons.edit_note_rounded, color: Colors.blueGrey, size: 22),
-                ),
-                IconButton(
-                  onPressed: () => _confirmDelete(list),
-                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22),
-                ),
+                  ),
+                  IconButton(
+                    onPressed: () => _confirmDelete(list),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 20),
+                    ),
+                  ),
+                ] else
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Icon(Icons.lock_outline_rounded, color: Colors.grey, size: 18),
+                  ),
               ],
-              if (list.isSystem)
-                const Icon(Icons.lock_outline_rounded, color: Colors.grey, size: 18),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-
   void _confirmDelete(UserList list) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('حذف القائمة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'حذف القائمة',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: const Color(0xFFDC2626)),
+          textAlign: TextAlign.center,
+        ),
         content: Text(
           'هل أنت متأكد من رغبتك في حذف قائمة "${list.name}"؟ سيتم حذف القائمة فقط ولن تُحذف الأسئلة من النظام.',
-          style: GoogleFonts.cairo(),
+          style: GoogleFonts.cairo(height: 1.5),
+          textAlign: TextAlign.center,
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              context.read<ListService>().deleteList(list.id);
-              Navigator.pop(context);
-            },
-            child: Text('حذف', style: GoogleFonts.cairo(color: const Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'إلغاء',
+                    style: GoogleFonts.cairo(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    context.read<ListService>().deleteList(list.id);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'حذف',
+                    style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

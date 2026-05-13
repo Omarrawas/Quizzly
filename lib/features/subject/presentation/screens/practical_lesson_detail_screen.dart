@@ -29,23 +29,16 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Media Section ──────────────────────────────────
-                if (item.mediaType == 'video' && item.videoUrl != null)
-                  _buildVideoPlaceholder(item.videoUrl!, isDark),
-                
-                if (item.mediaType == 'images' && item.imageUrls.isNotEmpty)
-                  _buildImageCarousel(item.imageUrls, isDark),
-
-                // ── Content Section ────────────────────────────────
+                // ── Content Section (Title First) ──────────────────────────
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         item.title,
                         style: GoogleFonts.cairo(
-                          fontSize: 22,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: isDark ? Colors.white : AppColors.textPrimary,
                         ),
@@ -61,6 +54,24 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+
+                // ── Media Section ──────────────────────────────────
+                const SizedBox(height: 16),
+                if (item.mediaType == 'video' && item.videoUrl != null)
+                  _buildVideoPlaceholder(item.videoUrl!, isDark),
+                
+                if (item.mediaType == 'images' && item.imageUrls.isNotEmpty)
+                  _buildImageCarousel(item.imageUrls, isDark),
+
+                // ── Explanation Section ─────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       const Divider(height: 40),
                       Text(
                         'الشرح والتفاصيل',

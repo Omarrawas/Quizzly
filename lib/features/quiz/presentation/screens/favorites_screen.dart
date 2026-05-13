@@ -8,7 +8,6 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -378,21 +377,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            leading: _isSearching
-                ? IconButton(
-                    icon: const Icon(Icons.close, color: Colors.black),
-                    onPressed: () {
-                      setState(() {
-                        _isSearching = false;
-                        _searchQuery = '';
-                        _searchController.clear();
-                      });
-                    },
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.search, color: Colors.black),
-                    onPressed: () => setState(() => _isSearching = true),
-                  ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
             title: _isSearching
                 ? TextField(
                     controller: _searchController,
@@ -415,10 +403,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
             centerTitle: true,
             actions: [
-              IconButton(
-                icon: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
-              ),
+              _isSearching
+                  ? IconButton(
+                      icon: const Icon(Icons.close, color: Colors.black),
+                      onPressed: () {
+                        setState(() {
+                          _isSearching = false;
+                          _searchQuery = '';
+                          _searchController.clear();
+                        });
+                      },
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.search, color: Colors.black),
+                      onPressed: () => setState(() => _isSearching = true),
+                    ),
             ],
           ),
           body: Column(
@@ -476,17 +475,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _buildTagButton('مهم', Icons.star, _filterImportant, (v) => setState(() => _filterImportant = v)),
-                    const SizedBox(width: 8),
-                    _buildTagButton('المفضلة', Icons.favorite, true, (v) {}),
-                  ],
+              if (listId != 'favorites' && listId != 'important')
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _buildTagButton('مهم', Icons.star, _filterImportant, (v) => setState(() => _filterImportant = v)),
+                      const SizedBox(width: 8),
+                      _buildTagButton('المفضلة', Icons.favorite, true, (v) {}),
+                    ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 8),
               Expanded(
                 child: snapshot.connectionState == ConnectionState.waiting
@@ -545,11 +545,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   selectedOptionId: _selectedOptions[qId],
                                   answerState: _answerStates[qId] ?? AnswerState.unanswered,
                                   showCorrect: _showAnswers || _checkedQuestions.contains(qId),
-                                  isFavorite: widget.listId == 'favorites',
+                                  isFavorite: listId == 'favorites',
                                   onFavoriteToggle: () {
-                                    context.read<FavoriteService>().toggleFavorite(question);
+                                    context.read<ListService>().toggleQuestionInList('favorites', question);
                                   },
-                                  isImportant: widget.listId == 'important',
+                                  isImportant: listId == 'important',
                                   onImportantToggle: () {
                                     context.read<ListService>().toggleQuestionInList('important', question);
                                   },

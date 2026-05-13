@@ -9,7 +9,6 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
-import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:provider/provider.dart';
 
@@ -66,7 +65,9 @@ class _QuizScreenState extends State<QuizScreen> {
       final favoritesSnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('favorites')
+          .collection('user_lists')
+          .doc('favorites')
+          .collection('questions')
           .get();
       
       final importantSnap = await FirebaseFirestore.instance
@@ -173,7 +174,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       showCorrect: showCorrect,
                       isFavorite: _favorites.contains(qIndex),
                       onFavoriteToggle: () {
-                        context.read<FavoriteService>().toggleFavorite(question);
+                        context.read<ListService>().toggleQuestionInList('favorites', question);
                         setState(() {
                           if (_favorites.contains(qIndex)) {
                             _favorites.remove(qIndex);

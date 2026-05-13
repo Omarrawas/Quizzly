@@ -7,7 +7,6 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 
 class WrongAnswersScreen extends StatefulWidget {
@@ -81,7 +80,13 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
   Future<void> _fetchFavorites() async {
     if (_user == null) return;
     try {
-      final snap = await FirebaseFirestore.instance.collection('users').doc(_user.uid).collection('favorites').get();
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user.uid)
+          .collection('user_lists')
+          .doc('favorites')
+          .collection('questions')
+          .get();
       if (mounted) {
         setState(() {
           for (var doc in snap.docs) {
@@ -612,7 +617,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                                         showCorrect: _showAnswers || _checkedQuestions.contains(qId),
                                         isFavorite: _favorites.contains(qId),
                                         onFavoriteToggle: () {
-                                          context.read<FavoriteService>().toggleFavorite(question);
+                                          context.read<ListService>().toggleQuestionInList('favorites', question);
                                           setState(() {
                                             if (_favorites.contains(qId)) {
                                               _favorites.remove(qId);

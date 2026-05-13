@@ -7,7 +7,6 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
-import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -60,7 +59,6 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   final Set<int> _checkedQuestions = {};
   final Map<String, String> _notesByQuestionId = {}; // QuestionID -> Note
 
-  final _favoriteService = FavoriteService();
   final _listService = ListService();
   final _srsService = SpacedRepetitionService();
   StreamSubscription? _favoriteSubscription;
@@ -147,7 +145,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   }
 
   void _setupFavoritesSync() {
-    _favoriteSubscription = _favoriteService.streamFavoriteIds().listen((ids) {
+    _favoriteSubscription = _listService.streamListQuestionIds('favorites').listen((ids) {
       if (mounted) {
         setState(() {
           _favoriteIds.clear();
@@ -241,20 +239,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
 
   void _toggleFavorite(int questionIndex) {
     final question = widget.questions[questionIndex];
-    _favoriteService.toggleFavorite(question);
-    
-    // We don't necessarily need to setState here because the stream listener 
-    // will update _favoriteIds and trigger a rebuild, but adding it for immediate UI feedback
-    setState(() {
-      final qId = question.id;
-      if (qId != null) {
-        if (_favoriteIds.contains(qId)) {
-          _favoriteIds.remove(qId);
-        } else {
-          _favoriteIds.add(qId);
-        }
-      }
-    });
+    _listService.toggleQuestionInList('favorites', question);
     _saveState();
   }
 

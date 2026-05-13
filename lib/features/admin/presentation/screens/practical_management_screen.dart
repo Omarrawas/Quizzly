@@ -61,7 +61,22 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _query.snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text(
+                  'حدث خطأ في جلب البيانات. قد يكون السبب نقص في الفهرسة (Index).\nالخطأ: ${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(color: Colors.red),
+                ),
+              ),
+            );
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
             return const Center(child: CircularProgressIndicator());
           }
           final docs = snapshot.data!.docs;
@@ -271,24 +286,35 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
   final _videoUrlCtrl = TextEditingController();
   final _imageUrlCtrl = TextEditingController();
   final List<String> _imageUrls = [];
-  String _mediaType = 'none';
   bool _saving = false;
 
   Future<void> _save() async {
-    if (_titleCtrl.text.trim().isEmpty) return;
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) return;
+
     setState(() => _saving = true);
+
+    // Determine media type automatically
+    String mediaType = 'none';
+    if (_videoUrlCtrl.text.trim().isNotEmpty) {
+      mediaType = 'video';
+    } else if (_imageUrls.isNotEmpty) {
+      mediaType = 'images';
+    }
+
     await FirebaseFirestore.instance.collection('topics').add({
-      'title': _titleCtrl.text.trim(),
+      'title': title,
       'description': _descCtrl.text.trim(),
       'subjectId': widget.subjectId,
       'sectionId': widget.sectionId,
       'type': 'practical',
-      'subType': 'lesson', // Unified
-      'mediaType': _mediaType,
-      'videoUrl': _mediaType == 'video' ? _videoUrlCtrl.text.trim() : null,
-      'imageUrls': _mediaType == 'images' ? _imageUrls : [],
+      'subType': 'lesson',
+      'mediaType': mediaType,
+      'videoUrl': _videoUrlCtrl.text.trim().isEmpty ? null : _videoUrlCtrl.text.trim(),
+      'imageUrls': _imageUrls,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
     if (mounted) Navigator.pop(context);
   }
 
@@ -328,99 +354,130 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            _field(_titleCtrl, 'عنوان الدرس', Icons.title_rounded, isDark),
-            const SizedBox(height: 16),
+            _field(_titleCtrl, 'عنوان الدرس (مطلوب)', Icons.title_rounded, isDark),
+            const SizedBox(height: 20),
+            
+            // Video Section (Optional)
             Text(
-              'نوع الوسائط',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+              'رابط الفيديو (اختياري)',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            _field(_videoUrlCtrl, 'أدخل رابط الفيديو (يوتيوب أو غيره)', Icons.play_circle_fill_rounded, isDark),
+            const SizedBox(height: 20),
+
+            // Images Section (Optional)
+            Text(
+              'صور توضيحية (اختياري)',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                _mediaBtn('بلا', 'none', Icons.text_fields_rounded),
+                Expanded(
+                  child: _field(
+                    _imageUrlCtrl,
+                    'رابط صورة',
+                    Icons.image_rounded,
+                    isDark,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                _mediaBtn('فيديو', 'video', Icons.play_circle_rounded),
-                const SizedBox(width: 8),
-                _mediaBtn('صور', 'images', Icons.photo_library_rounded),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_imageUrlCtrl.text.isNotEmpty) {
+                      setState(() {
+                        _imageUrls.add(_imageUrlCtrl.text.trim());
+                        _imageUrlCtrl.clear();
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.all(12),
+                  ),
+                  child: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            if (_mediaType == 'video')
-              _field(_videoUrlCtrl, 'رابط الفيديو', Icons.link_rounded, isDark),
-            if (_mediaType == 'images') ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: _field(
-                      _imageUrlCtrl,
-                      'رابط صورة',
-                      Icons.image_rounded,
-                      isDark,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_imageUrlCtrl.text.isNotEmpty) {
-                        setState(() {
-                          _imageUrls.add(_imageUrlCtrl.text.trim());
-                          _imageUrlCtrl.clear();
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (_imageUrls.isNotEmpty)
-                SizedBox(
-                  height: 60,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _imageUrls.length,
-                    itemBuilder: (_, i) => Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      width: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: NetworkImage(_imageUrls[i]),
-                          fit: BoxFit.cover,
+            if (_imageUrls.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _imageUrls.length,
+                  itemBuilder: (_, i) => Stack(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                          image: DecorationImage(
+                            image: NetworkImage(_imageUrls[i]),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    ),
+                      Positioned(
+                        top: 4,
+                        right: 12,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _imageUrls.removeAt(i)),
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                            child: const Icon(Icons.close, size: 12, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Description Section
+            Text(
+              'الشرح النصي للدرس',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: _descCtrl,
-              maxLines: 4,
+              maxLines: 5,
+              style: GoogleFonts.cairo(fontSize: 14),
               decoration: InputDecoration(
-                labelText: 'الشرح النصي للدرس',
+                hintText: 'اكتب تفاصيل الدرس وشرح الخطوات هنا...',
+                hintStyle: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.grey[200]!),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  elevation: 0,
                 ),
                 child: _saving
                     ? const CircularProgressIndicator(color: Colors.white)
@@ -428,6 +485,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
                         'حفظ الدرس',
                         style: GoogleFonts.cairo(
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                           color: Colors.white,
                         ),
                       ),
@@ -453,38 +511,4 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
     ),
   );
 
-  Widget _mediaBtn(String label, String value, IconData icon) {
-    final selected = _mediaType == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _mediaType = value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primaryBlue : Colors.grey[100],
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? AppColors.primaryBlue : Colors.grey[300]!,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: selected ? Colors.white : Colors.grey,
-              ),
-              Text(
-                label,
-                style: GoogleFonts.cairo(
-                  fontSize: 10,
-                  color: selected ? Colors.white : Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
