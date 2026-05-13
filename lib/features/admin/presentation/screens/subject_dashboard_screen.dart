@@ -106,18 +106,34 @@ class SubjectDashboardScreen extends StatelessWidget {
                 icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
                 color: isTheory ? Colors.blue : Colors.teal,
                 isDark: isDark,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SubjectDashboardScreen(
-                      subjectId: subjectId,
-                      subjectName: subjectName,
-                      breadcrumbs: [...breadcrumbs, subjectName],
-                      sectionId: doc.id,
-                      sectionName: name,
-                    ),
-                  ),
-                ),
+                onTap: () {
+                  if (isTheory) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubjectDashboardScreen(
+                          subjectId: subjectId,
+                          subjectName: subjectName,
+                          breadcrumbs: [...breadcrumbs, subjectName],
+                          sectionId: doc.id,
+                          sectionName: name,
+                        ),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PracticalManagementScreen(
+                          subjectId: subjectId,
+                          subjectName: subjectName,
+                          sectionId: doc.id,
+                          sectionName: name,
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
               // Visible delete button in top-left corner
               Positioned(
