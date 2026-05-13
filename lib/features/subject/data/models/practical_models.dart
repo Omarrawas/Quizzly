@@ -12,11 +12,17 @@ class PracticalItem {
   final String title;
   final String description;
   final PracticalCategory category;
-  final String? content; // For rich text summaries
-  final String? imageUrl; // For drawings or experiments
-  final List<String>? steps; // For experiments
-  final List<OralQuestion>? oralQuestions; // For interviews
-  final List<MicroscopicLabel>? labels; // For drawings
+  final String? content; // Legacy: rich text summaries
+  final String? imageUrl; // Legacy: single image
+  final List<String>? steps; // Legacy: experiments
+  final List<OralQuestion>? oralQuestions; // Legacy: interviews
+  final List<MicroscopicLabel>? labels; // Legacy: drawings
+  
+  // New Lesson fields
+  final String mediaType; // 'none', 'video', 'images'
+  final String? videoUrl;
+  final List<String> imageUrls;
+  
   final bool isNew;
   final String lastUpdated;
 
@@ -30,6 +36,9 @@ class PracticalItem {
     this.steps,
     this.oralQuestions,
     this.labels,
+    this.mediaType = 'none',
+    this.videoUrl,
+    this.imageUrls = const [],
     this.isNew = false,
     required this.lastUpdated,
   });
@@ -37,7 +46,6 @@ class PracticalItem {
   factory PracticalItem.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
-    // Parse category
     PracticalCategory category;
     switch (data['subType']) {
       case 'drawing': category = PracticalCategory.drawing; break;
@@ -50,7 +58,7 @@ class PracticalItem {
 
     return PracticalItem(
       id: doc.id,
-      title: data['name'] ?? '',
+      title: data['title'] ?? data['name'] ?? '',
       description: data['description'] ?? '',
       category: category,
       content: details['content'],
@@ -62,6 +70,9 @@ class PracticalItem {
       labels: details['labels'] != null
           ? (details['labels'] as List).map((l) => MicroscopicLabel.fromMap(l)).toList()
           : null,
+      mediaType: data['mediaType'] ?? 'none',
+      videoUrl: data['videoUrl'],
+      imageUrls: data['imageUrls'] != null ? List<String>.from(data['imageUrls']) : [],
       isNew: data['isNew'] ?? false,
       lastUpdated: (data['createdAt'] as Timestamp?)?.toDate().toString().split(' ')[0] ?? 'غير معروف',
     );
@@ -69,10 +80,13 @@ class PracticalItem {
 
   Map<String, dynamic> toFirestore() {
     return {
-      'name': title,
+      'title': title,
       'description': description,
       'type': 'practical',
       'subType': category.name,
+      'mediaType': mediaType,
+      'videoUrl': videoUrl,
+      'imageUrls': imageUrls,
       'isNew': isNew,
       'practicalDetails': {
         if (content != null) 'content': content,

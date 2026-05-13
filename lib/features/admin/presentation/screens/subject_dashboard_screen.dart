@@ -97,52 +97,58 @@ class SubjectDashboardScreen extends StatelessWidget {
           final name = data['name'] ?? '';
           final isTheory = name.contains('نظري');
 
-          return GestureDetector(
-            onLongPress: () => _confirmDeleteSection(context, doc.id, name),
-            child: Stack(
-              children: [
-                _buildDashboardCard(
+          return Stack(
+            children: [
+              _buildDashboardCard(
+                context,
+                title: name,
+                subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
+                icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
+                color: isTheory ? Colors.blue : Colors.teal,
+                isDark: isDark,
+                onTap: () => Navigator.push(
                   context,
-                  title: name,
-                  subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
-                  icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
-                  color: isTheory ? Colors.blue : Colors.teal,
-                  isDark: isDark,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SubjectDashboardScreen(
-                        subjectId: subjectId,
-                        subjectName: subjectName,
-                        breadcrumbs: [...breadcrumbs, subjectName],
-                        sectionId: doc.id,
-                        sectionName: name,
-                      ),
+                  MaterialPageRoute(
+                    builder: (context) => SubjectDashboardScreen(
+                      subjectId: subjectId,
+                      subjectName: subjectName,
+                      breadcrumbs: [...breadcrumbs, subjectName],
+                      sectionId: doc.id,
+                      sectionName: name,
                     ),
                   ),
                 ),
-                // Delete hint badge
-                Positioned(
-                  top: 8,
-                  left: 8,
+              ),
+              // Visible delete button in top-left corner
+              Positioned(
+                top: 8,
+                left: 8,
+                child: GestureDetector(
+                  onTap: () => _confirmDeleteSection(context, doc.id, name),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.delete_outline_rounded, size: 10, color: Colors.red[300]),
-                        const SizedBox(width: 2),
-                        Text('اضغط مطولاً للحذف', style: GoogleFonts.cairo(fontSize: 8, color: Colors.red[300])),
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.red.shade200, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
                     ),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 16,
+                      color: Colors.red.shade400,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         }));
 

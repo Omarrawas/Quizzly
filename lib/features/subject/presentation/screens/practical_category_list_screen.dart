@@ -7,6 +7,7 @@ import 'package:quizzly/features/subject/presentation/screens/muzakara_detail_sc
 import 'package:quizzly/features/subject/presentation/screens/microscopic_atlas_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/experiment_guide_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/oral_interview_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/practical_lesson_detail_screen.dart';
 
 class PracticalCategoryListScreen extends StatelessWidget {
   final String subjectId;
@@ -196,19 +197,26 @@ class PracticalCategoryListScreen extends StatelessWidget {
 
   void _navigateToDetail(BuildContext context, PracticalItem item) {
     Widget screen;
-    switch (item.category) {
-      case PracticalCategory.summary:
-        screen = MuzakaraDetailScreen(item: item);
-        break;
-      case PracticalCategory.drawing:
-        screen = MicroscopicAtlasScreen(item: item);
-        break;
-      case PracticalCategory.experiment:
-        screen = ExperimentGuideScreen(item: item);
-        break;
-      case PracticalCategory.interview:
-        screen = OralInterviewScreen(item: item);
-        break;
+
+    // Favor the new Lesson format if media or specific lesson fields are present
+    if (item.mediaType != 'none' || item.videoUrl != null || item.imageUrls.isNotEmpty) {
+      screen = PracticalLessonDetailScreen(item: item);
+    } else {
+      // Fallback to specialized screens for legacy data
+      switch (item.category) {
+        case PracticalCategory.summary:
+          screen = MuzakaraDetailScreen(item: item);
+          break;
+        case PracticalCategory.drawing:
+          screen = MicroscopicAtlasScreen(item: item);
+          break;
+        case PracticalCategory.experiment:
+          screen = ExperimentGuideScreen(item: item);
+          break;
+        case PracticalCategory.interview:
+          screen = OralInterviewScreen(item: item);
+          break;
+      }
     }
 
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
