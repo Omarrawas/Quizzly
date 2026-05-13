@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:qr_flutter/qr_flutter.dart';
 
 class BatchCodesPreviewScreen extends StatefulWidget {
   final String batchName;
@@ -196,47 +197,210 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
     }
   }
 
-  // ── Show Preview Content ──────────────────────────────
-  Future<void> _showPreviewDialog(List<String> subjectIds) async {
+  // ── Show Preview Ticket ──────────────────────────────
+  Future<void> _showPreviewDialog(Map<String, dynamic> data) async {
+    final String code = data['code']?.toString() ?? 'N/A';
+    final List<String> subjectIds = (data['subjectIds'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final int duration = (data['durationDays'] as int?) ?? widget.durationDays;
+    final String batchName = data['batchName']?.toString() ?? widget.batchName;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('المحتوى المفعل',
-            style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: FutureBuilder<List<String>>(
-          future: _fetchSubjectNames(subjectIds),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SizedBox(
-                height: 100,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Text('لا يوجد محتوى مرتبط', style: GoogleFonts.cairo());
-            }
-            return ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 300),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: snapshot.data!.map((name) => ListTile(
-                    leading: const Icon(Icons.book_rounded, color: AppColors.primaryBlue),
-                    title: Text(name, style: GoogleFonts.cairo(fontSize: 14)),
-                    dense: true,
-                  )).toList(),
+        backgroundColor: Colors.transparent,
+        contentPadding: EdgeInsets.zero,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        content: Container(
+          width: 320,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ticket Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Row(
+                  children: [
+                    Image.asset('assets/images/logo.png', height: 40),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quizzly Activation',
+                          style: GoogleFonts.cairo(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                        Text(
+                          'معاينة كود التفعيل',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('إغلاق', style: GoogleFonts.cairo()),
+
+              // Ticket Content (QR & Code)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // QR Code Container
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          QrImageView(
+                            data: code,
+                            version: QrVersions.auto,
+                            size: 180,
+                            errorCorrectionLevel: QrErrorCorrectLevel.H,
+                          ),
+                          Container(
+                            width: 35,
+                            height: 35,
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Image.asset('assets/images/logo.png'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Code Text
+                    Text(
+                      code,
+                      style: GoogleFonts.sourceCodePro(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                        color: AppColors.primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Batch: $batchName • $duration Days',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Separator (Dash Line)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: List.generate(
+                    15,
+                    (index) => Expanded(
+                      child: Container(
+                        height: 1,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        color: AppColors.borderLight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Subjects List
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'المحتوى المفعل:',
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<String>>(
+                      future: _fetchSubjectNames(subjectIds),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ));
+                        }
+                        final names = snapshot.data ?? ['خطأ في التحميل'];
+                        return Column(
+                          children: names.map((name) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle_outline, 
+                                  size: 14, color: Colors.green),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(name, 
+                                  style: GoogleFonts.cairo(fontSize: 13))),
+                              ],
+                            ),
+                          )).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Action
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('إغلاق', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -425,13 +589,7 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                                   (data['durationDays'] as int?) ??
                                       widget.durationDays),
                               onDelete: () => _deleteCode(docId),
-                              onPreview: () {
-                                final ids = (data['subjectIds'] as List?)
-                                        ?.map((e) => e.toString())
-                                        .toList() ??
-                                    [];
-                                _showPreviewDialog(ids);
-                              },
+                              onPreview: () => _showPreviewDialog(data),
                             );
                           },
                         ),

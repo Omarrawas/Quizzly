@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Check if user is an admin
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
+    }
+
+    // 1. User Profiles & Sub-collections
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAdmin();
+      
+      match /{allChildren=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // 2. NEW: Global Activation Tracking (user_subjects)
+    match /user_subjects/{id} {
+      // الطالب يمكنه إنشاء سجل تفعيل لنفسه فقط
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // الطالب يمكنه رؤية سجلات التفعيل الخاصة به فقط
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // المسؤول لديه صلاحيات كاملة
+      allow read, write: if isAdmin();
+    }
+
+    // 3. Educational Hierarchy (Publicly readable by all students)
+    match /universities/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /colleges/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /departments/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /academic_years/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /semesters/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /subjects/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /sections/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /topics/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    
+    // 4. Questions and Exams
+    match /questions/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /exams/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+
+    // 5. Activation Codes
+    match /activation_codes/{id} {
+      // الطالب يمكنه قراءة الكود للتحقق منه
+      allow get: if request.auth != null;
+      // الطالب يمكنه تحديث الكود لمرة واحدة فقط عند التفعيل
+      allow update: if request.auth != null 
+        && resource.data.isUsed == false 
+        && request.resource.data.isUsed == true
+        && request.resource.data.usedBy == request.auth.uid;
+      
+      allow read, write: if isAdmin();
+    }
+    
+    match /activation_batches/{id} { allow read, write: if isAdmin(); }
+    
+    // 6. User History & Attempts
+    match /user_history/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAdmin();
+    }
+    match /quiz_attempts/{id} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read, write: if isAdmin();
+    }
+  }
+}
