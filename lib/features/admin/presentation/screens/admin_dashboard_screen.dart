@@ -122,39 +122,46 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                 return Column(
                   children: [
-                    GridView.count(
-                      crossAxisCount: 2,
+                    // ── Stat Cards Grid (max 220px per card, 2 cols min) ──
+                    GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.8,
-                      children: [
-                        _buildStatCard(
-                          icon: Icons.people_alt_rounded,
-                          label: 'المستخدمين',
-                          value: stats['users']!,
-                          color: const Color(0xFF3B82F6),
-                        ),
-                        _buildStatCard(
-                          icon: Icons.vpn_key_rounded,
-                          label: 'الأكواد النشطة',
-                          value: stats['codes']!,
-                          color: const Color(0xFF10B981),
-                        ),
-                        _buildStatCard(
-                          icon: Icons.quiz_rounded,
-                          label: 'الأسئلة الكلية',
-                          value: stats['questions']!,
-                          color: const Color(0xFFF59E0B),
-                        ),
-                        _buildStatCard(
-                          icon: Icons.assignment_turned_in_rounded,
-                          label: 'اختبارات منجزة',
-                          value: stats['exams']!,
-                          color: const Color(0xFF8B5CF6),
-                        ),
-                      ],
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 220,  // بطاقة لا تتجاوز 220px
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 1.9,    // نسبة عرض/ارتفاع ثابتة
+                      ),
+                      itemCount: 4,
+                      itemBuilder: (context, index) {
+                        final cards = [
+                          _buildStatCard(
+                            icon: Icons.people_alt_rounded,
+                            label: 'المستخدمين',
+                            value: stats['users']!,
+                            color: const Color(0xFF3B82F6),
+                          ),
+                          _buildStatCard(
+                            icon: Icons.vpn_key_rounded,
+                            label: 'الأكواد النشطة',
+                            value: stats['codes']!,
+                            color: const Color(0xFF10B981),
+                          ),
+                          _buildStatCard(
+                            icon: Icons.quiz_rounded,
+                            label: 'الأسئلة الكلية',
+                            value: stats['questions']!,
+                            color: const Color(0xFFF59E0B),
+                          ),
+                          _buildStatCard(
+                            icon: Icons.assignment_turned_in_rounded,
+                            label: 'اختبارات منجزة',
+                            value: stats['exams']!,
+                            color: const Color(0xFF8B5CF6),
+                          ),
+                        ];
+                        return cards[index];
+                      },
                     ),
                     const SizedBox(height: 16),
                     // Content Stats
@@ -295,22 +302,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -318,7 +325,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Text(
             label,
             style: GoogleFonts.cairo(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: color.withValues(alpha: 0.8),
             ),
