@@ -6,6 +6,7 @@ import 'package:quizzly/features/admin/presentation/screens/topic_management_scr
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/features/admin/presentation/screens/practical_management_screen.dart';
 
 class SubjectDashboardScreen extends StatelessWidget {
   final String subjectId;
@@ -179,6 +180,25 @@ class SubjectDashboardScreen extends StatelessWidget {
                 subjectId: subjectId,
                 subjectName: subjectName,
                 breadcrumbs: [...breadcrumbs, sectionName!],
+                sectionId: sectionId!,
+                sectionName: sectionName!,
+              ),
+            ),
+          ),
+        ),
+        _buildDashboardCard(
+          context,
+          title: 'إدارة المحتوى العملي',
+          subtitle: 'المذاكرات والرسومات والتجارب',
+          icon: Icons.science_rounded,
+          color: Colors.teal,
+          isDark: isDark,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PracticalManagementScreen(
+                subjectId: subjectId,
+                subjectName: subjectName,
                 sectionId: sectionId!,
                 sectionName: sectionName!,
               ),
