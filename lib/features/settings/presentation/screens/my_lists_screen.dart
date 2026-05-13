@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/features/quiz/domain/services/list_service.dart';
+import 'package:quizzly/features/quiz/presentation/screens/favorites_screen.dart';
 
 class MyListsScreen extends StatefulWidget {
   const MyListsScreen({super.key});
@@ -10,21 +13,16 @@ class MyListsScreen extends StatefulWidget {
 }
 
 class _MyListsScreenState extends State<MyListsScreen> {
-  final List<Map<String, dynamic>> _lists = [
-    {
-      'name': 'المفضلة',
-      'isDefault': true,
-      'icon': Icons.favorite_rounded,
-    },
-    {
-      'name': 'مهم',
-      'isDefault': true,
-      'icon': Icons.star_rounded,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ListService>().initializeDefaultLists();
+    });
+  }
 
-  void _showEditSheet(int index) {
-    // A simplified representation of the edit dialog/sheet
+  void _showEditSheet(UserList list) {
+    final nameController = TextEditingController(text: list.name);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -62,9 +60,62 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<ListService>().updateList(list.id, nameController.text, list.iconCodePoint);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text('حفظ', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCreateSheet(BuildContext context) {
+    final nameController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'إنشاء قائمة جديدة',
+                style: GoogleFonts.cairo(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 24),
               TextField(
-                controller: TextEditingController(text: _lists[index]['name']),
+                controller: nameController,
+                autofocus: true,
                 decoration: InputDecoration(
+                  hintText: 'اسم القائمة',
+                  hintStyle: GoogleFonts.cairo(),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
@@ -73,46 +124,33 @@ class _MyListsScreenState extends State<MyListsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'تغيير الأيقونة',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Icon(_lists[index]['icon'], color: AppColors.primaryBlue),
-                ],
-              ),
               const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'إلغاء',
-                      style: GoogleFonts.cairo(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
-                      ),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.isNotEmpty) {
+                      context.read<ListService>().createList(
+                        nameController.text,
+                        Icons.list_rounded.codePoint,
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(
+                    'إنشاء',
+                    style: GoogleFonts.cairo(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(16),
-                    ),
-                    child: const Text('حفظ', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              )
+                ),
+              ),
             ],
           ),
         );
@@ -164,63 +202,87 @@ class _MyListsScreenState extends State<MyListsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ...List.generate(_lists.length, (index) {
-            final list = _lists[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      list['icon'],
-                      color: AppColors.primaryBlue,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          list['name'],
-                          style: GoogleFonts.cairo(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+          StreamBuilder<List<UserList>>(
+            stream: context.read<ListService>().streamLists(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final lists = snapshot.data ?? [];
+              return Column(
+                children: lists.map((list) {
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FavoritesScreen(
+                            listId: list.id,
+                            listName: list.name,
                           ),
                         ),
-                        if (list['isDefault'])
-                          Text(
-                            'افتراضي',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'),
+                              color: AppColors.primaryBlue,
+                              size: 24,
                             ),
                           ),
-                      ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  list.name,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                if (list.isSystem)
+                                  Text(
+                                    'افتراضي',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => _showEditSheet(list),
+                            icon: const Icon(Icons.edit_rounded, color: AppColors.textSecondary, size: 20),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => _showEditSheet(index),
-                    icon: const Icon(Icons.edit_rounded, color: AppColors.textSecondary, size: 20),
-                  ),
-                ],
-              ),
-            );
-          }),
+                  );
+                }).toList(),
+              );
+            },
+          ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -230,7 +292,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () => _showCreateSheet(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               shape: RoundedRectangleBorder(

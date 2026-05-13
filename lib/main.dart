@@ -11,6 +11,8 @@ import 'package:quizzly/features/home/domain/services/college_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
+import 'package:quizzly/features/quiz/domain/services/list_service.dart';
+import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +36,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeService()),
         Provider(create: (_) => CollegeService()),
         Provider(create: (_) => ContentService()),
+        Provider(create: (_) => ListService()),
+        Provider(create: (_) => FavoriteService()),
       ],
       child: const MyApp(),
     ),

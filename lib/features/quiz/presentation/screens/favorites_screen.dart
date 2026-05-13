@@ -7,9 +7,19 @@ import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
+import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({super.key});
+  final String? listId;
+  final String? listName;
+
+  const FavoritesScreen({
+    super.key,
+    this.listId,
+    this.listName,
+  });
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
@@ -336,11 +346,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       );
     }
 
+    final String listId = widget.listId ?? 'favorites';
+    final String listName = widget.listName ?? 'المفضلة';
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
           .doc(_user.uid)
-          .collection('favorites')
+          .collection('user_lists')
+          .doc(listId)
+          .collection('questions')
           .orderBy('savedAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -384,7 +399,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     autofocus: true,
                     style: GoogleFonts.cairo(),
                     decoration: InputDecoration(
-                      hintText: 'البحث في المفضلة...',
+                      hintText: 'البحث في $listName...',
                       hintStyle: GoogleFonts.cairo(color: Colors.grey),
                       border: InputBorder.none,
                     ),
@@ -395,7 +410,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     },
                   )
                 : Text(
-                    'المفضلة',
+                    listName,
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
             centerTitle: true,
@@ -482,10 +497,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const SizedBox(height: 40),
-                                Icon(Icons.favorite_border_rounded, size: 80, color: const Color(0xFF1E3A8A)),
+                                Icon(
+                                  widget.listId == 'important' ? Icons.star_border_rounded : Icons.favorite_border_rounded,
+                                  size: 80,
+                                  color: const Color(0xFF1E3A8A),
+                                ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'لا توجد أسئلة مفضلة',
+                                  'لا توجد أسئلة في ${widget.listName}',
                                   style: GoogleFonts.cairo(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
@@ -496,7 +515,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 40),
                                   child: Text(
-                                    'لإضافة أسئلة إلى المفضلة، افتح أي ورقة واختر\nإجابة، ثم اضغط على أيقونة القلب أسفل السؤال',
+                                    'لإضافة أسئلة، افتح أي ورقة واضغط على\nأيقونة الحفظ أو النجمة أسفل السؤال',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.cairo(
                                       fontSize: 14,
@@ -526,14 +545,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   selectedOptionId: _selectedOptions[qId],
                                   answerState: _answerStates[qId] ?? AnswerState.unanswered,
                                   showCorrect: _showAnswers || _checkedQuestions.contains(qId),
-                                  isFavorite: true,
+                                  isFavorite: widget.listId == 'favorites',
                                   onFavoriteToggle: () {
-                                    FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(_user.uid)
-                                        .collection('favorites')
-                                        .doc(qId)
-                                        .delete();
+                                    context.read<FavoriteService>().toggleFavorite(question);
+                                  },
+                                  isImportant: widget.listId == 'important',
+                                  onImportantToggle: () {
+                                    context.read<ListService>().toggleQuestionInList('important', question);
                                   },
                                   onOptionSelected: (optId) => _onOptionSelected(qId, optId),
                                   note: _notes[qId],

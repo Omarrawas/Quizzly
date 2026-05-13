@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
@@ -55,12 +56,15 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   final Map<int, String?> _selectedOptions = {};
   final Map<int, AnswerState> _answerStates = {};
   final Set<String> _favoriteIds = {};
+  final Set<String> _importantIds = {};
   final Set<int> _checkedQuestions = {};
   final Map<String, String> _notesByQuestionId = {}; // QuestionID -> Note
 
   final _favoriteService = FavoriteService();
+  final _listService = ListService();
   final _srsService = SpacedRepetitionService();
   StreamSubscription? _favoriteSubscription;
+  StreamSubscription? _importantSubscription;
 
   int get _correctCount => _answerStates.values.where((s) => s == AnswerState.correct).length;
   int get _wrongCount => _answerStates.values.where((s) => s == AnswerState.wrong).length;
@@ -117,6 +121,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     });
     _loadState();
     _setupFavoritesSync();
+    _setupImportantSync();
     _loadCloudNotes();
   }
 
@@ -152,10 +157,22 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     });
   }
 
+  void _setupImportantSync() {
+    _importantSubscription = _listService.streamListQuestionIds('important').listen((ids) {
+      if (mounted) {
+        setState(() {
+          _importantIds.clear();
+          _importantIds.addAll(ids);
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     _timer.cancel();
     _favoriteSubscription?.cancel();
+    _importantSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -239,6 +256,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       }
     });
     _saveState();
+  }
+
+  void _toggleImportant(int questionIndex) {
+    final question = widget.questions[questionIndex];
+    _listService.toggleQuestionInList('important', question);
   }
 
   void _addNote(int questionIndex, String note) {
@@ -620,6 +642,8 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       onOptionSelected: (optId) => _onOptionSelected(realIndex, optId),
                       isFavorite: q.id != null && _favoriteIds.contains(q.id),
                       onFavoriteToggle: () => _toggleFavorite(realIndex),
+                      isImportant: q.id != null && _importantIds.contains(q.id),
+                      onImportantToggle: () => _toggleImportant(realIndex),
                       note: q.id != null ? _notesByQuestionId[q.id] : null,
                       onNoteChanged: (note) => _addNote(realIndex, note),
                       onCheckAnswer: () => _onCheckAnswer(realIndex),

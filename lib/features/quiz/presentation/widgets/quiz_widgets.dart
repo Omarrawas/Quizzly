@@ -333,6 +333,8 @@ class QuestionCard extends StatelessWidget {
   final Function(String) onOptionSelected;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
+  final bool isImportant;
+  final VoidCallback onImportantToggle;
   final String? note;
   final Function(String) onNoteChanged;
   final VoidCallback onCheckAnswer;
@@ -350,6 +352,8 @@ class QuestionCard extends StatelessWidget {
     required this.onOptionSelected,
     this.isFavorite = false,
     required this.onFavoriteToggle,
+    this.isImportant = false,
+    required this.onImportantToggle,
     this.note,
     required this.onNoteChanged,
     required this.onCheckAnswer,
@@ -493,6 +497,8 @@ class QuestionCard extends StatelessWidget {
           QuestionBottomBar(
             isFavorite: isFavorite,
             onFavoriteToggle: onFavoriteToggle,
+            isImportant: isImportant,
+            onImportantToggle: onImportantToggle,
             hasNote: note != null && note!.isNotEmpty,
             onNoteTap: () => _showNoteDialog(context),
             onCheckTap: onCheckAnswer,
@@ -1082,6 +1088,8 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
 class QuestionBottomBar extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
+  final bool isImportant;
+  final VoidCallback onImportantToggle;
   final bool hasNote;
   final VoidCallback onNoteTap;
   final VoidCallback onCheckTap;
@@ -1093,6 +1101,8 @@ class QuestionBottomBar extends StatelessWidget {
     super.key,
     this.isFavorite = false,
     required this.onFavoriteToggle,
+    this.isImportant = false,
+    required this.onImportantToggle,
     this.hasNote = false,
     required this.onNoteTap,
     required this.onCheckTap,
@@ -1127,6 +1137,11 @@ class QuestionBottomBar extends StatelessWidget {
             icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
             color: isFavorite ? Colors.red : null,
             onTap: onFavoriteToggle,
+          ),
+          _ActionButton(
+            icon: isImportant ? Icons.star_rounded : Icons.star_border_rounded,
+            color: isImportant ? Colors.amber : null,
+            onTap: onImportantToggle,
           ),
           _ActionButton(
             icon: isChecked ? Icons.check_circle_rounded : Icons.check_circle_outlined,

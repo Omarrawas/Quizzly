@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:quizzly/features/quiz/domain/services/favorite_service.dart';
+import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 
 class WrongAnswersScreen extends StatefulWidget {
   final String? subjectId;
@@ -40,6 +43,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
   final Set<String> _checkedQuestions = {};
   final Map<String, String> _notes = {};
   final Set<String> _favorites = {};
+  final Set<String> _important = {};
   bool _showAnswers = false;
 
   // FAB
@@ -64,6 +68,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     });
     _fetchWrongQuestions();
     _fetchFavorites();
+    _fetchImportant();
   }
 
   @override
@@ -86,6 +91,28 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
       }
     } catch (e) {
       debugPrint('Error fetching favorites: $e');
+    }
+  }
+
+  Future<void> _fetchImportant() async {
+    if (_user == null) return;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user.uid)
+          .collection('user_lists')
+          .doc('important')
+          .collection('questions')
+          .get();
+      if (mounted) {
+        setState(() {
+          for (var doc in snap.docs) {
+            _important.add(doc.id);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching important: $e');
     }
   }
 
@@ -584,25 +611,24 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                                         answerState: _answerStates[qId] ?? AnswerState.unanswered,
                                         showCorrect: _showAnswers || _checkedQuestions.contains(qId),
                                         isFavorite: _favorites.contains(qId),
-                                        onFavoriteToggle: () async {
-                                          final user = FirebaseAuth.instance.currentUser;
-                                          if (user == null) return;
-                                          final favoritesRef = FirebaseFirestore.instance
-                                              .collection('users')
-                                              .doc(user.uid)
-                                              .collection('favorites');
-
+                                        onFavoriteToggle: () {
+                                          context.read<FavoriteService>().toggleFavorite(question);
                                           setState(() {
                                             if (_favorites.contains(qId)) {
                                               _favorites.remove(qId);
-                                              favoritesRef.doc(qId).delete();
                                             } else {
                                               _favorites.add(qId);
-                                              favoritesRef.doc(qId).set({
-                                                'questionId': qId,
-                                                'savedAt': FieldValue.serverTimestamp(),
-                                                'questionData': question.toMap(),
-                                              });
+                                            }
+                                          });
+                                        },
+                                        isImportant: _important.contains(qId),
+                                        onImportantToggle: () {
+                                          context.read<ListService>().toggleQuestionInList('important', question);
+                                          setState(() {
+                                            if (_important.contains(qId)) {
+                                              _important.remove(qId);
+                                            } else {
+                                              _important.add(qId);
                                             }
                                           });
                                         },
