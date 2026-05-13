@@ -538,17 +538,14 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         return;
       }
 
-      final String type = result['type'];
-      final String targetId = result['targetId'];
-      final String name = result['name'];
-
-      if (type == 'semester') {
-        await contentService.addUserSemester(userId, targetId);
-        _showSuccessSnackBar('تم تفعيل فصل "$name" بنجاح ✅');
-      } else {
-        await contentService.addUserSubject(userId, targetId);
-        _showSuccessSnackBar('تم تفعيل مادة "$name" بنجاح ✅');
+      if (result['isUsed'] == true) {
+        _showErrorDialog('هذا الكود مستخدم مسبقاً ❌');
+        return;
       }
+
+      await contentService.activateCode(userId, code.trim().toUpperCase(), result);
+      final count = (result['subjectIds'] as List).length;
+      _showSuccessSnackBar(count > 1 ? 'تم تفعيل باقة ($count مواد) بنجاح ✅' : 'تم تفعيل المادة بنجاح ✅');
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // hide loading

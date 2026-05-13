@@ -13,7 +13,17 @@ class ActivationService {
           .doc(subjectId)
           .get();
       
-      return subjectDoc.exists && (subjectDoc.data()?['isActivated'] ?? false);
+      if (!subjectDoc.exists) return false;
+      final data = subjectDoc.data()!;
+      final bool isActivated = data['isActivated'] == true || data['activationType'] == 'code';
+      
+      // Optional: Check expiration if exists
+      if (data.containsKey('expiresAt')) {
+        final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+        if (DateTime.now().isAfter(expiresAt)) return false;
+      }
+
+      return isActivated;
     } catch (e) {
       return false;
     }

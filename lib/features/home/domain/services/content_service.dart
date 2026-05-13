@@ -59,6 +59,7 @@ class ContentService {
       'subjectId': subjectId,
       'addedAt': FieldValue.serverTimestamp(),
       'activationType': activationCode != null ? 'code' : 'free',
+      'isActivated': activationCode != null,
     });
 
     // 2. Global record for admin
@@ -91,6 +92,7 @@ class ContentService {
         'subjectId': doc.id,
         'addedAt': FieldValue.serverTimestamp(),
         'activationType': activationCode != null ? 'code' : 'free',
+        'isActivated': activationCode != null,
       });
 
       // 2. Global records
@@ -259,6 +261,7 @@ class ContentService {
         'addedAt': FieldValue.serverTimestamp(),
         'activationType': 'code',
         'activationCode': code,
+        'isActivated': true,
         'expiresAt': DateTime.now().add(Duration(days: durationDays)),
       });
 
