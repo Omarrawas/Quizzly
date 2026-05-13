@@ -120,9 +120,9 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     _showExamOptions(config);
   }
 
-  // ─── حوار خيارات بدء الامتحان ──────────────────────────────────────────
+// ─── حوار خيارات بدء الامتحان ──────────────────────────────────────────
   void _showExamOptions(ExamConfig config) {
-    int selectedPillar = widget.isFree ? 0 : 1; // Default to Browse for free, Memory for paid
+    int selectedPillar = 0; // Default to Browse/Review mode
 
     showDialog(
       context: context,
@@ -151,8 +151,17 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+children: [
                   const SizedBox(height: 16),
+                  _PillarOption(
+                    title: 'التصفح والمراجعة',
+                    subtitle: 'الاطلاع السريع على الأسئلة والأجوبة النموذجية',
+                    icon: Icons.menu_book_rounded,
+                    color: Colors.orange,
+                    isSelected: selectedPillar == 0,
+                    onTap: () => setDialogState(() => selectedPillar = 0),
+                  ),
+                  const SizedBox(height: 12),
                   _PillarOption(
                     title: 'الحفظ والتمكين',
                     subtitle: 'تثبيت المعلومات عبر المراجعة النشطة والبطاقات الذكية',
@@ -171,7 +180,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                   const SizedBox(height: 12),
                   _PillarOption(
                     title: 'المحاكاة والاختبار',
-                    subtitle: 'تدريب على جو الامتحان الحقيقي أو تحدي السرعة',
+                    subtitle: 'تدريب على جو امتحان الحقيقي أو تحدي السرعة',
                     icon: Icons.timer_rounded,
                     color: AppColors.primaryBlue,
                     isLocked: widget.isFree,
@@ -183,15 +192,6 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                       }
                       setDialogState(() => selectedPillar = 2);
                     },
-                  ),
-                  const SizedBox(height: 12),
-                  _PillarOption(
-                    title: 'التصفح والمراجعة',
-                    subtitle: 'الاطلاع السريع على الأسئلة والأجوبة النموذجية',
-                    icon: Icons.menu_book_rounded,
-                    color: Colors.orange,
-                    isSelected: selectedPillar == 0,
-                    onTap: () => setDialogState(() => selectedPillar = 0),
                   ),
                 ],
               ),
