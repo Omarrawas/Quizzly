@@ -79,8 +79,8 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
     final int duration = (codeData['durationDays'] as int?) ?? 0;
 
     return pw.Container(
-      margin: const pw.EdgeInsets.all(5),
-      padding: const pw.EdgeInsets.all(6),
+      margin: const pw.EdgeInsets.all(3),
+      padding: const pw.EdgeInsets.all(5),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
@@ -90,9 +90,9 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
         children: [
           pw.Text(
             'Quizzly Activation',
-            style: pw.TextStyle(fontSize: 8, color: PdfColors.blue900, font: boldFont),
+            style: pw.TextStyle(fontSize: 7, color: PdfColors.blue900, font: boldFont),
           ),
-          pw.SizedBox(height: 2),
+          pw.SizedBox(height: 1),
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: const pw.BoxDecoration(
@@ -101,10 +101,10 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
             ),
             child: pw.Text(
               typeLabel,
-              style: pw.TextStyle(fontSize: 6.5, font: boldFont, color: PdfColors.blue800),
+              style: pw.TextStyle(fontSize: 5.5, font: boldFont, color: PdfColors.blue800),
             ),
           ),
-          pw.SizedBox(height: 5),
+          pw.SizedBox(height: 3),
           // QR with Logo
           pw.Directionality(
             textDirection: pw.TextDirection.ltr,
@@ -114,39 +114,39 @@ class _ManageActivationCodesScreenState extends State<ManageActivationCodesScree
                 pw.BarcodeWidget(
                   data: code,
                   barcode: pw.Barcode.qrCode(),
-                  width: 65,
-                  height: 65,
+                  width: 52,
+                  height: 52,
                   color: PdfColors.black,
                 ),
                 pw.Container(
-                  width: 14,
-                  height: 14,
-                  padding: const pw.EdgeInsets.all(1),
+                  width: 12,
+                  height: 12,
+                  padding: const pw.EdgeInsets.all(0.5),
                   decoration: const pw.BoxDecoration(
                     color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+                    borderRadius: pw.BorderRadius.all(pw.Radius.circular(1.5)),
                   ),
                   child: pw.Image(logo),
                 ),
               ],
             ),
           ),
-          pw.SizedBox(height: 5),
+          pw.SizedBox(height: 3),
           pw.Directionality(
             textDirection: pw.TextDirection.ltr,
             child: pw.Text(
               code,
-              style: pw.TextStyle(fontSize: 10, font: boldFont, letterSpacing: 1, color: PdfColors.black),
+              style: pw.TextStyle(fontSize: 8.5, font: boldFont, letterSpacing: 0.5, color: PdfColors.black),
             ),
           ),
-          pw.SizedBox(height: 3),
+          pw.SizedBox(height: 1.5),
           pw.Text(
             'Batch: $batchName',
-            style: const pw.TextStyle(fontSize: 5.5, color: PdfColors.grey800),
+            style: const pw.TextStyle(fontSize: 5, color: PdfColors.grey800),
           ),
           pw.Text(
             'Duration: $duration Days',
-            style: const pw.TextStyle(fontSize: 5.5, color: PdfColors.grey800),
+            style: const pw.TextStyle(fontSize: 5, color: PdfColors.grey800),
           ),
         ],
       ),
