@@ -446,7 +446,6 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       ...options.asMap().entries.map((entry) {
                         final index = entry.key;
                         final opt = entry.value;
-                        final controller = optionControllers[index];
                         final isCorrect = correctOptionIds.contains(opt['id']);
                         
                         return Container(

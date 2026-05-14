@@ -7,15 +7,21 @@ import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
 
 class TexViewWidget extends StatelessWidget {
-  final String content;
+  final String text;
   final TextStyle? style;
   final bool isTitle;
+  final double? fontSize;
+  final FontWeight? fontWeight;
+  final Color? color;
 
-  const TexViewWidget(
-    this.content, {
+  const TexViewWidget({
     super.key,
+    required this.text,
     this.style,
     this.isTitle = false,
+    this.fontSize,
+    this.fontWeight,
+    this.color,
   });
 
   static final RegExp _latexRegex = MathUtils.latexRegex;
@@ -28,15 +34,18 @@ class TexViewWidget extends StatelessWidget {
     final defaultStyle = style?.copyWith(
           fontFamily: GoogleFonts.cairo().fontFamily,
           height: 1.5,
-          color: style?.color ?? defaultTextColor,
+          color: color ?? style?.color ?? defaultTextColor,
+          fontSize: fontSize ?? style?.fontSize,
+          fontWeight: fontWeight ?? style?.fontWeight,
         ) ??
         GoogleFonts.cairo(
-          fontSize: 16,
+          fontSize: fontSize ?? 16,
+          fontWeight: fontWeight ?? FontWeight.normal,
           height: 1.5,
-          color: defaultTextColor,
+          color: color ?? defaultTextColor,
         );
 
-    final normalizedContent = MathUtils.normalizeMathContent(content);
+    final normalizedContent = MathUtils.normalizeMathContent(text);
     final hasLatex = _latexRegex.hasMatch(normalizedContent);
     final hasHtml =
         normalizedContent.contains('<') && normalizedContent.contains('>');
@@ -93,7 +102,7 @@ class TexViewWidget extends StatelessWidget {
   }
 
   static String _colorToCss(Color color) {
-    final rgb = color.value & 0x00FFFFFF;
+    final rgb = color.toARGB32() & 0x00FFFFFF;
     return '#${rgb.toRadixString(16).padLeft(6, '0')}';
   }
 

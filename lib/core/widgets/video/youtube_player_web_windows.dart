@@ -122,7 +122,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.play_circle_outline,
-              color: AppColors.primaryBlue.withOpacity(0.5), size: 64),
+              color: AppColors.primaryBlue.withValues(alpha: 0.5), size: 64),
           const SizedBox(height: 16),
           Text(
             'تعذّر تشغيل الفيديو داخل التطبيق',

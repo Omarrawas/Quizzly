@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/quill_delta.dart' as quill_delta;
+import 'package:flutter_quill_extensions/flutter_quill_extensions.dart' as quill_extensions;
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -79,7 +80,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 13,
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -369,26 +370,6 @@ class _RichTextEditorState extends State<RichTextEditor> {
     );
   }
 
-  void _applyColor(Color? color) {
-    _focusNode.requestFocus();
-    if (color == null) {
-      _controller.formatSelection(quill.Attribute.clone(quill.Attribute.color, null));
-    } else {
-      _controller.formatSelection(
-        quill.Attribute.fromKeyValue(
-          quill.Attribute.color.key,
-          _toHexColor(color),
-        )!,
-      );
-    }
-  }
-
-  String _toHexColor(Color color) {
-    final r = color.red.toRadixString(16).padLeft(2, '0');
-    final g = color.green.toRadixString(16).padLeft(2, '0');
-    final b = color.blue.toRadixString(16).padLeft(2, '0');
-    return '#$r$g$b';
-  }
 
   Widget _buildToolbarButton({
     required IconData icon,
@@ -443,7 +424,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
               color: toolbarBackground,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
               border: Border(
-                bottom: BorderSide(color: AppColors.borderLight.withOpacity(0.5)),
+                bottom: BorderSide(color: AppColors.borderLight.withValues(alpha: 0.5)),
               ),
             ),
             child: SingleChildScrollView(
@@ -525,13 +506,14 @@ class _RichTextEditorState extends State<RichTextEditor> {
               controller: _controller,
               focusNode: _focusNode,
               scrollController: _scrollController,
-              configurations: quill.QuillEditorConfigurations(
-                placeholder: widget.placeholder,
+              config: quill.QuillEditorConfig(
                 padding: const EdgeInsets.all(12),
-                embedBuilders: [MathEmbedBuilder()],
                 autoFocus: false,
                 expands: false,
-                scrollable: true,
+                embedBuilders: [
+                  ...quill_extensions.FlutterQuillEmbeds.editorBuilders(),
+                  MathEmbedBuilder(),
+                ],
               ),
             ),
           ),

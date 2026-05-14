@@ -25,11 +25,11 @@ class MathSymbolToolbar extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         border: Border(
-          bottom: BorderSide(color: borderColor.withOpacity(0.5)),
+          bottom: BorderSide(color: borderColor.withValues(alpha: 0.5)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -214,14 +214,14 @@ class MathSymbolToolbar extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                accent.withOpacity(0.15),
-                accent.withOpacity(0.05)
+                accent.withValues(alpha: 0.15),
+                accent.withValues(alpha: 0.05)
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: accent.withOpacity(0.4)),
+            border: Border.all(color: accent.withValues(alpha: 0.4)),
           ),
           child: const Center(
             child: FittedBox(
@@ -276,7 +276,7 @@ class MathSymbolToolbar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withValues(alpha: 0.4),
                     blurRadius: 32,
                     spreadRadius: 2,
                   ),
@@ -288,7 +288,7 @@ class MathSymbolToolbar extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.1),
+                      color: accentColor.withValues(alpha: 0.1),
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(16)),
                     ),
@@ -308,7 +308,7 @@ class MathSymbolToolbar extends StatelessWidget {
                         ),
                         IconButton(
                           icon: Icon(Icons.close,
-                              color: textColor.withOpacity(0.6)),
+                              color: textColor.withValues(alpha: 0.6)),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
@@ -326,7 +326,7 @@ class MathSymbolToolbar extends StatelessWidget {
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: _equationCategories.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const SizedBox(width: 8),
                               itemBuilder: (context, index) {
                                 final category = _equationCategories[index];
@@ -347,7 +347,7 @@ class MathSymbolToolbar extends StatelessWidget {
                                     ),
                                     decoration: BoxDecoration(
                                       color: selected
-                                          ? accentColor.withOpacity(0.14)
+                                          ? accentColor.withValues(alpha: 0.14)
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
@@ -533,7 +533,7 @@ class MathSymbolToolbar extends StatelessWidget {
                                     r'مثال: \frac{-b \pm \sqrt{b^2-4ac}}{2a}',
                                 hintStyle: TextStyle(
                                     color:
-                                        mutedTextColor.withOpacity(0.5),
+                                        mutedTextColor.withValues(alpha: 0.5),
                                     fontSize: 12),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -571,7 +571,7 @@ class MathSymbolToolbar extends StatelessWidget {
                               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color: accentColor.withOpacity(0.3)),
+                                  color: accentColor.withValues(alpha: 0.3)),
                             ),
                             child: previewLatex.isEmpty
                                 ? Center(
@@ -606,7 +606,7 @@ class MathSymbolToolbar extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: Border(
                           top: BorderSide(
-                              color: borderColor.withOpacity(0.3))),
+                              color: borderColor.withValues(alpha: 0.3))),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -723,9 +723,9 @@ class MathSymbolToolbar extends StatelessWidget {
                   width: 48,
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(0.12),
+                    color: accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: accent.withOpacity(0.25)),
+                    border: Border.all(color: accent.withValues(alpha: 0.25)),
                   ),
                   child: Directionality(
                     textDirection: TextDirection.ltr,
@@ -958,7 +958,7 @@ class _LatexFallbackText extends StatelessWidget {
       style: TextStyle(
         fontFamily: 'monospace',
         fontSize: fontSize.clamp(9.0, 14.0),
-        color: textColor.withOpacity(0.7),
+        color: textColor.withValues(alpha: 0.7),
         height: 1.3,
       ),
     );
