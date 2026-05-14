@@ -3,9 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
-import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
-import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
-import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_detail_screen.dart';
 
 class TheoreticalLessonListScreen extends StatefulWidget {
   final String subjectId;
@@ -33,6 +31,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   Map<String, String> _chapterNames = {};
+  Map<String, int> _chapterOrders = {};
   bool _isLoading = true;
 
   @override
@@ -51,13 +50,17 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           .get();
       
       final Map<String, String> chapters = {};
+      final Map<String, int> orders = {};
       for (var doc in snap.docs) {
-        chapters[doc.id] = doc.data()['name'] ?? '';
+        final data = doc.data();
+        chapters[doc.id] = data['name'] ?? '';
+        orders[doc.id] = data['order'] ?? 0;
       }
       
       if (mounted) {
         setState(() {
           _chapterNames = chapters;
+          _chapterOrders = orders;
           _isLoading = false;
         });
       }
@@ -176,11 +179,21 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           }).toList();
         }
 
-        // Sort by chapter order and then lesson order
-        // For simplicity here, we'll sort by name if order is missing
+        // Sort by chapter order primarily, and then lesson order
         docs.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>;
           final bData = b.data() as Map<String, dynamic>;
+          
+          final aParentId = aData['parentId'] ?? '';
+          final bParentId = bData['parentId'] ?? '';
+          
+          final aChapterOrder = _chapterOrders[aParentId] ?? 999;
+          final bChapterOrder = _chapterOrders[bParentId] ?? 999;
+          
+          if (aChapterOrder != bChapterOrder) {
+            return aChapterOrder.compareTo(bChapterOrder);
+          }
+
           final aOrder = aData['order'] ?? 0;
           final bOrder = bData['order'] ?? 0;
           return (aOrder as num).compareTo(bOrder as num);
@@ -216,7 +229,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                 // For student view, limit access to first 3 lessons if free
                 final bool isLocked = !widget.isAdmin && widget.isFree && index >= 3;
 
-                return _buildLessonCard(id, name, chapterName, isDark, isLocked);
+                return _buildLessonCard(id, name, chapterName, isDark, isLocked, data);
               },
               childCount: docs.length,
             ),
@@ -226,7 +239,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     );
   }
 
-  Widget _buildLessonCard(String id, String name, String chapterName, bool isDark, bool isLocked) {
+  Widget _buildLessonCard(String id, String name, String chapterName, bool isDark, bool isLocked, Map<String, dynamic> data) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -245,7 +258,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          onTap: isLocked ? _showPaywall : () => _onLessonTap(id, name),
+          onTap: isLocked ? _showPaywall : () => _openLessonInBookMode(id, name, data),
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -303,77 +316,22 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     );
   }
 
-  void _onLessonTap(String lessonId, String lessonName) async {
-    if (widget.isAdmin) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TheoreticalSectionManagementScreen(
-            sectionId: widget.sectionId,
-            sectionName: widget.sectionName,
-            subjectId: widget.subjectId,
-            breadcrumbs: [widget.subjectName, widget.sectionName, lessonName],
-            lessonId: lessonId,
-            lessonName: lessonName,
-          ),
+  Future<void> _openLessonInBookMode(String lessonId, String lessonName, Map<String, dynamic> data) async {
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TheoreticalLessonDetailScreen(
+          lessonId: lessonId,
+          lessonName: lessonName,
+          subjectId: widget.subjectId,
+          subjectName: widget.subjectName,
+          sectionId: widget.sectionId,
+          data: data,
         ),
-      );
-    } else {
-      // Student view: Open in Book Mode
-      _openLessonInBookMode(lessonId, lessonName);
-    }
-  }
-
-  Future<void> _openLessonInBookMode(String lessonId, String lessonName) async {
-    showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
-    
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection(DatabaseService.colQuestions)
-          .where('subjectId', isEqualTo: widget.subjectId)
-          .where('topicIds', arrayContains: lessonId)
-          .get();
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Close loader
-
-      final questions = snap.docs.map((doc) => QuizQuestion.fromFirestore(doc)).toList();
-      
-      if (questions.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('لا توجد أسئلة في هذا الدرس حالياً', style: GoogleFonts.cairo()))
-        );
-        return;
-      }
-
-      final config = ExamConfig(
-        id: 'lesson_$lessonId',
-        title: lessonName,
-        type: ExamType.bank,
-        durationSeconds: 0,
-        totalQuestions: questions.length,
-        passingScore: 50,
-        subjectId: widget.subjectId,
-        sectionId: widget.sectionId,
-        staticQuestionIds: questions.map((q) => q.id ?? '').toList(),
-      );
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ExamBookModeScreen(
-            config: config,
-            questions: questions,
-            isSubExam: true,
-          ),
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
-      }
-    }
+      ),
+    );
   }
 
   void _showPaywall() {

@@ -163,6 +163,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                     showArrow: true,
                     onTap: () => _goToLessonQuestions(id, name),
                     onEdit: () => _showEditTopicDialog(id, data, 'درس'),
+                    onEditContent: () => _showEditLessonContentDialog(id, data), // Added this
                     onDelete: () => _confirmDelete(id, name),
                   );
                 },
@@ -201,6 +202,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     required bool isDark,
     required VoidCallback onTap,
     required VoidCallback onEdit,
+    VoidCallback? onEditContent, // Added this
     required VoidCallback onDelete,
     bool showArrow = false,
   }) {
@@ -226,6 +228,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (onEditContent != null)
+              IconButton(
+                icon: const Icon(Icons.video_collection_rounded, size: 18, color: Colors.orange), 
+                onPressed: onEditContent,
+                tooltip: 'تعديل المحتوى النظري',
+              ),
             IconButton(icon: const Icon(Icons.edit_note_rounded, size: 18, color: Colors.blue), onPressed: onEdit),
             IconButton(icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red), onPressed: onDelete),
             if (showArrow) Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey[400]),
@@ -476,6 +484,82 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
               if (context.mounted) Navigator.pop(context);
             },
             child: Text('حذف', style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditLessonContentDialog(String id, Map<String, dynamic> data) {
+    final descriptionController = TextEditingController(text: data['description'] ?? '');
+    final videoUrlController = TextEditingController(text: data['videoUrl'] ?? '');
+    final imageUrlsController = TextEditingController(text: (data['imageUrls'] as List<dynamic>?)?.join('\n') ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('تعديل المحتوى النظري للدرس', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: descriptionController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  labelText: 'الشرح النظري',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: videoUrlController,
+                decoration: InputDecoration(
+                  labelText: 'رابط الفيديو (YouTube/Direct)',
+                  prefixIcon: const Icon(Icons.link_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: imageUrlsController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: 'روابط الصور (رابط في كل سطر)',
+                  prefixIcon: const Icon(Icons.image_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              final imageUrls = imageUrlsController.text
+                  .split('\n')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
+
+              await _dbService.updateDoc(DatabaseService.colTopics, id, {
+                'description': descriptionController.text.trim(),
+                'videoUrl': videoUrlController.text.trim(),
+                'imageUrls': imageUrls,
+                'mediaType': videoUrlController.text.isNotEmpty ? 'video' : (imageUrls.isNotEmpty ? 'images' : 'text'),
+                'lastUpdated': DateTime.now().toString().split(' ')[0],
+              });
+
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text('حفظ المحتوى', style: GoogleFonts.cairo()),
           ),
         ],
       ),
