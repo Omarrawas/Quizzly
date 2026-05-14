@@ -705,8 +705,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   }
 
   void _navigateToLessons() async {
-    // We need to find the theoretical section ID.
-    // In this app, sections reference their parent subject via 'parentId'.
+    // 1. Try to find a section that explicitly contains 'نظري' in its name
     final sectionsSnap = await FirebaseFirestore.instance
         .collection(DatabaseService.colSections)
         .where('parentId', isEqualTo: widget.subjectId)
@@ -715,8 +714,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     String? theorySectionId;
     String? theorySectionName;
     
+    // First pass: look for 'نظري'
     for (var doc in sectionsSnap.docs) {
-      final name = doc.data()['name'] ?? '';
+      final name = (doc.data()['name'] ?? '').toString();
       if (name.contains('نظري')) {
         theorySectionId = doc.id;
         theorySectionName = name;
@@ -724,28 +724,36 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       }
     }
 
-    // If still not found, try 'subjectId' just in case (legacy or mixed structure)
+    // Second pass: if not found and there is only ONE section, use it
+    if (theorySectionId == null && sectionsSnap.docs.length == 1) {
+      theorySectionId = sectionsSnap.docs.first.id;
+      theorySectionName = sectionsSnap.docs.first.data()['name'] ?? 'القسم النظري';
+    }
+
+    // Third pass: check for any lessons directly under the subject (legacy support)
     if (theorySectionId == null) {
-      final altSnap = await FirebaseFirestore.instance
-          .collection(DatabaseService.colSections)
+      final lessonsSnap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colTopics)
           .where('subjectId', isEqualTo: widget.subjectId)
+          .where('type', isEqualTo: 'lesson')
+          .limit(1)
           .get();
       
-      for (var doc in altSnap.docs) {
-        final name = doc.data()['name'] ?? '';
-        if (name.contains('نظري')) {
-          theorySectionId = doc.id;
-          theorySectionName = name;
-          break;
-        }
+      if (lessonsSnap.docs.isNotEmpty) {
+        // We found lessons, use the sectionId from the first lesson if it exists
+        theorySectionId = lessonsSnap.docs.first.data()['sectionId'];
+        theorySectionName = 'القسم النظري';
       }
     }
 
-    // Fallback if absolutely not found
-    theorySectionId ??= 'theory_default';
-    theorySectionName ??= 'القسم النظري';
-
     if (!mounted) return;
+
+    if (theorySectionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لم يتم العثور على القسم النظري لهذه المادة')),
+      );
+      return;
+    }
 
     Navigator.push(
       context,

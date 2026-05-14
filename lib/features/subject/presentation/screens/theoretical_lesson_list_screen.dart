@@ -169,6 +169,20 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           .where('type', isEqualTo: 'lesson')
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text(
+                  'حدث خطأ في جلب الدروس. قد يكون السبب نقص في الفهرسة (Index).\nالخطأ: ${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(color: Colors.red),
+                ),
+              ),
+            ),
+          );
+        }
         if (!snapshot.hasData) return const SliverToBoxAdapter(child: SizedBox());
         
         var docs = snapshot.data!.docs;

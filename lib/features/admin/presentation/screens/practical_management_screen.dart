@@ -27,8 +27,7 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
       .collection('topics')
       .where('subjectId', isEqualTo: widget.subjectId)
       .where('sectionId', isEqualTo: widget.sectionId)
-      .where('type', isEqualTo: 'practical')
-      .orderBy('createdAt', descending: true);
+      .where('type', isEqualTo: 'practical');
 
   Future<void> _deleteLesson(String docId) async {
     await FirebaseFirestore.instance.collection('topics').doc(docId).delete();
@@ -79,7 +78,15 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
           if (!snapshot.hasData || snapshot.data == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          final docs = snapshot.data!.docs;
+          final docs = [...snapshot.data!.docs]
+            ..sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aTime = aData['createdAt'] as Timestamp?;
+              final bTime = bData['createdAt'] as Timestamp?;
+              if (aTime == null || bTime == null) return 0;
+              return bTime.compareTo(aTime); // Descending
+            });
 
           if (docs.isEmpty) {
             return Center(

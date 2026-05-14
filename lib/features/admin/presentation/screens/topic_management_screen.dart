@@ -371,6 +371,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     final chaptersSnap = await FirebaseFirestore.instance
         .collection(DatabaseService.colTopics)
         .where('subjectId', isEqualTo: widget.subjectId)
+        .where('sectionId', isEqualTo: widget.sectionId)
         .where('type', isEqualTo: 'chapter')
         .get();
     
