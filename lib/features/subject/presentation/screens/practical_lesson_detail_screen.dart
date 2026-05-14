@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
 import 'package:quizzly/core/widgets/video/video_preview_widget.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class PracticalLessonDetailScreen extends StatefulWidget {
   final PracticalItem item;
@@ -90,25 +91,21 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        item.description,
-                        style: GoogleFonts.cairo(
-                          fontSize: 15,
-                          height: 1.8,
-                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
-                        ),
+                      TexViewWidget(
+                        text: item.description,
+                        fontSize: 15,
+                        color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
                       ),
                       
                       // Support legacy content if present
                       if (item.content != null && item.content!.isNotEmpty) ...[
                         const SizedBox(height: 20),
-                        Text(
-                          item.content!,
-                          style: GoogleFonts.cairo(
-                            fontSize: 15,
-                            height: 1.8,
-                            color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
-                          ),
+                        TexViewWidget(
+                          text: item.content!,
+                          fontSize: 15,
+                          color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ],
                     ],

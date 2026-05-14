@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 
@@ -419,21 +420,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       const SizedBox(height: 24),
                   Text('نص السؤال', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: textController,
-                    style: GoogleFonts.cairo(fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'اكتب نص السؤال هنا...',
-                      hintStyle: GoogleFonts.cairo(color: Colors.grey),
-                      filled: true,
-                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[200]!)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[200]!)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
-                      contentPadding: const EdgeInsets.all(20),
-                    ),
-                    maxLines: null,
-                    minLines: 3,
+                  RichTextEditor(
+                    initialHtml: textController.text,
+                    placeholder: 'اكتب نص السؤال هنا...',
+                    height: 200,
+                    onContentChanged: (html) {
+                      textController.text = html;
+                    },
                   ),
                 ],
               ),
@@ -488,14 +481,16 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                   activeColor: Colors.green,
                                 ),
                               Expanded(
-                                child: TextField(
-                                  onChanged: (v) => opt['text'] = v,
-                                  controller: controller,
-                                  style: GoogleFonts.cairo(fontSize: 14),
-                                  decoration: InputDecoration(
-                                    hintText: 'الخيار ${index + 1}',
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                  child: RichTextEditor(
+                                    initialHtml: opt['text'],
+                                    placeholder: 'الخيار ${index + 1}',
+                                    height: 100,
+                                    isCompact: true,
+                                    onContentChanged: (html) {
+                                      opt['text'] = html;
+                                    },
                                   ),
                                 ),
                               ),
@@ -556,36 +551,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                 children: [
                   Text('شرح الإجابة (اختياري)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: explanationController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: 'اكتب الشرح هنا...',
-                      hintStyle: GoogleFonts.cairo(fontSize: 14),
-                      filled: true,
-                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      prefixIcon: IconButton(
-                        icon: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primaryBlue),
-                        onPressed: () async {
-                          final controller = TextEditingController();
-                          final url = await showDialog<String>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: Text('رابط الصورة', style: GoogleFonts.cairo()),
-                              content: TextField(controller: controller, decoration: const InputDecoration(hintText: 'https://...')),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-                                TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('موافق')),
-                              ],
-                            ),
-                          );
-                          if (url != null && url.isNotEmpty) {
-                            setState(() => explanationImageUrlController.text = url);
-                          }
-                        },
-                      ),
-                    ),
+                  RichTextEditor(
+                    initialHtml: explanationController.text,
+                    placeholder: 'اكتب الشرح هنا...',
+                    height: 150,
+                    onContentChanged: (html) {
+                      explanationController.text = html;
+                    },
                   ),
                   if (explanationImageUrlController.text.isNotEmpty)
                     Padding(

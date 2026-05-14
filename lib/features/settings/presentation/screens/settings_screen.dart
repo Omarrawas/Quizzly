@@ -194,17 +194,18 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title, style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
-        content: RadioGroup<T>(
-          groupValue: currentValue,
-          onChanged: (val) {
-            if (val != null) onSelected(val);
-            Navigator.pop(context);
-          },
+        content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: options.map((opt) => RadioListTile<T>(
               title: Text(labelBuilder(opt), style: GoogleFonts.cairo()),
               value: opt,
+              groupValue: currentValue,
+              activeColor: AppColors.primaryBlue,
+              onChanged: (val) {
+                if (val != null) onSelected(val);
+                Navigator.pop(context);
+              },
             )).toList(),
           ),
         ),

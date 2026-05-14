@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import '../../../core/theme/app_colors.dart'; // removed as unused
+import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:universal_html/html.dart' as html;
@@ -110,23 +110,27 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
   /// Fallback when WebView2 is not available or any error occurs
   Widget _buildFallbackPlayer(double height) {
     final youtubeUrl = 'https://www.youtube.com/watch?v=${widget.videoId}';
-    // isDark removed as it was unused
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? Colors.black26 : Colors.grey[200],
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.play_circle_outline,
-              color: Colors.white.withValues(alpha: 0.70), size: 64),
+              color: AppColors.primaryBlue.withOpacity(0.5), size: 64),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'تعذّر تشغيل الفيديو داخل التطبيق',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           if (_errorMessage.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -134,7 +138,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 _errorMessage,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.54), fontSize: 12),
+                style: TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -144,7 +148,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
           const SizedBox(height: 8),
           Text(
             'قد يحتاج جهازك إلى تثبيت Microsoft Edge WebView2',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.54), fontSize: 13),
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -171,8 +175,8 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
                 label: const Text('تثبيت WebView2',
                     style: TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white70,
-                  side: const BorderSide(color: Colors.white30),
+                  foregroundColor: AppColors.primaryBlue,
+                  side: const BorderSide(color: AppColors.primaryBlue),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),

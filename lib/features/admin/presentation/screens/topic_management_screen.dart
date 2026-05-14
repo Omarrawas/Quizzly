@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 
@@ -505,14 +506,15 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: descriptionController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: 'الشرح النظري',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+              Text('الشرح النظري', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 8),
+              RichTextEditor(
+                initialHtml: descriptionController.text,
+                placeholder: 'اكتب الشرح النظري هنا...',
+                height: 250,
+                onContentChanged: (html) {
+                  descriptionController.text = html;
+                },
               ),
               const SizedBox(height: 16),
               TextField(

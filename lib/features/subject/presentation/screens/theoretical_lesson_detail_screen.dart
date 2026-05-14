@@ -6,6 +6,7 @@ import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
 import 'package:quizzly/core/widgets/video/video_preview_widget.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class TheoreticalLessonDetailScreen extends StatefulWidget {
   final String lessonId;
@@ -124,13 +125,11 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                         ],
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        description,
-                        style: GoogleFonts.cairo(
-                          fontSize: 16,
-                          height: 1.8,
-                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
-                        ),
+                      TexViewWidget(
+                        text: description,
+                        fontSize: 16,
+                        color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ],
                   ),

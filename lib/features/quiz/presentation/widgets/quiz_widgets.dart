@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
-import 'package:quizzly/core/widgets/smart_text.dart';
 
 // ═══════════════════════════════════════════════════════
 //  1. شريط الحالة العلوي (HUD)
@@ -426,14 +426,11 @@ class QuestionCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: SmartText(
+                  child: TexViewWidget(
                     text: '${displayIndex ?? question.number} - ${question.text}',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                    textAlign: TextAlign.right,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 _QuestionMenuButton(question: question),
@@ -591,14 +588,11 @@ class _OptionTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: SmartText(
+              child: TexViewWidget(
                 text: option.text,
-                style: GoogleFonts.cairo(
-                  fontSize: 15,
-                  color: AppColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                ),
-                textAlign: TextAlign.right,
+                fontSize: 15,
+                color: AppColors.textPrimary,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
             if (showCorrect && isCorrect) ...[
@@ -1052,15 +1046,11 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
               ),
               const SizedBox(height: 20),
             ],
-            SmartText(
+            TexViewWidget(
               text: question.explanation ?? 'لا يوجد شرح متوفر لهذا السؤال حالياً.',
-              style: GoogleFonts.cairo(
-                fontSize: 15,
-                height: 1.8,
-                color: const Color(0xFF475569),
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.right,
+              fontSize: 15,
+              color: const Color(0xFF475569),
+              fontWeight: FontWeight.w500,
             ),
           ],
         ),
