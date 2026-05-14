@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/core/theme/app_theme.dart';
 import 'package:quizzly/core/theme/theme_service.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
@@ -12,12 +13,15 @@ import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
+import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  final prefs = await SharedPreferences.getInstance();
 
   // Initialize Smart Notifications
   await SmartNotificationService().init();
@@ -33,6 +37,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => SettingsService(prefs)),
         Provider(create: (_) => CollegeService()),
         Provider(create: (_) => ContentService()),
         Provider(create: (_) => ListService()),

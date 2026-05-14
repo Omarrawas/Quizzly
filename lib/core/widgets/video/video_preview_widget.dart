@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart'; // removed as redundant
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:ui';
+// import 'dart:ui'; // removed as redundant
 import 'video_player_controls.dart';
 import 'youtube_player_web_windows.dart';
 import 'package:flutter/foundation.dart';
@@ -273,7 +273,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
           border: Border.all(color: isDark ? Colors.white12 : Colors.black12, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -287,7 +287,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    Icon(Icons.play_circle_filled_rounded, color: AppColors.primaryBlue.withOpacity(0.7)),
+                    Icon(Icons.play_circle_filled_rounded, color: AppColors.primaryBlue.withValues(alpha: 0.7)),
                     const SizedBox(width: 8),
                     Text(
                       widget.title,
@@ -304,7 +304,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Icon(Icons.fullscreen_rounded, 
@@ -353,7 +353,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
-                                  colors: [Colors.black.withOpacity(0.15), Colors.black.withOpacity(0.6)],
+                                  colors: [Colors.black.withValues(alpha: 0.15), Colors.black.withValues(alpha: 0.6)],
                                 ),
                               ),
                             ),
@@ -365,8 +365,8 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
                                   width: 64, height: 64,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: AppColors.primaryBlue.withOpacity(0.9),
-                                    boxShadow: [BoxShadow(color: AppColors.primaryBlue.withOpacity(0.3), blurRadius: 20, spreadRadius: 4)],
+                                    color: AppColors.primaryBlue.withValues(alpha: 0.9),
+                                    boxShadow: [BoxShadow(color: AppColors.primaryBlue.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4)],
                                   ),
                                   child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 40),
                                 ),
@@ -377,7 +377,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
                               child: Center(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(20)),
+                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(20)),
                                   child: const Text('اضغط للمشاهدة', 
                                     style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
                                 ),
@@ -400,9 +400,9 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3), width: 1),
       ),
       child: const Row(
         children: [

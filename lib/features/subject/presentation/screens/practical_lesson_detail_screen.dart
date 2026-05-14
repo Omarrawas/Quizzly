@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
-import '../../../core/widgets/video/video_preview_widget.dart';
+import 'package:quizzly/core/widgets/video/video_preview_widget.dart';
 
 class PracticalLessonDetailScreen extends StatefulWidget {
   final PracticalItem item;
@@ -95,7 +95,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                         style: GoogleFonts.cairo(
                           fontSize: 15,
                           height: 1.8,
-                          color: isDark ? Colors.white.withOpacity(0.8) : AppColors.textPrimary.withOpacity(0.9),
+                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
                         ),
                       ),
                       
@@ -107,7 +107,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                           style: GoogleFonts.cairo(
                             fontSize: 15,
                             height: 1.8,
-                            color: isDark ? Colors.white.withOpacity(0.8) : AppColors.textPrimary.withOpacity(0.9),
+                            color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -160,7 +160,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5)),
                   ],
                 ),
                 child: ClipRRect(
@@ -172,7 +172,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
-                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[200],
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200],
                         child: const Center(child: CircularProgressIndicator()),
                       );
                     },

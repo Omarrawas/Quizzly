@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:video_player/video_player.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import '../../../features/settings/domain/services/settings_service.dart';
 
 class VideoPlayerControls extends StatefulWidget {
   final YoutubePlayerController? youtubeController;
@@ -154,10 +156,11 @@ class _VideoPlayerControlsState extends State<VideoPlayerControls> {
       onDoubleTapDown: (details) {
         if (_isLocked) return;
         final screenWidth = MediaQuery.of(context).size.width;
+        final settings = context.read<SettingsService>();
         if (details.globalPosition.dx < screenWidth / 2) {
-          _seekRelative(-10);
+          _seekRelative(-settings.skipDuration);
         } else {
-          _seekRelative(10);
+          _seekRelative(settings.skipDuration);
         }
       },
       child: Container(
@@ -237,18 +240,22 @@ class _VideoPlayerControlsState extends State<VideoPlayerControls> {
 
                     // Center Controls
                     if (!_isLocked)
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildControlButton(
-                                Icons.replay_10, () => _seekRelative(-10)),
-                            const SizedBox(width: 40),
-                            _buildPlayPauseButton(),
-                            const SizedBox(width: 40),
-                            _buildControlButton(
-                                Icons.forward_10, () => _seekRelative(10)),
-                          ],
+                      Consumer<SettingsService>(
+                        builder: (context, settings, _) => Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildControlButton(
+                                  settings.skipDuration == 10 ? Icons.replay_10 : Icons.replay_5, 
+                                  () => _seekRelative(-settings.skipDuration)),
+                              const SizedBox(width: 40),
+                              _buildPlayPauseButton(),
+                              const SizedBox(width: 40),
+                              _buildControlButton(
+                                  settings.skipDuration == 10 ? Icons.forward_10 : Icons.forward_5, 
+                                  () => _seekRelative(settings.skipDuration)),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -390,7 +397,7 @@ class _VideoPlayerControlsState extends State<VideoPlayerControls> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withOpacity(0.8),
+        color: AppColors.primaryBlue.withValues(alpha: 0.8),
         shape: BoxShape.circle,
         boxShadow: const [
           BoxShadow(
@@ -417,7 +424,7 @@ class _VideoPlayerControlsState extends State<VideoPlayerControls> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.24),
+          color: Colors.white.withValues(alpha: 0.24),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(

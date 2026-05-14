@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+// import '../../../core/theme/app_colors.dart'; // removed as unused
 import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:universal_html/html.dart' as html;
@@ -110,7 +110,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
   /// Fallback when WebView2 is not available or any error occurs
   Widget _buildFallbackPlayer(double height) {
     final youtubeUrl = 'https://www.youtube.com/watch?v=${widget.videoId}';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // isDark removed as it was unused
 
     return Container(
       height: height,
@@ -122,7 +122,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.play_circle_outline,
-              color: Colors.white.withOpacity(0.70), size: 64),
+              color: Colors.white.withValues(alpha: 0.70), size: 64),
           const SizedBox(height: 16),
           const Text(
             'تعذّر تشغيل الفيديو داخل التطبيق',
@@ -134,7 +134,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 _errorMessage,
-                style: TextStyle(color: Colors.white.withOpacity(0.54), fontSize: 12),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.54), fontSize: 12),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -144,7 +144,7 @@ class _YoutubePlayerWebWindowsState extends State<YoutubePlayerWebWindows> {
           const SizedBox(height: 8),
           Text(
             'قد يحتاج جهازك إلى تثبيت Microsoft Edge WebView2',
-            style: TextStyle(color: Colors.white.withOpacity(0.54), fontSize: 13),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.54), fontSize: 13),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
