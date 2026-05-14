@@ -5,6 +5,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
+import '../../../core/widgets/video/video_preview_widget.dart';
 
 class TheoreticalLessonDetailScreen extends StatefulWidget {
   final String lessonId;
@@ -82,7 +83,14 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                 // ── Media Section ──────────────────────────────────
                 const SizedBox(height: 20),
                 if (mediaType == 'video' && videoUrl != null && videoUrl.isNotEmpty)
-                  _buildVideoPlaceholder(videoUrl, isDark),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: VideoPreviewWidget(
+                      videoUrl: videoUrl,
+                      title: widget.lessonName,
+                      height: 220,
+                    ),
+                  ),
                 
                 if (mediaType == 'images' && imageUrls.isNotEmpty)
                   _buildImageCarousel(imageUrls, isDark),
@@ -99,7 +107,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
+                              color: Colors.blue.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.description_rounded, color: Colors.blue, size: 20),
@@ -121,7 +129,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                         style: GoogleFonts.cairo(
                           fontSize: 16,
                           height: 1.8,
-                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
+                          color: isDark ? Colors.white.withOpacity(0.8) : AppColors.textPrimary.withOpacity(0.9),
                         ),
                       ),
                     ],
@@ -161,41 +169,6 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
     );
   }
 
-  Widget _buildVideoPlaceholder(String url, bool isDark) {
-    return Container(
-      width: double.infinity,
-      height: 220,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Icon(Icons.play_circle_fill_rounded, color: Colors.white70, size: 80),
-          Positioned(
-            bottom: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'اضغط لمشاهدة شرح الفيديو',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildImageCarousel(List<String> urls, bool isDark) {
     return Column(
       children: [
@@ -210,7 +183,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5)),
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
                   ],
                 ),
                 child: ClipRRect(
@@ -222,7 +195,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
-                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200],
+                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[200],
                         child: const Center(child: CircularProgressIndicator()),
                       );
                     },
@@ -271,7 +244,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 8,
-          shadowColor: AppColors.primaryBlue.withValues(alpha: 0.5),
+          shadowColor: AppColors.primaryBlue.withOpacity(0.5),
         ),
         onPressed: () => _openLessonInBookMode(widget.lessonId, widget.lessonName),
         child: Row(

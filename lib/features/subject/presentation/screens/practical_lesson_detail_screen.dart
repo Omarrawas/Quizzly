@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
+import '../../../core/widgets/video/video_preview_widget.dart';
 
 class PracticalLessonDetailScreen extends StatefulWidget {
   final PracticalItem item;
@@ -61,7 +62,14 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                 // ── Media Section ──────────────────────────────────
                 const SizedBox(height: 16),
                 if (item.mediaType == 'video' && item.videoUrl != null)
-                  _buildVideoPlaceholder(item.videoUrl!, isDark),
+                   Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: VideoPreviewWidget(
+                      videoUrl: item.videoUrl!,
+                      title: item.title,
+                      height: 220,
+                    ),
+                  ),
                 
                 if (item.mediaType == 'images' && item.imageUrls.isNotEmpty)
                   _buildImageCarousel(item.imageUrls, isDark),
@@ -87,7 +95,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                         style: GoogleFonts.cairo(
                           fontSize: 15,
                           height: 1.8,
-                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
+                          color: isDark ? Colors.white.withOpacity(0.8) : AppColors.textPrimary.withOpacity(0.9),
                         ),
                       ),
                       
@@ -99,7 +107,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                           style: GoogleFonts.cairo(
                             fontSize: 15,
                             height: 1.8,
-                            color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimary.withValues(alpha: 0.9),
+                            color: isDark ? Colors.white.withOpacity(0.8) : AppColors.textPrimary.withOpacity(0.9),
                           ),
                         ),
                       ],
@@ -138,41 +146,6 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
     );
   }
 
-  Widget _buildVideoPlaceholder(String url, bool isDark) {
-    return Container(
-      width: double.infinity,
-      height: 220,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Icon(Icons.play_circle_fill_rounded, color: Colors.white70, size: 80),
-          Positioned(
-            bottom: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'اضغط لتشغيل الفيديو',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildImageCarousel(List<String> urls, bool isDark) {
     return Column(
       children: [
@@ -187,7 +160,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5)),
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
                   ],
                 ),
                 child: ClipRRect(
@@ -199,7 +172,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
-                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200],
+                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[200],
                         child: const Center(child: CircularProgressIndicator()),
                       );
                     },
