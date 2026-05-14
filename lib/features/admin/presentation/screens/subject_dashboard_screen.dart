@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/presentation/screens/exam_management_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_list_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/topic_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -99,66 +100,69 @@ class SubjectDashboardScreen extends StatelessWidget {
 
           return Stack(
             children: [
-              _buildDashboardCard(
-                context,
-                title: name,
-                subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
-                icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
-                color: isTheory ? Colors.blue : Colors.teal,
-                isDark: isDark,
-                onTap: () {
-                  if (isTheory) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SubjectDashboardScreen(
-                          subjectId: subjectId,
-                          subjectName: subjectName,
-                          breadcrumbs: [...breadcrumbs, subjectName],
-                          sectionId: doc.id,
-                          sectionName: name,
+              Positioned.fill(
+                child: _buildDashboardCard(
+                  context,
+                  title: name,
+                  subtitle: isTheory ? 'القسم النظري للمادة' : 'القسم العملي للمادة',
+                  icon: isTheory ? Icons.menu_book_rounded : Icons.science_rounded,
+                  color: isTheory ? Colors.blue : Colors.teal,
+                  isDark: isDark,
+                  onTap: () {
+                    if (isTheory) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubjectDashboardScreen(
+                            subjectId: subjectId,
+                            subjectName: subjectName,
+                            breadcrumbs: [...breadcrumbs, subjectName],
+                            sectionId: doc.id,
+                            sectionName: name,
+                          ),
                         ),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PracticalManagementScreen(
-                          subjectId: subjectId,
-                          subjectName: subjectName,
-                          sectionId: doc.id,
-                          sectionName: name,
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PracticalManagementScreen(
+                            subjectId: subjectId,
+                            subjectName: subjectName,
+                            sectionId: doc.id,
+                            sectionName: name,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                },
+                      );
+                    }
+                  },
+                ),
               ),
-              // Visible delete button in top-left corner
-              Positioned(
-                top: 8,
-                left: 8,
+              // Visible delete button in top-end corner (left in RTL)
+              Positioned.directional(
+                textDirection: TextDirection.rtl,
+                top: -5,
+                start: -5,
                 child: GestureDetector(
                   onTap: () => _confirmDeleteSection(context, doc.id, name),
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
                       color: Colors.red.shade50,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.red.shade200, width: 1),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.red.withValues(alpha: 0.15),
-                          blurRadius: 6,
+                          color: Colors.red.withValues(alpha: 0.2),
+                          blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: Icon(
                       Icons.delete_outline_rounded,
-                      size: 16,
+                      size: 14,
                       color: Colors.red.shade400,
                     ),
                   ),
@@ -230,6 +234,26 @@ class SubjectDashboardScreen extends StatelessWidget {
               breadcrumbs: [...breadcrumbs, sectionName!],
               sectionId: sectionId!,
               sectionName: sectionName!,
+            ),
+          ),
+        ),
+      ),
+      _buildDashboardCard(
+        context,
+        title: 'عرض الدروس فقط',
+        subtitle: 'قائمة دروس القسم',
+        icon: Icons.auto_stories_rounded,
+        color: Colors.blueAccent,
+        isDark: isDark,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TheoreticalLessonListScreen(
+              subjectId: subjectId,
+              subjectName: subjectName,
+              sectionId: sectionId!,
+              sectionName: sectionName!,
+              isAdmin: true,
             ),
           ),
         ),

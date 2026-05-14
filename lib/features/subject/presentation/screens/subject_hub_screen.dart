@@ -17,6 +17,8 @@ import 'package:quizzly/features/quiz/presentation/screens/practice_screen.dart'
 import 'package:quizzly/features/subject/domain/services/readiness_service.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_battles_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_list_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
   final String subjectId;
@@ -288,6 +290,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         const Color(0xFFE11D48),
         Stream<int>.value(0),
         5,
+        !_isActivated,
+      ),
+      (
+        Icons.menu_book_rounded,
+        'تصفح الدروس',
+        const Color(0xFF8B5CF6),
+        _statsService.streamTopicsCount(widget.subjectId), // Using topic count as a proxy
+        6,
         !_isActivated,
       ),
     ];
@@ -684,7 +694,54 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           ),
         );
         break;
+      case 6:
+        // For lessons, we need to know the section ID. 
+        // Usually, 'Theoretical' is the default section for bank questions.
+        // I'll fetch the theory section ID or use a default one.
+        _navigateToLessons();
+        break;
     }
+  }
+
+  void _navigateToLessons() async {
+    // We need to find the theoretical section ID.
+    // In this app, the theory section is usually named 'القسم النظري' or similar.
+    final sectionsSnap = await FirebaseFirestore.instance
+        .collection('sections')
+        .where('subjectId', isEqualTo: widget.subjectId)
+        .get();
+    
+    String? theorySectionId;
+    String? theorySectionName;
+    
+    for (var doc in sectionsSnap.docs) {
+      final name = doc.data()['name'] ?? '';
+      if (name.contains('نظري')) {
+        theorySectionId = doc.id;
+        theorySectionName = name;
+        break;
+      }
+    }
+
+    // Fallback if not found
+    theorySectionId ??= 'theory_default';
+    theorySectionName ??= 'القسم النظري';
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TheoreticalLessonListScreen(
+          subjectId: widget.subjectId,
+          subjectName: widget.subjectName,
+          sectionId: theorySectionId!,
+          sectionName: theorySectionName!,
+          isFree: !_isActivated,
+          isAdmin: false,
+        ),
+      ),
+    );
   }
 
   void _showMasteryMap(BuildContext context, String userId) {
