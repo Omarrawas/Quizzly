@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rxdart/rxdart.dart';
 
 enum BattleStatus { waiting, active, finished, cancelled }
 
@@ -99,12 +100,15 @@ class BattleService {
     final qSnap = await _db
         .collection('questions')
         .where('subjectId', isEqualTo: subjectId)
-        .where('status', isEqualTo: 'approved')
         .limit(50)
         .get();
 
     final allIds = qSnap.docs.map((d) => d.id).toList()..shuffle();
     final selected = allIds.take(_questionsPerBattle).toList();
+
+    if (selected.isEmpty) {
+      throw Exception('لا توجد أسئلة متاحة في هذه المادة لإنشاء معركة.');
+    }
 
     final ref = await _db.collection('battles').add({
       'challengerId': challengerId,
@@ -186,13 +190,30 @@ class BattleService {
   }
 
   Stream<List<BattleChallenge>> streamMyBattles(String userId) {
-    return _db
+    final challengerStream = _db
         .collection('battles')
         .where('challengerId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .limit(20)
         .snapshots()
         .map((s) => s.docs.map(BattleChallenge.fromFirestore).toList());
+
+    final opponentStream = _db
+        .collection('battles')
+        .where('opponentId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((s) => s.docs.map(BattleChallenge.fromFirestore).toList());
+
+    return CombineLatestStream.combine2(challengerStream, opponentStream, (a, b) {
+      final map = <String, BattleChallenge>{};
+      for (final c in a) { map[c.id] = c; }
+      for (final c in b) { map[c.id] = c; }
+      final list = map.values.toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list.take(20).toList();
+    });
   }
 
   Stream<List<BattleChallenge>> streamIncomingChallenges(String userId) {
@@ -203,4 +224,5 @@ class BattleService {
         .snapshots()
         .map((s) => s.docs.map(BattleChallenge.fromFirestore).toList());
   }
+
 }

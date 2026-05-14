@@ -79,11 +79,72 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildActiveBattlesSection(userId),
           _buildCreateCard(userId, userName),
           const SizedBox(height: 24),
           _buildJoinCard(userId, userName),
         ],
       ),
+    );
+  }
+
+  Widget _buildActiveBattlesSection(String userId) {
+    return StreamBuilder<List<BattleChallenge>>(
+      stream: _battleService.streamMyBattles(userId).map((list) => list.where((b) => b.status != BattleStatus.finished).toList()),
+      builder: (context, snapshot) {
+        final active = snapshot.data ?? [];
+        if (active.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('تحديات نشطة', style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            ...active.map((b) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: ListTile(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => BattleSessionScreen(battle: b)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.flash_on_rounded, color: Colors.green, size: 24),
+                ),
+                title: Text('تحدي ضد ${b.opponentName ?? 'قيد الانتظار'}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: Text('${b.status == BattleStatus.active ? "جارٍ" : "بانتظار المنافس"} • ${b.questionIds.length} أسئلة', style: GoogleFonts.cairo(fontSize: 12)),
+                trailing: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: Colors.green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            )),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
     );
   }
 

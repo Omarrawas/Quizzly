@@ -78,5 +78,11 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow read, write: if isAdmin();
     }
+    
+    // 7. Battles
+    match /battles/{id} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if isAdmin();
+    }
   }
 }
