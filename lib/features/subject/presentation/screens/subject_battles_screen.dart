@@ -297,21 +297,17 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
   Future<void> _createChallenge(String userId, String userName) async {
     showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
     try {
-      final battleId = await _battleService.createChallenge(
+      final battle = await _battleService.createChallenge(
         challengerId: userId,
         challengerName: userName,
         subjectId: widget.subjectId,
         subjectName: widget.subjectName,
       );
       
-      final battle = await _battleService.getBattle(battleId);
-      
       if (!mounted) return;
       Navigator.pop(context); // close loader
       
-      if (battle != null) {
-        _showBattleCodeDialog(battle);
-      }
+      _showBattleCodeDialog(battle);
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);

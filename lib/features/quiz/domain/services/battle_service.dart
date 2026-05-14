@@ -44,7 +44,7 @@ class BattleChallenge {
       challengerName: data['challengerName'] ?? 'مجهول',
       subjectId: data['subjectId'] ?? '',
       subjectName: data['subjectName'] ?? '',
-      questionIds: List<String>.from(data['questionIds'] ?? []),
+      questionIds: (data['questionIds'] as List?)?.map((e) => e.toString()).toList() ?? [],
       status: _parseStatus(data['status']),
       opponentId: data['opponentId'],
       opponentName: data['opponentName'],
@@ -90,7 +90,7 @@ class BattleService {
   static const int _questionsPerBattle = 10;
 
   // ── Create a new challenge (challenger side) ───────────────────────────────
-  Future<String> createChallenge({
+  Future<BattleChallenge> createChallenge({
     required String challengerId,
     required String challengerName,
     required String subjectId,
@@ -110,7 +110,7 @@ class BattleService {
       throw Exception('لا توجد أسئلة متاحة في هذه المادة لإنشاء معركة.');
     }
 
-    final ref = await _db.collection('battles').add({
+    final data = {
       'challengerId': challengerId,
       'challengerName': challengerName,
       'subjectId': subjectId,
@@ -120,9 +120,23 @@ class BattleService {
       'scores': {},
       'timeTaken': {},
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
 
-    return ref.id;
+    final ref = await _db.collection('battles').add(data);
+    
+    // Construct the object locally to return immediately
+    return BattleChallenge(
+      id: ref.id,
+      challengerId: challengerId,
+      challengerName: challengerName,
+      subjectId: subjectId,
+      subjectName: subjectName,
+      questionIds: selected,
+      status: BattleStatus.waiting,
+      scores: {},
+      timeTaken: {},
+      createdAt: DateTime.now(),
+    );
   }
 
   // ── Join an existing challenge (opponent side) ─────────────────────────────

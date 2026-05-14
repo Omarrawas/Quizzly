@@ -60,7 +60,24 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
 
   Future<void> _loadQuestions() async {
     try {
-      final qs = await _generatorService.getQuestionsByIds(widget.battle.questionIds);
+      List<String> ids = widget.battle.questionIds;
+      
+      // Fallback: if IDs are empty, try to fetch the battle document again
+      if (ids.isEmpty) {
+        final freshBattle = await _battleService.getBattle(widget.battle.id);
+        if (freshBattle != null && freshBattle.questionIds.isNotEmpty) {
+          ids = freshBattle.questionIds;
+        }
+      }
+
+      if (ids.isEmpty) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
+      final qs = await _generatorService.getQuestionsByIds(ids);
       if (mounted) {
         setState(() {
           _questions = qs;
@@ -71,7 +88,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('حدث خطأ أثناء تحميل أسئلة المعركة')),
+          SnackBar(content: Text('حدث خطأ أثناء تحميل الأسئلة: $e')),
         );
       }
     }
