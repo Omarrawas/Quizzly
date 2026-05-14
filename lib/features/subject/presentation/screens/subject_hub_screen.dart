@@ -18,6 +18,7 @@ import 'package:quizzly/features/subject/domain/services/readiness_service.dart'
 import 'package:quizzly/features/subject/presentation/screens/subject_battles_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/lists_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_list_screen.dart';
 
 class SubjectHubScreen extends StatefulWidget {
@@ -705,10 +706,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   void _navigateToLessons() async {
     // We need to find the theoretical section ID.
-    // In this app, the theory section is usually named 'القسم النظري' or similar.
+    // In this app, sections reference their parent subject via 'parentId'.
     final sectionsSnap = await FirebaseFirestore.instance
-        .collection('sections')
-        .where('subjectId', isEqualTo: widget.subjectId)
+        .collection(DatabaseService.colSections)
+        .where('parentId', isEqualTo: widget.subjectId)
         .get();
     
     String? theorySectionId;
@@ -723,7 +724,24 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       }
     }
 
-    // Fallback if not found
+    // If still not found, try 'subjectId' just in case (legacy or mixed structure)
+    if (theorySectionId == null) {
+      final altSnap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colSections)
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      
+      for (var doc in altSnap.docs) {
+        final name = doc.data()['name'] ?? '';
+        if (name.contains('نظري')) {
+          theorySectionId = doc.id;
+          theorySectionName = name;
+          break;
+        }
+      }
+    }
+
+    // Fallback if absolutely not found
     theorySectionId ??= 'theory_default';
     theorySectionName ??= 'القسم النظري';
 

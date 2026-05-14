@@ -52,7 +52,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
       
       final Map<String, String> chapters = {};
       for (var doc in snap.docs) {
-        chapters[doc.id] = (doc.data() as Map<String, dynamic>)['name'] ?? '';
+        chapters[doc.id] = doc.data()['name'] ?? '';
       }
       
       if (mounted) {
