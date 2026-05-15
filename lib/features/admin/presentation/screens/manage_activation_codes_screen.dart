@@ -41,31 +41,6 @@ class _ManageActivationCodesScreenState
         (await rootBundle.load("assets/images/logo.png")).buffer.asUint8List(),
       );
 
-      // Fetch all unique subject names for these codes
-      final allSubjectIds = codes
-          .expand((c) => (c['subjectIds'] as List? ?? []))
-          .map((e) => e.toString())
-          .toSet()
-          .toList();
-
-      final Map<String, String> subjectNamesMap = {};
-      if (allSubjectIds.isNotEmpty) {
-        // Handle Firestore whereIn limit (10)
-        for (int i = 0; i < allSubjectIds.length; i += 10) {
-          final chunk = allSubjectIds.sublist(
-            i,
-            (i + 10).clamp(0, allSubjectIds.length),
-          );
-          final snap = await FirebaseFirestore.instance
-              .collection('subjects')
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
-          for (var d in snap.docs) {
-            subjectNamesMap[d.id] = d.get('name')?.toString() ?? 'N/A';
-          }
-        }
-      }
-
       final pdf = pw.Document();
 
       // We'll use 3x7 grid for codes (21 per page)
@@ -90,19 +65,9 @@ class _ManageActivationCodesScreenState
                 textDirection: pw.TextDirection.rtl,
                 child: pw.GridView(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.65, // Adjusted to fit details
+                  childAspectRatio: 0.65,
                   children: pageCodes
-                      .map(
-                        (code) {
-                          final ids = (code['subjectIds'] as List? ?? [])
-                              .map((e) => e.toString())
-                              .toList();
-                          final names = ids
-                              .map((id) => subjectNamesMap[id] ?? '...')
-                              .toList();
-                          return _buildQrCell(code, arabicFontBold, logoImage, names);
-                        },
-                      )
+                      .map((code) => _buildQrCell(code, arabicFontBold, logoImage))
                       .toList(),
                 ),
               );
@@ -128,13 +93,9 @@ class _ManageActivationCodesScreenState
     Map<String, dynamic> codeData,
     pw.Font boldFont,
     pw.ImageProvider logo,
-    List<String> subjectNames,
   ) {
     final String code = codeData['code']?.toString() ?? 'N/A';
-    final int subjectsCount = subjectNames.length;
-    final String typeLabel = subjectsCount > 1
-        ? 'كود باقة ($subjectsCount مواد)'
-        : 'كود مادة';
+    final int creditValue = (codeData['creditValue'] as int?) ?? 0;
     final String batchName = codeData['batchName']?.toString() ?? '-';
     final int duration = (codeData['durationDays'] as int?) ?? 0;
 
@@ -156,36 +117,32 @@ class _ManageActivationCodesScreenState
               font: boldFont,
             ),
           ),
-          pw.SizedBox(height: 1),
+          pw.SizedBox(height: 2),
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             decoration: const pw.BoxDecoration(
-              color: PdfColors.grey100,
+              color: PdfColors.blue100,
               borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
             ),
             child: pw.Text(
-              typeLabel,
+              'رصيد شحن',
               style: pw.TextStyle(
-                fontSize: 5.5,
+                fontSize: 6,
                 font: boldFont,
                 color: PdfColors.blue800,
               ),
             ),
           ),
-          pw.SizedBox(height: 2),
-          // Subjects List (Small)
-          pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 4),
-            child: pw.Column(
-              children: subjectNames.take(3).map((name) => pw.Text(
-                name,
-                style: const pw.TextStyle(fontSize: 4.5, color: PdfColors.black),
-                maxLines: 1,
-                overflow: pw.TextOverflow.clip,
-              )).toList(),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            '$creditValue ل.س',
+            style: pw.TextStyle(
+              fontSize: 10,
+              font: boldFont,
+              color: PdfColors.black,
             ),
           ),
-          pw.SizedBox(height: 2),
+          pw.SizedBox(height: 4),
           // QR with Logo
           pw.Directionality(
             textDirection: pw.TextDirection.ltr,
@@ -334,6 +291,7 @@ class _ManageActivationCodesScreenState
               final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
               final quantity = (data['quantity'] as int?) ?? 0;
               final duration = (data['durationDays'] as int?) ?? 0;
+              final creditValue = (data['creditValue'] as int?) ?? 0;
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -364,7 +322,7 @@ class _ManageActivationCodesScreenState
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.inventory_2_rounded,
+                        Icons.payments_rounded,
                         color: AppColors.primaryBlue,
                       ),
                     ),
@@ -373,8 +331,8 @@ class _ManageActivationCodesScreenState
                       style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      '${intl.DateFormat('yyyy/MM/dd').format(createdAt ?? DateTime.now())} • $quantity كود • $duration يوم',
-                      style: GoogleFonts.cairo(fontSize: 12),
+                      '${intl.DateFormat('yyyy/MM/dd').format(createdAt ?? DateTime.now())} • $quantity كود • $creditValue ل.س',
+                      style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

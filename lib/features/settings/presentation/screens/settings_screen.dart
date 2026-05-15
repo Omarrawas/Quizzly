@@ -6,6 +6,7 @@ import 'package:quizzly/core/theme/theme_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -58,17 +59,33 @@ class SettingsScreen extends StatelessWidget {
               Consumer<AuthService>(
                 builder: (context, auth, _) {
                   final email = auth.user?.email ?? 'مستخدم غير مسجل';
-                  return _buildActionTile(
-                    title: 'بياناتي الشخصية',
-                    subtitle: email,
-                    icon: Icons.badge_rounded,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const UserProfileScreen()),
-                      );
-                    },
-                    isDark: isDark,
+                  return Column(
+                    children: [
+                      _buildActionTile(
+                        title: 'بياناتي الشخصية',
+                        subtitle: email,
+                        icon: Icons.badge_rounded,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const UserProfileScreen()),
+                          );
+                        },
+                        isDark: isDark,
+                      ),
+                      _buildActionTile(
+                        title: 'محفظتي',
+                        subtitle: 'الرصيد وعمليات الشحن',
+                        icon: Icons.account_balance_wallet_rounded,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const WalletScreen()),
+                          );
+                        },
+                        isDark: isDark,
+                      ),
+                    ],
                   );
                 },
               ),

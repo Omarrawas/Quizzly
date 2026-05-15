@@ -7,6 +7,7 @@ import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_hub_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_activation_screen.dart';
+import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
 
 class SubjectSelectionScreen extends StatefulWidget {
   const SubjectSelectionScreen({super.key});
@@ -119,10 +120,20 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                   icon: const Icon(Icons.bookmark_added_rounded),
                   tooltip: 'حفظ كإفتراضي',
                 ),
-              IconButton(
-                onPressed: () => _showAddCodeDialog(contentService, authService.user?.uid),
-                icon: const Icon(Icons.vpn_key_rounded, color: AppColors.primaryBlue),
-                tooltip: 'تفعيل بواسطة كود',
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance.collection('users').doc(authService.user?.uid).snapshots(),
+                builder: (context, snapshot) {
+                  final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+                  final balance = userData['balance'] as int? ?? 0;
+                  return TextButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen())),
+                    icon: const Icon(Icons.account_balance_wallet_rounded, size: 18, color: Colors.green),
+                    label: Text(
+                      '$balance ل.س',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green),
+                    ),
+                  );
+                }
               ),
               IconButton(
                 onPressed: _resetFilters,

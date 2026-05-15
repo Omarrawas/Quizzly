@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
+import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
 
 class SubjectActivationScreen extends StatefulWidget {
   final String subjectId;
@@ -132,6 +135,99 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
     );
   }
 
+  Future<void> _handlePurchase(int price) async {
+    final authService = context.read<AuthService>();
+    final dbService = DatabaseService();
+    final userId = authService.user?.uid;
+
+    if (userId == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await dbService.purchaseSubject(
+        userId: userId,
+        subjectId: widget.subjectId,
+        price: price,
+        subjectName: widget.subjectName,
+      );
+      if (mounted) {
+        _showSuccess('تم شراء المادة بنجاح! 🎉 استمتع بالدراسة');
+        Navigator.pop(context); // Go back to selection
+      }
+    } catch (e) {
+      if (mounted) _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showPurchaseConfirm(int price, int balance) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('تأكيد الشراء', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'هل أنت متأكد من شراء مادة "${widget.subjectName}"؟',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  _buildRow('السعر:', '$price ل.س'),
+                  const Divider(),
+                  _buildRow('رصيدك بعد الشراء:', '${balance - price} ل.س'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _handlePurchase(price);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('شراء الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+          Text(value, style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+        ],
+      ),
+    );
+  }
+
   void _showSuccess(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, textAlign: TextAlign.center, style: GoogleFonts.cairo()),
@@ -154,6 +250,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final userId = context.read<AuthService>().user?.uid;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -217,22 +314,58 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     _buildPriceSection(),
                   const SizedBox(height: 32),
                   // Options Section
-                  _buildActivationOption(
-                    title: 'تفعيل مجاني',
-                    subtitle: 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',
-                    icon: Icons.auto_awesome_rounded,
-                    color: Colors.amber,
-                    isDark: isDark,
-                    onTap: _activateFree,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildActivationOption(
-                    title: 'تفعيل بواسطة كود',
-                    subtitle: 'افتح كامل المادة بشكل غير محدود',
-                    icon: Icons.vpn_key_rounded,
-                    color: AppColors.primaryBlue,
-                    isDark: isDark,
-                    onTap: _showCodeDialog,
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+                    builder: (context, snapshot) {
+                      final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+                      final int balance = userData['balance'] as int? ?? 0;
+                      
+                      final double discount = widget.discount ?? 0;
+                      final int finalPrice = (widget.basePrice! * (1 - discount / 100)).round();
+                      final bool canAfford = balance >= finalPrice;
+
+                      return Column(
+                        children: [
+                          if (widget.basePrice != null && widget.basePrice! > 0) ...[
+                            _buildActivationOption(
+                              title: canAfford ? 'شراء من الرصيد' : 'شحن رصيد إضافي',
+                              subtitle: canAfford 
+                                ? 'رصيدك الحالي: $balance ل.س' 
+                                : 'رصيدك ($balance ل.س) غير كافٍ. اضغط للشحن',
+                              icon: Icons.account_balance_wallet_rounded,
+                              color: canAfford ? Colors.green : Colors.orange,
+                              isDark: isDark,
+                              onTap: () {
+                                if (canAfford) {
+                                  _showPurchaseConfirm(finalPrice, balance);
+                                } else {
+                                  // Navigate to Wallet
+                                  Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen()));
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildActivationOption(
+                            title: 'تفعيل بواسطة كود',
+                            subtitle: 'افتح كامل المادة بشكل غير محدود',
+                            icon: Icons.vpn_key_rounded,
+                            color: AppColors.primaryBlue,
+                            isDark: isDark,
+                            onTap: _showCodeDialog,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildActivationOption(
+                            title: 'تفعيل مجاني',
+                            subtitle: 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',
+                            icon: Icons.auto_awesome_rounded,
+                            color: Colors.amber,
+                            isDark: isDark,
+                            onTap: _activateFree,
+                          ),
+                        ],
+                      );
+                    }
                   ),
                   const SizedBox(height: 40),
                   // Help Text

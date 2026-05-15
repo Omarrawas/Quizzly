@@ -311,7 +311,7 @@ class DatabaseService {
   }
 
   Future<void> generateBulkCodes({
-    required List<String> subjectIds,
+    required int creditValue,
     required String batchName,
     required int quantity,
     required int durationDays,
@@ -325,7 +325,6 @@ class DatabaseService {
     }
 
     // 2. Double check against Firestore for any potential collisions
-    // We check in chunks because 'whereIn' has a limit (usually 30)
     final List<String> codeList = uniqueCodes.toList();
     final Set<String> existingCodes = {};
     
@@ -341,7 +340,7 @@ class DatabaseService {
       }
     }
 
-    // 3. If any exist, replace them until we have the desired quantity of unique ones
+    // 3. Replace collisions
     while (existingCodes.isNotEmpty) {
       final String oldCode = existingCodes.first;
       existingCodes.remove(oldCode);
@@ -352,7 +351,6 @@ class DatabaseService {
         newCode = _generateRandomCode();
       } while (uniqueCodes.contains(newCode));
       
-      // Check if newCode exists in DB (recursive-like check for very rare cases)
       final doc = await _db.collection('activation_codes').doc(newCode).get();
       if (doc.exists) {
         existingCodes.add(newCode);
@@ -361,13 +359,13 @@ class DatabaseService {
       }
     }
 
-    // 4. Commit to database using batch
+    // 4. Commit to database
     final batch = _db.batch();
     for (final code in uniqueCodes) {
       final ref = _db.collection('activation_codes').doc(code);
       batch.set(ref, {
         'code': code,
-        'subjectIds': subjectIds,
+        'creditValue': creditValue,
         'durationDays': durationDays,
         'isUsed': false,
         'usedBy': null,
@@ -377,11 +375,11 @@ class DatabaseService {
       });
     }
 
-    // Also create a batch record for easier listing
+    // Also create a batch record
     final batchRef = _db.collection('activation_batches').doc(batchName);
     batch.set(batchRef, {
       'name': batchName,
-      'subjectIds': subjectIds,
+      'creditValue': creditValue,
       'quantity': quantity,
       'durationDays': durationDays,
       'createdAt': now,
@@ -491,7 +489,101 @@ class DatabaseService {
     return _db.collection('users').doc(userId).get();
   }
 
+  Stream<DocumentSnapshot> streamUser(String userId) {
+    return _db.collection('users').doc(userId).snapshots();
+  }
+
   Future<DocumentSnapshot> getSubject(String subjectId) {
     return _db.collection('subjects').doc(subjectId).get();
+  }
+
+  // ─── Credit System Operations ──────────────────────────
+
+  /// Redeems a code and adds its value to the user's balance
+  Future<Map<String, dynamic>> redeemCode(String code, String userId) async {
+    final codeDoc = await _db.collection('activation_codes').doc(code).get();
+    
+    if (!codeDoc.exists) throw 'الرمز غير صحيح';
+    final data = codeDoc.data() as Map<String, dynamic>;
+    if (data['isUsed'] == true) throw 'هذا الرمز مستخدم مسبقاً';
+
+    final int creditValue = data['creditValue'] ?? 0;
+    
+    final batch = _db.batch();
+    
+    // 1. Mark code as used
+    batch.update(codeDoc.reference, {
+      'isUsed': true,
+      'usedBy': userId,
+      'usedAt': FieldValue.serverTimestamp(),
+    });
+
+    // 2. Increment user balance
+    batch.set(_db.collection('users').doc(userId), {
+      'balance': FieldValue.increment(creditValue),
+    }, SetOptions(merge: true));
+
+    // 3. Log transaction
+    final logRef = _db.collection('credit_logs').doc();
+    batch.set(logRef, {
+      'userId': userId,
+      'type': 'redeem',
+      'amount': creditValue,
+      'code': code,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+    return {'amount': creditValue};
+  }
+
+  /// Purchases a subject using user balance
+  Future<void> purchaseSubject({
+    required String userId,
+    required String subjectId,
+    required int price,
+    required String subjectName,
+  }) async {
+    final userDoc = await _db.collection('users').doc(userId).get();
+    final currentBalance = (userDoc.data()?['balance'] ?? 0) as int;
+
+    if (currentBalance < price) throw 'رصيدك غير كافٍ لشراء هذه المادة';
+
+    final batch = _db.batch();
+
+    // 1. Deduct balance
+    batch.update(_db.collection('users').doc(userId), {
+      'balance': FieldValue.increment(-price),
+    });
+
+    // 2. Grant access (Global activation list)
+    final activationId = '${userId}_$subjectId';
+    batch.set(_db.collection('user_subjects').doc(activationId), {
+      'userId': userId,
+      'subjectId': subjectId,
+      'subjectName': subjectName,
+      'activatedAt': FieldValue.serverTimestamp(),
+      'type': 'purchase',
+      'price': price,
+    });
+
+    // 3. Add to user's active subjects subcollection
+    batch.set(_db.collection('users').doc(userId).collection('active_subjects').doc(subjectId), {
+      'activatedAt': FieldValue.serverTimestamp(),
+      'subjectId': subjectId,
+    });
+
+    // 4. Log transaction
+    final logRef = _db.collection('credit_logs').doc();
+    batch.set(logRef, {
+      'userId': userId,
+      'type': 'purchase',
+      'amount': -price,
+      'subjectId': subjectId,
+      'subjectName': subjectName,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 }

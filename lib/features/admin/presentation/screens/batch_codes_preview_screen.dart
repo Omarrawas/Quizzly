@@ -197,13 +197,11 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
     }
   }
 
+
   // ── Show Preview Ticket ──────────────────────────────
   Future<void> _showPreviewDialog(Map<String, dynamic> data) async {
     final String code = data['code']?.toString() ?? 'N/A';
-    final List<String> subjectIds = (data['subjectIds'] as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        [];
+    final int creditValue = (data['creditValue'] as int?) ?? 0;
     final int duration = (data['durationDays'] as int?) ?? widget.durationDays;
     final String batchName = data['batchName']?.toString() ?? widget.batchName;
 
@@ -245,7 +243,7 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                           ),
                         ),
                         Text(
-                          'معاينة كود التفعيل',
+                          'كود شحن رصيد',
                           style: GoogleFonts.cairo(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -298,14 +296,24 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    // Credit Value
+                    Text(
+                      '$creditValue ل.س',
+                      style: GoogleFonts.cairo(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     // Code Text
                     Text(
                       code,
                       style: GoogleFonts.sourceCodePro(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 4,
-                        color: AppColors.primaryBlue,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -320,70 +328,9 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                 ),
               ),
 
-              // Separator (Dash Line)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: List.generate(
-                    15,
-                    (index) => Expanded(
-                      child: Container(
-                        height: 1,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        color: AppColors.borderLight,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Subjects List
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'المحتوى المفعل:',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FutureBuilder<List<String>>(
-                      future: _fetchSubjectNames(subjectIds),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ));
-                        }
-                        final names = snapshot.data ?? ['خطأ في التحميل'];
-                        return Column(
-                          children: names.map((name) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.check_circle_outline, 
-                                  size: 14, color: Colors.green),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(name, 
-                                  style: GoogleFonts.cairo(fontSize: 13))),
-                              ],
-                            ),
-                          )).toList(),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
               // Action
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                padding: const EdgeInsets.all(20),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -403,19 +350,6 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
         ),
       ),
     );
-  }
-
-  Future<List<String>> _fetchSubjectNames(List<String> ids) async {
-    if (ids.isEmpty) return [];
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection(DatabaseService.colSubjects)
-          .where(FieldPath.documentId, whereIn: ids)
-          .get();
-      return snap.docs.map((d) => d.get('name') as String? ?? 'بدون اسم').toList();
-    } catch (e) {
-      return ['خطأ في تحميل البيانات'];
-    }
   }
 
   @override
@@ -633,16 +567,10 @@ class _CodeTile extends StatelessWidget {
     final usedAt = (data['usedAt'] as Timestamp?)?.toDate();
     final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
     final durationDays = (data['durationDays'] as int?) ?? 0;
-    final List subjectIds = data['subjectIds'] as List? ?? [];
-    final int subjectsCount = subjectIds.length;
+    final int creditValue = (data['creditValue'] as int?) ?? 0;
 
-    String typeLabel = 'كود مادة';
+    String typeLabel = 'رصيد شحن ($creditValue ل.س)';
     Color typeColor = AppColors.primaryBlue;
-
-    if (subjectsCount > 1) {
-      typeLabel = 'كود باقة ($subjectsCount مواد)';
-      typeColor = Colors.purple;
-    }
 
     DateTime? expiresAt;
     if (isUsed && usedAt != null) {
