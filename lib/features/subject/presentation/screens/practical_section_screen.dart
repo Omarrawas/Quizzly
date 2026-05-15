@@ -110,7 +110,6 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
             .collection('topics')
             .where('subjectId', isEqualTo: widget.subjectId)
             .where('type', isEqualTo: 'practical')
-            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, lessonSnap) {
           if (lessonSnap.hasError) {
@@ -121,8 +120,19 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
             return _buildLoadingSkeleton(isDark);
           }
 
-          final docs = lessonSnap.data?.docs ?? [];
-          if (docs.isEmpty) return _buildEmptyState(isDark);
+          final rawDocs = lessonSnap.data?.docs ?? [];
+          if (rawDocs.isEmpty) return _buildEmptyState(isDark);
+
+          final docs = rawDocs.toList()..sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTime = aData['createdAt'] as Timestamp?;
+            final bTime = bData['createdAt'] as Timestamp?;
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+          });
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
