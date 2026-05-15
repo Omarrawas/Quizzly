@@ -51,90 +51,6 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
     }
   }
 
-  void _showCodeDialog() {
-    final contentService = context.read<ContentService>();
-    final authService = context.read<AuthService>();
-    final userId = authService.user?.uid;
-    if (userId == null) return;
-
-    final codeController = TextEditingController();
-
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('تفعيل بواسطة كود', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'أدخل الكود الخاص بالمادة لتفعيلها مباشرة',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: codeController,
-              textAlign: TextAlign.center,
-              autofocus: true,
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2, color: isDark ? Colors.white : null),
-              decoration: InputDecoration(
-                hintText: 'ABCD-1234',
-                hintStyle: GoogleFonts.inter(color: isDark ? Colors.white24 : Colors.grey[300]),
-                filled: true,
-                fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final code = codeController.text.trim();
-              if (code.isEmpty) return;
-              
-              Navigator.pop(context); // Close dialog
-              setState(() => _isLoading = true);
-              
-              try {
-                final result = await contentService.resolveContentCode(code);
-                if (result == null) {
-                  _showError('الكود الذي أدخلته غير صحيح');
-                } else if (result['isUsed'] == true) {
-                  _showError('هذا الكود مستخدم مسبقاً');
-                } else {
-                  await contentService.activateCode(userId, code, result);
-                  final count = (result['subjectIds'] as List).length;
-                  _showSuccess(count > 1 ? 'تم تفعيل باقة ($count مواد) بنجاح ✅' : 'تم تفعيل المادة بنجاح ✅');
-                  if (context.mounted) Navigator.pop(context);
-                }
-              } catch (e) {
-                _showError('حدث خطأ أثناء معالجة الكود: ${e.toString()}');
-              } finally {
-                if (mounted) setState(() => _isLoading = false);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text('تفعيل', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _handlePurchase(int price) async {
     final authService = context.read<AuthService>();
     final dbService = DatabaseService();
@@ -328,7 +244,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                         children: [
                           if (widget.basePrice != null && widget.basePrice! > 0) ...[
                             _buildActivationOption(
-                              title: canAfford ? 'شراء من الرصيد' : 'شحن رصيد إضافي',
+                              title: canAfford ? 'تفعيل بالرصيد' : 'شحن رصيد إضافي',
                               subtitle: canAfford 
                                 ? 'رصيدك الحالي: $balance ل.س' 
                                 : 'رصيدك ($balance ل.س) غير كافٍ. اضغط للشحن',
@@ -346,15 +262,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                             ),
                             const SizedBox(height: 16),
                           ],
-                          _buildActivationOption(
-                            title: 'تفعيل بواسطة كود',
-                            subtitle: 'افتح كامل المادة بشكل غير محدود',
-                            icon: Icons.vpn_key_rounded,
-                            color: AppColors.primaryBlue,
-                            isDark: isDark,
-                            onTap: _showCodeDialog,
-                          ),
-                          const SizedBox(height: 16),
+
                           _buildActivationOption(
                             title: 'تفعيل مجاني',
                             subtitle: 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',

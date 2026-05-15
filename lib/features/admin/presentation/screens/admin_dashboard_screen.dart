@@ -7,6 +7,7 @@ import 'package:quizzly/features/admin/presentation/screens/database_management_
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/reports_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/user_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/financial_stats_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -21,7 +22,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<Map<String, String>> _fetchStats() async {
     try {
-      final results = await Future.wait([
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+
+      final results = await Future.wait<dynamic>([
         _db.collection('users').count().get(),
         _db.collection('activation_codes').count().get(),
         _db.collection('questions').count().get(),
@@ -31,17 +35,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _db.collection('colleges').count().get(),
         _db.collection('departments').count().get(),
         _db.collection('subjects').count().get(),
+        _db.collection('credit_logs')
+          .where('type', isEqualTo: 'redeem')
+          .where('timestamp', isGreaterThanOrEqualTo: startOfMonth)
+          .get(),
       ]);
 
+      int totalRevenue = 0;
+      final logsSnap = results[8] as QuerySnapshot;
+      for (var doc in logsSnap.docs) {
+        totalRevenue += ((doc.data() as Map<String, dynamic>)['amount'] as num?)?.toInt() ?? 0;
+      }
+
       return {
-        'users': results[0].count.toString(),
-        'codes': results[1].count.toString(),
-        'questions': results[2].count.toString(),
-        'exams': results[3].count.toString(),
-        'unis': results[4].count.toString(),
-        'colleges': results[5].count.toString(),
-        'depts': results[6].count.toString(),
-        'subjects': results[7].count.toString(),
+        'users': (results[0] as AggregateQuerySnapshot).count.toString(),
+        'codes': (results[1] as AggregateQuerySnapshot).count.toString(),
+        'questions': (results[2] as AggregateQuerySnapshot).count.toString(),
+        'exams': (results[3] as AggregateQuerySnapshot).count.toString(),
+        'unis': (results[4] as AggregateQuerySnapshot).count.toString(),
+        'colleges': (results[5] as AggregateQuerySnapshot).count.toString(),
+        'depts': (results[6] as AggregateQuerySnapshot).count.toString(),
+        'subjects': (results[7] as AggregateQuerySnapshot).count.toString(),
+        'revenue': totalRevenue.toString(),
       };
     } catch (e) {
       return {
@@ -53,6 +68,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         'colleges': '0',
         'depts': '0',
         'subjects': '0',
+        'revenue': '0',
       };
     }
   }
@@ -144,10 +160,52 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       'colleges': '...',
                       'depts': '...',
                       'subjects': '...',
+                      'revenue': '...',
                     };
 
                 return Column(
                   children: [
+                    // Revenue Card
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF10B981), Color(0xFF059669)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'الأموال المحصلة لهذا الشهر',
+                                style: GoogleFonts.cairo(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '${stats['revenue']} ل.س',
+                            style: GoogleFonts.inter(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
                     // ── Stat Cards Grid (max 220px per card, 2 cols min) ──
                     GridView.builder(
                       shrinkWrap: true,
@@ -264,6 +322,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ManageActivationCodesScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.monetization_on_rounded,
+              title: 'إدارة الإحصاءات المالية',
+              subtitle: 'عرض الأموال المحصلة وإحصاءات المواد',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FinancialStatsScreen(),
                   ),
                 );
               },
