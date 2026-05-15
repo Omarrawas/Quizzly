@@ -29,6 +29,13 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
       final subjectsSnap = await _db.collection('subjects').get();
       final subjects = subjectsSnap.docs;
 
+      // Fetch the last reset date from settings
+      DateTime? lastResetDate;
+      final settingsDoc = await _db.collection('system_settings').doc('financials').get();
+      if (settingsDoc.exists && settingsDoc.data()!.containsKey('last_financial_reset')) {
+        lastResetDate = (settingsDoc.data()!['last_financial_reset'] as Timestamp).toDate();
+      }
+
       // 2. Fetch all purchases to calculate revenue per subject
       final purchasesSnap = await _db.collection('user_subjects')
           .where('type', isEqualTo: 'purchase')
@@ -36,25 +43,59 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
 
       final Map<String, int> revenueMap = {};
       final Map<String, int> activationCountMap = {};
-      int total = 0;
 
       for (var doc in purchasesSnap.docs) {
         final data = doc.data();
+        
+        // Local filter by reset date
+        if (lastResetDate != null && data.containsKey('activatedAt')) {
+          final activatedAt = (data['activatedAt'] as Timestamp?)?.toDate();
+          if (activatedAt != null && activatedAt.isBefore(lastResetDate)) {
+            continue;
+          }
+        }
+
         final subjectId = data['subjectId'] as String?;
         final price = (data['price'] as num?)?.toInt() ?? 0;
         
         if (subjectId != null) {
           revenueMap[subjectId] = (revenueMap[subjectId] ?? 0) + price;
           activationCountMap[subjectId] = (activationCountMap[subjectId] ?? 0) + 1;
-          total += price;
         }
+      }
+
+      // Calculate TOTAL revenue from actual code redemptions
+      int total = 0;
+      final redeemLogsSnap = await _db.collection('credit_logs').where('type', isEqualTo: 'redeem').get();
+      for (var doc in redeemLogsSnap.docs) {
+        final data = doc.data();
+        
+        // Local filter by reset date
+        if (lastResetDate != null && data.containsKey('timestamp')) {
+          final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+          if (timestamp != null && timestamp.isBefore(lastResetDate)) {
+            continue;
+          }
+        }
+
+        total += (data['amount'] as num?)?.toInt() ?? 0;
       }
 
       // Fetch exams/evaluations to get some stats (e.g. number of exams)
       final examsSnap = await _db.collection('exams').get();
       final Map<String, int> examsMap = {};
       for(var doc in examsSnap.docs) {
-        final subjectId = doc.data()['subjectId'] as String?;
+        final data = doc.data();
+        
+        // Local filter by reset date
+        if (lastResetDate != null && data.containsKey('createdAt')) {
+          final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+          if (createdAt != null && createdAt.isBefore(lastResetDate)) {
+            continue;
+          }
+        }
+
+        final subjectId = data['subjectId'] as String?;
         if(subjectId != null) {
           examsMap[subjectId] = (examsMap[subjectId] ?? 0) + 1;
         }
@@ -94,6 +135,51 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
     }
   }
 
+  Future<void> _resetStatistics() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('تأكيد التصفير', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Text(
+          'هل أنت متأكد أنك تريد تصفير الإحصاءات المالية؟\nسيؤدي هذا إلى بدء حساب الإيرادات من الآن (بداية فصل جديد). لا يمكن التراجع عن هذا الإجراء.',
+          style: GoogleFonts.cairo(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('تصفير', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      try {
+        await _db.collection('system_settings').doc('financials').set({
+          'last_financial_reset': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تم تصفير الإحصاءات بنجاح.', style: GoogleFonts.cairo()),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        await _fetchFinancialData();
+      } catch (e) {
+        debugPrint('Error resetting stats: $e');
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _printReport() {
     // In a real app, this would generate a PDF or CSV
     ScaffoldMessenger.of(context).showSnackBar(
@@ -126,6 +212,11 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+            tooltip: 'تصفير الإحصاءات',
+            onPressed: _resetStatistics,
+          ),
           IconButton(
             icon: const Icon(Icons.print_rounded, color: AppColors.primaryBlue),
             onPressed: _printReport,

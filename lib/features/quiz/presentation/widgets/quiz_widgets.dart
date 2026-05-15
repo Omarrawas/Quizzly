@@ -679,7 +679,7 @@ class _QuestionMenuButton extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) {
         if (value == 'report') {
-          showReportDialog(context, question.number);
+          showReportDialog(context, question);
         } else if (value == 'share') {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -791,7 +791,7 @@ void showNoteDialog(BuildContext context, int questionNumber) {
 // ═══════════════════════════════════════════════════════
 //  6. نافذة الإبلاغ عن سؤال (Report Dialog)
 // ═══════════════════════════════════════════════════════
-void showReportDialog(BuildContext context, int questionNumber) {
+void showReportDialog(BuildContext context, QuizQuestion question) {
   final controller = TextEditingController();
   String selectedType = 'خطأ في الإجابة';
 
@@ -806,7 +806,7 @@ void showReportDialog(BuildContext context, int questionNumber) {
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             title: Text(
-              'الإبلاغ عن السؤال (#$questionNumber)',
+              'الإبلاغ عن السؤال (#${question.number})',
               style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black),
               textAlign: TextAlign.center,
             ),
@@ -883,8 +883,11 @@ void showReportDialog(BuildContext context, int questionNumber) {
 
                   try {
                     await FirebaseFirestore.instance.collection('question_reports').add({
-                      'questionId': questionNumber.toString(),
-                      'questionText': '', // Ideally pass question text too
+                      'questionId': question.id ?? question.number.toString(),
+                      'questionNumber': question.number,
+                      'questionText': question.text,
+                      'tagLabel': question.tagLabel ?? '',
+                      'topicNames': question.topicNames ?? [],
                       'details': details,
                       'type': selectedType,
                       'userId': user?.uid ?? 'anonymous',

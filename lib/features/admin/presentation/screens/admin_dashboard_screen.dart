@@ -376,13 +376,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               },
               isDark: isDark,
             ),
-            _buildActionTile(
-              icon: Icons.build_circle_rounded,
-              title: 'صيانة قاعدة البيانات',
-              subtitle: 'إصلاح الهيكلية والبيانات المفقودة',
-              onTap: () => _showMaintenanceDialog(context),
-              isDark: isDark,
-            ),
+
 
             const SizedBox(height: 32),
 
@@ -535,88 +529,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ],
     );
-  }
-
-  void _showMaintenanceDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'صيانة قاعدة البيانات',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'سيقوم هذا الإجراء بفحص وإصلاح هيكلية البيانات، وإضافة الحقول المفقودة (مثل الترتيب) لضمان ظهور المحتوى.',
-          style: GoogleFonts.cairo(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _repairDatabase();
-            },
-            child: Text('بدء الإصلاح', style: GoogleFonts.cairo()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _repairDatabase() async {
-    setState(() => _isLoading = true);
-    try {
-      final batch = _db.batch();
-      int totalFixed = 0;
-
-      final collections = [
-        'universities',
-        'colleges',
-        'departments',
-        'academic_years',
-        'semesters',
-        'subjects',
-        'sections',
-        'topics',
-        'questions',
-      ];
-
-      for (var col in collections) {
-        final snap = await _db.collection(col).get();
-        for (var doc in snap.docs) {
-          final data = doc.data();
-          if (!data.containsKey('order')) {
-            batch.update(doc.reference, {'order': 0});
-            totalFixed++;
-          }
-        }
-      }
-
-      await batch.commit();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'تمت عملية الإصلاح بنجاح. تم تحديث $totalFixed مستند.',
-            ),
-          ),
-        );
-        _refresh();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('فشل الإصلاح: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
   }
 
   Widget _buildStatusRow(String service, String status, Color color) {

@@ -71,6 +71,10 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
               return _ReportCard(
                 reportId: reportId,
                 questionId: report['questionId'] ?? 'N/A',
+                questionNumber: report['questionNumber']?.toString() ?? report['questionId'] ?? 'N/A',
+                questionText: report['questionText'] ?? '',
+                tagLabel: report['tagLabel'] ?? '',
+                topicNames: (report['topicNames'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
                 type: report['type'] ?? 'غير محدد',
                 details: report['details'] ?? '',
                 userEmail: report['userEmail'] ?? 'anonymous',
@@ -118,6 +122,10 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
 class _ReportCard extends StatelessWidget {
   final String reportId;
   final String questionId;
+  final String questionNumber;
+  final String questionText;
+  final String tagLabel;
+  final List<String> topicNames;
   final String type;
   final String details;
   final String userEmail;
@@ -129,6 +137,10 @@ class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.reportId,
     required this.questionId,
+    required this.questionNumber,
+    required this.questionText,
+    required this.tagLabel,
+    required this.topicNames,
     required this.type,
     required this.details,
     required this.userEmail,
@@ -189,7 +201,7 @@ class _ReportCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'سؤال #$questionId',
+                  'سؤال #$questionNumber',
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -207,8 +219,48 @@ class _ReportCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (tagLabel.isNotEmpty || topicNames.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (tagLabel.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(tagLabel, style: GoogleFonts.cairo(fontSize: 11, color: Colors.purple)),
+                        ),
+                      for (final topic in topicNames)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(topic, style: GoogleFonts.cairo(fontSize: 11, color: Colors.teal)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (questionText.isNotEmpty) ...[
+                  Text(
+                    'نص السؤال:',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    questionText,
+                    style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textPrimary),
+                    textDirection: TextDirection.rtl,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Text(
-                  'التفاصيل:',
+                  'تفاصيل البلاغ:',
                   style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),

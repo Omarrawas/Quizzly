@@ -96,7 +96,7 @@ class AppDrawer extends StatelessWidget {
                   _buildMenuItem(
                     context,
                     icon: Icons.code_rounded,
-                    label: 'إدارة الأكواد',
+                    label: 'إدارة الاشتراكات',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageCodesScreen()));
