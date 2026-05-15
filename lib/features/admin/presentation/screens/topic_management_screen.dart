@@ -5,6 +5,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
+import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_detail_screen.dart';
 
 class TopicManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -164,7 +165,8 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                     showArrow: true,
                     onTap: () => _goToLessonQuestions(id, name),
                     onEdit: () => _showEditTopicDialog(id, data, 'درس'),
-                    onEditContent: () => _showEditLessonContentDialog(id, data), // Added this
+                    onEditContent: () => _showEditLessonContentDialog(id, data),
+                    onPreview: () => _previewLesson(id, name, data),
                     onDelete: () => _confirmDelete(id, name),
                   );
                 },
@@ -203,7 +205,8 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     required bool isDark,
     required VoidCallback onTap,
     required VoidCallback onEdit,
-    VoidCallback? onEditContent, // Added this
+    VoidCallback? onEditContent,
+    VoidCallback? onPreview,
     required VoidCallback onDelete,
     bool showArrow = false,
   }) {
@@ -229,6 +232,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (onPreview != null)
+              IconButton(
+                icon: const Icon(Icons.remove_red_eye_rounded, size: 18, color: AppColors.primaryBlue), 
+                onPressed: onPreview,
+                tooltip: 'معاينة كما تظهر للطالب',
+              ),
             if (onEditContent != null)
               IconButton(
                 icon: const Icon(Icons.video_collection_rounded, size: 18, color: Colors.orange), 
@@ -259,6 +268,23 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
       ),
     );
   }
+
+  void _previewLesson(String lessonId, String lessonName, Map<String, dynamic> data) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TheoreticalLessonDetailScreen(
+          lessonId: lessonId,
+          lessonName: lessonName,
+          subjectId: widget.subjectId,
+          subjectName: widget.subjectName,
+          sectionId: widget.sectionId,
+          data: data,
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildErrorState(String error) {
     bool isIndexError = error.contains('index');
