@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:quizzly/core/theme/app_colors.dart';
 
 class FinancialStatsScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _subjectStats = [];
   int _totalRevenue = 0;
+  DateTime? _lastResetDate;
 
   @override
   void initState() {
@@ -36,15 +38,14 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
         lastResetDate = (settingsDoc.data()!['last_financial_reset'] as Timestamp).toDate();
       }
 
-      // 2. Fetch all purchases to calculate revenue per subject
-      final purchasesSnap = await _db.collection('user_subjects')
-          .where('type', isEqualTo: 'purchase')
-          .get();
+      // 2. Fetch all user_subjects to calculate stats per subject
+      final userSubjectsSnap = await _db.collection('user_subjects').get();
 
       final Map<String, int> revenueMap = {};
-      final Map<String, int> activationCountMap = {};
+      final Map<String, int> totalSubscribersMap = {};
+      final Map<String, int> paidSubscriptionsMap = {};
 
-      for (var doc in purchasesSnap.docs) {
+      for (var doc in userSubjectsSnap.docs) {
         final data = doc.data();
         
         // Local filter by reset date
@@ -56,11 +57,17 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
         }
 
         final subjectId = data['subjectId'] as String?;
+        final type = data['type'] as String? ?? data['activationType'] as String? ?? 'free';
         final price = (data['price'] as num?)?.toInt() ?? 0;
+        final isPaid = type == 'purchase' || price > 0;
         
         if (subjectId != null) {
-          revenueMap[subjectId] = (revenueMap[subjectId] ?? 0) + price;
-          activationCountMap[subjectId] = (activationCountMap[subjectId] ?? 0) + 1;
+          totalSubscribersMap[subjectId] = (totalSubscribersMap[subjectId] ?? 0) + 1;
+          
+          if (isPaid) {
+            paidSubscriptionsMap[subjectId] = (paidSubscriptionsMap[subjectId] ?? 0) + 1;
+            revenueMap[subjectId] = (revenueMap[subjectId] ?? 0) + price;
+          }
         }
       }
 
@@ -106,14 +113,16 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
         final id = subject.id;
         final name = subject.data()['name'] ?? 'بدون اسم';
         final rev = revenueMap[id] ?? 0;
-        final acts = activationCountMap[id] ?? 0;
+        final totalSubs = totalSubscribersMap[id] ?? 0;
+        final paidSubs = paidSubscriptionsMap[id] ?? 0;
         final exms = examsMap[id] ?? 0;
 
         stats.add({
           'id': id,
           'name': name,
           'revenue': rev,
-          'activations': acts,
+          'totalSubscribers': totalSubs,
+          'paidSubscriptions': paidSubs,
           'examsCount': exms,
         });
       }
@@ -124,6 +133,7 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
       setState(() {
         _subjectStats = stats;
         _totalRevenue = total;
+        _lastResetDate = lastResetDate;
         _isLoading = false;
       });
 
@@ -268,6 +278,33 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (_lastResetDate != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'منذ: ${intl.DateFormat('yyyy/MM/dd').format(_lastResetDate!)}',
+                            style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+                          ),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'الإحصاءات منذ البداية (لم يتم التصفير)',
+                            style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -350,8 +387,9 @@ class _FinancialStatsScreenState extends State<FinancialStatsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildMiniStat('عمليات الشراء', '${stat['activations']}', Icons.shopping_cart_rounded, isDark),
-              _buildMiniStat('الاختبارات (التقويم)', '${stat['examsCount']}', Icons.assignment_turned_in_rounded, isDark),
+              _buildMiniStat('إجمالي المشتركين', '${stat['totalSubscribers']}', Icons.groups_rounded, isDark),
+              _buildMiniStat('اشتراكات مدفوعة', '${stat['paidSubscriptions']}', Icons.payments_rounded, isDark),
+              _buildMiniStat('الاختبارات', '${stat['examsCount']}', Icons.assignment_turned_in_rounded, isDark),
             ],
           ),
         ],

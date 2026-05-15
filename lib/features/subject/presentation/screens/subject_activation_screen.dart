@@ -244,10 +244,10 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                         children: [
                           if (widget.basePrice != null && widget.basePrice! > 0) ...[
                             _buildActivationOption(
-                              title: canAfford ? 'تفعيل بالرصيد' : 'شحن رصيد إضافي',
+                              title: 'اشتراك مدفوع',
                               subtitle: canAfford 
-                                ? 'رصيدك الحالي: $balance ل.س' 
-                                : 'رصيدك ($balance ل.س) غير كافٍ. اضغط للشحن',
+                                ? 'انقر لتأكيد الشراء، سيتم خصم $finalPrice ل.س' 
+                                : 'رصيدك الحالي ($balance ل.س) غير كافٍ. اضغط لشحن الرصيد',
                               icon: Icons.account_balance_wallet_rounded,
                               color: canAfford ? Colors.green : Colors.orange,
                               isDark: isDark,
