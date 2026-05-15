@@ -38,7 +38,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => ThemeService(prefs)),
         ChangeNotifierProvider(create: (_) => SettingsService(prefs)),
         Provider(create: (_) => CollegeService()),
         Provider(create: (_) => ContentService()),

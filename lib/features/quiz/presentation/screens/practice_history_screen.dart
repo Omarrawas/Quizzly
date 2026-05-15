@@ -19,21 +19,39 @@ class PracticeHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userId = context.read<AuthService>().user?.uid;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Column(
           children: [
-            Text('سجل التدريب', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(subjectName, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+            Text(
+              'سجل التدريب', 
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold, 
+                fontSize: 18,
+                color: isDark ? Colors.white : AppColors.textPrimary
+              )
+            ),
+            Text(
+              subjectName, 
+              style: GoogleFonts.cairo(
+                fontSize: 12, 
+                color: isDark ? Colors.white38 : AppColors.textSecondary
+              )
+            ),
           ],
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded, 
+            color: isDark ? Colors.white : Colors.black, 
+            size: 20
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -52,7 +70,7 @@ class PracticeHistoryScreen extends StatelessWidget {
 
                 final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
-                  return _buildEmptyState();
+                  return _buildEmptyState(isDark);
                 }
 
                 // Sort locally by creation date descending
@@ -72,7 +90,7 @@ class PracticeHistoryScreen extends StatelessWidget {
                   itemCount: sortedDocs.length,
                   itemBuilder: (context, index) {
                     final data = sortedDocs[index].data() as Map<String, dynamic>;
-                    return _buildSessionCard(context, data);
+                    return _buildSessionCard(context, data, isDark);
                   },
                 );
               },
@@ -80,28 +98,36 @@ class PracticeHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_rounded, size: 80, color: Colors.grey[300]),
+          Icon(
+            Icons.history_rounded, 
+            size: 80, 
+            color: isDark ? Colors.white10 : Colors.grey[300]
+          ),
           const SizedBox(height: 16),
           Text(
             'لا يوجد سجل تدريب بعد',
-            style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: GoogleFonts.cairo(
+              fontSize: 18, 
+              fontWeight: FontWeight.bold, 
+              color: isDark ? Colors.white : AppColors.textPrimary
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'ابدأ جلستك التدريبية الأولى الآن!',
-            style: GoogleFonts.cairo(color: AppColors.textSecondary),
+            style: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSessionCard(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildSessionCard(BuildContext context, Map<String, dynamic> data, bool isDark) {
     final date = (data['createdAt'] is Timestamp ? data['createdAt'] as Timestamp : null)?.toDate() ?? DateTime.now();
     final correct = (data['correctAnswers'] as num?)?.toInt() ?? 0;
     final total = (data['totalQuestions'] as num?)?.toInt() ?? 0;
@@ -111,11 +137,11 @@ class PracticeHistoryScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -143,7 +169,7 @@ class PracticeHistoryScreen extends StatelessWidget {
                             intl.DateFormat('yyyy/MM/dd - hh:mm a').format(date),
                             style: GoogleFonts.cairo(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: isDark ? Colors.white38 : AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -172,7 +198,7 @@ class PracticeHistoryScreen extends StatelessWidget {
                         style: GoogleFonts.cairo(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

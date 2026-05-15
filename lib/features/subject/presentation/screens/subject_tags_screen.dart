@@ -203,10 +203,13 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -214,11 +217,12 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
           style: GoogleFonts.cairo(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -236,31 +240,28 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                   itemCount: _tagsData.length,
                   itemBuilder: (context, index) {
                     final tag = _tagsData[index];
-                    return _buildTagCard(tag);
+                    return _buildTagCard(tag, isDark);
                   },
                 ),
     );
   }
 
-  Widget _buildTagCard(Map<String, dynamic> tag) {
+  Widget _buildTagCard(Map<String, dynamic> tag, bool isDark) {
     final String name = tag['name'];
     final int count = tag['count'];
     final bool isOriginallyNew = tag['isNew'];
-    
     final bool hasViewed = _viewedTags.contains(name);
     final bool isLastViewed = _lastViewedTag == name;
-    
-    // If it has been viewed, it's no longer "New" to the user
     final bool isNew = isOriginallyNew && !hasViewed;
-    
     final stats = _tagsStats[name];
     final bool hasStats = stats != null && stats['answered']! > 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -306,14 +307,14 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                             style: GoogleFonts.cairo(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: isDark ? Colors.white : AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE0F2FE), // Light blue background
+                              color: isDark ? const Color(0xFF0C4A6E) : const Color(0xFFE0F2FE),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -371,7 +372,7 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: isDark ? Colors.white10 : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -382,11 +383,11 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                               style: GoogleFonts.cairo(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade600,
+                                color: isDark ? Colors.white54 : Colors.grey.shade600,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.history_rounded, size: 14, color: Colors.grey.shade500),
+                            Icon(Icons.history_rounded, size: 14, color: isDark ? Colors.white38 : Colors.grey.shade500),
                           ],
                         ),
                       )
@@ -400,11 +401,15 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Icon(Icons.analytics_outlined, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.analytics_outlined, size: 16,
+                          color: isDark ? const Color(0xFF94A3B8) : Colors.grey[600]),
                       const SizedBox(width: 6),
                       Text(
                         'تقدمك في هذا الوسم',
-                        style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.bold),
+                        style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFF94A3B8) : Colors.grey[700],
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -429,7 +434,10 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                               if (count - stats['answered']! > 0)
                                 Expanded(
                                   flex: count - stats['answered']!,
-                                  child: Container(height: 6, color: Colors.grey[200]),
+                                  child: Container(
+                                    height: 6,
+                                    color: isDark ? Colors.white10 : Colors.grey[200],
+                                  ),
                                 ),
                             ],
                           ),
@@ -441,7 +449,7 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[600],
+                          color: isDark ? const Color(0xFF94A3B8) : Colors.grey[600],
                         ),
                       ),
                     ],

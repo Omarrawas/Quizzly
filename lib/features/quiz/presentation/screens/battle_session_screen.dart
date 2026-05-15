@@ -152,10 +152,11 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF1E293B),
-        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        body: const Center(child: CircularProgressIndicator(color: Colors.amber)),
       );
     }
 
@@ -174,7 +175,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
     final progress = (_currentIndex + 1) / _questions.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -184,24 +185,50 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF0F172A).withValues(alpha: 0.05), 
+                borderRadius: BorderRadius.circular(20)
+              ),
               child: Row(
                 children: [
                   const Icon(Icons.timer_outlined, color: Colors.amber, size: 18),
                   const SizedBox(width: 4),
-                  Text(_formatTime(_timeTakenSeconds), style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    _formatTime(_timeTakenSeconds), 
+                    style: GoogleFonts.inter(
+                      color: isDark ? Colors.white : AppColors.textPrimary, 
+                      fontWeight: FontWeight.bold
+                    )
+                  ),
                 ],
               ),
             ),
-            Text('سؤال ${_currentIndex + 1}/${_questions.length}', style: GoogleFonts.cairo(color: Colors.white, fontSize: 16)),
+            Text(
+              'سؤال ${_currentIndex + 1}/${_questions.length}', 
+              style: GoogleFonts.cairo(
+                color: isDark ? Colors.white : AppColors.textPrimary, 
+                fontSize: 16,
+                fontWeight: FontWeight.bold
+              )
+            ),
+
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF0F172A).withValues(alpha: 0.05), 
+                borderRadius: BorderRadius.circular(20)
+              ),
               child: Row(
                 children: [
                   const Icon(Icons.stars_rounded, color: Colors.amber, size: 18),
                   const SizedBox(width: 4),
-                  Text('$_score', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    '$_score', 
+                    style: GoogleFonts.inter(
+                      color: isDark ? Colors.white : AppColors.textPrimary, 
+                      fontWeight: FontWeight.bold
+                    )
+                  ),
                 ],
               ),
             ),
@@ -212,7 +239,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
         children: [
           LinearProgressIndicator(
             value: progress,
-            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
             valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
           ),
           Expanded(
@@ -225,16 +252,28 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                       child: Center(
                         child: SingleChildScrollView(
                           child: Text(
                             question.text,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.cairo(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white, height: 1.6),
+                            style: GoogleFonts.cairo(
+                              fontSize: 22, 
+                              fontWeight: FontWeight.bold, 
+                              color: isDark ? Colors.white : AppColors.textPrimary, 
+                              height: 1.6
+                            ),
                           ),
                         ),
                       ),
@@ -249,15 +288,16 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                             child: ElevatedButton(
                               onPressed: () => _answerQuestion(opt.id),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(alpha: 0.05),
-                                foregroundColor: Colors.white,
+                                backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                                foregroundColor: isDark ? Colors.white : AppColors.textPrimary,
                                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                                  side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.borderLight),
                                 ),
                                 alignment: Alignment.centerRight,
-                                elevation: 0,
+                                elevation: isDark ? 0 : 2,
+                                shadowColor: Colors.black.withValues(alpha: 0.05),
                               ),
                               child: Text(
                                 opt.text,
@@ -280,8 +320,12 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
     return StreamBuilder<BattleChallenge?>(
       stream: _battleService.streamBattle(widget.battle.id),
       builder: (context, snapshot) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(backgroundColor: Color(0xFF0F172A), body: Center(child: CircularProgressIndicator(color: Colors.amber)));
+          return Scaffold(
+            backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), 
+            body: const Center(child: CircularProgressIndicator(color: Colors.amber))
+          );
         }
         
         final updatedBattle = snapshot.data;
@@ -325,7 +369,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFF0F172A),
+          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
           body: Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
@@ -361,8 +405,8 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context), // back to hub
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
+                      backgroundColor: isDark ? Colors.white : AppColors.primaryBlue,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
@@ -378,31 +422,61 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
   }
 
   Widget _buildScoreCard(String name, int? score, int? time, bool isMe) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isMe ? AppColors.primaryBlue.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+        color: isMe 
+            ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.2 : 0.1) 
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isMe ? AppColors.primaryBlue.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: isMe 
+              ? AppColors.primaryBlue.withValues(alpha: 0.5) 
+              : (isDark ? Colors.white12 : AppColors.borderLight)
+        ),
       ),
       child: Column(
         children: [
-          Text(name, style: GoogleFonts.cairo(color: Colors.white70, fontSize: 16)),
+          Text(
+            name, 
+            style: GoogleFonts.cairo(
+              color: isDark ? Colors.white70 : AppColors.textSecondary, 
+              fontSize: 16
+            )
+          ),
           const SizedBox(height: 12),
           Text(
             score != null ? '$score' : '-',
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+            style: GoogleFonts.inter(
+              color: isDark ? Colors.white : AppColors.textPrimary, 
+              fontSize: 32, 
+              fontWeight: FontWeight.bold
+            ),
           ),
-          Text('نقطة', style: GoogleFonts.cairo(color: Colors.white30, fontSize: 12)),
+          Text(
+            'نقطة', 
+            style: GoogleFonts.cairo(
+              color: isDark ? Colors.white30 : AppColors.textSecondary.withValues(alpha: 0.5), 
+              fontSize: 12
+            )
+          ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.timer_outlined, color: Colors.white30, size: 14),
+              Icon(
+                Icons.timer_outlined, 
+                color: isDark ? Colors.white30 : AppColors.textSecondary.withValues(alpha: 0.5), 
+                size: 14
+              ),
               const SizedBox(width: 4),
               Text(
                 time != null ? _formatTime(time) : '--:--',
-                style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+                style: GoogleFonts.inter(
+                  color: isDark ? Colors.white54 : AppColors.textSecondary, 
+                  fontSize: 12
+                ),
               ),
             ],
           ),

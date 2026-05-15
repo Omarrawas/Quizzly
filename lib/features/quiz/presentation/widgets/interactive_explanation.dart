@@ -36,12 +36,14 @@ class _QuickExplanationVideoState extends State<QuickExplanationVideo> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (!_isInitialized) {
       return Container(
         height: 200,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200],
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -122,12 +124,14 @@ class _AudioExplanationPlayerState extends State<AudioExplanationPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
@@ -162,7 +166,7 @@ class _AudioExplanationPlayerState extends State<AudioExplanationPlayer> {
                   style: GoogleFonts.cairo(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -172,7 +176,7 @@ class _AudioExplanationPlayerState extends State<AudioExplanationPlayer> {
                     value: _duration.inMilliseconds > 0 
                         ? _position.inMilliseconds / _duration.inMilliseconds 
                         : 0.0,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor: isDark ? Colors.white10 : Colors.grey[300],
                     valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
                     minHeight: 4,
                   ),
@@ -183,7 +187,7 @@ class _AudioExplanationPlayerState extends State<AudioExplanationPlayer> {
           const SizedBox(width: 12),
           Text(
             _formatDuration(_position),
-            style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[600]),
+            style: GoogleFonts.inter(fontSize: 10, color: isDark ? Colors.white38 : Colors.grey[600]),
           ),
         ],
       ),

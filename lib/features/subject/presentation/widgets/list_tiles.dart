@@ -14,16 +14,19 @@ class ExamListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: isDark ? Border.all(color: Colors.white10) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -49,7 +52,7 @@ class ExamListTile extends StatelessWidget {
                       style: GoogleFonts.cairo(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
                         height: 1.3,
                       ),
                     ),
@@ -61,7 +64,7 @@ class ExamListTile extends StatelessWidget {
                           exam.lastUpdated,
                           style: GoogleFonts.cairo(
                             fontSize: 11,
-                            color: AppColors.textSecondary,
+                            color: isDark ? Colors.white38 : AppColors.textSecondary,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -93,16 +96,19 @@ class TagListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: isDark ? Border.all(color: Colors.white10) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -126,7 +132,7 @@ class TagListTile extends StatelessWidget {
                       style: GoogleFonts.cairo(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
                         height: 1.4,
                       ),
                     ),
@@ -153,12 +159,12 @@ class TagListTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
+                  color: isDark ? const Color(0xFF9333EA).withValues(alpha: 0.15) : const Color(0xFFF3E8FF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.label_rounded,
-                  color: Color(0xFF9333EA),
+                  color: isDark ? const Color(0xFFA855F7) : const Color(0xFF9333EA),
                   size: 22,
                 ),
               ),
@@ -177,19 +183,20 @@ class TagListTile extends StatelessWidget {
 class _NewBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: isDark ? const Color(0xFF7C2D12).withValues(alpha: 0.2) : const Color(0xFFFFF7ED),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFED7AA)),
+        border: Border.all(color: isDark ? const Color(0xFFFB923C).withValues(alpha: 0.3) : const Color(0xFFFED7AA)),
       ),
       child: Text(
         'جديد',
         style: GoogleFonts.cairo(
           fontSize: 10,
           fontWeight: FontWeight.bold,
-          color: const Color(0xFFEA580C),
+          color: isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
         ),
       ),
     );
@@ -202,6 +209,9 @@ class _CountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -210,14 +220,14 @@ class _CountChip extends StatelessWidget {
           style: GoogleFonts.cairo(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: AppColors.primaryBlue,
+            color: color,
           ),
         ),
         const SizedBox(width: 3),
-        const Icon(
+        Icon(
           Icons.insert_drive_file_rounded,
           size: 13,
-          color: AppColors.primaryBlue,
+          color: color,
         ),
       ],
     );
@@ -248,19 +258,23 @@ class _AccessIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
         color: isAvailable
-            ? const Color(0xFFEFF6FF)
-            : const Color(0xFFF3F4F6),
+            ? (isDark ? const Color(0xFF1E40AF).withValues(alpha: 0.2) : const Color(0xFFEFF6FF))
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF3F4F6)),
         shape: BoxShape.circle,
       ),
       child: Icon(
         isAvailable ? Icons.insert_drive_file_rounded : Icons.lock_rounded,
         size: 20,
-        color: isAvailable ? AppColors.primaryBlue : const Color(0xFF9CA3AF),
+        color: isAvailable 
+            ? (isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue) 
+            : (isDark ? Colors.white24 : const Color(0xFF9CA3AF)),
       ),
     );
   }

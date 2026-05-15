@@ -33,11 +33,15 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 
   final List<String> _filters = ['الكل', 'الدورات الوزارية', 'بنك الأسئلة'];
 
+  int selectedPillar = 0;
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      appBar: _buildAppBar(isDark),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -53,6 +57,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                 label: _filters[i],
                 isSelected: _selectedFilter == i,
                 onTap: () => setState(() => _selectedFilter = i),
+                isDark: isDark,
               ),
             ),
           ),
@@ -73,7 +78,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                         : allExams.where((e) => e.type == ExamType.bank).toList();
 
                 if (filtered.isEmpty) {
-                  return const _EmptyState(message: 'لا توجد امتحانات متاحة حالياً');
+                  return _EmptyState(message: 'لا توجد امتحانات متاحة حالياً', isDark: isDark);
                 }
 
                 return ListView.builder(
@@ -82,6 +87,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
                   itemBuilder: (context, index) => _ExamConfigTile(
                     config: filtered[index],
                     onTap: () => _handleExamTap(filtered[index]),
+                    isDark: isDark,
                   ),
                 );
               },
@@ -92,17 +98,25 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     );
   }
 
-  AppBar _buildAppBar() {
+  AppBar _buildAppBar(bool isDark) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       elevation: 0,
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary, size: 20),
+        icon: Icon(
+          Icons.arrow_forward_ios_rounded, 
+          color: isDark ? Colors.white : AppColors.textPrimary, 
+          size: 20
+        ),
       ),
       title: Text(
         'الامتحانات - ${widget.subjectName}',
-        style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        style: GoogleFonts.cairo(
+          fontSize: 18, 
+          fontWeight: FontWeight.bold, 
+          color: isDark ? Colors.white : AppColors.textPrimary
+        ),
       ),
       centerTitle: true,
     );
@@ -122,25 +136,33 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 
 // ─── حوار خيارات بدء الامتحان ──────────────────────────────────────────
   void _showExamOptions(ExamConfig config) {
-    int selectedPillar = 0; // Default to Browse/Review mode
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           title: Column(
             children: [
               Text(
                 config.title,
-                style: GoogleFonts.cairo(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.textPrimary),
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 20, 
+                  color: isDark ? Colors.white : AppColors.textPrimary
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
                 'اختر ركيزة التدريب المناسبة لك',
-                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.cairo(
+                  fontSize: 12, 
+                  color: isDark ? Colors.white70 : AppColors.textSecondary
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -151,7 +173,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-children: [
+                children: [
                   const SizedBox(height: 16),
                   _PillarOption(
                     title: 'التصفح والمراجعة',
@@ -160,6 +182,7 @@ children: [
                     color: Colors.orange,
                     isSelected: selectedPillar == 0,
                     onTap: () => setDialogState(() => selectedPillar = 0),
+                    isDark: isDark,
                   ),
                   const SizedBox(height: 12),
                   _PillarOption(
@@ -176,6 +199,7 @@ children: [
                       }
                       setDialogState(() => selectedPillar = 1);
                     },
+                    isDark: isDark,
                   ),
                   const SizedBox(height: 12),
                   _PillarOption(
@@ -192,6 +216,7 @@ children: [
                       }
                       setDialogState(() => selectedPillar = 2);
                     },
+                    isDark: isDark,
                   ),
                 ],
               ),
@@ -229,13 +254,22 @@ children: [
   }
 
   Future<void> _launchExamMode(ExamConfig config, int pillar) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (pillar == 2) {
-      // Show sub-choice for Exam pillar
       final String? choice = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('نوع الاختبار', style: GoogleFonts.cairo(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          title: Text(
+            'نوع الاختبار', 
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary
+            ), 
+            textAlign: TextAlign.center
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -244,6 +278,7 @@ children: [
                 subtitle: 'محاكاة لجو الامتحان الرسمي بمؤقت كلي',
                 icon: Icons.timer_rounded,
                 onTap: () => Navigator.pop(context, 'normal'),
+                isDark: isDark,
               ),
               const SizedBox(height: 12),
               _SubModeTile(
@@ -251,6 +286,7 @@ children: [
                 subtitle: '10 ثوانٍ لكل سؤال لزيادة سرعة البديهة',
                 icon: Icons.bolt_rounded,
                 onTap: () => Navigator.pop(context, 'speed'),
+                isDark: isDark,
               ),
             ],
           ),
@@ -311,6 +347,7 @@ class _PillarOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final bool isLocked;
+  final bool isDark;
 
   const _PillarOption({
     required this.title,
@@ -320,6 +357,7 @@ class _PillarOption extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.isLocked = false,
+    required this.isDark,
   });
 
   @override
@@ -331,23 +369,31 @@ class _PillarOption extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.05) : (isLocked ? Colors.grey[50] : Colors.white),
+          color: isSelected 
+              ? color.withValues(alpha: isDark ? 0.15 : 0.05) 
+              : (isLocked 
+                  ? (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey[50]) 
+                  : (isDark ? const Color(0xFF1E293B) : Colors.white)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : (isLocked ? Colors.grey[200]! : Colors.grey.shade100),
+            color: isSelected 
+                ? color 
+                : (isLocked 
+                    ? (isDark ? Colors.white10 : Colors.grey[200]!) 
+                    : (isDark ? Colors.white10 : Colors.grey.shade100)),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.15),
+                    color: color.withValues(alpha: isDark ? 0.3 : 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   )
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -360,10 +406,16 @@ class _PillarOption extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isLocked ? Colors.grey[200] : color.withValues(alpha: 0.1),
+                  color: isLocked 
+                      ? (isDark ? Colors.white10 : Colors.grey[200]) 
+                      : color.withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(isLocked ? Icons.lock_outline_rounded : icon, color: isLocked ? Colors.grey[600] : color, size: 28),
+                child: Icon(
+                  isLocked ? Icons.lock_outline_rounded : icon, 
+                  color: isLocked ? (isDark ? Colors.white38 : Colors.grey[600]) : color, 
+                  size: 28
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -375,7 +427,7 @@ class _PillarOption extends StatelessWidget {
                       style: GoogleFonts.cairo(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: isSelected ? color : AppColors.textPrimary,
+                        color: isSelected ? color : (isDark ? Colors.white : AppColors.textPrimary),
                       ),
                     ),
                     Text(
@@ -387,7 +439,7 @@ class _PillarOption extends StatelessWidget {
                           ? Colors.red[300]
                           : (isSelected
                               ? color.withValues(alpha: 0.8)
-                              : AppColors.textSecondary),
+                              : (isDark ? Colors.white38 : AppColors.textSecondary)),
                       ),
                     ),
                   ],
@@ -406,8 +458,9 @@ class _PillarOption extends StatelessWidget {
 class _ExamConfigTile extends StatefulWidget {
   final ExamConfig config;
   final VoidCallback onTap;
+  final bool isDark;
 
-  const _ExamConfigTile({required this.config, required this.onTap});
+  const _ExamConfigTile({required this.config, required this.onTap, required this.isDark});
 
   @override
   State<_ExamConfigTile> createState() => _ExamConfigTileState();
@@ -471,9 +524,14 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.04), 
+            blurRadius: 10
+          )
+        ],
       ),
       child: ListTile(
         onTap: widget.onTap,
@@ -482,7 +540,9 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: isDora ? const Color(0xFFEFF6FF) : const Color(0xFFF0FDF4),
+            color: isDora 
+                ? (widget.isDark ? AppColors.primaryBlue.withValues(alpha: 0.1) : const Color(0xFFEFF6FF)) 
+                : (widget.isDark ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFF0FDF4)),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -495,7 +555,11 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
             Expanded(
               child: Text(
                 widget.config.title,
-                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 14,
+                  color: widget.isDark ? Colors.white : AppColors.textPrimary
+                ),
               ),
             ),
             if (!widget.config.isFree)
@@ -525,18 +589,32 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.timer_outlined, size: 12, color: AppColors.textSecondary),
+                Icon(
+                  Icons.timer_outlined, 
+                  size: 12, 
+                  color: widget.isDark ? Colors.white38 : AppColors.textSecondary
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${widget.config.durationSeconds ~/ 60} دقيقة',
-                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
+                  style: GoogleFonts.cairo(
+                    fontSize: 11, 
+                    color: widget.isDark ? Colors.white38 : AppColors.textSecondary
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.help_outline_rounded, size: 12, color: AppColors.textSecondary),
+                Icon(
+                  Icons.help_outline_rounded, 
+                  size: 12, 
+                  color: widget.isDark ? Colors.white38 : AppColors.textSecondary
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${widget.config.totalQuestions} سؤال',
-                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
+                  style: GoogleFonts.cairo(
+                    fontSize: 11, 
+                    color: widget.isDark ? Colors.white38 : AppColors.textSecondary
+                  ),
                 ),
               ],
             ),
@@ -548,7 +626,7 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
                 child: Container(
                   height: 6,
                   width: double.infinity,
-                  color: Colors.grey.shade200,
+                  color: widget.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
                   child: Row(
                     children: [
                       if (_correctCount > 0)
@@ -564,7 +642,9 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
                       if (unanswered > 0)
                         Expanded(
                           flex: unanswered,
-                          child: Container(color: Colors.grey.shade300), // neutral
+                          child: Container(
+                            color: widget.isDark ? Colors.white10 : Colors.grey.shade300
+                          ), // neutral
                         ),
                     ],
                   ),
@@ -576,7 +656,10 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
                 children: [
                   Text(
                     'تم حل $_answeredCount من $total',
-                    style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary),
+                    style: GoogleFonts.cairo(
+                      fontSize: 10, 
+                      color: widget.isDark ? Colors.white38 : AppColors.textSecondary
+                    ),
                   ),
                   Row(
                     children: [
@@ -600,8 +683,14 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isDark;
 
-  const _FilterChip({required this.label, required this.isSelected, required this.onTap});
+  const _FilterChip({
+    required this.label, 
+    required this.isSelected, 
+    required this.onTap,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -610,16 +699,22 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryBlue : Colors.white,
+          color: isSelected 
+              ? AppColors.primaryBlue 
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppColors.primaryBlue : AppColors.borderLight),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.primaryBlue 
+                : (isDark ? Colors.white10 : AppColors.borderLight)
+          ),
         ),
         child: Text(
           label,
           style: GoogleFonts.cairo(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            color: isSelected ? Colors.white : (isDark ? Colors.white60 : AppColors.textSecondary),
           ),
         ),
       ),
@@ -629,7 +724,8 @@ class _FilterChip extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String message;
-  const _EmptyState({required this.message});
+  final bool isDark;
+  const _EmptyState({required this.message, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -637,27 +733,37 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assignment_late_rounded, size: 64, color: Colors.grey[300]),
+          Icon(
+            Icons.assignment_late_rounded, 
+            size: 64, 
+            color: isDark ? Colors.white10 : Colors.grey[300]
+          ),
           const SizedBox(height: 16),
-          Text(message, style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+          Text(
+            message, 
+            style: GoogleFonts.cairo(
+              color: isDark ? Colors.white38 : AppColors.textSecondary
+            )
+          ),
         ],
       ),
     );
   }
 }
 
-
 class _SubModeTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
+  final bool isDark;
 
   const _SubModeTile({
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.onTap,
+    required this.isDark,
   });
 
   @override
@@ -667,16 +773,29 @@ class _SubModeTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primaryBlue.withValues(alpha: 0.1),
+          color: AppColors.primaryBlue.withValues(alpha: isDark ? 0.2 : 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, color: AppColors.primaryBlue),
       ),
-      title: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle: Text(subtitle, style: GoogleFonts.cairo(fontSize: 10)),
+      title: Text(
+        title, 
+        style: GoogleFonts.cairo(
+          fontWeight: FontWeight.bold, 
+          fontSize: 14,
+          color: isDark ? Colors.white : AppColors.textPrimary
+        )
+      ),
+      subtitle: Text(
+        subtitle, 
+        style: GoogleFonts.cairo(
+          fontSize: 10,
+          color: isDark ? Colors.white38 : AppColors.textSecondary
+        )
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
       ),
     );
   }

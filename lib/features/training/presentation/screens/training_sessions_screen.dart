@@ -22,10 +22,13 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(),
-      body: _sessions.isEmpty ? _buildEmptyState() : _buildSessionsList(),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: _buildAppBar(theme, isDark),
+      body: _sessions.isEmpty ? _buildEmptyState(isDark) : _buildSessionsList(isDark),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primaryBlue,
@@ -64,18 +67,18 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
     );
   }
 
-  AppBar _buildAppBar() {
+  AppBar _buildAppBar(ThemeData theme, bool isDark) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.appBarTheme.backgroundColor,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
       automaticallyImplyLeading: false,
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_forward_ios_rounded,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
           size: 20,
         ),
       ),
@@ -84,18 +87,21 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
         style: GoogleFonts.cairo(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
       ),
       centerTitle: true,
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFF1F5F9)),
+        child: Container(
+          height: 1, 
+          color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -111,7 +117,7 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
             style: GoogleFonts.cairo(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -119,7 +125,7 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
             'قم بإنشاء جلسة تدريب جديدة من شاشة الأوراق',
             style: GoogleFonts.cairo(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
             ),
           ),
         ],
@@ -127,7 +133,7 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
     );
   }
 
-  Widget _buildSessionsList() {
+  Widget _buildSessionsList(bool isDark) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _sessions.length,
@@ -135,11 +141,11 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
         final session = _sessions[index];
         return Card(
           elevation: 0,
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.borderLight),
+            side: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -154,7 +160,7 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
                         style: GoogleFonts.cairo(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -165,34 +171,34 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
                           _buildPill(
                             icon: Icons.help_outline_rounded,
                             label: '0/${session['questionsCount']}',
-                            color: AppColors.primaryBlue,
-                            bgColor: const Color(0xFFEFF6FF),
+                            color: isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue,
+                            bgColor: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.5) : const Color(0xFFEFF6FF),
                           ),
                           _buildPill(
                             icon: Icons.library_books_rounded,
                             label: '${session['examsCount']} امتحان',
-                            color: const Color(0xFF16A34A),
-                            bgColor: const Color(0xFFF0FDF4),
+                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A),
+                            bgColor: isDark ? const Color(0xFF14532D).withValues(alpha: 0.5) : const Color(0xFFF0FDF4),
                           ),
                           _buildPill(
                             icon: Icons.timer_outlined,
                             label: session['time'],
-                            color: const Color(0xFF9333EA),
-                            bgColor: const Color(0xFFFDF4FF),
+                            color: isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA),
+                            bgColor: isDark ? const Color(0xFF4C1D95).withValues(alpha: 0.5) : const Color(0xFFFDF4FF),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today_rounded,
-                              size: 12, color: AppColors.textSecondary),
+                          Icon(Icons.calendar_today_rounded,
+                              size: 12, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             session['date'],
                             style: GoogleFonts.cairo(
                               fontSize: 11,
-                              color: AppColors.textSecondary,
+                              color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
                             ),
                           ),
                         ],

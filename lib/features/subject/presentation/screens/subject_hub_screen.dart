@@ -63,21 +63,27 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     final user = context.watch<AuthService>().user;
     if (user == null || _checkingActivation) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator())
+      );
     }
     final userId = user.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          _buildSliverAppBar(userId),
-          SliverToBoxAdapter(child: _buildReadinessHeader(userId)),
+          _buildSliverAppBar(userId, theme, isDark),
+          SliverToBoxAdapter(child: _buildReadinessHeader(userId, isDark)),
           SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
-          _buildCramModeSliver(userId),
-          SliverToBoxAdapter(child: _buildActionsGrid(userId)),
+          _buildCramModeSliver(userId, isDark),
+          SliverToBoxAdapter(child: _buildActionsGrid(userId, isDark)),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -111,7 +117,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
-  Widget _buildReadinessHeader(String userId) {
+  Widget _buildReadinessHeader(String userId, bool isDark) {
     return StreamBuilder<double>(
       stream: ReadinessService().streamReadinessScore(userId, widget.subjectId),
       builder: (context, snapshot) {
@@ -132,8 +138,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A), // Keep it dark as it's a premium header style
             borderRadius: BorderRadius.circular(30),
+            border: isDark ? Border.all(color: Colors.white10) : null,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
@@ -206,16 +213,16 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
-  SliverAppBar _buildSliverAppBar(String userId) {
+  SliverAppBar _buildSliverAppBar(String userId, ThemeData theme, bool isDark) {
     return SliverAppBar(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
       pinned: true,
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_back_ios_new_rounded,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
           size: 20,
         ),
         onPressed: () => Navigator.pop(context),
@@ -223,9 +230,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       actions: [
         IconButton(
           onPressed: () => _showMasteryMap(context, userId),
-          icon: const Icon(
+          icon: Icon(
             Icons.map_outlined,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
             size: 24,
           ),
           tooltip: 'خارطة الإتقان',
@@ -234,7 +241,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       title: Text(
         widget.subjectName,
         style: GoogleFonts.cairo(
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
           fontWeight: FontWeight.bold,
           fontSize: 18,
         ),
@@ -243,7 +250,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   }
 
   // Grid built with a normal GridView (not SliverGrid) to avoid height calculation issues
-  Widget _buildActionsGrid(String userId) {
+  Widget _buildActionsGrid(String userId, bool isDark) {
     final List<(IconData, String, Color, Stream<int>, int, bool)> actions = [
       (
         Icons.assignment_rounded,
@@ -264,7 +271,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       (
         Icons.auto_awesome_motion_rounded,
         'مركز الإتقان',
-        const Color(0xFF0F172A),
+        isDark ? Colors.white : const Color(0xFF0F172A),
         _statsService.streamWrongAnswersCount(userId, widget.subjectId),
         2,
         !_isActivated,
@@ -369,7 +376,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
-  Widget _buildCramModeSliver(String userId) {
+  Widget _buildCramModeSliver(String userId, bool isDark) {
     if (!_isActivated) return const SliverToBoxAdapter(child: SizedBox.shrink());
     return SliverToBoxAdapter(
       child: FutureBuilder<List<QuizQuestion>>(
@@ -391,9 +398,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.amber[50],
+              color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : Colors.amber[50],
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.amber[200]!),
+              border: Border.all(color: isDark ? const Color(0xFF92400E) : Colors.amber[200]!),
             ),
             child: Row(
               children: [
@@ -413,13 +420,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                         style: GoogleFonts.cairo(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: isDark ? Colors.amber[400] : Colors.black,
                         ),
                       ),
                       Text(
                         'لديك $count سؤال تحتاج لمراجعتها الآن',
                         style: GoogleFonts.cairo(
                           fontSize: 12,
-                          color: Colors.amber[900],
+                          color: isDark ? Colors.amber[200] : Colors.amber[900],
                         ),
                       ),
                     ],
@@ -461,15 +469,16 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   }
 
   void _showPaywall() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.all(32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -478,7 +487,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.amber[50],
+                color: isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber[50],
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 32),
@@ -486,13 +495,20 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             const SizedBox(height: 24),
             Text(
               'افتح المحتوى الكامل الآن',
-              style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold),
+              style: GoogleFonts.cairo(
+                fontSize: 20, 
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
               'اشترك لتتمكن من الوصول لجميع الدروس، الاختبارات، وتحليل الأخطاء المتقدم.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(color: AppColors.textSecondary, height: 1.5),
+              style: GoogleFonts.cairo(
+                color: isDark ? Colors.white60 : AppColors.textSecondary, 
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -513,7 +529,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('ربما لاحقاً', style: GoogleFonts.cairo(color: Colors.grey)),
+              child: Text(
+                'ربما لاحقاً', 
+                style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+              ),
             ),
             const SizedBox(height: 20),
           ],
@@ -526,14 +545,20 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     final controller = TextEditingController();
     bool isLoading = false;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(
             'تفعيل المادة',
-            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
             textAlign: TextAlign.center,
           ),
           content: Column(
@@ -541,7 +566,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             children: [
               Text(
                 'يرجى إدخال كود تفعيل مادة ${widget.subjectName} لفتح جميع المميزات.',
-                style: GoogleFonts.cairo(fontSize: 14),
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -549,20 +577,30 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                 controller: controller,
                 decoration: InputDecoration(
                   hintText: 'أدخل الكود هنا...',
-                  hintStyle: GoogleFonts.cairo(fontSize: 13),
+                  hintStyle: GoogleFonts.cairo(
+                    fontSize: 13,
+                    color: isDark ? Colors.white24 : Colors.grey[400],
+                  ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
                 ),
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 2),
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold, 
+                  letterSpacing: 2,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+              child: Text(
+                'إلغاء', 
+                style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+              ),
             ),
             ElevatedButton(
               onPressed: isLoading ? null : () async {
@@ -789,11 +827,12 @@ class _MasteryMapSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F172A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A), // Keep it dark as it's a premium sheet style
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(

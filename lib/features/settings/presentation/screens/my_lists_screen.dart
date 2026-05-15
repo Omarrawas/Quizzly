@@ -21,7 +21,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
     });
   }
 
-  void _showEditSheet(UserList list) {
+  void _showEditSheet(UserList list, ThemeData theme, bool isDark) {
     final nameController = TextEditingController(text: list.name);
     showModalBottomSheet(
       context: context,
@@ -29,9 +29,9 @@ class _MyListsScreenState extends State<MyListsScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
             left: 24,
@@ -48,7 +48,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 24),
@@ -56,17 +56,18 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 'الاسم',
                 style: GoogleFonts.cairo(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
                 ),
               ),
               TextField(
                 controller: nameController,
                 autofocus: true,
+                style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'اسم القائمة',
-                  hintStyle: GoogleFonts.cairo(),
+                  hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white54 : null),
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -102,7 +103,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
     );
   }
 
-  void _showCreateSheet(BuildContext context) {
+  void _showCreateSheet(BuildContext context, ThemeData theme, bool isDark) {
     final nameController = TextEditingController();
     showModalBottomSheet(
       context: context,
@@ -110,9 +111,9 @@ class _MyListsScreenState extends State<MyListsScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
             left: 24,
@@ -129,18 +130,19 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 24),
               TextField(
                 controller: nameController,
                 autofocus: true,
+                style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'اسم القائمة',
-                  hintStyle: GoogleFonts.cairo(),
+                  hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white54 : null),
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -183,19 +185,22 @@ class _MyListsScreenState extends State<MyListsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 1,
         shadowColor: Colors.black.withValues(alpha: 0.06),
         automaticallyImplyLeading: false,
         leading: IconButton(
           onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_forward_ios_rounded,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
             size: 20,
           ),
         ),
@@ -204,13 +209,16 @@ class _MyListsScreenState extends State<MyListsScreen> {
           style: GoogleFonts.cairo(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0xFFF1F5F9)),
+          child: Container(
+            height: 1, 
+            color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+          ),
         ),
       ),
       body: StreamBuilder<List<UserList>>(
@@ -230,7 +238,10 @@ class _MyListsScreenState extends State<MyListsScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'لا توجد قوائم بعد',
-                    style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 16),
+                    style: GoogleFonts.cairo(
+                      color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary, 
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -249,7 +260,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 'نظم أسئلتك في قوائم مخصصة للوصول السريع.\nتظهر هذه القوائم عند حفظ أي سؤال.',
                 style: GoogleFonts.cairo(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
                   height: 1.6,
                 ),
                 textAlign: TextAlign.center,
@@ -262,7 +273,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 separatorBuilder: (context, index) => const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   final list = lists[index];
-                  return _buildListCard(list);
+                  return _buildListCard(list, isDark);
                 },
               ),
             ],
@@ -276,7 +287,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton.icon(
-            onPressed: () => _showCreateSheet(context),
+            onPressed: () => _showCreateSheet(context, theme, isDark),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               shape: RoundedRectangleBorder(
@@ -300,11 +311,12 @@ class _MyListsScreenState extends State<MyListsScreen> {
     );
   }
 
-  Widget _buildListCard(UserList list) {
+  Widget _buildListCard(UserList list, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -370,7 +382,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                         style: GoogleFonts.cairo(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -402,7 +414,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                                 '$count سؤال',
                                 style: GoogleFonts.cairo(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
                                 ),
                               );
                             },
@@ -414,22 +426,22 @@ class _MyListsScreenState extends State<MyListsScreen> {
                 ),
                 if (!list.isSystem) ...[
                   IconButton(
-                    onPressed: () => _showEditSheet(list),
+                    onPressed: () => _showEditSheet(list, Theme.of(context), isDark),
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: isDark ? Colors.white10 : Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.edit_rounded, color: Colors.blueGrey, size: 20),
+                      child: Icon(Icons.edit_rounded, color: isDark ? Colors.white70 : Colors.blueGrey, size: 20),
                     ),
                   ),
                   IconButton(
-                    onPressed: () => _confirmDelete(list),
+                    onPressed: () => _confirmDelete(list, isDark),
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
+                        color: isDark ? const Color(0xFF450a0a) : const Color(0xFFFEF2F2),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 20),
@@ -448,19 +460,20 @@ class _MyListsScreenState extends State<MyListsScreen> {
     );
   }
 
-  void _confirmDelete(UserList list) {
+  void _confirmDelete(UserList list, bool isDark) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'حذف القائمة',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: const Color(0xFFDC2626)),
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: const Color(0xFFEF4444)),
           textAlign: TextAlign.center,
         ),
         content: Text(
           'هل أنت متأكد من رغبتك في حذف قائمة "${list.name}"؟ سيتم حذف القائمة فقط ولن تُحذف الأسئلة من النظام.',
-          style: GoogleFonts.cairo(height: 1.5),
+          style: GoogleFonts.cairo(height: 1.5, color: isDark ? Colors.white : AppColors.textPrimary),
           textAlign: TextAlign.center,
         ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

@@ -25,19 +25,21 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 1,
-        shadowColor: Colors.black.withValues(alpha: 0.06),
+        shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
         automaticallyImplyLeading: false,
         leading: IconButton(
           onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
             size: 20,
           ),
         ),
@@ -46,9 +48,9 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
             onPressed: () => setState(() {
               _activationsStream = _dbService.getActivations();
             }),
-            icon: const Icon(
+            icon: Icon(
               Icons.refresh_rounded,
-              color: AppColors.textSecondary,
+              color: isDark ? Colors.white38 : AppColors.textSecondary,
               size: 24,
             ),
           ),
@@ -58,20 +60,20 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           style: GoogleFonts.cairo(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
-          child: _buildTabs(),
+          child: _buildTabs(isDark),
         ),
       ),
-      body: _buildActivationsList(isPaid: _selectedIndex == 0),
+      body: _buildActivationsList(isPaid: _selectedIndex == 0, isDark: isDark),
     );
   }
 
-  Widget _buildActivationsList({required bool isPaid}) {
+  Widget _buildActivationsList({required bool isPaid, required bool isDark}) {
     return StreamBuilder<QuerySnapshot>(
       stream: _activationsStream,
       builder: (context, snapshot) {
@@ -100,6 +102,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           return _buildEmptyState(
             isPaid ? Icons.account_balance_wallet_rounded : Icons.person_add_alt_1_rounded,
             isPaid ? 'لا توجد تفعيلات مدفوعة حالياً' : 'لا توجد تفعيلات مجانية حالياً',
+            isDark,
           );
         }
 
@@ -118,12 +121,12 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey[100]!),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey[100]!),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -154,7 +157,11 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                             final name = (userSnap.data?.data() as Map<String, dynamic>?)?['displayName'] ?? '...';
                             return Text(
                               name,
-                              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold, 
+                                fontSize: 16, 
+                                color: isDark ? Colors.white : AppColors.textPrimary
+                              ),
                             );
                           },
                         ),
@@ -187,9 +194,9 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                             margin: const EdgeInsets.only(top: 4, bottom: 4),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.grey[200]!),
+                              border: Border.all(color: isDark ? Colors.white10 : Colors.grey[200]!),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -198,7 +205,12 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                                 const SizedBox(width: 4),
                                 Text(
                                   activationCode,
-                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[700], letterSpacing: 0.5),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11, 
+                                    fontWeight: FontWeight.bold, 
+                                    color: isDark ? Colors.white70 : Colors.grey[700], 
+                                    letterSpacing: 0.5
+                                  ),
                                 ),
                               ],
                             ),
@@ -208,7 +220,10 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                           children: [
                             Text(
                               intl.DateFormat('yyyy/MM/dd • HH:mm').format(date),
-                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[400]),
+                              style: GoogleFonts.inter(
+                                fontSize: 11, 
+                                color: isDark ? Colors.white24 : Colors.grey[400]
+                              ),
                             ),
                             if (data['expiresAt'] != null)
                               Text(
@@ -225,7 +240,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                     color: Colors.red.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     child: IconButton(
-                      onPressed: () => _confirmDeleteActivation(doc.id),
+                      onPressed: () => _confirmDeleteActivation(doc.id, isDark),
                       icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 22),
                       tooltip: 'حذف التفعيل',
                     ),
@@ -239,44 +254,36 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     );
   }
 
-  void _confirmDeleteActivation(String id) {
+  void _confirmDeleteActivation(String id, bool isDark) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('حذف التفعيل', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
-        content: Text('هل أنت متأكد من حذف هذا التفعيل؟ سيتم قفل المادة عند المستخدم فوراً.', style: GoogleFonts.cairo()),
+        title: Text(
+          'حذف التفعيل', 
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف هذا التفعيل؟ سيتم قفل المادة عند المستخدم فوراً.', 
+          style: GoogleFonts.cairo(color: isDark ? Colors.white70 : Colors.black87)
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: Text(
+              'إلغاء', 
+              style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey)
+            )
+          ),
           TextButton(
             onPressed: () async {
               await _dbService.deleteActivation(id);
               if (context.mounted) Navigator.pop(context);
             },
-            child: Text('حذف', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(IconData icon, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 80,
-            color: AppColors.textSecondary.withValues(alpha: 0.2),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textSecondary,
+            child: Text(
+              'حذف', 
+              style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)
             ),
           ),
         ],
@@ -284,13 +291,37 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     );
   }
 
-  Widget _buildTabs() {
+  Widget _buildEmptyState(IconData icon, String message, bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 80,
+            color: isDark ? Colors.white10 : AppColors.textSecondary.withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white38 : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabs(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9), // Light grey
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -299,11 +330,13 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
               title: 'التفعيلات المدفوعة',
               index: 0,
               icon: Icons.verified_user_rounded,
+              isDark: isDark,
             ),
             _buildTab(
               title: 'التفعيلات المجانية',
               index: 1,
               icon: Icons.person_add_alt_1_rounded,
+              isDark: isDark,
             ),
           ],
         ),
@@ -311,7 +344,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     );
   }
 
-  Widget _buildTab({required String title, required int index, required IconData icon}) {
+  Widget _buildTab({required String title, required int index, required IconData icon, required bool isDark}) {
     final isSelected = _selectedIndex == index;
     return Expanded(
       child: GestureDetector(
@@ -319,12 +352,12 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         child: Container(
           margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? (isDark ? const Color(0xFF1E293B) : Colors.white) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     )
@@ -337,7 +370,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
+                color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white38 : AppColors.textSecondary),
               ),
               const SizedBox(width: 8),
               Text(
@@ -345,7 +378,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
+                  color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white38 : AppColors.textSecondary),
                 ),
               ),
             ],

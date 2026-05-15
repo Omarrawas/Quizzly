@@ -159,9 +159,12 @@ class _CreateTrainingSessionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: _buildAppBar(isDark),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -255,18 +258,18 @@ class _CreateTrainingSessionScreenState
     );
   }
 
-  AppBar _buildAppBar() {
+  AppBar _buildAppBar(bool isDark) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
       automaticallyImplyLeading: false,
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_forward_ios_rounded,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
           size: 20,
         ),
       ),
@@ -275,13 +278,13 @@ class _CreateTrainingSessionScreenState
         style: GoogleFonts.cairo(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
       ),
       centerTitle: true,
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFF1F5F9)),
+        child: Container(height: 1, color: isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
       ),
     );
   }
@@ -317,7 +320,9 @@ class _CreateTrainingSessionScreenState
               fontSize: 13,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E293B)
+                : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.borderLight),
@@ -378,12 +383,13 @@ class _CreateTrainingSessionScreenState
     bool hasCheckbox = false,
     required Widget body,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
       child: Column(
         children: [
@@ -439,10 +445,11 @@ class _CreateTrainingSessionScreenState
   }
 
   Widget _buildSummaryBox() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9), // خلفية رمادية فاتحة
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -543,6 +550,7 @@ class _CreateTrainingSessionScreenState
   }
 
   Widget _buildBottomBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.only(
         left: 20,
@@ -551,7 +559,7 @@ class _CreateTrainingSessionScreenState
         bottom: MediaQuery.of(context).padding.bottom + 16,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),

@@ -43,11 +43,12 @@ class QuizHud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)),
       ),
       child: Row(
         children: [
@@ -56,7 +57,7 @@ class QuizHud extends StatelessWidget {
             onTap: onToggleTimer,
             child: Icon(
               isTimerRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: Colors.black,
+              color: isDark ? Colors.white : Colors.black,
               size: 28,
             ),
           ),
@@ -66,7 +67,7 @@ class QuizHud extends StatelessWidget {
             icon: Icons.timer_outlined,
             label: _formatTime(elapsed),
             color: const Color(0xFF2563EB),
-            bgColor: const Color(0xFFEFF6FF),
+            bgColor: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
           ),
           // 3. Filters button (additionalAction)
           if (additionalAction != null) ...[
@@ -79,7 +80,7 @@ class QuizHud extends StatelessWidget {
             icon: Icons.close_rounded,
             label: '$wrongCount',
             color: const Color(0xFFDC2626),
-            bgColor: const Color(0xFFFEF2F2),
+            bgColor: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.15) : const Color(0xFFFEF2F2),
             onTap: onWrongTap,
           ),
           const SizedBox(width: 8),
@@ -88,7 +89,7 @@ class QuizHud extends StatelessWidget {
             icon: Icons.check_rounded,
             label: '$correctCount',
             color: const Color(0xFF16A34A),
-            bgColor: const Color(0xFFF0FDF4),
+            bgColor: isDark ? const Color(0xFF16A34A).withValues(alpha: 0.15) : const Color(0xFFF0FDF4),
             onTap: onCorrectTap,
           ),
           const SizedBox(width: 8),
@@ -97,7 +98,7 @@ class QuizHud extends StatelessWidget {
             icon: Icons.check_circle_rounded,
             label: '$current/$total',
             color: const Color(0xFF0891B2),
-            bgColor: const Color(0xFFECFEFF),
+            bgColor: isDark ? const Color(0xFF0891B2).withValues(alpha: 0.15) : const Color(0xFFECFEFF),
           ),
         ],
       ),
@@ -167,15 +168,17 @@ class QuizExamHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -191,7 +194,7 @@ class QuizExamHeader extends StatelessWidget {
               style: GoogleFonts.cairo(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: AppColors.textPrimary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
               ),
               textAlign: TextAlign.right,
             ),
@@ -244,10 +247,11 @@ class _HeaderPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -257,12 +261,12 @@ class _HeaderPill extends StatelessWidget {
             label,
             style: GoogleFonts.cairo(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: isDark ? Colors.white60 : AppColors.textSecondary,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(width: 6),
-          Icon(icon, size: 14, color: AppColors.textSecondary),
+          Icon(icon, size: 14, color: isDark ? Colors.white60 : AppColors.textSecondary),
         ],
       ),
     );
@@ -284,7 +288,8 @@ class _IconActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final finalColor = color ?? AppColors.textSecondary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final finalColor = color ?? (isDark ? Colors.white60 : AppColors.textSecondary);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -367,18 +372,26 @@ class QuestionCard extends StatelessWidget {
 
   void _showNoteDialog(BuildContext context) {
     final controller = TextEditingController(text: note);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('إضافة ملاحظة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('إضافة ملاحظة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
         content: TextField(
           controller: controller,
           maxLines: 3,
+          style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : Colors.black),
           textAlign: TextAlign.right,
           decoration: InputDecoration(
             hintText: 'اكتب ملاحظتك هنا...',
-            hintStyle: GoogleFonts.cairo(fontSize: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            hintStyle: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white38 : Colors.grey),
+            filled: true,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
+            ),
           ),
         ),
         actions: [
@@ -404,13 +417,15 @@ class QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -430,7 +445,7 @@ class QuestionCard extends StatelessWidget {
                     text: '${displayIndex ?? question.number} - ${question.text}',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
                 _QuestionMenuButton(question: question),
@@ -536,27 +551,28 @@ class _OptionTile extends StatelessWidget {
   });
 
   Color get _bgColor {
-    if (showCorrect && isCorrect) return const Color(0xFFF0FDF4);
+    if (showCorrect && isCorrect) return const Color(0xFF16A34A).withValues(alpha: 0.15);
     if (answerState == AnswerState.unanswered) {
-      return isSelected ? const Color(0xFFF8FAFC) : Colors.transparent;
+      return isSelected ? const Color(0xFF2563EB).withValues(alpha: 0.08) : Colors.transparent;
     }
     if (isSelected && answerState == AnswerState.wrong) {
-      return const Color(0xFFFEF2F2);
+      return const Color(0xFFDC2626).withValues(alpha: 0.15);
     }
     if (isSelected && answerState == AnswerState.correct) {
-      return const Color(0xFFF0FDF4);
+      return const Color(0xFF16A34A).withValues(alpha: 0.15);
     }
     return Colors.transparent;
   }
 
   Color get _radioColor {
     if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected) return AppColors.primaryBlue;
-    return AppColors.borderLight;
+    if (isSelected) return const Color(0xFF2563EB);
+    return Colors.grey.withValues(alpha: 0.3);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -591,7 +607,7 @@ class _OptionTile extends StatelessWidget {
               child: TexViewWidget(
                 text: option.text,
                 fontSize: 15,
-                color: AppColors.textPrimary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -620,22 +636,23 @@ class _TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF1F2),
+          color: isDark ? const Color(0xFFE11D48).withValues(alpha: 0.15) : const Color(0xFFFFF1F2),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFECDD3)),
+          border: Border.all(color: isDark ? const Color(0xFFE11D48).withValues(alpha: 0.3) : const Color(0xFFFECDD3)),
         ),
         child: Text(
           label,
           style: GoogleFonts.cairo(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFFE11D48),
+            color: isDark ? const Color(0xFFFB7185) : const Color(0xFFE11D48),
           ),
         ),
       ),
@@ -651,10 +668,12 @@ class _QuestionMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
-      icon: const Icon(
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      icon: Icon(
         Icons.more_vert_rounded,
-        color: AppColors.textSecondary,
+        color: isDark ? Colors.white60 : AppColors.textSecondary,
         size: 22,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -680,7 +699,7 @@ class _QuestionMenuButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text('مشاركة السؤال', style: GoogleFonts.cairo(fontSize: 14)),
+              Text('مشاركة السؤال', style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : Colors.black)),
               const SizedBox(width: 10),
               const Icon(
                 Icons.share_rounded,
@@ -695,7 +714,7 @@ class _QuestionMenuButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text('الإبلاغ عن خطأ', style: GoogleFonts.cairo(fontSize: 14)),
+              Text('الإبلاغ عن خطأ', style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : Colors.black)),
               const SizedBox(width: 10),
               const Icon(
                 Icons.flag_rounded,
@@ -715,27 +734,29 @@ class _QuestionMenuButton extends StatelessWidget {
 // ═══════════════════════════════════════════════════════
 void showNoteDialog(BuildContext context, int questionNumber) {
   final controller = TextEditingController();
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   showDialog(
     context: context,
     builder: (_) => AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         'إضافة ملاحظة',
-        style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+        style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black),
         textAlign: TextAlign.center,
       ),
       content: TextField(
         controller: controller,
         maxLines: 4,
-        style: GoogleFonts.cairo(fontSize: 14),
+        style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : Colors.black),
         decoration: InputDecoration(
           hintText: 'ملاحظتك...',
-          hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary),
+          hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary),
           filled: true,
-          fillColor: const Color(0xFFF8FAFC),
+          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.borderLight),
+            borderSide: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -774,6 +795,7 @@ void showReportDialog(BuildContext context, int questionNumber) {
   final controller = TextEditingController();
   String selectedType = 'خطأ في الإجابة';
 
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   showDialog(
     context: context,
     builder: (context) => StatefulBuilder(
@@ -781,10 +803,11 @@ void showReportDialog(BuildContext context, int questionNumber) {
         return Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             title: Text(
               'الإبلاغ عن السؤال (#$questionNumber)',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black),
               textAlign: TextAlign.center,
             ),
             content: SingleChildScrollView(
@@ -794,28 +817,28 @@ void showReportDialog(BuildContext context, int questionNumber) {
                 children: [
                   Text(
                     'تفاصيل المشكلة',
-                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: controller,
                     maxLines: 3,
-                    style: GoogleFonts.cairo(fontSize: 14),
+                    style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
                       hintText: 'اكتب تفاصيل المشكلة هنا...',
-                      hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary),
+                      hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.borderLight),
+                        borderSide: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'نوع المشكلة',
-                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black),
                   ),
                   _ReportOption(
                     label: 'خطأ في الإجابة',
@@ -932,6 +955,7 @@ class _ReportOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = value == groupValue;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -958,7 +982,7 @@ class _ReportOption extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
+                    color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white24 : AppColors.textSecondary),
                     width: 2,
                   ),
                 ),
@@ -980,7 +1004,7 @@ class _ReportOption extends StatelessWidget {
                 style: GoogleFonts.cairo(
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                  color: isSelected ? (isDark ? Colors.blue[300] : AppColors.primaryBlue) : (isDark ? Colors.white70 : AppColors.textPrimary),
                 ),
               ),
             ],
@@ -995,11 +1019,12 @@ class _ReportOption extends StatelessWidget {
 //  نافذة شرح الإجابة
 // ─────────────────────────────────────────
 void showExplanationDialog(BuildContext context, QuizQuestion question) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      surfaceTintColor: isDark ? Colors.transparent : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -1009,14 +1034,14 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
             style: GoogleFonts.cairo(
               fontWeight: FontWeight.w900,
               fontSize: 20,
-              color: const Color(0xFF1E293B),
+              color: isDark ? Colors.white : const Color(0xFF1E293B),
             ),
           ),
           const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 24),
@@ -1049,7 +1074,7 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
             TexViewWidget(
               text: question.explanation ?? 'لا يوجد شرح متوفر لهذا السؤال حالياً.',
               fontSize: 15,
-              color: const Color(0xFF475569),
+              color: isDark ? Colors.white70 : const Color(0xFF475569),
               fontWeight: FontWeight.w500,
             ),
           ],
@@ -1108,10 +1133,11 @@ class QuestionBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
       child: Row(
@@ -1120,7 +1146,7 @@ class QuestionBottomBar extends StatelessWidget {
           if (onExplanationTap != null)
             _ActionButton(
               icon: Icons.lightbulb_rounded,
-              color: Colors.amber.shade600,
+              color: isDark ? Colors.amber[300] : Colors.amber.shade600,
               onTap: onExplanationTap,
             ),
           _ActionButton(
@@ -1136,7 +1162,7 @@ class QuestionBottomBar extends StatelessWidget {
           ),
           _ActionButton(
             icon: isChecked ? Icons.check_circle_rounded : Icons.check_circle_outlined,
-            color: isChecked ? const Color(0xFF16A34A) : (canCheck ? const Color(0xFF2563EB) : Colors.grey.shade400),
+            color: isChecked ? const Color(0xFF16A34A) : (canCheck ? const Color(0xFF2563EB) : (isDark ? Colors.white10 : Colors.grey.shade400)),
             onTap: canCheck ? onCheckTap : null,
           ),
         ],
@@ -1160,6 +1186,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1170,7 +1197,7 @@ class _ActionButton extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Icon(
             icon,
-            color: color ?? AppColors.textSecondary,
+            color: color ?? (isDark ? Colors.white60 : AppColors.textSecondary),
             size: 24,
           ),
         ),

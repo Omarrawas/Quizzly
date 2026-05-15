@@ -157,25 +157,27 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
 
   void _showMnemonicDialog() {
     final controller = TextEditingController(text: _currentMnemonic);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         title: Text(
           'رابط ذهني للحفظ',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
           textAlign: TextAlign.right,
         ),
         content: TextField(
           controller: controller,
           maxLines: 3,
+          style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black),
           textAlign: TextAlign.right,
           decoration: InputDecoration(
             hintText: 'اكتب شيئاً يساعدك على التذكر...',
-            hintStyle: GoogleFonts.cairo(color: Colors.grey[400]),
+            hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white24 : Colors.grey[400]),
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -185,7 +187,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -335,13 +337,16 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     final total = _correct + _wrong;
     final pct = total > 0 ? (_correct / total * 100).round() : 0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (_) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
         padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -350,7 +355,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               width: 48,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: isDark ? Colors.white10 : Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -378,7 +383,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             const SizedBox(height: 16),
             Text(
               'انتهت الجلسة!',
-              style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold),
+              style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
             ),
             if (widget.isFree)
               Padding(
@@ -393,9 +398,9 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStatBadge('✅ صحيح', '$_correct', const Color(0xFF16A34A)),
-                _buildStatBadge('❌ خطأ', '$_wrong', const Color(0xFFDC2626)),
-                _buildStatBadge('📊 الكل', '${_correct + _wrong}', AppColors.primaryBlue),
+                _buildStatBadge('✅ صحيح', '$_correct', const Color(0xFF16A34A), isDark),
+                _buildStatBadge('❌ خطأ', '$_wrong', const Color(0xFFDC2626), isDark),
+                _buildStatBadge('📊 الكل', '${_correct + _wrong}', AppColors.primaryBlue, isDark),
               ],
             ),
             const SizedBox(height: 24),
@@ -410,8 +415,9 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: isDark ? Colors.white24 : AppColors.borderLight),
                     ),
-                    child: Text('خروج', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    child: Text('خروج', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -446,17 +452,18 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     );
   }
 
-  Widget _buildStatBadge(String label, String value, Color color) {
+  Widget _buildStatBadge(String label, String value, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(12),
+        border: isDark ? Border.all(color: color.withValues(alpha: 0.3)) : null,
       ),
       child: Column(
         children: [
-          Text(value, style: GoogleFonts.cairo(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: GoogleFonts.cairo(fontSize: 11, color: color)),
+          Text(value, style: GoogleFonts.cairo(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? color : color)),
+          Text(label, style: GoogleFonts.cairo(fontSize: 11, color: isDark ? color.withValues(alpha: 0.8) : color)),
         ],
       ),
     );
@@ -476,7 +483,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               ? _buildEmptyState()
               : Column(
                   children: [
-                    _buildProgressBar(),
+                    _buildProgressBar(isDark),
                     Expanded(
                       child: SlideTransition(
                         position: _slideAnimation,
@@ -527,7 +534,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
           ),
           Text(
             'السؤال ${_currentIndex + 1} من ${_questions.length}',
-            style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary),
+            style: GoogleFonts.cairo(fontSize: 11, color: isDark ? Colors.white38 : AppColors.textSecondary),
           ),
         ],
       ),
@@ -537,7 +544,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             margin: const EdgeInsets.only(left: 16, right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -552,13 +559,45 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(bool isDark) {
     final progress = _questions.isNotEmpty ? (_currentIndex + 1) / _questions.length : 0.0;
-    return LinearProgressIndicator(
-      value: progress,
-      backgroundColor: Colors.grey[200],
-      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
-      minHeight: 3,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'السؤال ${_currentIndex + 1} من ${_questions.length}',
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white60 : AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200],
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -576,7 +615,8 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+        border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,7 +644,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                     const SizedBox(width: 2),
                     Text(
                       q.tagLabel ?? q.topicNames!.first,
-                      style: GoogleFonts.cairo(fontSize: 10, color: AppColors.textSecondary),
+                      style: GoogleFonts.cairo(fontSize: 10, color: isDark ? Colors.white38 : AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -638,7 +678,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                       
                       return Icon(
                         displayIcon,
-                        color: inPrimary ? (isHeart ? Colors.red : AppColors.primaryBlue) : AppColors.textSecondary,
+                        color: inPrimary ? (isHeart ? Colors.red : AppColors.primaryBlue) : (isDark ? Colors.white24 : AppColors.textSecondary),
                         size: 24,
                       );
                     }
@@ -682,18 +722,18 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
 
         if (revealed) {
           if (isCorrect) {
-            bgColor = const Color(0xFFF0FDF4);
+            bgColor = isDark ? const Color(0xFF16A34A).withValues(alpha: 0.15) : const Color(0xFFF0FDF4);
             borderColor = const Color(0xFF16A34A);
-            textColor = const Color(0xFF166534);
+            textColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF166534);
             trailingIcon = Icons.check_circle_rounded;
           } else if (isSelected) {
-            bgColor = const Color(0xFFFEF2F2);
+            bgColor = isDark ? const Color(0xFFDC2626).withValues(alpha: 0.15) : const Color(0xFFFEF2F2);
             borderColor = const Color(0xFFDC2626);
-            textColor = const Color(0xFF991B1B);
+            textColor = isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B);
             trailingIcon = Icons.cancel_rounded;
           }
         } else if (isSelected) {
-          bgColor = AppColors.primaryBlue.withValues(alpha: 0.08);
+          bgColor = isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : AppColors.primaryBlue.withValues(alpha: 0.08);
           borderColor = AppColors.primaryBlue;
         }
 
@@ -765,24 +805,24 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFEFCE8),
+          color: isDark ? const Color(0xFF713F12).withValues(alpha: 0.2) : const Color(0xFFFEFCE8),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFFDE047)),
+          border: Border.all(color: isDark ? const Color(0xFFEAB308).withValues(alpha: 0.3) : const Color(0xFFFDE047)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.lightbulb_rounded, color: Color(0xFFCA8A04), size: 18),
+                Icon(Icons.lightbulb_rounded, color: isDark ? Colors.amber[400] : const Color(0xFFCA8A04), size: 18),
                 const SizedBox(width: 8),
-                Text('الشرح', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: const Color(0xFF92400E))),
+                Text('الشرح', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.amber[400] : const Color(0xFF92400E))),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               _current!.explanation!,
-              style: GoogleFonts.cairo(fontSize: 13, color: const Color(0xFF78350F), height: 1.6),
+              style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white70 : const Color(0xFF78350F), height: 1.6),
               textDirection: TextDirection.rtl,
             ),
           ],
@@ -799,6 +839,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, -4))],
       ),
       child: Row(

@@ -3,11 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeService extends ChangeNotifier {
   static const String _themeKey = 'theme_mode';
-  ThemeMode _themeMode = ThemeMode.light;
+  final SharedPreferences _prefs;
+  late ThemeMode _themeMode;
 
   ThemeMode get themeMode => _themeMode;
 
-  ThemeService() {
+  ThemeService(this._prefs) {
     _loadTheme();
   }
 
@@ -17,15 +18,13 @@ class ThemeService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_themeKey) ?? false;
+  void _loadTheme() {
+    // Default to true (dark) if no value is stored
+    final isDark = _prefs.getBool(_themeKey) ?? true;
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
   }
 
   Future<void> _saveTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_themeKey, _themeMode == ThemeMode.dark);
+    await _prefs.setBool(_themeKey, _themeMode == ThemeMode.dark);
   }
 }

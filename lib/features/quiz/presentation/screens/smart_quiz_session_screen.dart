@@ -160,22 +160,37 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
   void _showResultsSheet() {
     final total = _correct + _wrong;
     final pct = total > 0 ? (_correct / total * 100).round() : 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
       isDismissible: false,
       enableDrag: false,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('كويز ذكي مكتمل!', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              'كويز ذكي مكتمل!', 
+              style: GoogleFonts.cairo(
+                fontSize: 20, 
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              )
+            ),
             const SizedBox(height: 20),
-            _buildResultCircle(pct),
+            _buildResultCircle(pct, isDark),
             const SizedBox(height: 24),
-            Text('لقد قمت بتحسين مستوى إتقانك للمادة 🎉', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+            Text(
+              'لقد قمت بتحسين مستوى إتقانك للمادة 🎉', 
+              style: GoogleFonts.cairo(color: isDark ? Colors.white70 : AppColors.textSecondary)
+            ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -199,35 +214,43 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     );
   }
 
-  Widget _buildResultCircle(int pct) {
+  Widget _buildResultCircle(int pct, bool isDark) {
     return Container(
       width: 100,
       height: 100,
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withValues(alpha: 0.1),
+        color: AppColors.primaryBlue.withValues(alpha: isDark ? 0.2 : 0.1),
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.primaryBlue, width: 2),
       ),
       child: Center(
-        child: Text('$pct%', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+        child: Text(
+          '$pct%', 
+          style: GoogleFonts.inter(
+            fontSize: 24, 
+            fontWeight: FontWeight.bold, 
+            color: isDark ? Colors.white : AppColors.primaryBlue
+          )
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: _buildAppBar(isDark),
       body: _loading
-          ? _buildLoadingState()
+          ? _buildLoadingState(isDark)
           : _questions.isEmpty
-              ? _buildEmptyState()
+              ? _buildEmptyState(isDark)
               : Column(
                   children: [
-                    _buildProgressBar(),
+                    _buildProgressBar(isDark),
                     Expanded(
                       child: SlideTransition(
                         position: _slideAnimation,
@@ -252,14 +275,17 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const CircularProgressIndicator(),
           const SizedBox(height: 24),
-          Text('جاري تحليل أداءك وتجهيز الأسئلة...', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+          Text(
+            'جاري تحليل أداءك وتجهيز الأسئلة...', 
+            style: GoogleFonts.cairo(color: isDark ? Colors.white60 : AppColors.textSecondary)
+          ),
         ],
       ),
     );
@@ -270,25 +296,38 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.close_rounded),
+        icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : AppColors.textPrimary),
         onPressed: () => Navigator.pop(context),
       ),
+      centerTitle: true,
       title: Column(
         children: [
-          Text('كويز ذكي', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            'كويز ذكي', 
+            style: GoogleFonts.cairo(
+              fontSize: 14, 
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            )
+          ),
           if (!_loading)
-            Text('السؤال ${_currentIndex + 1} من ${_questions.length}', 
-              style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary)),
+            Text(
+              'السؤال ${_currentIndex + 1} من ${_questions.length}', 
+              style: GoogleFonts.cairo(
+                fontSize: 11, 
+                color: isDark ? Colors.white38 : AppColors.textSecondary
+              )
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(bool isDark) {
     final progress = _questions.isNotEmpty ? (_currentIndex + 1) / _questions.length : 0.0;
     return LinearProgressIndicator(
       value: progress,
-      backgroundColor: Colors.grey[200],
+      backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
       valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
       minHeight: 3,
     );
@@ -302,14 +341,26 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+        border: isDark ? Border.all(color: Colors.white10) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), 
+            blurRadius: 10, 
+            offset: const Offset(0, 2)
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             q.text,
-            style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.textPrimary, height: 1.6),
+            style: GoogleFonts.cairo(
+              fontSize: 16, 
+              fontWeight: FontWeight.w600, 
+              color: isDark ? Colors.white : AppColors.textPrimary, 
+              height: 1.6
+            ),
             textDirection: TextDirection.rtl,
           ),
         ],
@@ -326,15 +377,18 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
         final revealed = _answerState != AnswerState.unanswered;
 
         Color bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-        Color borderColor = isDark ? Colors.white12 : AppColors.borderLight;
+        Color borderColor = isDark ? Colors.white10 : AppColors.borderLight;
+        Color textColor = isDark ? Colors.white : AppColors.textPrimary;
         
         if (revealed) {
           if (isCorrect) {
-            bgColor = const Color(0xFFF0FDF4);
-            borderColor = const Color(0xFF16A34A);
+            bgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFF0FDF4);
+            borderColor = isDark ? const Color(0xFF059669) : const Color(0xFF16A34A);
+            textColor = isDark ? Colors.white : const Color(0xFF166534);
           } else if (isSelected) {
-            bgColor = const Color(0xFFFEF2F2);
-            borderColor = const Color(0xFFDC2626);
+            bgColor = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEF2F2);
+            borderColor = isDark ? const Color(0xFFDC2626) : const Color(0xFFDC2626);
+            textColor = isDark ? Colors.white : const Color(0xFF991B1B);
           }
         } else if (isSelected) {
           borderColor = AppColors.primaryBlue;
@@ -348,11 +402,20 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: borderColor, width: (isSelected || (revealed && isCorrect)) ? 1.5 : 1),
+              border: Border.all(
+                color: borderColor, 
+                width: (isSelected || (revealed && isCorrect)) ? 1.5 : 1
+              ),
             ),
             child: Row(
               children: [
-                Expanded(child: Text(option.text, style: GoogleFonts.cairo(), textDirection: TextDirection.rtl)),
+                Expanded(
+                  child: Text(
+                    option.text, 
+                    style: GoogleFonts.cairo(color: textColor), 
+                    textDirection: TextDirection.rtl
+                  )
+                ),
               ],
             ),
           ),
@@ -365,8 +428,18 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFFEFCE8), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFDE047))),
-      child: Text(_current!.explanation!, style: GoogleFonts.cairo(fontSize: 13, color: const Color(0xFF78350F))),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF422006).withValues(alpha: 0.3) : const Color(0xFFFEFCE8), 
+        borderRadius: BorderRadius.circular(14), 
+        border: Border.all(color: isDark ? const Color(0xFF92400E) : const Color(0xFFFDE047))
+      ),
+      child: Text(
+        _current!.explanation!, 
+        style: GoogleFonts.cairo(
+          fontSize: 13, 
+          color: isDark ? const Color(0xFFFDE047) : const Color(0xFF78350F)
+        )
+      ),
     );
   }
 
@@ -374,7 +447,10 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     final answered = _answerState != AnswerState.unanswered;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : Colors.white),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: isDark ? const Border(top: BorderSide(color: Colors.white10)) : null,
+      ),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
@@ -394,20 +470,34 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.auto_awesome_rounded, size: 64, color: Colors.grey[300]),
+          Icon(Icons.auto_awesome_rounded, size: 64, color: isDark ? Colors.white10 : Colors.grey[300]),
           const SizedBox(height: 16),
-          Text('لا توجد بيانات كافية', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            'لا توجد بيانات كافية', 
+            style: GoogleFonts.cairo(
+              fontSize: 18, 
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary
+            )
+          ),
           const SizedBox(height: 8),
-          Text('ابدأ بالتدريب العادي أولاً لنتمكن من تحليل مستواك.', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+          Text(
+            'ابدأ بالتدريب العادي أولاً لنتمكن من تحليل مستواك.', 
+            style: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary)
+          ),
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('العودة')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('العودة')
+          ),
         ],
       ),
     );
   }
+
 }

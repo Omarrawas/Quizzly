@@ -167,11 +167,14 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                     child: TextField(
                       controller: _searchController,
                       textAlign: TextAlign.right,
-                      style: GoogleFonts.cairo(fontSize: 15),
+                      style: GoogleFonts.cairo(
+                        fontSize: 15,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'ابحث عن مادة محددة...',
                         hintStyle: GoogleFonts.cairo(
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          color: isDark ? Colors.white38 : AppColors.textSecondary.withValues(alpha: 0.5),
                         ),
                         prefixIcon: const Icon(
                           Icons.search_rounded,
@@ -251,26 +254,27 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   }
 
   Widget _buildBreadcrumb(String label, VoidCallback onTap, {bool isFirst = false, bool isLast = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isLast ? AppColors.primaryBlue.withValues(alpha: 0.1) : Colors.transparent,
+          color: isLast ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.2 : 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (!isFirst) 
-              const Icon(Icons.chevron_left_rounded, size: 18, color: AppColors.textSecondary),
+              Icon(Icons.chevron_left_rounded, size: 18, color: isDark ? Colors.white38 : AppColors.textSecondary),
             Text(
               label, 
               style: GoogleFonts.cairo(
                 fontSize: 13, 
                 fontWeight: isLast ? FontWeight.bold : FontWeight.w600,
-                color: isLast ? AppColors.primaryBlue : AppColors.textSecondary,
+                color: isLast ? (isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue) : (isDark ? Colors.white60 : AppColors.textSecondary),
               ),
             ),
           ],
@@ -358,12 +362,19 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     required String title,
     required Function(QueryDocumentSnapshot) onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+          child: Text(
+            title, 
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold, 
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
+            ),
+          ),
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -381,18 +392,26 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                   return Card(
                     elevation: 0,
                     margin: const EdgeInsets.only(bottom: 8),
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
+                      side: isDark ? const BorderSide(color: Colors.white10) : BorderSide.none,
                     ),
                     child: ListTile(
                       onTap: () => onTap(doc),
                       title: Text(
                         (doc.data() as Map<String, dynamic>?)?['name']?.toString() ?? 'بدون اسم',
-                        style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
                       ),
                       subtitle: Text(
                         (doc.data() as Map<String, dynamic>?)?['code']?.toString() ?? '',
-                        style: GoogleFonts.cairo(fontSize: 12),
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          color: isDark ? Colors.white38 : Colors.grey[600],
+                        ),
                       ),
                       trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.primaryBlue),
                     ),
@@ -407,6 +426,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   }
 
   Widget _buildEmptyState(String message, {bool showCodeAction = true}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: SingleChildScrollView(
         child: Padding(
@@ -429,14 +449,17 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 16, 
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary
+                  color: isDark ? Colors.white : AppColors.textPrimary
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 'قد لا تكون المواد مضافة لهذا العام الدراسي بعد في قاعدة البيانات.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+                style: GoogleFonts.cairo(
+                  fontSize: 13, 
+                  color: isDark ? Colors.white38 : AppColors.textSecondary,
+                ),
               ),
               if (showCodeAction) ...[
                 const SizedBox(height: 32),
@@ -465,31 +488,48 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   void _showAddCodeDialog(ContentService contentService, String? userId) {
     if (userId == null) return;
     final codeController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تفعيل مادة / فصل', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text(
+          'تفعيل مادة / فصل', 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'أدخل الكود الخاص بالمادة أو الفصل الدراسي لتفعيله مباشرة',
               textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+              style: GoogleFonts.cairo(
+                fontSize: 13, 
+                color: isDark ? Colors.white60 : AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: codeController,
               textAlign: TextAlign.center,
               autofocus: true,
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2),
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold, 
+                fontSize: 18, 
+                letterSpacing: 2,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               decoration: InputDecoration(
                 hintText: 'ABCD-1234',
-                hintStyle: GoogleFonts.inter(color: Colors.grey[300]),
+                hintStyle: GoogleFonts.inter(color: isDark ? Colors.white10 : Colors.grey[300]),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
@@ -498,7 +538,10 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء', 
+              style: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -554,13 +597,26 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   }
 
   void _showErrorDialog(String msg) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('خطأ', textAlign: TextAlign.center, style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
-        content: Text(msg, textAlign: TextAlign.center, style: GoogleFonts.cairo()),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text(
+          'خطأ', 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.cairo(color: Colors.redAccent, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          msg, 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black87),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('حسناً', style: GoogleFonts.cairo())),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: Text('حسناً', style: GoogleFonts.cairo(color: isDark ? Colors.white70 : AppColors.primaryBlue)),
+          ),
         ],
       ),
     );

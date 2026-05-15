@@ -20,13 +20,25 @@ class ReadinessDetailScreen extends StatelessWidget {
     final userId = context.read<AuthService>().user?.uid ?? '';
     final readinessService = ReadinessService();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text('تفاصيل الجاهزية', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: Text(
+          'تفاصيل الجاهزية', 
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          )
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: StreamBuilder<double>(
         stream: readinessService.streamReadinessScore(userId, subjectId),
@@ -38,13 +50,13 @@ class ReadinessDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                _buildMainGauge(percentage),
+                _buildMainGauge(percentage, isDark),
                 const SizedBox(height: 24),
-                _buildInsightCard(percentage),
+                _buildInsightCard(percentage, isDark),
                 const SizedBox(height: 24),
-                _buildTopicBreakdown(userId),
+                _buildTopicBreakdown(userId, isDark),
                 const SizedBox(height: 24),
-                _buildActionList(percentage),
+                _buildActionList(percentage, isDark),
               ],
             ),
           );
@@ -53,13 +65,18 @@ class ReadinessDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainGauge(int percentage) {
+  Widget _buildMainGauge(int percentage, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), 
+            blurRadius: 20
+          )
+        ],
       ),
       child: Column(
         children: [
@@ -72,7 +89,7 @@ class ReadinessDetailScreen extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: percentage / 100,
                   strokeWidth: 15,
-                  backgroundColor: Colors.grey[100],
+                  backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
                   valueColor: AlwaysStoppedAnimation<Color>(
                     percentage > 80 ? Colors.green : (percentage > 50 ? AppColors.primaryBlue : Colors.orange),
                   ),
@@ -86,14 +103,14 @@ class ReadinessDetailScreen extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                   Text(
                     'جاهزية',
                     style: GoogleFonts.cairo(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: isDark ? Colors.white70 : AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -109,7 +126,7 @@ class ReadinessDetailScreen extends StatelessWidget {
             style: GoogleFonts.cairo(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
         ],
@@ -117,13 +134,13 @@ class ReadinessDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInsightCard(int percentage) {
+  Widget _buildInsightCard(int percentage, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withValues(alpha: 0.05),
+        color: AppColors.primaryBlue.withValues(alpha: isDark ? 0.1 : 0.05),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.1)),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: isDark ? 0.3 : 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +153,7 @@ class ReadinessDetailScreen extends StatelessWidget {
                 'نصيحة ذكية',
                 style: GoogleFonts.cairo(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
+                  color: isDark ? Colors.blue[300] : AppColors.primaryBlue,
                 ),
               ),
             ],
@@ -144,7 +161,10 @@ class ReadinessDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             _getAdvice(percentage),
-            style: GoogleFonts.cairo(color: AppColors.textPrimary, height: 1.6),
+            style: GoogleFonts.cairo(
+              color: isDark ? Colors.white70 : AppColors.textPrimary, 
+              height: 1.6
+            ),
           ),
         ],
       ),
@@ -157,28 +177,32 @@ class ReadinessDetailScreen extends StatelessWidget {
     return 'مستوى الجاهزية منخفض حالياً. ابدأ بالدراسة حسب "التصنيفات" لتغطية المادة بشكل منهجي، ثم استخدم "المراجعة الذكية" لتثبيت الحفظ.';
   }
 
-  Widget _buildActionList(int percentage) {
+  Widget _buildActionList(int percentage, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'خطوات مقترحة للتحسين',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold, 
+            fontSize: 16,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 16),
-        _buildStepItem(Icons.repeat_rounded, 'استخدم المراجعة الذكية يومياً', Colors.purple),
-        _buildStepItem(Icons.error_outline_rounded, 'صحح أخطاءك السابقة فوراً', Colors.red),
-        _buildStepItem(Icons.grid_view_rounded, 'غطِّ كافة التصنيفات المتاحة', Colors.orange),
+        _buildStepItem(Icons.repeat_rounded, 'استخدم المراجعة الذكية يومياً', Colors.purple, isDark),
+        _buildStepItem(Icons.error_outline_rounded, 'صحح أخطاءك السابقة فوراً', Colors.red, isDark),
+        _buildStepItem(Icons.grid_view_rounded, 'غطِّ كافة التصنيفات المتاحة', Colors.orange, isDark),
       ],
     );
   }
 
-  Widget _buildStepItem(IconData icon, String label, Color color) {
+  Widget _buildStepItem(IconData icon, String label, Color color, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -189,7 +213,13 @@ class ReadinessDetailScreen extends StatelessWidget {
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 16),
-          Text(label, style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+          Text(
+            label, 
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            )
+          ),
           const Spacer(),
           const Icon(Icons.chevron_right, color: Colors.grey),
         ],
@@ -197,14 +227,18 @@ class ReadinessDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopicBreakdown(String userId) {
+  Widget _buildTopicBreakdown(String userId, bool isDark) {
     final readinessService = ReadinessService();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'تحليل التصنيفات',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold, 
+            fontSize: 16,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 16),
         FutureBuilder<Map<String, double>>(
@@ -217,9 +251,9 @@ class ReadinessDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+                  border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   children: [
@@ -227,13 +261,20 @@ class ReadinessDetailScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       'خارطة إتقان المادة',
-                      style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                      style: GoogleFonts.cairo(
+                        fontSize: 16, 
+                        fontWeight: FontWeight.bold, 
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'لا توجد بيانات كافية بعد.\nابدأ بحل بعض الأسئلة لنرى تحليل إتقانك هنا!',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.cairo(fontSize: 13, color: Colors.grey[600]),
+                      style: GoogleFonts.cairo(
+                        fontSize: 13, 
+                        color: isDark ? Colors.white38 : Colors.grey[600]
+                      ),
                     ),
                   ],
                 ),
@@ -241,7 +282,7 @@ class ReadinessDetailScreen extends StatelessWidget {
             }
 
             return Column(
-              children: scores.entries.map((e) => _buildTopicItem(e.key, e.value)).toList(),
+              children: scores.entries.map((e) => _buildTopicItem(e.key, e.value, isDark)).toList(),
             );
           },
         ),
@@ -249,13 +290,13 @@ class ReadinessDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopicItem(String topicId, double score) {
+  Widget _buildTopicItem(String topicId, double score, bool isDark) {
     final percentage = (score * 100).toInt();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -265,7 +306,11 @@ class ReadinessDetailScreen extends StatelessWidget {
             children: [
               Text(
                 'تصنيف: $topicId', // In a real app, fetch name from ID
-                style: GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 13),
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.w600, 
+                  fontSize: 13,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
               ),
               Text(
                 '$percentage%',
@@ -278,7 +323,7 @@ class ReadinessDetailScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: score,
-              backgroundColor: Colors.grey[100],
+              backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
               valueColor: AlwaysStoppedAnimation<Color>(_getScoreColor(score)),
               minHeight: 4,
             ),

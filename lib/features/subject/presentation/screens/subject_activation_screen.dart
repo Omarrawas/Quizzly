@@ -56,11 +56,15 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
 
     final codeController = TextEditingController();
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: theme.scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('تفعيل بواسطة كود', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('تفعيل بواسطة كود', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -74,12 +78,12 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
               controller: codeController,
               textAlign: TextAlign.center,
               autofocus: true,
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2),
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2, color: isDark ? Colors.white : null),
               decoration: InputDecoration(
                 hintText: 'ABCD-1234',
-                hintStyle: GoogleFonts.inter(color: Colors.grey[300]),
+                hintStyle: GoogleFonts.inter(color: isDark ? Colors.white24 : Colors.grey[300]),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey[50],
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
@@ -148,13 +152,16 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : AppColors.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -188,19 +195,19 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                   Text(
                     widget.subjectName,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.cairo(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: GoogleFonts.cairo(fontSize: 28, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary),
                   ),
                   const SizedBox(height: 12),
                   if ((widget.subjectCode != 'N/A' && widget.subjectCode.isNotEmpty) || (widget.basePrice == 0)) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: isDark ? const Color(0xFF1E293B) : Colors.grey[100],
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         (widget.basePrice == 0) ? 'تفعيل مجاني' : 'رمز المادة: ${widget.subjectCode}',
-                        style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w600, letterSpacing: 1),
+                        style: GoogleFonts.inter(fontSize: 14, color: isDark ? const Color(0xFFCBD5E1) : Colors.grey[600], fontWeight: FontWeight.w600, letterSpacing: 1),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -215,6 +222,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     subtitle: 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',
                     icon: Icons.auto_awesome_rounded,
                     color: Colors.amber,
+                    isDark: isDark,
                     onTap: _activateFree,
                   ),
                   const SizedBox(height: 16),
@@ -223,6 +231,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     subtitle: 'افتح كامل المادة بشكل غير محدود',
                     icon: Icons.vpn_key_rounded,
                     color: AppColors.primaryBlue,
+                    isDark: isDark,
                     onTap: _showCodeDialog,
                   ),
                   const SizedBox(height: 40),
@@ -238,7 +247,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
           ),
           if (_isLoading)
             Container(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: isDark ? Colors.black.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8),
               child: const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
             ),
         ],
@@ -315,6 +324,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -322,7 +332,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: color.withValues(alpha: 0.1), width: 2),
           boxShadow: [
@@ -350,11 +360,11 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary),
                   ),
                   Text(
                     subtitle,
-                    style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+                    style: GoogleFonts.cairo(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary),
                   ),
                 ],
               ),

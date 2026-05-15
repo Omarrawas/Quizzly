@@ -28,12 +28,13 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final userId = context.read<AuthService>().user?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -51,15 +52,16 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
       ),
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _buildSummaryHeader(userId)),
+          SliverToBoxAdapter(child: _buildSummaryHeader(userId, isDark)),
           SliverPersistentHeader(
             pinned: true,
             delegate: _FilterBarDelegate(
               activeFilter: _activeFilter,
               onFilterChanged: (filter) => setState(() => _activeFilter = filter),
+              isDark: isDark,
             ),
           ),
-          _buildQuestionsList(userId),
+          _buildQuestionsList(userId, isDark),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -78,7 +80,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
   }
 
 
-  Widget _buildSummaryHeader(String userId) {
+  Widget _buildSummaryHeader(String userId, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -88,6 +90,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
             _statsService.streamWrongAnswersCount(userId, widget.subjectId),
             const Color(0xFFDC2626),
             Icons.error_outline_rounded,
+            isDark: isDark,
           ),
           const SizedBox(width: 12),
           _buildSummaryCard(
@@ -95,6 +98,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
             _statsService.streamFavoritesCount(userId, widget.subjectId),
             const Color(0xFFEA580C),
             Icons.favorite_border_rounded,
+            isDark: isDark,
           ),
           const SizedBox(width: 12),
           _buildSummaryCard(
@@ -102,13 +106,14 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
             _statsService.streamDueQuestionsCount(userId, widget.subjectId),
             const Color(0xFF2563EB),
             Icons.history_rounded,
+            isDark: isDark,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCard(String label, Stream<int> stream, Color color, IconData icon) {
+  Widget _buildSummaryCard(String label, Stream<int> stream, Color color, IconData icon, {required bool isDark}) {
     return Expanded(
       child: StreamBuilder<int>(
         stream: stream,
@@ -117,7 +122,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -136,14 +141,14 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
                   ),
                 ),
                 Text(
                   label,
                   style: GoogleFonts.cairo(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: isDark ? Colors.white38 : Colors.grey[600],
                   ),
                 ),
               ],
@@ -154,7 +159,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
     );
   }
 
-  Widget _buildQuestionsList(String userId) {
+  Widget _buildQuestionsList(String userId, bool isDark) {
     // Stream questions based on active filter
     Stream<List<QuizQuestion>> questionsStream;
     if (_activeFilter == 'favorites') {
@@ -193,12 +198,12 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
                     style: GoogleFonts.cairo(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
                   Text(
                     _activeFilter == 'favorites' ? 'أضف أسئلة للمفضلة لتجدها هنا' : 'لا توجد أسئلة في هذا التصنيف حالياً',
-                    style: GoogleFonts.cairo(color: Colors.grey),
+                    style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
                   ),
                 ],
               ),
@@ -210,7 +215,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildQuestionItem(questions[index]),
+              (context, index) => _buildQuestionItem(questions[index], isDark),
               childCount: questions.length,
             ),
           ),
@@ -219,14 +224,14 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
     );
   }
 
-  Widget _buildQuestionItem(QuizQuestion question) {
+  Widget _buildQuestionItem(QuizQuestion question, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,12 +241,12 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   question.tagLabel ?? 'سؤال',
-                  style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey[700]),
+                  style: GoogleFonts.cairo(fontSize: 10, color: isDark ? Colors.white60 : Colors.grey[700]),
                 ),
               ),
               const Spacer(),
@@ -259,7 +264,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.cairo(
               fontSize: 14,
-              color: const Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
               height: 1.5,
             ),
           ),
@@ -352,13 +357,14 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
 class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
   final String activeFilter;
   final Function(String) onFilterChanged;
+  final bool isDark;
 
-  _FilterBarDelegate({required this.activeFilter, required this.onFilterChanged});
+  _FilterBarDelegate({required this.activeFilter, required this.onFilterChanged, required this.isDark});
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: const Color(0xFFF8FAFC),
+      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
@@ -382,10 +388,14 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF0F172A) : Colors.white,
+          color: isActive 
+              ? (isDark ? Colors.white : const Color(0xFF0F172A)) 
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive ? const Color(0xFF0F172A) : Colors.grey.withValues(alpha: 0.2),
+            color: isActive 
+                ? (isDark ? Colors.white : const Color(0xFF0F172A)) 
+                : (isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.2)),
           ),
         ),
         child: Text(
@@ -393,7 +403,9 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
           style: GoogleFonts.cairo(
             fontSize: 12,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? Colors.white : Colors.grey[700],
+            color: isActive 
+                ? (isDark ? const Color(0xFF0F172A) : Colors.white) 
+                : (isDark ? Colors.white60 : Colors.grey[700]),
           ),
         ),
       ),

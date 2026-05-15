@@ -190,6 +190,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   Widget _buildSectionTitle(String title, IconData icon, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Icon(icon, color: color, size: 20),
@@ -199,7 +200,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           style: GoogleFonts.cairo(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
       ],
@@ -292,9 +293,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.2) : const Color(0xFFFFF7ED),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFFEDD5)),
+        border: Border.all(color: isDark ? const Color(0xFF92400E).withValues(alpha: 0.5) : const Color(0xFFFFEDD5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,7 +308,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 'نصيحة كويزلي الذكية',
                 style: GoogleFonts.cairo(
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange[900],
+                  color: isDark ? Colors.orange[300] : Colors.orange[900],
                 ),
               ),
             ],
@@ -319,7 +320,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 : 'أداءك رائع! استمر في التدريب للحفاظ على مستواك العالي.',
             style: GoogleFonts.cairo(
               fontSize: 13,
-              color: Colors.orange[800],
+              color: isDark ? Colors.orange[100]?.withValues(alpha: 0.7) : Colors.orange[800],
               height: 1.6,
             ),
           ),

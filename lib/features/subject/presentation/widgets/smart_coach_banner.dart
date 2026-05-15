@@ -15,18 +15,23 @@ class SmartCoachBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2), // Light red/pink
+        color: isDark ? const Color(0xFF450a0a).withValues(alpha: 0.5) : const Color(0xFFFEF2F2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFEE2E2)),
+        border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: BoxShape.circle,
+            ),
             child: const Icon(Icons.psychology_rounded, color: Color(0xFFDC2626), size: 28),
           ),
           const SizedBox(width: 16),
@@ -37,11 +42,16 @@ class SmartCoachBanner extends StatelessWidget {
               children: [
                 Text(
                   'تنبيه المدرب الذكي 🧠',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF991B1B)),
+                  style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B)),
                 ),
                 Text(
                   message,
-                  style: GoogleFonts.cairo(fontSize: 11, color: const Color(0xFFB91C1C)),
+                  style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
                 ),
               ],
             ),
@@ -64,3 +74,4 @@ class SmartCoachBanner extends StatelessWidget {
     );
   }
 }
+

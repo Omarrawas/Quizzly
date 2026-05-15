@@ -15,6 +15,7 @@ class SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final name = subject['name'] ?? 'مادة غير معروفة';
     final code = subject['code'] ?? 'N/A';
     final status = subject['status'] ?? 'active';
@@ -48,7 +49,7 @@ class SubjectCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: colorMain.withValues(alpha: 0.3),
+              color: (isDark ? Colors.black : colorMain).withValues(alpha: isDark ? 0.4 : 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             )

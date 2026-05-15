@@ -236,13 +236,14 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
   }
 
   Widget _buildFreeNotice() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amber[50],
+        color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.2) : Colors.amber[50],
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.amber[200]!),
+        border: Border.all(color: isDark ? const Color(0xFF92400E) : Colors.amber[200]!),
       ),
       child: Row(
         children: [
@@ -251,7 +252,11 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           Expanded(
             child: Text(
               'أنت في وضع العينة المجانية. يمكنك حل 5 أسئلة فقط في الجلسة الواحدة لتجربة المحرك.',
-              style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900], fontWeight: FontWeight.bold),
+              style: GoogleFonts.cairo(
+                fontSize: 12, 
+                color: isDark ? Colors.amber[200] : Colors.amber[900], 
+                fontWeight: FontWeight.bold
+              ),
             ),
           ),
         ],
@@ -285,18 +290,28 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
   }
 
   Widget _buildInfoChip(IconData icon, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.6),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(10),
+          border: isDark ? Border.all(color: Colors.white10) : null,
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.primaryBlue, size: 20),
+            Icon(icon, color: isDark ? Colors.blue[400] : AppColors.primaryBlue, size: 20),
             const SizedBox(height: 4),
-            Text(label, style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue), textAlign: TextAlign.center),
+            Text(
+              label, 
+              style: GoogleFonts.cairo(
+                fontSize: 10, 
+                fontWeight: FontWeight.bold, 
+                color: isDark ? Colors.blue[200] : AppColors.primaryBlue
+              ), 
+              textAlign: TextAlign.center
+            ),
           ],
         ),
       ),
@@ -320,6 +335,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           final p = presets[index];
           final color = p['color'] as Color;
           final bool isLocked = p['locked'] as bool;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           
           return GestureDetector(
             onTap: () {
@@ -333,9 +349,9 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                 margin: const EdgeInsets.only(left: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: isDark ? color.withValues(alpha: 0.15) : color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withValues(alpha: 0.2)),
+                  border: Border.all(color: color.withValues(alpha: isDark ? 0.3 : 0.2)),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -392,20 +408,43 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
       
       if (snapshot.docs.length >= 2) {
         if (mounted) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text('انتهت محاولاتك اليوم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold), textAlign: TextAlign.right),
-              content: Text('لقد استنفدت المحاولتين المجانيتين لهذا اليوم. يمكنك العودة غداً أو الاشتراك لفتح عدد غير محدود من التدريبات!', style: GoogleFonts.cairo(), textAlign: TextAlign.right),
+              title: Text(
+                'انتهت محاولاتك اليوم', 
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ), 
+                textAlign: TextAlign.right
+              ),
+              content: Text(
+                'لقد استنفدت المحاولتين المجانيتين لهذا اليوم. يمكنك العودة غداً أو الاشتراك لفتح عدد غير محدود من التدريبات!', 
+                style: GoogleFonts.cairo(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ), 
+                textAlign: TextAlign.right
+              ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text('فهمت', style: GoogleFonts.cairo())),
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: Text(
+                    'فهمت', 
+                    style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                  ),
+                ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    // Navigate to subscription or show price
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue, 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
                   child: Text('اشترك الآن', style: GoogleFonts.cairo(color: Colors.white)),
                 ),
               ],
@@ -444,16 +483,25 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
   }
 
   Widget _buildSectionTitle(String title, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
-        Icon(icon, color: AppColors.primaryBlue, size: 18),
+        Icon(icon, color: isDark ? Colors.blue[400] : AppColors.primaryBlue, size: 18),
         const SizedBox(width: 8),
-        Text(title, style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text(
+          title, 
+          style: GoogleFonts.cairo(
+            fontSize: 15, 
+            fontWeight: FontWeight.bold, 
+            color: isDark ? Colors.white : AppColors.textPrimary
+          )
+        ),
       ],
     );
   }
 
   Widget _buildDifficultySelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<Map<String, dynamic>> options = [
       {'label': 'الكل', 'value': null, 'color': const Color(0xFF64748B), 'icon': Icons.all_inclusive_rounded, 'locked': false},
       {'label': 'سهل', 'value': Difficulty.easy, 'color': const Color(0xFF16A34A), 'icon': Icons.signal_cellular_alt_1_bar_rounded, 'locked': false},
@@ -479,9 +527,9 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? color : Colors.white,
+                color: isSelected ? color : (isDark ? const Color(0xFF1E293B) : Colors.white),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? color : AppColors.borderLight),
+                border: Border.all(color: isSelected ? color : (isDark ? Colors.white12 : AppColors.borderLight)),
                 boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
               ),
               child: Opacity(
@@ -524,11 +572,11 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primaryBlue.withValues(alpha: 0.08)
-                    : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+                    ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.08)
+                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white12 : AppColors.borderLight),
+                  color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white10 : AppColors.borderLight),
                   width: isSelected ? 1.5 : 1,
                 ),
               ),
@@ -542,7 +590,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                       color: isSelected ? AppColors.primaryBlue : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isSelected ? AppColors.primaryBlue : AppColors.borderLight,
+                        color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white24 : AppColors.borderLight),
                         width: 2,
                       ),
                     ),
@@ -557,7 +605,9 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                       style: GoogleFonts.cairo(
                         fontSize: 13,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? AppColors.primaryBlue : AppColors.textPrimary,
+                        color: isSelected 
+                          ? (isDark ? Colors.blue[400] : AppColors.primaryBlue) 
+                          : (isDark ? Colors.white70 : AppColors.textPrimary),
                       ),
                     ),
                   ),
@@ -574,19 +624,27 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: Colors.white10) : null,
       ),
       child: Column(
         children: [
-          Icon(Icons.topic_outlined, size: 40, color: Colors.grey[400]),
+          Icon(Icons.topic_outlined, size: 40, color: isDark ? Colors.white24 : Colors.grey[400]),
           const SizedBox(height: 8),
-          Text('لا توجد مواضيع بعد', style: GoogleFonts.cairo(color: AppColors.textSecondary)),
-          Text('سيتم تحميل جميع أسئلة المادة', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            'لا توجد مواضيع بعد', 
+            style: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary)
+          ),
+          Text(
+            'سيتم تحميل جميع أسئلة المادة', 
+            style: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white24 : AppColors.textSecondary)
+          ),
         ],
       ),
     );
   }
+
 
   Widget _buildStartButton() {
     return Padding(

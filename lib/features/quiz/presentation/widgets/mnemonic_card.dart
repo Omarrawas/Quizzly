@@ -13,6 +13,7 @@ class MnemonicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool hasMnemonic = mnemonic != null && mnemonic!.isNotEmpty;
 
     return GestureDetector(
@@ -22,17 +23,17 @@ class MnemonicCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: hasMnemonic 
-            ? const Color(0xFFFFF7ED) // Light Orange
-            : Colors.grey.withValues(alpha: 0.05),
+            ? (isDark ? const Color(0xFF7C2D12).withValues(alpha: 0.2) : const Color(0xFFFFF7ED)) 
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.05)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: hasMnemonic 
-              ? const Color(0xFFFB923C).withValues(alpha: 0.5) 
+              ? (isDark ? const Color(0xFFFB923C).withValues(alpha: 0.3) : const Color(0xFFFB923C).withValues(alpha: 0.5))
               : Colors.transparent,
           ),
           boxShadow: hasMnemonic ? [
             BoxShadow(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: Colors.orange.withValues(alpha: isDark ? 0.05 : 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -43,12 +44,12 @@ class MnemonicCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: hasMnemonic ? const Color(0xFFFB923C) : Colors.grey.withValues(alpha: 0.1),
+                color: hasMnemonic ? const Color(0xFFFB923C) : (isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.psychology_rounded,
-                color: hasMnemonic ? Colors.white : Colors.grey,
+                color: hasMnemonic ? Colors.white : (isDark ? Colors.white38 : Colors.grey),
                 size: 20,
               ),
             ),
@@ -63,7 +64,7 @@ class MnemonicCard extends StatelessWidget {
                     style: GoogleFonts.cairo(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: hasMnemonic ? const Color(0xFF9A3412) : Colors.grey[700],
+                      color: hasMnemonic ? (isDark ? const Color(0xFFFB923C) : const Color(0xFF9A3412)) : (isDark ? Colors.white70 : Colors.grey[700]),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -71,7 +72,7 @@ class MnemonicCard extends StatelessWidget {
                     hasMnemonic ? mnemonic! : 'أضف جملة أو كلمة مفتاحية لتسهيل تذكر الإجابة...',
                     style: GoogleFonts.cairo(
                       fontSize: 12,
-                      color: hasMnemonic ? const Color(0xFFC2410C) : Colors.grey[500],
+                      color: hasMnemonic ? (isDark ? Colors.white60 : const Color(0xFFC2410C)) : (isDark ? Colors.white30 : Colors.grey[500]),
                       fontStyle: hasMnemonic ? FontStyle.normal : FontStyle.italic,
                     ),
                     maxLines: 2,
@@ -82,7 +83,7 @@ class MnemonicCard extends StatelessWidget {
             ),
             Icon(
               hasMnemonic ? Icons.edit_note_rounded : Icons.add_circle_outline_rounded,
-              color: hasMnemonic ? const Color(0xFFFB923C) : Colors.grey[400],
+              color: hasMnemonic ? const Color(0xFFFB923C) : (isDark ? Colors.white24 : Colors.grey[400]),
               size: 20,
             ),
           ],

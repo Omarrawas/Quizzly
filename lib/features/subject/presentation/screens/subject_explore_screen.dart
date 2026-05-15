@@ -123,21 +123,24 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(),
-          if (!widget.isFree) _buildSearchBarSliver(),
+          if (!widget.isFree) _buildSearchBarSliver(isDark),
           if (widget.isFree) 
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.all(20),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber[50],
+                  color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : Colors.amber[50],
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.amber[100]!),
+                  border: Border.all(color: isDark ? const Color(0xFF92400E) : Colors.amber[100]!),
                 ),
                 child: Row(
                   children: [
@@ -146,7 +149,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
                     Expanded(
                       child: Text(
                         'أنت تتصفح العينة المجانية للمادة. اشترك لفتح كل المواضيع والبحث.',
-                        style: GoogleFonts.cairo(fontSize: 12, color: Colors.amber[900]),
+                        style: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.amber[300] : Colors.amber[900]),
                       ),
                     ),
                   ],
@@ -156,8 +159,8 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           if (_searchQuery.isNotEmpty) 
             _buildSearchResultsSliver()
           else ...[
-            _buildSectionTitle('استكشف عبر الوسوم'),
-            _buildTagsGridSliver(),
+            _buildSectionTitle(isDark),
+            _buildTagsGridSliver(isDark),
           ],
         ],
       ),
@@ -193,15 +196,16 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
     );
   }
 
-  Widget _buildSearchBarSliver() {
+  Widget _buildSearchBarSliver(bool isDark) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
+            border: isDark ? Border.all(color: Colors.white10) : null,
+            boxShadow: isDark ? [] : [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
@@ -211,9 +215,10 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           ),
           child: TextField(
             onChanged: _onSearch,
+            style: GoogleFonts.cairo(color: isDark ? Colors.white : null),
             decoration: InputDecoration(
               hintText: 'ابحث عن سؤال، موضوع، أو وسم...',
-              hintStyle: GoogleFonts.cairo(fontSize: 14, color: Colors.grey),
+              hintStyle: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white38 : Colors.grey),
               prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF2563EB)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -224,23 +229,23 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(bool isDark) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         child: Text(
-          title,
+          'استكشف عبر الوسوم',
           style: GoogleFonts.cairo(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1E293B),
+            color: isDark ? Colors.white : const Color(0xFF1E293B),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTagsGridSliver() {
+  Widget _buildTagsGridSliver(bool isDark) {
     if (_isLoading) {
       return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
     }
@@ -255,14 +260,14 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           childAspectRatio: 1.0,
         ),
         delegate: SliverChildBuilderDelegate(
-          (context, index) => _buildTagCard(_tagsData[index], index),
+          (context, index) => _buildTagCard(_tagsData[index], index, isDark),
           childCount: _tagsData.length,
         ),
       ),
     );
   }
 
-  Widget _buildTagCard(Map<String, dynamic> tag, int index) {
+  Widget _buildTagCard(Map<String, dynamic> tag, int index, bool isDark) {
     final String name = tag['name'];
     final int count = tag['count'];
     final bool hasViewed = _viewedTags.contains(name);
@@ -279,9 +284,9 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -291,13 +296,13 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEEF2FF),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF334155) : const Color(0xFFEEF2FF),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       isLocked ? Icons.lock_outline_rounded : Icons.local_offer_rounded, 
-                      color: const Color(0xFF6366F1), 
+                      color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1), 
                       size: 24
                     ),
                   ),
@@ -323,12 +328,12 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : null),
               ),
               const SizedBox(height: 4),
               Text(
                 isLocked ? 'محتوى مدفوع' : '$count سؤال',
-                style: GoogleFonts.cairo(fontSize: 11, color: isLocked ? Colors.red[300] : Colors.grey),
+                style: GoogleFonts.cairo(fontSize: 11, color: isLocked ? Colors.red[300] : (isDark ? const Color(0xFF94A3B8) : Colors.grey)),
               ),
               if (hasStats && !isLocked) ...[
                 const SizedBox(height: 8),
@@ -336,8 +341,8 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: stats['answered']! / count,
-                    backgroundColor: Colors.grey[100],
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                    backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
+                    valueColor: AlwaysStoppedAnimation<Color>(isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1)),
                     minHeight: 3,
                   ),
                 ),

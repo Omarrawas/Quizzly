@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/theme/theme_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -9,34 +10,40 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 1,
         shadowColor: Colors.black.withValues(alpha: 0.06),
         automaticallyImplyLeading: false,
         leading: IconButton(
           onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(
+          icon: Icon(
             Icons.menu_rounded,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
             size: 24,
           ),
         ),
         title: Text(
           'الإعدادات',
           style: GoogleFonts.cairo(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0xFFF1F5F9)),
+          child: Container(
+            height: 1, 
+            color: isDark ? Colors.white10 : const Color(0xFFF1F5F9)
+          ),
         ),
       ),
       body: Consumer<SettingsService>(
@@ -44,17 +51,33 @@ class SettingsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 16),
             children: [
+              // ── Appearance Settings
+              _buildSectionHeader('المظهر', Icons.palette_rounded, isDark),
+              Consumer<ThemeService>(
+                builder: (context, themeService, _) {
+                  return _buildSwitchTile(
+                    title: 'الوضع الليلي',
+                    subtitle: 'تفعيل الوضع الليلي في جميع صفحات التطبيق',
+                    value: themeService.themeMode == ThemeMode.dark,
+                    onChanged: (val) => themeService.toggleTheme(),
+                    isDark: isDark,
+                  );
+                },
+              ),
+              _buildDivider(isDark),
+
               // ── Video Settings
-              _buildSectionHeader('إعدادات الفيديو', Icons.videocam_rounded),
+              _buildSectionHeader('إعدادات الفيديو', Icons.videocam_rounded, isDark),
               _buildSwitchTile(
                 title: 'تحميل أثناء التشغيل',
                 subtitle: 'تحميل الفيديوهات تلقائياً أثناء تشغيلها',
                 value: settings.loadWhilePlaying,
                 onChanged: settings.setLoadWhilePlaying,
+                isDark: isDark,
               ),
               _buildSelectionTile(
                 title: 'عدد التحميلات المتزامنة',
-                subtitle: 'الحد الأقصى لعدد التحميلات التي تعمل في نفس الوقت: ${settings.concurrentDownloads}',
+                subtitle: 'الحد الأقصى لعدد التحميلات المتزامنة: ${settings.concurrentDownloads}',
                 trailingText: '${settings.concurrentDownloads}',
                 icon: Icons.download_rounded,
                 onTap: () => _showSingleSelectionDialog(
@@ -65,10 +88,11 @@ class SettingsScreen extends StatelessWidget {
                   settings.setConcurrentDownloads,
                   (v) => v.toString(),
                 ),
+                isDark: isDark,
               ),
               _buildSelectionTile(
                 title: 'مقدار القفز في الفيديو',
-                subtitle: 'مقدار القفز للأمام أو للخلف عند الضغط على أزرار القفز: ${settings.skipDuration} ثواني',
+                subtitle: 'مقدار القفز للأمام أو للخلف: ${settings.skipDuration} ثواني',
                 trailingText: '${settings.skipDuration} ث',
                 icon: Icons.fast_forward_rounded,
                 onTap: () => _showSingleSelectionDialog(
@@ -79,11 +103,12 @@ class SettingsScreen extends StatelessWidget {
                   settings.setSkipDuration,
                   (v) => '$v ثانية',
                 ),
+                isDark: isDark,
               ),
-              const Divider(height: 32, indent: 20, endIndent: 20, color: AppColors.borderLight),
+              _buildDivider(isDark),
 
               // ── Data Management
-              _buildSectionHeader('إدارة البيانات', Icons.storage_rounded),
+              _buildSectionHeader('إدارة البيانات', Icons.storage_rounded, isDark),
               _buildActionTile(
                 title: 'إعادة تحميل بيانات الأكواد',
                 subtitle: 'جلب أحدث بيانات الأكواد من الخادم',
@@ -93,14 +118,15 @@ class SettingsScreen extends StatelessWidget {
                     const SnackBar(content: Text('جاري إعادة تحميل البيانات...'))
                   );
                 },
+                isDark: isDark,
               ),
-              const Divider(height: 32, indent: 20, endIndent: 20, color: AppColors.borderLight),
+              _buildDivider(isDark),
 
               // ── Auto Update settings
-              _buildSectionHeader('إعدادات التحديث التلقائي', Icons.update_rounded),
+              _buildSectionHeader('إعدادات التحديث التلقائي', Icons.update_rounded, isDark),
               _buildSelectionTile(
                 title: 'فترة التحقق من التحديثات',
-                subtitle: 'التحقق التلقائي من التحديثات كل ${settings.autoUpdateInterval} دقائق',
+                subtitle: 'التحقق التلقائي كل ${settings.autoUpdateInterval} دقائق',
                 trailingText: '${settings.autoUpdateInterval} د',
                 icon: Icons.access_time_rounded,
                 onTap: () => _showSingleSelectionDialog(
@@ -111,14 +137,15 @@ class SettingsScreen extends StatelessWidget {
                   settings.setAutoUpdateInterval,
                   (v) => '$v دقيقة',
                 ),
+                isDark: isDark,
               ),
-              const Divider(height: 32, indent: 20, endIndent: 20, color: AppColors.borderLight),
+              _buildDivider(isDark),
 
               // ── Notes settings
-              _buildSectionHeader('إعدادات الملاحظات', Icons.note_alt_rounded),
+              _buildSectionHeader('إعدادات الملاحظات', Icons.note_alt_rounded, isDark),
               _buildSelectionTile(
                 title: 'مدة عرض الملاحظات',
-                subtitle: 'مدة عرض ملاحظات الأسئلة وشرح الأسئلة وملاحظات الفيديو: ${settings.notesDisplayDuration} ثواني',
+                subtitle: 'مدة عرض ملاحظات الأسئلة وشرح الأسئلة: ${settings.notesDisplayDuration} ثواني',
                 trailingText: '${settings.notesDisplayDuration} ث',
                 icon: Icons.speaker_notes_rounded,
                 onTap: () => _showSingleSelectionDialog(
@@ -129,43 +156,48 @@ class SettingsScreen extends StatelessWidget {
                   settings.setNotesDisplayDuration,
                   (v) => '$v ثانية',
                 ),
+                isDark: isDark,
               ),
-              const Divider(height: 32, indent: 20, endIndent: 20, color: AppColors.borderLight),
+              _buildDivider(isDark),
 
               // ── Display settings
-              _buildSectionHeader('إعدادات العرض', Icons.desktop_windows_rounded),
+              _buildSectionHeader('إعدادات العرض', Icons.desktop_windows_rounded, isDark),
               _buildSwitchTile(
                 title: 'تثبيت آخر مادة مفتوحة في الأعلى',
-                subtitle: 'عرض آخر مادة تم فتحها في أعلى قائمة المواد',
+                subtitle: 'عرض آخر مادة تم فتحها في أعلى القائمة',
                 value: settings.pinLastSubject,
                 onChanged: settings.setPinLastSubject,
+                isDark: isDark,
               ),
-              const Divider(height: 32, indent: 20, endIndent: 20, color: AppColors.borderLight),
+              _buildDivider(isDark),
 
               // ── User Data
-              _buildSectionHeader('بيانات المستخدم', Icons.person_rounded),
+              _buildSectionHeader('بيانات المستخدم', Icons.person_rounded, isDark),
               _buildSwitchTile(
                 title: 'عرض حلولي والموضع الأخير',
-                subtitle: 'عند الإيقاف: لا يتم استعادة موضعك الأخير في كل ورقة/علامة ولا يتم استعادة حلولك',
+                subtitle: 'مزامنة حلولك وموضعك الأخير في المواد',
                 value: settings.showMySolutions,
                 onChanged: settings.setShowMySolutions,
+                isDark: isDark,
               ),
               _buildActionTile(
-                title: 'حذف بيانات المستخدم لمادة محددة',
-                subtitle: 'اختر مادة ونوع البيانات المراد حذفها',
+                title: 'حذف بيانات مادة محددة',
+                subtitle: 'إزالة سجلات الحلول لمادة معينة',
                 icon: Icons.delete_outline_rounded,
                 onTap: () {},
+                isDark: isDark,
               ),
               _buildActionTile(
                 title: 'حذف الحساب',
-                subtitle: 'سيتم حذف حسابك وجميع البيانات المرتبطة به نهائياً. لا يمكن التراجع عن هذا الإجراء.',
+                subtitle: 'سيتم حذف حسابك وجميع البيانات نهائياً',
                 icon: Icons.person_off_rounded,
                 isDestructive: true,
                 onTap: () {},
+                isDark: isDark,
               ),
               _buildActionTile(
                 title: 'نسخ معلومات الجهاز',
-                subtitle: 'نسخ طراز الجهاز والنظام والمعرّفات للدعم الفني',
+                subtitle: 'نسخ المعرّفات التقنية للدعم الفني',
                 icon: Icons.copy_rounded,
                 hasArrow: false,
                 onTap: () {
@@ -173,12 +205,23 @@ class SettingsScreen extends StatelessWidget {
                     const SnackBar(content: Text('تم نسخ معلومات الجهاز بنجاح'))
                   );
                 },
+                isDark: isDark,
               ),
               const SizedBox(height: 40),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildDivider(bool isDark) {
+    return Divider(
+      height: 32, 
+      thickness: 1,
+      indent: 20, 
+      endIndent: 20, 
+      color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
     );
   }
 
@@ -190,47 +233,82 @@ class SettingsScreen extends StatelessWidget {
     Function(T) onSelected,
     String Function(T) labelBuilder,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title, style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: RadioGroup<T>(
-            groupValue: currentValue,
-            onChanged: (val) {
-              if (val != null) onSelected(val);
-              Navigator.pop(context);
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: options.map((opt) => RadioListTile<T>(
-                title: Text(labelBuilder(opt), style: GoogleFonts.cairo()),
-                value: opt,
-                activeColor: AppColors.primaryBlue,
-              )).toList(),
-            ),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          title, 
+          style: GoogleFonts.cairo(
+            fontSize: 18, 
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
+          textAlign: TextAlign.center,
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: options.map((opt) {
+            final isSelected = opt == currentValue;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: isSelected 
+                  ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.1) 
+                  : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Text(
+                  labelBuilder(opt), 
+                  style: GoogleFonts.cairo(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected 
+                      ? (isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue) 
+                      : (isDark ? Colors.white70 : Colors.black87),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                onTap: () {
+                  onSelected(opt);
+                  Navigator.pop(context);
+                },
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildSectionHeader(String title, IconData icon, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue, size: 18),
+          ),
+          const SizedBox(width: 12),
           Text(
             title,
             style: GoogleFonts.cairo(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
-          const Spacer(),
-          Icon(icon, color: AppColors.primaryBlue, size: 22),
         ],
       ),
     );
@@ -241,26 +319,27 @@ class SettingsScreen extends StatelessWidget {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required bool isDark,
   }) {
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      activeTrackColor: AppColors.primaryBlue.withValues(alpha: 0.5),
       activeThumbColor: AppColors.primaryBlue,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      activeTrackColor: AppColors.primaryBlue.withValues(alpha: 0.2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       title: Text(
         title,
         style: GoogleFonts.cairo(
           fontSize: 15,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: GoogleFonts.cairo(
           fontSize: 12,
-          color: AppColors.textSecondary,
+          color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
         ),
       ),
     );
@@ -272,39 +351,45 @@ class SettingsScreen extends StatelessWidget {
     required String trailingText,
     required IconData icon,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       title: Text(
         title,
         style: GoogleFonts.cairo(
           fontSize: 15,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: GoogleFonts.cairo(
           fontSize: 12,
-          color: AppColors.textSecondary,
+          color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
         ),
       ),
-      leading: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.arrow_back_ios_rounded, size: 14, color: AppColors.primaryBlue),
-          const SizedBox(width: 4),
-          Text(
-            trailingText,
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryBlue,
-            ),
+      leading: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          trailingText,
+          style: GoogleFonts.cairo(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue,
           ),
-        ],
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios_rounded, 
+        size: 14, 
+        color: isDark ? Colors.white24 : Colors.grey[300]
       ),
     );
   }
@@ -316,29 +401,40 @@ class SettingsScreen extends StatelessWidget {
     required VoidCallback onTap,
     bool isDestructive = false,
     bool hasArrow = true,
+    required bool isDark,
   }) {
-    final color = isDestructive ? const Color(0xFFDC2626) : AppColors.textPrimary;
+    final titleColor = isDestructive 
+        ? const Color(0xFFEF4444) 
+        : (isDark ? Colors.white : AppColors.textPrimary);
     
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       title: Text(
         title,
         style: GoogleFonts.cairo(
           fontSize: 15,
           fontWeight: FontWeight.bold,
-          color: color,
+          color: titleColor,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: GoogleFonts.cairo(
           fontSize: 12,
-          color: AppColors.textSecondary,
+          color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary,
         ),
       ),
-      leading: hasArrow ? const Icon(Icons.arrow_back_ios_rounded, size: 14, color: AppColors.textSecondary) : null,
-      trailing: Icon(icon, color: isDestructive ? color : AppColors.primaryBlue, size: 24),
+      trailing: hasArrow ? Icon(
+        Icons.arrow_forward_ios_rounded, 
+        size: 14, 
+        color: isDark ? Colors.white24 : Colors.grey[300]
+      ) : null,
+      leading: Icon(
+        icon, 
+        color: isDestructive ? titleColor : (isDark ? Colors.white38 : AppColors.textSecondary), 
+        size: 22
+      ),
     );
   }
 }

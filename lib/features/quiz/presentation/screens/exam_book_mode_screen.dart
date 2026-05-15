@@ -296,8 +296,10 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   }
 
   void _showListSelectionDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Container(
@@ -305,13 +307,30 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('اختر القائمة السريعة', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'اختر القائمة السريعة', 
+                style: GoogleFonts.cairo(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black
+                )
+              ),
               const SizedBox(height: 16),
               ..._userLists.map((list) {
+                final isSelected = _primaryListId == list.id;
                 return ListTile(
-                  leading: Icon(IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'), color: _primaryListId == list.id ? AppColors.primaryBlue : AppColors.textSecondary),
-                  title: Text(list.name, style: GoogleFonts.cairo(fontWeight: _primaryListId == list.id ? FontWeight.bold : FontWeight.normal)),
-                  trailing: _primaryListId == list.id ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                  leading: Icon(
+                    IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'), 
+                    color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white38 : AppColors.textSecondary)
+                  ),
+                  title: Text(
+                    list.name, 
+                    style: GoogleFonts.cairo(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isDark ? Colors.white : Colors.black
+                    )
+                  ),
+                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
                   onTap: () {
                     _listService.setPrimaryListId(list.id);
                     Navigator.pop(context);
@@ -453,20 +472,20 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         !_filterCorrect;
   }
 
-  Widget _buildEmptySearchState() {
+  Widget _buildEmptySearchState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 40),
-          Icon(Icons.search_rounded, size: 80, color: const Color(0xFF1E3A8A)),
+          Icon(Icons.search_rounded, size: 80, color: isDark ? Colors.white10 : const Color(0xFF1E3A8A)),
           const SizedBox(height: 24),
           Text(
             'ابدأ البحث',
             style: GoogleFonts.cairo(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -477,7 +496,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               textAlign: TextAlign.center,
               style: GoogleFonts.cairo(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: isDark ? Colors.white38 : AppColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -487,15 +506,21 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     );
   }
 
-  Widget _buildFilterButton() {
+  Widget _buildFilterButton(bool isDark) {
     return InkWell(
       onTap: () => setState(() => _showFilters = !_showFilters),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: _showFilters ? AppColors.primaryBlue.withValues(alpha: 0.1) : Colors.white,
+          color: _showFilters 
+              ? AppColors.primaryBlue.withValues(alpha: 0.1) 
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _showFilters ? AppColors.primaryBlue : AppColors.borderLight),
+          border: Border.all(
+            color: _showFilters 
+                ? AppColors.primaryBlue 
+                : (isDark ? Colors.white10 : AppColors.borderLight)
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -505,14 +530,14 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               style: GoogleFonts.cairo(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: _showFilters ? AppColors.primaryBlue : AppColors.textSecondary,
+                color: _showFilters ? AppColors.primaryBlue : (isDark ? Colors.white38 : AppColors.textSecondary),
               ),
             ),
             const SizedBox(width: 6),
             Icon(
               Icons.filter_list_rounded,
               size: 16,
-              color: _showFilters ? AppColors.primaryBlue : AppColors.textSecondary,
+              color: _showFilters ? AppColors.primaryBlue : (isDark ? Colors.white38 : AppColors.textSecondary),
             ),
           ],
         ),
@@ -533,12 +558,14 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       questions: widget.questions,
     );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      floatingActionButton: _buildExpandableFab(),
+      floatingActionButton: _buildExpandableFab(isDark),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Row(
@@ -547,17 +574,24 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             if (widget.isSubExam && !widget.isGlobalSearch)
               TextButton.icon(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black),
-                label: Text('العودة للدورة', style: GoogleFonts.cairo(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold)),
+                icon: Icon(Icons.arrow_forward_ios, size: 14, color: isDark ? Colors.white : Colors.black),
+                label: Text(
+                  'العودة للدورة', 
+                  style: GoogleFonts.cairo(
+                    fontSize: 12, 
+                    color: isDark ? Colors.white : Colors.black, 
+                    fontWeight: FontWeight.bold
+                  )
+                ),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  backgroundColor: Colors.grey.shade100,
+                  backgroundColor: isDark ? Colors.white10 : Colors.grey.shade100,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               )
             else
               IconButton(
-                icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black),
+                icon: Icon(Icons.arrow_forward_ios, size: 18, color: isDark ? Colors.white : Colors.black),
                 onPressed: () => Navigator.pop(context),
               ),
             const SizedBox(width: 8),
@@ -565,7 +599,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             Expanded(
               child: Text(
                 widget.config.title,
-                style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: GoogleFonts.cairo(
+                  fontSize: 15, 
+                  fontWeight: FontWeight.bold, 
+                  color: isDark ? Colors.white : AppColors.textPrimary
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -576,7 +614,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               children: [
                 Text(
                   'الحل',
-                  style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                  style: GoogleFonts.cairo(
+                    fontSize: 11, 
+                    fontWeight: FontWeight.bold, 
+                    color: isDark ? Colors.white38 : AppColors.textSecondary
+                  ),
                 ),
                 Transform.scale(
                   scale: 0.7,
@@ -596,18 +638,18 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               child: Container(
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (v) => setState(() => _searchQuery = v),
                   textAlign: TextAlign.right,
-                  style: GoogleFonts.cairo(fontSize: 13),
+                  style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: 'بحث...',
-                    hintStyle: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
+                    hintStyle: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey),
+                    prefixIcon: Icon(Icons.search, size: 18, color: isDark ? Colors.white38 : Colors.grey),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -640,19 +682,19 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                 _filterCorrectOnly = false;
               });
             },
-            additionalAction: widget.isGlobalSearch ? null : _buildFilterButton(),
+            additionalAction: widget.isGlobalSearch ? null : _buildFilterButton(isDark),
           ),
           if (widget.isGlobalSearch)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderLight),
+                border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -661,7 +703,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildFilterButton(),
+                  _buildFilterButton(isDark),
                   Row(
                     children: [
                       Text(
@@ -669,20 +711,24 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                         style: GoogleFonts.cairo(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E3A8A), // Dark blue
+                          color: isDark ? Colors.blue[300] : const Color(0xFF1E3A8A), // Dark blue
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.description_outlined, color: Color(0xFF1E3A8A), size: 18),
+                      Icon(
+                        Icons.description_outlined, 
+                        color: isDark ? Colors.blue[300] : const Color(0xFF1E3A8A), 
+                        size: 18
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
-          if (_showFilters) _buildFilterPanel(),
+          if (_showFilters) _buildFilterPanel(isDark),
           Expanded(
             child: _isSearchEmptyState
-                ? _buildEmptySearchState()
+                ? _buildEmptySearchState(isDark)
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 24),
                     children: [
@@ -761,13 +807,13 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     );
   }
 
-  Widget _buildFilterPanel() {
+  Widget _buildFilterPanel(bool isDark) {
     final tagCounts = _tagCounts;
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -776,14 +822,22 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               'الفلاتر',
-              style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: GoogleFonts.cairo(
+                fontSize: 16, 
+                fontWeight: FontWeight.bold, 
+                color: isDark ? Colors.white : AppColors.textPrimary
+              ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               'الوسوم',
-              style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+              style: GoogleFonts.cairo(
+                fontSize: 14, 
+                fontWeight: FontWeight.bold, 
+                color: isDark ? Colors.white38 : AppColors.textSecondary
+              ),
             ),
           ),
           SingleChildScrollView(
@@ -809,15 +863,23 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFF3E8FF) : const Color(0xFFF8FAFC),
+                        color: isSelected 
+                            ? const Color(0xFFF3E8FF).withValues(alpha: isDark ? 0.2 : 1.0) 
+                            : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC)),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isSelected ? const Color(0xFFD8B4FE) : AppColors.borderLight),
+                        border: Border.all(
+                          color: isSelected 
+                              ? const Color(0xFFD8B4FE) 
+                              : (isDark ? Colors.white10 : AppColors.borderLight)
+                        ),
                       ),
                       child: Text(
                         '${entry.key} (${entry.value})',
                         style: GoogleFonts.cairo(
                           fontSize: 13,
-                          color: isSelected ? const Color(0xFF7E22CE) : AppColors.textPrimary,
+                          color: isSelected 
+                              ? (isDark ? Colors.purple[200] : const Color(0xFF7E22CE)) 
+                              : (isDark ? Colors.white70 : AppColors.textPrimary),
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
@@ -834,43 +896,47 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: _buildCheckbox('المفضلة', _filterFavorites, (v) => setState(() => _filterFavorites = v))),
-                    Expanded(child: _buildCheckbox('مهم', _filterImportant, (v) => setState(() => _filterImportant = v))),
+                    Expanded(child: _buildCheckbox('المفضلة', _filterFavorites, (v) => setState(() => _filterFavorites = v), isDark)),
+                    Expanded(child: _buildCheckbox('مهم', _filterImportant, (v) => setState(() => _filterImportant = v), isDark)),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _buildCheckbox('الأسئلة المصححة', _filterCorrected, (v) => setState(() => _filterCorrected = v))),
-                    Expanded(child: _buildCheckbox('الإجابات الخاطئة', _filterWrong, (v) => setState(() => _filterWrong = v))),
+                    Expanded(child: _buildCheckbox('الأسئلة المصححة', _filterCorrected, (v) => setState(() => _filterCorrected = v), isDark)),
+                    Expanded(child: _buildCheckbox('الإجابات الخاطئة', _filterWrong, (v) => setState(() => _filterWrong = v), isDark)),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _buildCheckbox('الإجابات الصحيحة', _filterCorrect, (v) => setState(() => _filterCorrect = v))),
+                    Expanded(child: _buildCheckbox('الإجابات الصحيحة', _filterCorrect, (v) => setState(() => _filterCorrect = v), isDark)),
                     const Expanded(child: SizedBox()),
                   ],
                 ),
                 if (widget.isGlobalSearch) ...[
                   const SizedBox(height: 16),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: isDark ? Colors.white10 : AppColors.borderLight),
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
                       'نوع الورقة',
-                      style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                      style: GoogleFonts.cairo(
+                        fontSize: 14, 
+                        fontWeight: FontWeight.bold, 
+                        color: isDark ? Colors.white38 : AppColors.textSecondary
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildPaperTypeButton('الكل', 'all', Icons.check_rounded),
+                      _buildPaperTypeButton('الكل', 'all', Icons.check_rounded, isDark),
                       const SizedBox(width: 8),
-                      _buildPaperTypeButton('امتحانات', 'exam', Icons.description_outlined),
+                      _buildPaperTypeButton('امتحانات', 'exam', Icons.description_outlined, isDark),
                       const SizedBox(width: 8),
-                      _buildPaperTypeButton('بنك الأسئلة', 'bank', Icons.account_balance_outlined),
+                      _buildPaperTypeButton('بنك الأسئلة', 'bank', Icons.account_balance_outlined, isDark),
                     ],
                   ),
                 ],
@@ -882,7 +948,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     );
   }
 
-  Widget _buildPaperTypeButton(String label, String value, IconData icon) {
+  Widget _buildPaperTypeButton(String label, String value, IconData icon, bool isDark) {
     final isSelected = _filterPaperType == value;
     return Expanded(
       child: InkWell(
@@ -892,10 +958,10 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2563EB) : Colors.white,
+            color: isSelected ? const Color(0xFF2563EB) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2563EB) : AppColors.borderLight,
+              color: isSelected ? const Color(0xFF2563EB) : (isDark ? Colors.white10 : AppColors.borderLight),
             ),
           ),
           child: Row(
@@ -906,14 +972,14 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : AppColors.textPrimary),
                 ),
               ),
               const SizedBox(width: 4),
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+                color: isSelected ? Colors.white : (isDark ? Colors.white38 : AppColors.textSecondary),
               ),
             ],
           ),
@@ -922,7 +988,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     );
   }
 
-  Widget _buildCheckbox(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildCheckbox(String label, bool value, ValueChanged<bool> onChanged, bool isDark) {
     return InkWell(
       onTap: () => onChanged(!value),
       child: Row(
@@ -933,7 +999,10 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             height: 22,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: value ? AppColors.primaryBlue : AppColors.borderLight, width: 2),
+              border: Border.all(
+                color: value ? AppColors.primaryBlue : (isDark ? Colors.white10 : AppColors.borderLight), 
+                width: 2
+              ),
               color: value ? AppColors.primaryBlue : Colors.transparent,
             ),
             child: value ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
@@ -943,7 +1012,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             label,
             style: GoogleFonts.cairo(
               fontSize: 14,
-              color: value ? AppColors.primaryBlue : AppColors.textPrimary,
+              color: value ? AppColors.primaryBlue : (isDark ? Colors.white70 : AppColors.textPrimary),
               fontWeight: value ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -952,7 +1021,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     );
   }
 
-  Widget _buildExpandableFab() {
+  Widget _buildExpandableFab(bool isDark) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -962,24 +1031,27 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
             icon: Icons.refresh_rounded,
             label: 'تصفير الإجابات',
             onTap: _resetAnswers,
+            isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildFabMenuItem(
             icon: Icons.done_all_rounded,
             label: 'تصحيح الكل',
             onTap: _checkAll,
+            isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildFabMenuItem(
             icon: Icons.check_circle_rounded,
             label: 'تصحيح إجاباتي',
             onTap: _checkMyAnswers,
+            isDark: isDark,
           ),
           const SizedBox(height: 12),
         ],
         FloatingActionButton(
           onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           elevation: 4,
           shape: const CircleBorder(),
           child: Icon(
@@ -995,6 +1067,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -1003,11 +1076,15 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12), 
+                  blurRadius: 4, 
+                  offset: const Offset(0, 2)
+                ),
               ],
             ),
             child: Icon(icon, color: AppColors.primaryBlue, size: 22),
@@ -1016,10 +1093,14 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12), 
+                  blurRadius: 4, 
+                  offset: const Offset(0, 2)
+                ),
               ],
             ),
             child: Text(
@@ -1027,7 +1108,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               style: GoogleFonts.cairo(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
               ),
             ),
           ),

@@ -39,22 +39,26 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final user = context.watch<AuthService>().user;
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('معارك المواد: ${widget.subjectName}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: Colors.white,
+        title: Text('معارك المواد: ${widget.subjectName}',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18,
+                color: isDark ? Colors.white : AppColors.textPrimary)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primaryBlue,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: isDark ? Colors.white54 : Colors.grey,
           indicatorColor: AppColors.primaryBlue,
           labelStyle: GoogleFonts.cairo(fontWeight: FontWeight.bold),
           tabs: const [
@@ -66,29 +70,29 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildActionTab(user.uid, user.displayName ?? 'طالب'),
+          _buildActionTab(user.uid, user.displayName ?? 'طالب', isDark),
           _buildHistoryTab(user.uid),
         ],
       ),
     );
   }
 
-  Widget _buildActionTab(String userId, String userName) {
+  Widget _buildActionTab(String userId, String userName, bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildActiveBattlesSection(userId),
-          _buildCreateCard(userId, userName),
+          _buildActiveBattlesSection(userId, isDark),
+          _buildCreateCard(userId, userName, isDark),
           const SizedBox(height: 24),
-          _buildJoinCard(userId, userName),
+          _buildJoinCard(userId, userName, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildActiveBattlesSection(String userId) {
+  Widget _buildActiveBattlesSection(String userId, bool isDark) {
     return StreamBuilder<List<BattleChallenge>>(
       stream: _battleService.streamMyBattles(userId).map((list) => list.where((b) => b.status != BattleStatus.finished).toList()),
       builder: (context, snapshot) {
@@ -107,19 +111,18 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                       color: Colors.green,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
                   ),
-                  const SizedBox(width: 8),
-                  Text('تحديات نشطة', style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 12),
+                  Text('تحديات نشطة', style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)),
                 ],
               ),
             ),
             ...active.map((b) => Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: Colors.green[50],
+                color: isDark ? const Color(0xFF14532D).withValues(alpha: 0.3) : Colors.green[50],
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.green[200]!),
+                border: Border.all(color: isDark ? const Color(0xFF166534) : Colors.green[200]!),
               ),
               child: ListTile(
                 onTap: () => Navigator.push(
@@ -130,13 +133,13 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.green[100],
+                    color: isDark ? Colors.green.withValues(alpha: 0.2) : Colors.green[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.flash_on_rounded, color: Colors.green, size: 24),
                 ),
-                title: Text('تحدي ضد ${b.opponentName ?? 'قيد الانتظار'}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: Text('${b.status == BattleStatus.active ? "جارٍ" : "بانتظار المنافس"} • ${b.questionIds.length} أسئلة', style: GoogleFonts.cairo(fontSize: 12)),
+                title: Text('تحدي ضد ${b.opponentName ?? 'قيد الانتظار'}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : null)),
+                subtitle: Text('${b.status == BattleStatus.active ? "جارٍ" : "بانتظار المنافس"} • ${b.questionIds.length} أسئلة', style: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white60 : null)),
                 trailing: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: Colors.green),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -148,11 +151,11 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     );
   }
 
-  Widget _buildCreateCard(String userId, String userName) {
+  Widget _buildCreateCard(String userId, String userName, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4)),
@@ -162,12 +165,12 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
         children: [
           const Icon(Icons.flash_on_rounded, color: Colors.amber, size: 48),
           const SizedBox(height: 16),
-          Text('تحدي جديد', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text('تحدي جديد', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)),
           const SizedBox(height: 8),
           Text(
             'قم بإنشاء تحدي جديد وشارك الكود مع صديقك للمنافسة في أسئلة عشوائية من هذه المادة.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13),
+            style: GoogleFonts.cairo(color: isDark ? const Color(0xFF94A3B8) : Colors.grey[600], fontSize: 13),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
@@ -185,13 +188,12 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     );
   }
 
-  Widget _buildJoinCard(String userId, String userName) {
+  Widget _buildJoinCard(String userId, String userName, bool isDark) {
     final codeController = TextEditingController();
-
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4)),
@@ -201,22 +203,22 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
         children: [
           const Icon(Icons.group_add_rounded, color: Colors.green, size: 48),
           const SizedBox(height: 16),
-          Text('انضمام لتحدي', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text('انضمام لتحدي', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)),
           const SizedBox(height: 8),
           Text(
             'أدخل كود التحدي الذي شاركه معك صديقك للبدء.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13),
+            style: GoogleFonts.cairo(color: isDark ? const Color(0xFF94A3B8) : Colors.grey[600], fontSize: 13),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: codeController,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 2),
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 2, color: isDark ? Colors.white : null),
             decoration: InputDecoration(
               hintText: 'أدخل الكود هنا',
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
@@ -244,9 +246,11 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
           return const Center(child: CircularProgressIndicator());
         }
         final battles = snapshot.data ?? [];
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        
         if (battles.isEmpty) {
           return Center(
-            child: Text('لا توجد تحديات سابقة.', style: GoogleFonts.cairo(color: Colors.grey)),
+            child: Text('لا توجد تحديات سابقة.', style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey)),
           );
         }
 
@@ -257,7 +261,11 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
             final b = battles[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: isDark ? const BorderSide(color: Colors.white10) : BorderSide.none,
+              ),
               child: ListTile(
                 onTap: () {
                   Navigator.push(
@@ -269,14 +277,22 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                 },
                 contentPadding: const EdgeInsets.all(16),
                 leading: CircleAvatar(
-                  backgroundColor: b.status == BattleStatus.finished ? Colors.grey[200] : Colors.amber[100],
+                  backgroundColor: b.status == BattleStatus.finished 
+                    ? (isDark ? Colors.white10 : Colors.grey[200]) 
+                    : (isDark ? Colors.amber.withValues(alpha: 0.2) : Colors.amber[100]),
                   child: Icon(
                     b.status == BattleStatus.finished ? Icons.flag_rounded : Icons.pending_actions_rounded,
                     color: b.status == BattleStatus.finished ? Colors.grey : Colors.amber,
                   ),
                 ),
-                title: Text('تحدي ضد ${b.opponentName ?? 'قيد الانتظار'}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                subtitle: Text('الحالة: ${b.status.name}', style: GoogleFonts.cairo(fontSize: 12)),
+                title: Text(
+                  'تحدي ضد ${b.opponentName ?? 'قيد الانتظار'}', 
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)
+                ),
+                subtitle: Text(
+                  'الحالة: ${b.status.name}', 
+                  style: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white60 : null)
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.copy_rounded, color: AppColors.primaryBlue),
                   onPressed: () {
@@ -347,22 +363,40 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
   }
 
   void _showBattleCodeDialog(BattleChallenge battle) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تم إنشاء التحدي!', textAlign: TextAlign.center, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text(
+          'تم إنشاء التحدي!', 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : null)
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('شارك هذا الكود مع صديقك ليبدأ التحدي:', textAlign: TextAlign.center, style: GoogleFonts.cairo()),
+            Text(
+              'شارك هذا الكود مع صديقك ليبدأ التحدي:', 
+              textAlign: TextAlign.center, 
+              style: GoogleFonts.cairo(color: isDark ? Colors.white70 : null)
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey[100], 
+                borderRadius: BorderRadius.circular(12)
+              ),
               child: SelectableText(
                 battle.id,
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1),
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 18, 
+                  letterSpacing: 1,
+                  color: isDark ? Colors.white : null,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -374,7 +408,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
               Clipboard.setData(ClipboardData(text: battle.id));
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم النسخ!')));
             },
-            child: Text('نسخ الكود', style: GoogleFonts.cairo(color: AppColors.primaryBlue)),
+            child: Text('نسخ الكود', style: GoogleFonts.cairo(color: isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue)),
           ),
           ElevatedButton.icon(
             onPressed: () {

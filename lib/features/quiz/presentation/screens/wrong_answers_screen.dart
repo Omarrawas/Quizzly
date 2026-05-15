@@ -134,8 +134,10 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
   }
 
   void _showListSelectionDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Container(
@@ -143,13 +145,30 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('اختر القائمة السريعة', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'اختر القائمة السريعة', 
+                style: GoogleFonts.cairo(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black
+                )
+              ),
               const SizedBox(height: 16),
               ..._userLists.map((list) {
+                final isSelected = _primaryListId == list.id;
                 return ListTile(
-                  leading: Icon(IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'), color: _primaryListId == list.id ? AppColors.primaryBlue : AppColors.textSecondary),
-                  title: Text(list.name, style: GoogleFonts.cairo(fontWeight: _primaryListId == list.id ? FontWeight.bold : FontWeight.normal)),
-                  trailing: _primaryListId == list.id ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                  leading: Icon(
+                    IconData(list.iconCodePoint, fontFamily: 'MaterialIcons'), 
+                    color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white38 : AppColors.textSecondary)
+                  ),
+                  title: Text(
+                    list.name, 
+                    style: GoogleFonts.cairo(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isDark ? Colors.white : Colors.black
+                    )
+                  ),
+                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
                   onTap: () {
                     _listService.setPrimaryListId(list.id);
                     Navigator.pop(context);
@@ -328,7 +347,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     });
   }
 
-  Widget _buildExpandableFab() {
+  Widget _buildExpandableFab(bool isDark) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,24 +357,27 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
             icon: Icons.refresh_rounded,
             label: 'تصفير الإجابات',
             onTap: _resetAnswers,
+            isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildFabMenuItem(
             icon: Icons.done_all_rounded,
             label: 'تصحيح الكل',
             onTap: _checkAll,
+            isDark: isDark,
           ),
           const SizedBox(height: 12),
           _buildFabMenuItem(
             icon: Icons.check_circle_rounded,
             label: 'تصحيح إجاباتي',
             onTap: _checkMyAnswers,
+            isDark: isDark,
           ),
           const SizedBox(height: 12),
         ],
         FloatingActionButton(
           onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           elevation: 4,
           shape: const CircleBorder(),
           child: Icon(
@@ -371,6 +393,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -379,11 +402,15 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12), 
+                  blurRadius: 4, 
+                  offset: const Offset(0, 2)
+                ),
               ],
             ),
             child: Icon(icon, color: const Color(0xFFDC2626), size: 22),
@@ -392,10 +419,14 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12), 
+                  blurRadius: 4, 
+                  offset: const Offset(0, 2)
+                ),
               ],
             ),
             child: Text(
@@ -403,7 +434,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
               style: GoogleFonts.cairo(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
               ),
             ),
           ),
@@ -412,15 +443,21 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     );
   }
 
-  Widget _buildFilterButton() {
+  Widget _buildFilterButton(bool isDark) {
     return InkWell(
       onTap: () => setState(() => _showFilters = !_showFilters),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: _showFilters ? const Color(0xFFDC2626).withValues(alpha: 0.1) : Colors.white,
+          color: _showFilters 
+              ? const Color(0xFFDC2626).withValues(alpha: 0.1) 
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _showFilters ? const Color(0xFFDC2626) : AppColors.borderLight),
+          border: Border.all(
+            color: _showFilters 
+                ? const Color(0xFFDC2626) 
+                : (isDark ? Colors.white10 : AppColors.borderLight)
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -430,14 +467,14 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
               style: GoogleFonts.cairo(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: _showFilters ? const Color(0xFFDC2626) : AppColors.textSecondary,
+                color: _showFilters ? const Color(0xFFDC2626) : (isDark ? Colors.white38 : AppColors.textSecondary),
               ),
             ),
             const SizedBox(width: 6),
             Icon(
               Icons.filter_list_rounded,
               size: 16,
-              color: _showFilters ? const Color(0xFFDC2626) : AppColors.textSecondary,
+              color: _showFilters ? const Color(0xFFDC2626) : (isDark ? Colors.white38 : AppColors.textSecondary),
             ),
           ],
         ),
@@ -445,13 +482,13 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     );
   }
 
-  Widget _buildSortButton() {
+  Widget _buildSortButton(bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -461,14 +498,14 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
             style: GoogleFonts.cairo(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
           const SizedBox(width: 6),
-          const Icon(
+          Icon(
             Icons.sort_rounded,
             size: 16,
-            color: AppColors.textSecondary,
+            color: isDark ? Colors.white38 : AppColors.textSecondary,
           ),
         ],
       ),
@@ -488,16 +525,18 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
         ? _wrongQuestions 
         : _wrongQuestions.where((q) => q.text.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      floatingActionButton: filteredQuestions.isNotEmpty ? _buildExpandableFab() : null,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      floatingActionButton: filteredQuestions.isNotEmpty ? _buildExpandableFab(isDark) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         leading: _isSearching
             ? IconButton(
-                icon: const Icon(Icons.close, color: Colors.black),
+                icon: Icon(Icons.close, color: isDark ? Colors.white : Colors.black),
                 onPressed: () {
                   setState(() {
                     _isSearching = false;
@@ -507,17 +546,17 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                 },
               )
             : IconButton(
-                icon: const Icon(Icons.search, color: Colors.black),
+                icon: Icon(Icons.search, color: isDark ? Colors.white : Colors.black),
                 onPressed: () => setState(() => _isSearching = true),
               ),
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: GoogleFonts.cairo(),
+                style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   hintText: 'البحث في الأخطاء...',
-                  hintStyle: GoogleFonts.cairo(color: Colors.grey),
+                  hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
                   border: InputBorder.none,
                 ),
                 onChanged: (val) {
@@ -528,12 +567,15 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
               )
             : Text(
                 'الإجابات الخاطئة',
-                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold, 
+                  color: isDark ? Colors.white : AppColors.textPrimary
+                ),
               ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black),
+            icon: Icon(Icons.arrow_forward_ios, size: 20, color: isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -555,12 +597,12 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderLight),
+              border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -571,9 +613,9 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
               children: [
                 Row(
                   children: [
-                    _buildFilterButton(),
+                    _buildFilterButton(isDark),
                     const SizedBox(width: 8),
-                    _buildSortButton(),
+                    _buildSortButton(isDark),
                   ],
                 ),
                 Row(
@@ -609,7 +651,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                               style: GoogleFonts.cairo(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: isDark ? Colors.white : AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -620,7 +662,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.cairo(
                                   fontSize: 14,
-                                  color: AppColors.textSecondary,
+                                  color: isDark ? Colors.white38 : AppColors.textSecondary,
                                   height: 1.5,
                                 ),
                               ),
@@ -702,14 +744,15 @@ class _ExamBreadcrumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFEF2F2),
+          color: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.1) : const Color(0xFFFEF2F2),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFECACA)),
+          border: Border.all(color: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.3) : const Color(0xFFFECACA)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -720,7 +763,7 @@ class _ExamBreadcrumb extends StatelessWidget {
               examTitle,
               style: GoogleFonts.cairo(
                 fontSize: 13,
-                color: const Color(0xFFDC2626),
+                color: isDark ? Colors.red[300] : const Color(0xFFDC2626),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -739,6 +782,7 @@ class _QuestionDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -747,7 +791,7 @@ class _QuestionDivider extends StatelessWidget {
           (i) => Expanded(
             child: Container(
               height: 1,
-              color: i.isEven ? AppColors.borderLight : Colors.transparent,
+              color: i.isEven ? (isDark ? Colors.white10 : AppColors.borderLight) : Colors.transparent,
             ),
           ),
         ),
