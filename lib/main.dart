@@ -15,6 +15,8 @@ import 'package:quizzly/features/quiz/domain/services/smart_notification_service
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -57,6 +59,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'Quizzly',
           debugShowCheckedModeBanner: false,
+          scaffoldMessengerKey: scaffoldMessengerKey,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeService.themeMode,

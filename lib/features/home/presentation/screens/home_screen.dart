@@ -10,6 +10,7 @@ import 'package:quizzly/features/home/presentation/widgets/subject_card.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_hub_screen.dart';
 import 'package:quizzly/features/home/presentation/screens/subject_selection_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/favorites_screen.dart';
+import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
 
   bool _isSyncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthService>().addListener(_authListener);
+    });
+  }
+
+  void _authListener() {
+    final auth = context.read<AuthService>();
+    if (auth.user == null && mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    context.read<AuthService>().removeListener(_authListener);
+    super.dispose();
+  }
 
   void _openActivationFlow() {
     Navigator.push(

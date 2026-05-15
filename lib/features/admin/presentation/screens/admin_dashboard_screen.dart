@@ -6,6 +6,7 @@ import 'package:quizzly/features/admin/presentation/screens/manage_activation_co
 import 'package:quizzly/features/admin/presentation/screens/database_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/reports_management_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/user_management_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -240,6 +241,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             // ─── Quick Actions ──────────────────────────────────
             _buildSectionTitle('إجراءات سريعة', isDark),
             const SizedBox(height: 16),
+            _buildActionTile(
+              icon: Icons.manage_accounts_rounded,
+              title: 'إدارة المستخدمين',
+              subtitle: 'تعديل الصلاحيات وإلغاء ارتباط الأجهزة',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const UserManagementScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
             _buildActionTile(
               icon: Icons.vpn_key_rounded,
               title: 'إدارة مجموعات الأكواد',
