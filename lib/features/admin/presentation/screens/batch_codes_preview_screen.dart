@@ -260,68 +260,109 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    // QR Code Container
+                    // QR Code & Info Container (White Card)
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
-                      child: Stack(
-                        alignment: Alignment.center,
+                      child: Column(
                         children: [
-                          QrImageView(
-                            data: code,
-                            version: QrVersions.auto,
-                            size: 180,
-                            errorCorrectionLevel: QrErrorCorrectLevel.H,
-                          ),
-                          Container(
-                            width: 35,
-                            height: 35,
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                          // Credit Value
+                          Text(
+                            '$creditValue ل.س',
+                            style: GoogleFonts.cairo(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryBlue,
                             ),
-                            child: Image.asset('assets/images/logo.png'),
+                          ),
+                          const SizedBox(height: 12),
+                          // QR Code
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              QrImageView(
+                                data: code,
+                                version: QrVersions.auto,
+                                size: 160,
+                                errorCorrectionLevel: QrErrorCorrectLevel.H,
+                              ),
+                              Container(
+                                width: 32,
+                                height: 32,
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Image.asset('assets/images/logo.png'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Code Text (Tap to copy)
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: code));
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text('تم نسخ الكود: $code', textAlign: TextAlign.center, style: GoogleFonts.cairo()),
+                                    backgroundColor: AppColors.primaryBlue,
+                                    duration: const Duration(seconds: 1),
+                                    behavior: SnackBarBehavior.floating,
+                                    width: 200,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      code,
+                                      style: GoogleFonts.sourceCodePro(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 4,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    Text(
+                                      'اضغط لنسخ الكود',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 10,
+                                        color: Colors.grey[400],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Batch Info
+                          Text(
+                            'Batch: $batchName • $duration Days',
+                            style: GoogleFonts.cairo(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Credit Value
-                    Text(
-                      '$creditValue ل.س',
-                      style: GoogleFonts.cairo(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Code Text
-                    Text(
-                      code,
-                      style: GoogleFonts.sourceCodePro(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Batch: $batchName • $duration Days',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],

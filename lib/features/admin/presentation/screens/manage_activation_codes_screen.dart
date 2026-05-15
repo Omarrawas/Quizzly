@@ -133,75 +133,98 @@ class _ManageActivationCodesScreenState
               ),
             ),
           ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            '$creditValue ل.س',
-            style: pw.TextStyle(
-              fontSize: 10,
-              font: boldFont,
-              color: PdfColors.black,
+          // Content Card (White background)
+          pw.Container(
+            padding: const pw.EdgeInsets.all(6),
+            decoration: const pw.BoxDecoration(
+              color: PdfColors.white,
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(6)),
             ),
-          ),
-          pw.SizedBox(height: 4),
-          // QR with Logo
-          pw.Directionality(
-            textDirection: pw.TextDirection.ltr,
-            child: pw.Stack(
-              alignment: pw.Alignment.center,
+            child: pw.Column(
               children: [
-                pw.Container(
-                  color: PdfColors.white,
-                  padding: const pw.EdgeInsets.all(1),
-                  child: pw.BarcodeWidget(
-                    data: code,
-                    barcode: pw.Barcode.qrCode(
-                      errorCorrectLevel: BarcodeQRCorrectionLevel.high,
-                    ),
-                    width: 50,
-                    height: 50,
+                // Price inside white card
+                pw.Text(
+                  '$creditValue ل.س',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    font: boldFont,
                     color: PdfColors.black,
-                    drawText: false,
                   ),
                 ),
-                pw.Container(
-                  width: 9,
-                  height: 9,
-                  padding: const pw.EdgeInsets.all(0.5),
-                  decoration: const pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.all(pw.Radius.circular(1.5)),
+                pw.SizedBox(height: 3),
+                // QR with Logo
+                pw.Directionality(
+                  textDirection: pw.TextDirection.ltr,
+                  child: pw.Stack(
+                    alignment: pw.Alignment.center,
+                    children: [
+                      pw.BarcodeWidget(
+                        data: code,
+                        barcode: pw.Barcode.qrCode(
+                          errorCorrectLevel: BarcodeQRCorrectionLevel.high,
+                        ),
+                        width: 45,
+                        height: 45,
+                        color: PdfColors.black,
+                        drawText: false,
+                      ),
+                      pw.Container(
+                        width: 8,
+                        height: 8,
+                        padding: const pw.EdgeInsets.all(0.5),
+                        decoration: const pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(1.2)),
+                        ),
+                        child: pw.Image(logo),
+                      ),
+                    ],
                   ),
-                  child: pw.Image(logo),
+                ),
+                pw.SizedBox(height: 3),
+                // Code Text with Label for manual entry
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      'الرمز: ',
+                      style: pw.TextStyle(
+                        fontSize: 6.5,
+                        font: boldFont,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.Directionality(
+                      textDirection: pw.TextDirection.ltr,
+                      child: pw.Text(
+                        code,
+                        style: pw.TextStyle(
+                          fontSize: 8.5,
+                          font: boldFont,
+                          letterSpacing: 1.0,
+                          color: PdfColors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 2),
+                // Batch & Duration
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'Batch: $batchName',
+                      style: const pw.TextStyle(fontSize: 4, color: PdfColors.grey900),
+                    ),
+                    pw.Text(
+                      '$duration Days',
+                      style: const pw.TextStyle(fontSize: 4, color: PdfColors.grey900),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-          pw.SizedBox(height: 3),
-          pw.Directionality(
-            textDirection: pw.TextDirection.ltr,
-            child: pw.Text(
-              code,
-              style: pw.TextStyle(
-                fontSize: 8.5,
-                font: boldFont,
-                letterSpacing: 0.5,
-                color: PdfColors.black,
-              ),
-            ),
-          ),
-          pw.SizedBox(height: 1.5),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text(
-                'Batch: $batchName',
-                style: const pw.TextStyle(fontSize: 4.5, color: PdfColors.grey800),
-              ),
-              pw.Text(
-                '$duration Days',
-                style: const pw.TextStyle(fontSize: 4.5, color: PdfColors.grey800),
-              ),
-            ],
           ),
         ],
       ),

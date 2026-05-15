@@ -530,11 +530,20 @@ class DatabaseService {
       'type': 'redeem',
       'amount': creditValue,
       'code': code,
+      'description': 'شحن رصيد بواسطة كود',
       'timestamp': FieldValue.serverTimestamp(),
     });
 
     await batch.commit();
-    return {'amount': creditValue};
+
+    // Fetch new balance to return
+    final userSnap = await _db.collection('users').doc(userId).get();
+    final newBalance = (userSnap.data()?['balance'] ?? 0) as int;
+
+    return {
+      'creditValue': creditValue,
+      'newBalance': newBalance,
+    };
   }
 
   /// Purchases a subject using user balance
@@ -581,6 +590,7 @@ class DatabaseService {
       'amount': -price,
       'subjectId': subjectId,
       'subjectName': subjectName,
+      'description': 'شراء مادة: $subjectName',
       'timestamp': FieldValue.serverTimestamp(),
     });
 

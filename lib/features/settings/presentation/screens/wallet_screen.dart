@@ -6,6 +6,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -226,29 +227,43 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           child: Column(
             children: [
-              TextField(
-                controller: _codeController,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.sourceCodePro(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'أدخل كود الشحن',
-                  hintStyle: GoogleFonts.cairo(
-                    fontSize: 16,
-                    letterSpacing: 0,
-                    color: isDark ? Colors.white24 : Colors.grey,
+              Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  TextField(
+                    controller: _codeController,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.sourceCodePro(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'أدخل كود الشحن',
+                      hintStyle: GoogleFonts.cairo(
+                        fontSize: 16,
+                        letterSpacing: 0,
+                        color: isDark ? Colors.white24 : Colors.grey,
+                      ),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: IconButton(
+                      icon: Icon(Icons.qr_code_scanner_rounded, color: AppColors.primaryBlue, size: 28),
+                      onPressed: _showScanner,
+                      tooltip: 'مسح QR Code',
+                    ),
                   ),
-                ),
+                ],
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -260,6 +275,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
                   ),
                   child: _isRedeeming
                       ? const CircularProgressIndicator(color: Colors.white)
@@ -273,6 +289,70 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showScanner() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'مسح كود الشحن',
+                style: GoogleFonts.cairo(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: MobileScanner(
+                  onDetect: (capture) {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    if (barcodes.isNotEmpty) {
+                      final String? code = barcodes.first.rawValue;
+                      if (code != null) {
+                        setState(() => _codeController.text = code);
+                        Navigator.pop(context);
+                        _handleRedeem();
+                      }
+                    }
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'وجه الكاميرا نحو الـ QR Code الموجود على البطاقة',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
