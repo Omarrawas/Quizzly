@@ -26,7 +26,7 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
   Query get _query => FirebaseFirestore.instance
       .collection('topics')
       .where('subjectId', isEqualTo: widget.subjectId)
-      .where('sectionId', isEqualTo: widget.sectionId)
+      // .where('sectionId', isEqualTo: widget.sectionId) // removed to match student screen
       .where('type', isEqualTo: 'practical');
 
   Future<void> _deleteLesson(String docId) async {

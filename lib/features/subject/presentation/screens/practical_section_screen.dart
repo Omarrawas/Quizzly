@@ -46,14 +46,14 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
       });
 
       // If admin AND not in view-only mode, redirect to management immediately
-      if (auth.isAdmin && sId != null && !widget.isViewOnly) {
+      if (auth.isAdmin && !widget.isViewOnly) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => PracticalManagementScreen(
               subjectId: widget.subjectId,
               subjectName: widget.subjectName,
-              sectionId: sId,
+              sectionId: sId ?? 'practical', // Fallback to 'practical' if no section found
               sectionName: 'القسم العملي',
             ),
           ),
@@ -85,7 +85,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
       );
     }
 
-    if (_sectionId == null) {
+    if (_sectionId == null && false) { // Skip this check, we can show lessons even without a section document
       return Scaffold(
         backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         appBar: AppBar(
@@ -114,7 +114,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
         stream: FirebaseFirestore.instance
             .collection('topics')
             .where('subjectId', isEqualTo: widget.subjectId)
-            .where('sectionId', isEqualTo: _sectionId)
+            // .where('sectionId', isEqualTo: _sectionId) // removed to fetch ALL practical lessons for this subject
             .where('type', isEqualTo: 'practical')
             .orderBy('createdAt', descending: true)
             .snapshots(),
