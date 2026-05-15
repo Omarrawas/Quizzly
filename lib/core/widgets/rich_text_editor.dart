@@ -502,18 +502,24 @@ class _RichTextEditorState extends State<RichTextEditor> {
           // Editor Area
           SizedBox(
             height: widget.height,
-            child: quill.QuillEditor.basic(
-              controller: _controller,
-              focusNode: _focusNode,
-              scrollController: _scrollController,
-              config: quill.QuillEditorConfig(
-                padding: const EdgeInsets.all(12),
-                autoFocus: false,
-                expands: false,
-                embedBuilders: [
-                  ...quill_extensions.FlutterQuillEmbeds.editorBuilders(),
-                  MathEmbedBuilder(),
-                ],
+            child: DefaultTextStyle(
+              style: TextStyle(
+                color: widget.textColor ?? (isDark ? Colors.white : AppColors.textPrimary),
+                fontSize: 16,
+              ),
+              child: quill.QuillEditor.basic(
+                controller: _controller,
+                focusNode: _focusNode,
+                scrollController: _scrollController,
+                config: quill.QuillEditorConfig(
+                  padding: const EdgeInsets.all(12),
+                  autoFocus: false,
+                  expands: false,
+                  embedBuilders: [
+                    ...quill_extensions.FlutterQuillEmbeds.editorBuilders(),
+                    MathEmbedBuilder(),
+                  ],
+                ),
               ),
             ),
           ),

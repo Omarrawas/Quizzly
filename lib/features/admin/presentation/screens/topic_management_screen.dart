@@ -431,6 +431,8 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     final chapters = chaptersSnap.docs.where((doc) => doc.id != id).toList();
 
     if (!mounted) return;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
@@ -458,9 +460,10 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                     labelStyle: GoogleFonts.cairo(),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                   items: [
-                    DropdownMenuItem(value: 'chapter', child: Text('فصل رئيسي', style: GoogleFonts.cairo())),
-                    DropdownMenuItem(value: 'lesson', child: Text('درس فرعي', style: GoogleFonts.cairo())),
+                    DropdownMenuItem(value: 'chapter', child: Text('فصل رئيسي', style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.textPrimary))),
+                    DropdownMenuItem(value: 'lesson', child: Text('درس فرعي', style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.textPrimary))),
                   ],
                   onChanged: (val) => setDialogState(() {
                     currentType = val!;
@@ -476,11 +479,12 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                       labelStyle: GoogleFonts.cairo(),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
+                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                     items: [
                       const DropdownMenuItem(value: null, child: Text('اختر فصلاً...', style: TextStyle(color: Colors.grey))),
                       ...chapters.map((doc) => DropdownMenuItem(
                         value: doc.id,
-                        child: Text(doc.data()['name'] ?? '', style: GoogleFonts.cairo()),
+                        child: Text(doc.data()['name'] ?? '', style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.textPrimary)),
                       )),
                     ],
                     onChanged: (val) => setDialogState(() => currentParentId = val),

@@ -257,9 +257,9 @@ class MathSymbolToolbar extends StatelessWidget {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = AppColors.textPrimary;
-    final mutedTextColor = AppColors.textSecondary;
-    final borderColor = AppColors.borderLight;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+    final mutedTextColor = isDark ? Colors.white70 : AppColors.textSecondary;
+    final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
     final accentColor = AppColors.primaryBlue;
 
     showDialog(
@@ -656,9 +656,9 @@ class MathSymbolToolbar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = AppColors.borderLight;
-    final textPrimary = AppColors.textPrimary;
-    final textSecondary = AppColors.textSecondary;
+    final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimary;
+    final textSecondary = isDark ? Colors.white70 : AppColors.textSecondary;
     final accent = AppColors.primaryBlue;
 
     return Padding(
