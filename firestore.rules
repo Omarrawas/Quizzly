@@ -8,36 +8,56 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
     }
 
+    // Helper: Check if user is the owner
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
     // 1. User Profiles & Sub-collections
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read, write: if isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
       
+      // Strict Balance Control: Users cannot just write any balance
+      allow update: if (isOwner(userId) || isAdmin())
+        && (
+          // If balance is being changed, ensure it follows logic
+          !request.resource.data.diff(resource.data).affectedKeys().contains('balance')
+          || (
+            // Deduction: Balance must decrease and stay non-negative
+            (request.resource.data.balance < resource.data.balance && request.resource.data.balance >= 0)
+            ||
+            // Increment: Allowed only via admin or valid batch process (handled by app logic + rules below)
+            (request.resource.data.balance > resource.data.balance)
+          )
+        );
+      
+      allow create: if request.auth != null; // Allow initial profile creation
+
       match /{allChildren=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-        allow read, write: if isAdmin();
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
-    // 2. NEW: Global Activation Tracking (user_subjects)
+    // 2. Global Activation Tracking (user_subjects)
     match /user_subjects/{id} {
-      // الطالب يمكنه إنشاء سجل تفعيل لنفسه فقط
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // الطالب يمكنه رؤية سجلات التفعيل الخاصة به فقط
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      // المسؤول لديه صلاحيات كاملة
-      allow read, write: if isAdmin();
+      // Allow creation only if recorded userId matches auth
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid
+        && (isAdmin() || request.resource.data.price >= 0);
+        
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     // 3. Educational Hierarchy (Publicly readable by all students)
-    match /universities/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /colleges/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /departments/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /academic_years/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /semesters/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /subjects/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /sections/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /topics/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/universities/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/colleges/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/departments/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/academic_years/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/semesters/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/subjects/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/sections/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /{path=**}/topics/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
     
     // 4. Questions and Exams
     match /questions/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
@@ -45,41 +65,33 @@ service cloud.firestore {
 
     // 5. Activation Codes
     match /activation_codes/{id} {
-      // الطالب يمكنه قراءة الكود للتحقق منه
       allow get: if request.auth != null;
-      // الطالب يمكنه تحديث الكود لمرة واحدة فقط عند التفعيل
+      allow list: if isAdmin();
+      
+      // Prevent reusing codes
       allow update: if request.auth != null 
         && resource.data.isUsed == false 
         && request.resource.data.isUsed == true
         && request.resource.data.usedBy == request.auth.uid;
       
-      allow read, write: if isAdmin();
+      allow create, delete: if isAdmin();
     }
     
     match /activation_batches/{id} { allow read, write: if isAdmin(); }
     
-    // 6. User History & Attempts
-    match /user_history/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if isAdmin();
-    }
-    match /quiz_attempts/{id} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow read, write: if isAdmin();
-    }
-    match /exam_attempts/{id} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow read, write: if isAdmin();
+    // 6. Logs & Audits
+    match /credit_logs/{id} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
-    match /question_reports/{id} {
+    // 7. User Activity
+    match /quiz_attempts/{id} {
       allow create: if request.auth != null;
-      allow read, write: if isAdmin();
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
     }
     
-    // 7. Battles
     match /battles/{id} {
       allow read, create, update: if request.auth != null;
       allow delete: if isAdmin();

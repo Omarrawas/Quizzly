@@ -17,7 +17,6 @@ class SubjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final name = subject['name'] ?? 'مادة غير معروفة';
-    final code = subject['code'] ?? 'N/A';
     final status = subject['status'] ?? 'active';
     
     final university = subject['universityName'] ?? 'الجامعة غير محددة';
@@ -127,7 +126,9 @@ class SubjectCard extends StatelessWidget {
               child: Text(
                 subject['activationType'] == 'code' 
                     ? 'تفعيل بواسطة كود'
-                    : (subject['activationType'] == 'free' || subject['price'] == 0 ? 'تفعيل مجاني' : (code == 'N/A' ? 'تفعيل مدفوع' : 'كود المادة: $code')),
+                    : (subject['activationType'] == 'free' || (subject['price'] ?? 0) == 0 
+                        ? 'تفعيل مجاني' 
+                        : 'تفعيل بمبلغ ${subject['price']} ليرة'),
                 style: GoogleFonts.cairo(
                   color: Colors.white,
                   fontSize: 12,

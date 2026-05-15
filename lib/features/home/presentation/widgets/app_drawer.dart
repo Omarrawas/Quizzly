@@ -10,6 +10,8 @@ import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
+import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
@@ -84,6 +86,15 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _buildMenuItem(
                     context,
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'محفظتي',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen()));
+                    },
+                  ),
+                  _buildMenuItem(
+                    context,
                     icon: Icons.code_rounded,
                     label: 'إدارة الأكواد',
                     onTap: () {
@@ -135,13 +146,20 @@ class AppDrawer extends StatelessWidget {
             // ── Footer ──────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Build Version: 0.4.4 (37)',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
+              child: FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  final version = snapshot.data?.version ?? '...';
+                  final buildNumber = snapshot.data?.buildNumber ?? '';
+                  return Text(
+                    'Build Version: $version ($buildNumber)',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  );
+                },
               ),
             ),
             Padding(

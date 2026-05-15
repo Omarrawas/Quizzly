@@ -4,6 +4,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/home/presentation/screens/home_screen.dart';
+import 'package:quizzly/core/services/app_update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,6 +25,9 @@ class _SplashScreenState extends State<SplashScreen> {
     if (mounted) {
       final authService = context.read<AuthService>();
       if (authService.user != null) {
+        // Check for updates after login check
+        AppUpdateService().checkForUpdates(context);
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),

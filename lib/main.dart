@@ -14,6 +14,7 @@ import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
+import 'package:quizzly/core/services/app_update_service.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -33,6 +34,9 @@ void main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+
+  // Initialize App Update Service
+  await AppUpdateService().initialize();
 
   runApp(
     MultiProvider(

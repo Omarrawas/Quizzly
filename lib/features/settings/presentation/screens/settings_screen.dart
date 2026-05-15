@@ -7,6 +7,8 @@ import 'package:quizzly/features/settings/domain/services/settings_service.dart'
 import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
+import 'package:quizzly/core/services/app_update_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -247,6 +249,37 @@ class SettingsScreen extends StatelessWidget {
                 },
                 isDark: isDark,
               ),
+              _buildDivider(isDark),
+
+              // ── About App Section
+              _buildSectionHeader('عن التطبيق', Icons.info_outline_rounded, isDark),
+              FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  final version = snapshot.data?.version ?? '...';
+                  final buildNumber = snapshot.data?.buildNumber ?? '';
+                  return Column(
+                    children: [
+                      _buildActionTile(
+                        title: 'إصدار التطبيق',
+                        subtitle: 'الإصدار الحالي: $version ($buildNumber)',
+                        icon: Icons.verified_rounded,
+                        hasArrow: false,
+                        onTap: () {},
+                        isDark: isDark,
+                      ),
+                      _buildActionTile(
+                        title: 'التحقق من وجود تحديث',
+                        subtitle: 'البحث عن آخر التحديثات والمميزات',
+                        icon: Icons.system_update_rounded,
+                        onTap: () => AppUpdateService().checkForUpdates(context, showNoUpdateDialog: true),
+                        isDark: isDark,
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 40),
               const SizedBox(height: 40),
             ],
           );
