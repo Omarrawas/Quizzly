@@ -176,6 +176,7 @@ class ContentService {
                 // 'addedAt' for code-activation; 'activatedAt' for purchase — accept either
                 'addedAt': docData['addedAt'] ?? docData['activatedAt'],
                 'activationType': docData['activationType'],
+                'paidPrice': docData['price'],
                 ...hierarchy,
               });
             }

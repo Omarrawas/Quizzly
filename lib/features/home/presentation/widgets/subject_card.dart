@@ -126,9 +126,9 @@ class SubjectCard extends StatelessWidget {
               child: Text(
                 subject['activationType'] == 'code' 
                     ? 'تفعيل بواسطة كود'
-                    : (subject['activationType'] == 'free' || (subject['price'] ?? 0) == 0 
+                    : (subject['activationType'] == 'free' || (subject['paidPrice'] ?? subject['price'] ?? 0) == 0 
                         ? 'تفعيل مجاني' 
-                        : 'تفعيل بمبلغ ${subject['price']} ليرة'),
+                        : 'تفعيل بمبلغ ${subject['paidPrice'] ?? subject['price']} ليرة'),
                 style: GoogleFonts.cairo(
                   color: Colors.white,
                   fontSize: 12,

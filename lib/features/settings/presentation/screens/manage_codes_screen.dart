@@ -158,6 +158,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
             final userId = data['userId'] as String;
             final subjectId = data['subjectId'] as String;
             final activationCode = data['activationCode'] as String?;
+            final price = (data['price'] as num?)?.toInt();
             final date = data['activatedAt'] != null
                 ? (data['activatedAt'] as Timestamp).toDate()
                 : DateTime.now();
@@ -254,7 +255,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                             ),
                           ],
                         ),
-                        if (isPaid && activationCode != null)
+                        if (isPaid && (activationCode != null || price != null))
                           Container(
                             margin: const EdgeInsets.only(top: 4, bottom: 4),
                             padding: const EdgeInsets.symmetric(
@@ -275,23 +276,40 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.vpn_key_rounded,
-                                  size: 10,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  activationCode,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : Colors.grey[700],
-                                    letterSpacing: 0.5,
+                                if (activationCode != null) ...[
+                                  const Icon(
+                                    Icons.vpn_key_rounded,
+                                    size: 10,
+                                    color: Colors.grey,
                                   ),
-                                ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    activationCode,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.grey[700],
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ] else if (price != null) ...[
+                                  const Icon(
+                                    Icons.account_balance_wallet_rounded,
+                                    size: 10,
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$price ل.س',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
