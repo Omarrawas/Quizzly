@@ -15,7 +15,9 @@ service cloud.firestore {
 
     // 1. User Profiles & Sub-collections
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      // Admin can list all users; individual users can only get their own
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       
       // Strict Balance Control: Users cannot just write any balance
       allow update: if (isOwner(userId) || isAdmin())
@@ -45,7 +47,9 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && (isAdmin() || request.resource.data.price >= 0);
         
-      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      // Allow admin to list/get all docs; users can only read their own
+      allow get: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if isAdmin();
       allow update, delete: if isAdmin();
     }
 
@@ -62,6 +66,12 @@ service cloud.firestore {
     // 4. Questions and Exams
     match /questions/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
     match /exams/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /exam_attempts/{id} {
+      allow create: if request.auth != null;
+      allow get: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
 
     // 5. Activation Codes
     match /activation_codes/{id} {
@@ -82,7 +92,9 @@ service cloud.firestore {
     // 6. Logs & Audits
     match /credit_logs/{id} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      // Allow admin to list all logs; users can only read their own
+      allow get: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if isAdmin();
     }
 
     // 7. User Activity

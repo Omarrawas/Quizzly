@@ -21,54 +21,58 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = false;
 
   Future<Map<String, String>> _fetchStats() async {
+
+    Future<int> safeAggCount(AggregateQuery q) async {
+      try { return (await q.get()).count ?? 0; }
+      catch (e) { debugPrint('AGG COUNT ERROR: $e'); return -1; }
+    }
+
     try {
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
 
-      final results = await Future.wait<dynamic>([
-        _db.collection('users').count().get(),
-        _db.collection('activation_codes').count().get(),
-        _db.collection('questions').count().get(),
-        _db.collection('exam_attempts').count().get(),
-        // Content Hierarchy
-        _db.collection('universities').count().get(),
-        _db.collection('colleges').count().get(),
-        _db.collection('departments').count().get(),
-        _db.collection('subjects').count().get(),
-        _db.collection('credit_logs')
-          .where('type', isEqualTo: 'redeem')
-          .where('timestamp', isGreaterThanOrEqualTo: startOfMonth)
-          .get(),
-      ]);
+      // Run each independently so one failure doesn't kill everything
+      final usersCount       = await safeAggCount(_db.collection('users').count());
+      final codesCount       = await safeAggCount(_db.collection('activation_codes').count());
+      final questionsCount   = await safeAggCount(_db.collection('questions').count());
+      final examsCount       = await safeAggCount(_db.collection('exam_attempts').count());
+      final unisCount        = await safeAggCount(_db.collection('universities').count());
+      final collegesCount    = await safeAggCount(_db.collection('colleges').count());
+      final deptsCount       = await safeAggCount(_db.collection('departments').count());
+      final subjectsCount    = await safeAggCount(_db.collection('subjects').count());
 
       int totalRevenue = 0;
-      final logsSnap = results[8] as QuerySnapshot;
-      for (var doc in logsSnap.docs) {
-        totalRevenue += ((doc.data() as Map<String, dynamic>)['amount'] as num?)?.toInt() ?? 0;
+      try {
+        final logsSnap = await _db.collection('credit_logs')
+          .where('type', isEqualTo: 'redeem')
+          .where('timestamp', isGreaterThanOrEqualTo: startOfMonth)
+          .get();
+        for (var doc in logsSnap.docs) {
+          totalRevenue += ((doc.data())['amount'] as num?)?.toInt() ?? 0;
+        }
+      } catch (e) {
+        debugPrint('CREDIT_LOGS ERROR: $e');
+        totalRevenue = -1;
       }
 
+      String format(int v) => v < 0 ? 'خطأ' : v.toString();
+
       return {
-        'users': (results[0] as AggregateQuerySnapshot).count.toString(),
-        'codes': (results[1] as AggregateQuerySnapshot).count.toString(),
-        'questions': (results[2] as AggregateQuerySnapshot).count.toString(),
-        'exams': (results[3] as AggregateQuerySnapshot).count.toString(),
-        'unis': (results[4] as AggregateQuerySnapshot).count.toString(),
-        'colleges': (results[5] as AggregateQuerySnapshot).count.toString(),
-        'depts': (results[6] as AggregateQuerySnapshot).count.toString(),
-        'subjects': (results[7] as AggregateQuerySnapshot).count.toString(),
-        'revenue': totalRevenue.toString(),
+        'users':    format(usersCount),
+        'codes':    format(codesCount),
+        'questions':format(questionsCount),
+        'exams':    format(examsCount),
+        'unis':     format(unisCount),
+        'colleges': format(collegesCount),
+        'depts':    format(deptsCount),
+        'subjects': format(subjectsCount),
+        'revenue':  totalRevenue < 0 ? 'خطأ' : totalRevenue.toString(),
       };
     } catch (e) {
+      debugPrint('FETCHSTATS FATAL: $e');
       return {
-        'users': '0',
-        'codes': '0',
-        'questions': '0',
-        'exams': '0',
-        'unis': '0',
-        'colleges': '0',
-        'depts': '0',
-        'subjects': '0',
-        'revenue': '0',
+        'users': '!', 'codes': '!', 'questions': '!', 'exams': '!',
+        'unis': '!', 'colleges': '!', 'depts': '!', 'subjects': '!', 'revenue': '!',
       };
     }
   }
