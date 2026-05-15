@@ -454,9 +454,9 @@ class DatabaseService {
   }
   // --- Activation Management ---
   Stream<QuerySnapshot> getActivations() {
-    return _db.collection('user_subjects')
-        .orderBy('activatedAt', descending: true)
-        .snapshots();
+    // No orderBy to avoid requiring a composite index;
+    // sorting is handled client-side.
+    return _db.collection('user_subjects').snapshots();
   }
 
   Future<void> deleteActivation(String activationId) async {
@@ -572,7 +572,7 @@ class DatabaseService {
       'subjectId': subjectId,
       'subjectName': subjectName,
       'activatedAt': FieldValue.serverTimestamp(),
-      'type': 'purchase',
+      'activationType': 'purchase',   // <-- was 'type', now matches filter key
       'price': price,
     });
 

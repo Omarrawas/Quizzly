@@ -77,13 +77,49 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     return StreamBuilder<QuerySnapshot>(
       stream: _activationsStream,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline_rounded,
+                    size: 56, color: Colors.red.withValues(alpha: 0.6)),
+                const SizedBox(height: 12),
+                Text(
+                  'تعذّر تحميل البيانات',
+                  style: GoogleFonts.cairo(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white70 : AppColors.textPrimary),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${snapshot.error}',
+                  style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      color: isDark ? Colors.white38 : AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(color: AppColors.primaryBlue),
           );
         }
 
-        final allDocs = snapshot.data?.docs ?? [];
+        // Sort in-memory by activatedAt descending
+        final allDocs = List.from(snapshot.data?.docs ?? []);
+        allDocs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aTs = (aData['activatedAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          final bTs = (bData['activatedAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          return bTs.compareTo(aTs);
+        });
 
         // Smart filtering for both old and new data
         final docs = allDocs.where((doc) {
@@ -92,15 +128,12 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           final code = data['activationCode']?.toString();
 
           if (isPaid) {
-            // Document is 'paid' if type is 'code' OR if it has a non-empty activationCode
-            return type == 'code' ||
+            return type == 'code' || type == 'purchase' ||
                 (code != null && code.isNotEmpty && code != 'null');
           } else {
-            // Document is 'free' if type is 'free' OR if it explicitly has no code
             return type == 'free' ||
-                code == null ||
-                code.isEmpty ||
-                code == 'null';
+                (type != 'code' && type != 'purchase' &&
+                    (code == null || code.isEmpty || code == 'null'));
           }
         }).toList();
 

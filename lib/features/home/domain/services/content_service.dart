@@ -169,11 +169,13 @@ class ContentService {
                 }
               }
 
+              final docData = doc.data();
               subjects.add({
                 ...subjectData,
                 'id': subjectDoc.id,
-                'addedAt': doc.get('addedAt'),
-                'activationType': doc.data().containsKey('activationType') ? doc.get('activationType') : null,
+                // 'addedAt' for code-activation; 'activatedAt' for purchase — accept either
+                'addedAt': docData['addedAt'] ?? docData['activatedAt'],
+                'activationType': docData['activationType'],
                 ...hierarchy,
               });
             }
