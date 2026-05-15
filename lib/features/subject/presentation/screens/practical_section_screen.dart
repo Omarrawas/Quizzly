@@ -26,7 +26,6 @@ class PracticalSectionScreen extends StatefulWidget {
 }
 
 class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
-  String? _sectionId;
   bool _isLoading = true;
 
   @override
@@ -41,7 +40,6 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
     
     if (mounted) {
       setState(() {
-        _sectionId = sId;
         _isLoading = false;
       });
 
@@ -85,15 +83,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
       );
     }
 
-    if (_sectionId == null && false) { // Skip this check, we can show lessons even without a section document
-      return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          title: Text('الدفتر العملي - ${widget.subjectName}', style: GoogleFonts.cairo()),
-        ),
-        body: _buildEmptyState(isDark),
-      );
-    }
+
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),

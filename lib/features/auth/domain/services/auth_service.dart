@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:screen_protector/screen_protector.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -42,9 +43,24 @@ class AuthService extends ChangeNotifier {
       if (doc.exists) {
         _role = doc.data()?['role'] ?? 'user';
         notifyListeners();
+        _applyScreenProtection();
       }
     } catch (e) {
       debugPrint('Error fetching user role: $e');
+    }
+  }
+
+  Future<void> _applyScreenProtection() async {
+    if (kIsWeb) return;
+    try {
+      if (isAdmin) {
+        await ScreenProtector.preventScreenshotOff();
+      } else {
+        await ScreenProtector.preventScreenshotOn();
+        await ScreenProtector.protectDataLeakageWithBlur(); // Protects app switch view
+      }
+    } catch (e) {
+      debugPrint('ScreenProtector error: $e');
     }
   }
 
@@ -154,5 +170,10 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     await _auth.signOut();
     await _googleSignIn.signOut();
+    if (!kIsWeb) {
+      try {
+        await ScreenProtector.preventScreenshotOff(); // Turn off when logged out
+      } catch (_) {}
+    }
   }
 }
