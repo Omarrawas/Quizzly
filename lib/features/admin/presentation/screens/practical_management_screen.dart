@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/features/subject/data/models/practical_models.dart';
+import 'package:quizzly/features/subject/presentation/screens/practical_lesson_detail_screen.dart';
 
 class PracticalManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -119,6 +121,7 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
                 title: title,
                 isDark: isDark,
                 onDelete: () => _confirmDelete(context, doc.id, title),
+                onEdit: () => _openEditLessonSheet(context, doc.id, data),
               );
             },
           );
@@ -177,6 +180,20 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
       ),
     );
   }
+
+  void _openEditLessonSheet(BuildContext context, String docId, Map<String, dynamic> data) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddLessonSheet(
+        subjectId: widget.subjectId,
+        sectionId: widget.sectionId,
+        docId: docId,
+        initialData: data,
+      ),
+    );
+  }
 }
 
 class _LessonAdminCard extends StatelessWidget {
@@ -185,6 +202,7 @@ class _LessonAdminCard extends StatelessWidget {
   final String title;
   final bool isDark;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
   const _LessonAdminCard({
     required this.docId,
@@ -192,6 +210,7 @@ class _LessonAdminCard extends StatelessWidget {
     required this.title,
     required this.isDark,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -204,6 +223,7 @@ class _LessonAdminCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -212,10 +232,22 @@ class _LessonAdminCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () {
+            // Allow admin to preview the lesson
+            final item = PracticalItem.fromMap(docId, data);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PracticalLessonDetailScreen(item: item),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
@@ -262,6 +294,14 @@ class _LessonAdminCard extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.primaryBlue,
+                    size: 20,
+                  ),
+                  onPressed: onEdit,
+                ),
+                IconButton(
+                  icon: const Icon(
                     Icons.delete_outline_rounded,
                     color: Colors.red,
                     size: 20,
@@ -271,7 +311,7 @@ class _LessonAdminCard extends StatelessWidget {
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -280,8 +320,15 @@ class _LessonAdminCard extends StatelessWidget {
 class _AddLessonSheet extends StatefulWidget {
   final String subjectId;
   final String sectionId;
+  final String? docId;
+  final Map<String, dynamic>? initialData;
 
-  const _AddLessonSheet({required this.subjectId, required this.sectionId});
+  const _AddLessonSheet({
+    required this.subjectId,
+    required this.sectionId,
+    this.docId,
+    this.initialData,
+  });
 
   @override
   State<_AddLessonSheet> createState() => _AddLessonSheetState();
@@ -292,8 +339,19 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
   final _descCtrl = TextEditingController();
   final _videoUrlCtrl = TextEditingController();
   final _imageUrlCtrl = TextEditingController();
-  final List<String> _imageUrls = [];
+  List<String> _imageUrls = [];
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      _titleCtrl.text = widget.initialData!['title'] ?? widget.initialData!['name'] ?? '';
+      _descCtrl.text = widget.initialData!['description'] ?? '';
+      _videoUrlCtrl.text = widget.initialData!['videoUrl'] ?? '';
+      _imageUrls = List<String>.from(widget.initialData!['imageUrls'] ?? []);
+    }
+  }
 
   Future<void> _save() async {
     final title = _titleCtrl.text.trim();
@@ -309,7 +367,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       mediaType = 'images';
     }
 
-    await FirebaseFirestore.instance.collection('topics').add({
+    final lessonData = {
       'title': title,
       'description': _descCtrl.text.trim(),
       'subjectId': widget.subjectId,
@@ -319,8 +377,15 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       'mediaType': mediaType,
       'videoUrl': _videoUrlCtrl.text.trim().isEmpty ? null : _videoUrlCtrl.text.trim(),
       'imageUrls': _imageUrls,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (widget.docId != null) {
+      await FirebaseFirestore.instance.collection('topics').doc(widget.docId).update(lessonData);
+    } else {
+      lessonData['createdAt'] = FieldValue.serverTimestamp();
+      await FirebaseFirestore.instance.collection('topics').add(lessonData);
+    }
 
     if (mounted) Navigator.pop(context);
   }
@@ -354,7 +419,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
             ),
             const SizedBox(height: 20),
             Text(
-              'إضافة درس عملي جديد',
+              widget.docId != null ? 'تعديل الدرس العملي' : 'إضافة درس عملي جديد',
               style: GoogleFonts.cairo(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -489,7 +554,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
                 child: _saving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'حفظ الدرس',
+                        widget.docId != null ? 'تعديل الدرس' : 'حفظ الدرس',
                         style: GoogleFonts.cairo(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -517,5 +582,4 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     ),
   );
-
 }

@@ -43,9 +43,16 @@ class PracticalItem {
     required this.lastUpdated,
   });
 
+  // Convenience getters for UI compatibility
+  List<MicroscopicLabel> get microscopicLabels => labels ?? [];
+  List<String> get experiments => steps ?? [];
+  List<OralQuestion> get interviews => oralQuestions ?? [];
+
   factory PracticalItem.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
+    return PracticalItem.fromMap(doc.id, doc.data() as Map<String, dynamic>? ?? {});
+  }
+
+  factory PracticalItem.fromMap(String id, Map<String, dynamic> data) {
     PracticalCategory category;
     switch (data['subType']) {
       case 'drawing': category = PracticalCategory.drawing; break;
@@ -57,7 +64,7 @@ class PracticalItem {
     final details = data['practicalDetails'] as Map<String, dynamic>? ?? {};
 
     return PracticalItem(
-      id: doc.id,
+      id: id,
       title: data['title'] ?? data['name'] ?? '',
       description: data['description'] ?? '',
       category: category,

@@ -92,8 +92,12 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'الدفتر العملي - ${widget.subjectName}',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary),
+          'الدروس العملية - ${widget.subjectName}',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold, 
+            color: isDark ? Colors.white : AppColors.textPrimary,
+            fontSize: 16,
+          ),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : AppColors.textPrimary, size: 20),
@@ -104,23 +108,27 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
         stream: FirebaseFirestore.instance
             .collection('topics')
             .where('subjectId', isEqualTo: widget.subjectId)
-            // .where('sectionId', isEqualTo: _sectionId) // removed to fetch ALL practical lessons for this subject
             .where('type', isEqualTo: 'practical')
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, lessonSnap) {
-          if (lessonSnap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+          if (lessonSnap.hasError) {
+            return _buildErrorState(isDark, lessonSnap.error.toString());
           }
+          
+          if (lessonSnap.connectionState == ConnectionState.waiting) {
+            return _buildLoadingSkeleton(isDark);
+          }
+
           final docs = lessonSnap.data?.docs ?? [];
           if (docs.isEmpty) return _buildEmptyState(isDark);
 
           return ListView.builder(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final item = PracticalItem.fromFirestore(docs[index]);
-              return _buildLessonCard(context, item, isDark);
+              return _buildLessonCard(context, item, isDark, index);
             },
           );
         },
@@ -128,55 +136,242 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inbox_rounded, size: 64, color: isDark ? Colors.white24 : Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text('لا توجد دروس عملية مضافة حالياً', style: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary)),
-        ],
+  Widget _buildLoadingSkeleton(bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: 4,
+      itemBuilder: (context, index) => Container(
+        height: 180,
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey[200],
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  Container(height: 14, width: 200, color: isDark ? Colors.white10 : Colors.grey[200]),
+                  const SizedBox(height: 8),
+                  Container(height: 10, width: double.infinity, color: isDark ? Colors.white10 : Colors.grey[200]),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildLessonCard(BuildContext context, PracticalItem item, bool isDark) {
+  Widget _buildErrorState(bool isDark, String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded, color: Colors.red, size: 48),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'عذراً، حدث خطأ أثناء تحميل الدروس',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'تأكد من وجود فهرس (Index) في Firestore لهذه الترتيبات.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.science_rounded, 
+                size: 60, 
+                color: isDark ? Colors.white24 : Colors.grey[300],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'لا توجد دروس عملية مضافة حالياً',
+              style: GoogleFonts.cairo(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'سيظهر هنا جميع الدروس العملية، الرسوم التوضيحية، ومقاطع الفيديو عند إضافتها من قبل المشرف.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: isDark ? Colors.white60 : AppColors.textSecondary,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLessonCard(BuildContext context, PracticalItem item, bool isDark, int index) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 8))],
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey[200]!,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), 
+            blurRadius: 15, 
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PracticalLessonDetailScreen(item: item))),
+          onTap: () => Navigator.push(
+            context, 
+            MaterialPageRoute(
+              builder: (context) => PracticalLessonDetailScreen(item: item),
+            ),
+          ),
           borderRadius: BorderRadius.circular(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (item.mediaType != 'none') _buildMediaPreview(item, isDark),
+              if (item.mediaType != 'none') 
+                _buildMediaPreview(item, isDark)
+              else
+                _buildDefaultPreview(item, isDark),
+              
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 17, color: isDark ? Colors.white : AppColors.textPrimary)),
-                    const SizedBox(height: 6),
-                    Text(item.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white60 : AppColors.textSecondary, height: 1.5)),
-                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildTypeBadge(item.mediaType, isDark),
+                              const SizedBox(height: 12),
+                              Text(
+                                item.title,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : AppColors.textPrimary,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: AppColors.primaryBlue,
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (item.description.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        item.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          color: isDark ? Colors.white60 : AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
                     Row(
                       children: [
-                        Icon(Icons.access_time_rounded, size: 14, color: Colors.grey[400]),
-                        const SizedBox(width: 4),
-                        Text(item.lastUpdated, style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey[400])),
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: Colors.grey[500],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'تحديث: ${item.lastUpdated}',
+                          style: GoogleFonts.cairo(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
                         const Spacer(),
-                        Text('عرض الدرس', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0D9488))),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF0D9488)),
+                        Text(
+                          'عرض الدرس',
+                          style: GoogleFonts.cairo(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -185,6 +380,64 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTypeBadge(String type, bool isDark) {
+    IconData icon;
+    String label;
+    Color color;
+
+    switch (type) {
+      case 'video':
+        icon = Icons.play_circle_fill_rounded;
+        label = 'فيديو تعليمي';
+        color = const Color(0xFFEF4444);
+        break;
+      case 'images':
+        icon = Icons.photo_library_rounded;
+        label = 'معرض صور';
+        color = const Color(0xFF3B82F6);
+        break;
+      default:
+        icon = Icons.text_snippet_rounded;
+        label = 'درس نصي';
+        color = const Color(0xFF10B981);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultPreview(PracticalItem item, bool isDark) {
+    return Container(
+      height: 8,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0D9488),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
     );
   }

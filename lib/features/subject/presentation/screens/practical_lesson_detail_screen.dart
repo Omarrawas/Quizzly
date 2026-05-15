@@ -25,89 +25,164 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildAppBar(context, isDark),
+          _buildSliverAppBar(context, isDark, item),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Content Section (Title First) ──────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: GoogleFonts.cairo(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey[500]),
-                          const SizedBox(width: 6),
-                          Text(
-                            'آخر تحديث: ${item.lastUpdated}',
-                            style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey[500]),
+                // ── Media Section (Integrated into top) ──────────────────────────────
+                if (item.mediaType == 'video' && item.videoUrl != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                // ── Media Section ──────────────────────────────
-                const SizedBox(height: 16),
-                if (item.mediaType == 'video' && item.videoUrl != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: OfflineAwareVideoWidget(
-                      lessonId: item.id,
-                      videoUrl: item.videoUrl!,
-                      title: item.title,
-                      height: 220,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: OfflineAwareVideoWidget(
+                          lessonId: item.id,
+                          videoUrl: item.videoUrl!,
+                          title: item.title,
+                          height: 240,
+                        ),
+                      ),
                     ),
                   ),
                 
                 if (item.mediaType == 'images' && item.imageUrls.isNotEmpty)
-                  _buildImageCarousel(item.imageUrls, isDark),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _buildImageCarousel(item.imageUrls, isDark),
+                  ),
 
-                // ── Explanation Section ─────────────────────────────
+                // ── Content Section ──────────────────────────
                 Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Divider(height: 40),
+                      Row(
+                        children: [
+                          _buildMediaBadge(item, isDark),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.history_rounded, size: 12, color: Colors.grey[500]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'تحديث: ${item.lastUpdated}',
+                                  style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey[500]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       Text(
-                        'الشرح والتفاصيل',
+                        item.title,
                         style: GoogleFonts.cairo(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white70 : AppColors.textSecondary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      TexViewWidget(
-                        text: item.description,
-                        fontSize: 15,
-                        color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      const SizedBox(height: 24),
                       
-                      // Support legacy content if present
-                      if (item.content != null && item.content!.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        TexViewWidget(
-                          text: item.content!,
+                      // Explanation Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D9488),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'الشرح والتفاصيل',
+                            style: GoogleFonts.cairo(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: isDark ? Colors.white10 : Colors.grey[100]!),
+                        ),
+                        child: TexViewWidget(
+                          text: item.description,
                           fontSize: 15,
                           color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
                           fontWeight: FontWeight.w500,
                         ),
+                      ),
+                      
+                      // Support legacy content if present
+                      if (item.content != null && item.content!.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: isDark ? Colors.white10 : Colors.grey[100]!),
+                          ),
+                          child: TexViewWidget(
+                            text: item.content!,
+                            fontSize: 15,
+                            color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                      
+                      // Detailed Sections (Legacy Support)
+                      if (item.microscopicLabels.isNotEmpty) ...[
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('التحليل المجهري', Icons.biotech_rounded, isDark),
+                        const SizedBox(height: 12),
+                        ...item.microscopicLabels.map((l) => _buildDetailItem(l.label, isDark)),
+                      ],
+
+                      if (item.experiments.isNotEmpty) ...[
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('التجارب العلمية', Icons.science_rounded, isDark),
+                        const SizedBox(height: 12),
+                        ...item.experiments.map((e) => _buildDetailItem(e, isDark)),
+                      ],
+
+                      if (item.interviews.isNotEmpty) ...[
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('المقابلات والمناقشات', Icons.forum_rounded, isDark),
+                        const SizedBox(height: 12),
+                        ...item.interviews.map((i) => _buildDetailItem('${i.question}\n${i.answer}', isDark)),
                       ],
                     ],
                   ),
@@ -121,7 +196,59 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
     );
   }
 
-  Widget _buildAppBar(BuildContext context, bool isDark) {
+  Widget _buildSectionTitle(String title, IconData icon, bool isDark) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: const Color(0xFF0D9488)),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: GoogleFonts.cairo(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailItem(String text, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : (Colors.grey[50] ?? Colors.grey).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]!),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: Color(0xFF0D9488),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TexViewWidget(
+              text: text,
+              fontSize: 14,
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar(BuildContext context, bool isDark, PracticalItem item) {
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
@@ -134,12 +261,58 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
       ),
       centerTitle: true,
       title: Text(
-        'درس عملي',
+        'عرض الدرس',
         style: GoogleFonts.cairo(
           fontWeight: FontWeight.bold,
           color: isDark ? Colors.white : AppColors.textPrimary,
           fontSize: 16,
         ),
+      ),
+    );
+  }
+
+  Widget _buildMediaBadge(PracticalItem item, bool isDark) {
+    IconData icon;
+    String label;
+    Color color;
+
+    switch (item.mediaType) {
+      case 'video':
+        icon = Icons.videocam_rounded;
+        label = 'فيديو';
+        color = Colors.red;
+        break;
+      case 'images':
+        icon = Icons.collections_rounded;
+        label = 'صور';
+        color = Colors.blue;
+        break;
+      default:
+        icon = Icons.article_rounded;
+        label = 'نصي';
+        color = Colors.teal;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
