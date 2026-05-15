@@ -11,11 +11,14 @@ import 'package:quizzly/features/subject/presentation/screens/practical_lesson_d
 class PracticalSectionScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
+  /// When true, always shows the student lesson view (never redirects to admin management)
+  final bool isViewOnly;
 
   const PracticalSectionScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
+    this.isViewOnly = false,
   });
 
   @override
@@ -42,8 +45,8 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
         _isLoading = false;
       });
 
-      // If admin, redirect to management immediately
-      if (auth.isAdmin && sId != null) {
+      // If admin AND not in view-only mode, redirect to management immediately
+      if (auth.isAdmin && sId != null && !widget.isViewOnly) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(

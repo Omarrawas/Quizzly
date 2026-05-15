@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/settings/presentation/screens/my_lists_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/manage_codes_screen.dart';
+import 'package:quizzly/features/settings/presentation/screens/download_management_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/settings_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
@@ -112,7 +113,10 @@ class AppDrawer extends StatelessWidget {
                     context,
                     icon: Icons.cloud_download_outlined,
                     label: 'إدارة التحميلات',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const DownloadManagementScreen()));
+                    },
                   ),
 
                   _buildMenuItem(

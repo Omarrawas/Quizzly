@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
-import 'package:quizzly/core/widgets/video/video_preview_widget.dart';
+import 'package:quizzly/core/widgets/video/video_download_button.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class PracticalLessonDetailScreen extends StatefulWidget {
@@ -60,12 +60,13 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                   ),
                 ),
 
-                // ── Media Section ──────────────────────────────────
+                // ── Media Section ──────────────────────────────
                 const SizedBox(height: 16),
                 if (item.mediaType == 'video' && item.videoUrl != null)
-                   Padding(
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: VideoPreviewWidget(
+                    child: OfflineAwareVideoWidget(
+                      lessonId: item.id,
                       videoUrl: item.videoUrl!,
                       title: item.title,
                       height: 220,

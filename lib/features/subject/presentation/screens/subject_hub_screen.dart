@@ -680,6 +680,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             builder: (_) => PracticalSectionScreen(
               subjectId: widget.subjectId,
               subjectName: widget.subjectName,
+              isViewOnly: true, // Show student lesson view, not admin management
             ),
           ),
         );

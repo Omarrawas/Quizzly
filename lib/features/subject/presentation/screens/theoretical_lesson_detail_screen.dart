@@ -5,7 +5,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
-import 'package:quizzly/core/widgets/video/video_preview_widget.dart';
+import 'package:quizzly/core/widgets/video/video_download_button.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class TheoreticalLessonDetailScreen extends StatefulWidget {
@@ -86,7 +86,8 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                 if (mediaType == 'video' && videoUrl != null && videoUrl.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: VideoPreviewWidget(
+                    child: OfflineAwareVideoWidget(
+                      lessonId: widget.lessonId,
                       videoUrl: videoUrl,
                       title: widget.lessonName,
                       height: 220,
