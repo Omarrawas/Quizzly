@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/theme/theme_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
+import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
+import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -51,6 +53,27 @@ class SettingsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.symmetric(vertical: 16),
             children: [
+              // ── User Profile Section
+              _buildSectionHeader('الحساب', Icons.person_rounded, isDark),
+              Consumer<AuthService>(
+                builder: (context, auth, _) {
+                  final email = auth.user?.email ?? 'مستخدم غير مسجل';
+                  return _buildActionTile(
+                    title: 'بياناتي الشخصية',
+                    subtitle: email,
+                    icon: Icons.badge_rounded,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const UserProfileScreen()),
+                      );
+                    },
+                    isDark: isDark,
+                  );
+                },
+              ),
+              _buildDivider(isDark),
+
               // ── Appearance Settings
               _buildSectionHeader('المظهر', Icons.palette_rounded, isDark),
               Consumer<ThemeService>(

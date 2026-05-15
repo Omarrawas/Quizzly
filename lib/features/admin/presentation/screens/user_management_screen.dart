@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/features/admin/presentation/screens/edit_user_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -157,27 +158,56 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    email,
-                                    style: GoogleFonts.cairo(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                    textDirection: TextDirection.ltr,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        data['defaults']?['fullName'] ?? email,
+                                        style: GoogleFonts.cairo(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (data['defaults']?['fullName'] != null)
+                                        Text(
+                                          email,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          textDirection: TextDirection.ltr,
+                                        ),
+                                    ],
                                   ),
                                 ),
-                                if (hasDevice)
-                                  const Tooltip(
-                                    message: 'جهاز مرتبط',
-                                    child: Icon(Icons.phonelink_lock, color: Colors.green, size: 20),
-                                  )
-                                else
-                                  const Tooltip(
-                                    message: 'غير مرتبط بجهاز',
-                                    child: Icon(Icons.phonelink_erase, color: Colors.grey, size: 20),
-                                  ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => EditUserScreen(uid: doc.id, userData: data),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.edit_note_rounded, color: AppColors.primaryBlue),
+                                      tooltip: 'تعديل البيانات',
+                                    ),
+                                    if (hasDevice)
+                                      const Tooltip(
+                                        message: 'جهاز مرتبط',
+                                        child: Icon(Icons.phonelink_lock, color: Colors.green, size: 20),
+                                      )
+                                    else
+                                      const Tooltip(
+                                        message: 'غير مرتبط بجهاز',
+                                        child: Icon(Icons.phonelink_erase, color: Colors.grey, size: 20),
+                                      ),
+                                  ],
+                                ),
                               ],
                             ),
                             const SizedBox(height: 12),
@@ -217,16 +247,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 // Clear Session Button
                                 ElevatedButton.icon(
                                   onPressed: hasDevice ? () => _clearDeviceSession(doc.id) : null,
-                                  icon: const Icon(Icons.edit_rounded, size: 18),
+                                  icon: const Icon(Icons.phonelink_erase_rounded, size: 18),
                                   label: Text(
-                                    'إلغاء الجلسة',
+                                    'إلغاء الارتباط',
                                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.redAccent,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                                    foregroundColor: Colors.redAccent,
+                                    elevation: 0,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
+                                      side: const BorderSide(color: Colors.redAccent),
                                     ),
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   ),
