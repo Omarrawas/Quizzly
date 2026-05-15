@@ -33,7 +33,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       // Run each independently so one failure doesn't kill everything
       final usersCount       = await safeAggCount(_db.collection('users').count());
-      final codesCount       = await safeAggCount(_db.collection('activation_codes').count());
+      final activeCodesCount = await safeAggCount(
+          _db.collection('activation_codes').where('isUsed', isEqualTo: false).count());
+      final usedCodesCount   = await safeAggCount(
+          _db.collection('activation_codes').where('isUsed', isEqualTo: true).count());
       final questionsCount   = await safeAggCount(_db.collection('questions').count());
       final examsCount       = await safeAggCount(_db.collection('exam_attempts').count());
       final unisCount        = await safeAggCount(_db.collection('universities').count());
@@ -63,20 +66,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       String format(int v) => v < 0 ? 'خطأ' : v.toString();
 
       return {
-        'users':    format(usersCount),
-        'codes':    format(codesCount),
-        'questions':format(questionsCount),
-        'exams':    format(examsCount),
-        'unis':     format(unisCount),
-        'colleges': format(collegesCount),
-        'depts':    format(deptsCount),
-        'subjects': format(subjectsCount),
-        'revenue':  totalRevenue < 0 ? 'خطأ' : totalRevenue.toString(),
+        'users':      format(usersCount),
+        'activeCodes':format(activeCodesCount),
+        'usedCodes':  format(usedCodesCount),
+        'questions':  format(questionsCount),
+        'exams':      format(examsCount),
+        'unis':       format(unisCount),
+        'colleges':   format(collegesCount),
+        'depts':      format(deptsCount),
+        'subjects':   format(subjectsCount),
+        'revenue':    totalRevenue < 0 ? 'خطأ' : totalRevenue.toString(),
       };
     } catch (e) {
       debugPrint('FETCHSTATS FATAL: $e');
       return {
-        'users': '!', 'codes': '!', 'questions': '!', 'exams': '!',
+        'users': '!', 'activeCodes': '!', 'usedCodes': '!', 'questions': '!', 'exams': '!',
         'unis': '!', 'colleges': '!', 'depts': '!', 'subjects': '!', 'revenue': '!',
       };
     }
@@ -162,7 +166,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     snapshot.data ??
                     {
                       'users': '...',
-                      'codes': '...',
+                      'activeCodes': '...',
+                      'usedCodes': '...',
                       'questions': '...',
                       'exams': '...',
                       'unis': '...',
@@ -226,7 +231,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             crossAxisSpacing: 16,
                             childAspectRatio: 1.9, // نسبة عرض/ارتفاع ثابتة
                           ),
-                      itemCount: 4,
+                      itemCount: 5,
                       itemBuilder: (context, index) {
                         final cards = [
                           _buildStatCard(
@@ -238,8 +243,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           _buildStatCard(
                             icon: Icons.vpn_key_rounded,
                             label: 'الأكواد النشطة',
-                            value: stats['codes']!,
+                            value: stats['activeCodes']!,
                             color: const Color(0xFF10B981),
+                          ),
+                          _buildStatCard(
+                            icon: Icons.person_rounded,
+                            label: 'الأكواد المستخدمة',
+                            value: stats['usedCodes']!,
+                            color: Colors.orange,
                           ),
                           _buildStatCard(
                             icon: Icons.quiz_rounded,

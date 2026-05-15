@@ -409,7 +409,7 @@ class _BatchCard extends StatelessWidget {
               final days = (d['durationDays'] as int?) ?? duration;
               if (usedAt != null) {
                 final exp = usedAt.add(Duration(days: days));
-                if (earliestExpiry == null || exp.isBefore(earliestExpiry!)) {
+                if (earliestExpiry == null || exp.isBefore(earliestExpiry)) {
                   earliestExpiry = exp;
                 }
               }
@@ -557,12 +557,12 @@ class _BatchCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           _StatPill(
                             label: 'أقرب انتهاء',
-                            value: intl.DateFormat('MM/dd').format(earliestExpiry!),
+                            value: intl.DateFormat('MM/dd').format(earliestExpiry),
                             icon: Icons.event_rounded,
-                            color: earliestExpiry!.isBefore(DateTime.now())
+                            color: earliestExpiry.isBefore(DateTime.now())
                                 ? Colors.red
                                 : Colors.purple,
-                            bg: (earliestExpiry!.isBefore(DateTime.now())
+                            bg: (earliestExpiry.isBefore(DateTime.now())
                                     ? Colors.red
                                     : Colors.purple)
                                 .withValues(alpha: 0.1),

@@ -580,6 +580,8 @@ class DatabaseService {
     batch.set(_db.collection('users').doc(userId).collection('active_subjects').doc(subjectId), {
       'activatedAt': FieldValue.serverTimestamp(),
       'subjectId': subjectId,
+      'isActivated': true,
+      'activationType': 'purchase',
     });
 
     // 4. Log transaction
