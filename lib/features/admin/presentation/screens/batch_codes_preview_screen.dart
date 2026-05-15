@@ -26,7 +26,7 @@ class BatchCodesPreviewScreen extends StatefulWidget {
 
 class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
   final DatabaseService _dbService = DatabaseService();
-  String _filter = 'all';
+  String _filter = 'active';
 
   // ── Duration picker dialog ──────────────────────────────
   Future<void> _showDurationDialog(String codeId, int currentDays) async {

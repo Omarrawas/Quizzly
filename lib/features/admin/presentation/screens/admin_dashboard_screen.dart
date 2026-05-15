@@ -43,12 +43,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       int totalRevenue = 0;
       try {
+        // Filter only by type to avoid composite index requirement;
+        // filter timestamp in-memory
         final logsSnap = await _db.collection('credit_logs')
           .where('type', isEqualTo: 'redeem')
-          .where('timestamp', isGreaterThanOrEqualTo: startOfMonth)
           .get();
         for (var doc in logsSnap.docs) {
-          totalRevenue += ((doc.data())['amount'] as num?)?.toInt() ?? 0;
+          final data = doc.data();
+          final ts = (data['timestamp'] as Timestamp?)?.toDate();
+          if (ts != null && ts.isAfter(startOfMonth)) {
+            totalRevenue += (data['amount'] as num?)?.toInt() ?? 0;
+          }
         }
       } catch (e) {
         debugPrint('CREDIT_LOGS ERROR: $e');
