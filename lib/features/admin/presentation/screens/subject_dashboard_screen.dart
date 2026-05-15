@@ -193,6 +193,45 @@ class SubjectDashboardScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Visibility toggle button in top-start corner (right in RTL)
+                Positioned.directional(
+                  textDirection: TextDirection.rtl,
+                  top: -5,
+                  end: -5,
+                  child: GestureDetector(
+                    onTap: () async {
+                      final isHidden = data['isHidden'] == true;
+                      await FirebaseFirestore.instance
+                          .collection(DatabaseService.colSections)
+                          .doc(doc.id)
+                          .update({'isHidden': !isHidden});
+                    },
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: data['isHidden'] == true ? Colors.orange.shade50 : Colors.green.shade50,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: data['isHidden'] == true ? Colors.orange.shade200 : Colors.green.shade200,
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        data['isHidden'] == true ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                        size: 14,
+                        color: data['isHidden'] == true ? Colors.orange.shade400 : Colors.green.shade400,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             );
           }),

@@ -24,6 +24,7 @@ class PracticalItem {
   final List<String> imageUrls;
   
   final bool isNew;
+  final bool isFree;
   final String lastUpdated;
 
   const PracticalItem({
@@ -40,6 +41,7 @@ class PracticalItem {
     this.videoUrl,
     this.imageUrls = const [],
     this.isNew = false,
+    this.isFree = false,
     required this.lastUpdated,
   });
 
@@ -81,6 +83,7 @@ class PracticalItem {
       videoUrl: data['videoUrl'],
       imageUrls: data['imageUrls'] != null ? List<String>.from(data['imageUrls']) : [],
       isNew: data['isNew'] ?? false,
+      isFree: data['isFree'] ?? false,
       lastUpdated: (data['createdAt'] as Timestamp?)?.toDate().toString().split(' ')[0] ?? 'غير معروف',
     );
   }

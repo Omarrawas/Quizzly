@@ -272,12 +272,35 @@ class _LessonAdminCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          if (data['isFree'] == true)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                              ),
+                              child: Text(
+                                'مجاني',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       if (description.isNotEmpty)
                         Text(
@@ -341,6 +364,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
   final _imageUrlCtrl = TextEditingController();
   List<String> _imageUrls = [];
   bool _saving = false;
+  bool _isFree = false;
 
   @override
   void initState() {
@@ -350,6 +374,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       _descCtrl.text = widget.initialData!['description'] ?? '';
       _videoUrlCtrl.text = widget.initialData!['videoUrl'] ?? '';
       _imageUrls = List<String>.from(widget.initialData!['imageUrls'] ?? []);
+      _isFree = widget.initialData!['isFree'] == true;
     }
   }
 
@@ -377,6 +402,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       'mediaType': mediaType,
       'videoUrl': _videoUrlCtrl.text.trim().isEmpty ? null : _videoUrlCtrl.text.trim(),
       'imageUrls': _imageUrls,
+      'isFree': _isFree,
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
@@ -427,6 +453,31 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
             ),
             const SizedBox(height: 20),
             _field(_titleCtrl, 'عنوان الدرس (مطلوب)', Icons.title_rounded, isDark),
+            const SizedBox(height: 16),
+            
+            // Free / Paid Toggle
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'درس مجاني',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                subtitle: Text(
+                  'يمكن للطلاب مشاهدة هذا الدرس بدون اشتراك',
+                  style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                ),
+                value: _isFree,
+                activeThumbColor: Colors.green,
+                onChanged: (val) => setState(() => _isFree = val),
+              ),
+            ),
             const SizedBox(height: 20),
             
             // Video Section (Optional)

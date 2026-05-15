@@ -249,92 +249,113 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
-  // Grid built with a normal GridView (not SliverGrid) to avoid height calculation issues
   Widget _buildActionsGrid(String userId, bool isDark) {
-    final List<(IconData, String, Color, Stream<int>, int, bool)> actions = [
-      (
-        Icons.assignment_rounded,
-        'الامتحانات',
-        const Color(0xFF2563EB),
-        _statsService.streamExamsCount(widget.subjectId),
-        0,
-        false, // Always protected at exam level
-      ),
-      (
-        Icons.explore_rounded,
-        'استكشاف المحتوى',
-        const Color(0xFF6366F1),
-        _statsService.streamTopicsCount(widget.subjectId),
-        1,
-        !_isActivated, // Show lock if not activated
-      ),
-      (
-        Icons.auto_awesome_motion_rounded,
-        'مركز الإتقان',
-        isDark ? Colors.white : const Color(0xFF0F172A),
-        _statsService.streamWrongAnswersCount(userId, widget.subjectId),
-        2,
-        !_isActivated,
-      ),
-      (
-        Icons.school_rounded,
-        'تدرب بنفسك',
-        const Color(0xFF0EA5E9),
-        _statsService.streamPracticeCount(userId, widget.subjectId),
-        3,
-        !_isActivated,
-      ),
-      (
-        Icons.science_rounded,
-        'القسم العملي',
-        const Color(0xFF0D9488),
-        _statsService.streamPracticalTopicsCount(widget.subjectId),
-        4,
-        !_isActivated,
-      ),
-      (
-        Icons.groups_rounded,
-        'معارك المواد',
-        const Color(0xFFE11D48),
-        Stream<int>.value(0),
-        5,
-        !_isActivated,
-      ),
-      (
-        Icons.menu_book_rounded,
-        'تصفح الدروس',
-        const Color(0xFF8B5CF6),
-        _statsService.streamTopicsCount(widget.subjectId), // Using topic count as a proxy
-        6,
-        !_isActivated,
-      ),
-    ];
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('sections')
+          .where('parentId', isEqualTo: widget.subjectId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final sections = snapshot.data?.docs ?? [];
+        bool showPractical = false;
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 200,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 1.1,
-        ),
-        itemCount: actions.length,
-        itemBuilder: (context, index) {
-          final a = actions[index];
-          return _buildActionCard(
-            icon: a.$1,
-            label: a.$2,
-            color: a.$3,
-            countStream: a.$4,
-            showBadge: index < 2,
-            isLocked: a.$6,
-            onTap: () => _onActionTap(a.$5),
-          );
-        },
-      ),
+        for (var doc in sections) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = data['name']?.toString() ?? '';
+          final isHidden = data['isHidden'] == true;
+          if (name.contains('عملي') && !isHidden) {
+            showPractical = true;
+            break;
+          }
+        }
+
+        final List<(IconData, String, Color, Stream<int>, int, bool)> actions = [
+          (
+            Icons.assignment_rounded,
+            'الامتحانات',
+            const Color(0xFF2563EB),
+            _statsService.streamExamsCount(widget.subjectId),
+            0,
+            false, // Always protected at exam level
+          ),
+          (
+            Icons.explore_rounded,
+            'استكشاف المحتوى',
+            const Color(0xFF6366F1),
+            _statsService.streamTopicsCount(widget.subjectId),
+            1,
+            !_isActivated, // Show lock if not activated
+          ),
+          (
+            Icons.auto_awesome_motion_rounded,
+            'مركز الإتقان',
+            isDark ? Colors.white : const Color(0xFF0F172A),
+            _statsService.streamWrongAnswersCount(userId, widget.subjectId),
+            2,
+            !_isActivated,
+          ),
+          (
+            Icons.school_rounded,
+            'تدرب بنفسك',
+            const Color(0xFF0EA5E9),
+            _statsService.streamPracticeCount(userId, widget.subjectId),
+            3,
+            !_isActivated,
+          ),
+          if (showPractical)
+            (
+              Icons.science_rounded,
+              'القسم العملي',
+              const Color(0xFF0D9488),
+              _statsService.streamPracticalTopicsCount(widget.subjectId),
+              4,
+              false, // Let free users enter to see free lessons and locked ones
+            ),
+          (
+            Icons.groups_rounded,
+            'معارك المواد',
+            const Color(0xFFE11D48),
+            Stream<int>.value(0),
+            5,
+            !_isActivated,
+          ),
+          (
+            Icons.menu_book_rounded,
+            'تصفح الدروس',
+            const Color(0xFF8B5CF6),
+            _statsService.streamTopicsCount(widget.subjectId), // Using topic count as a proxy
+            6,
+            false, // Allow free users to enter and see free/locked lessons
+          ),
+        ];
+
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.1,
+            ),
+            itemCount: actions.length,
+            itemBuilder: (context, index) {
+              final a = actions[index];
+              return _buildActionCard(
+                icon: a.$1,
+                label: a.$2,
+                color: a.$3,
+                countStream: a.$4,
+                showBadge: a.$5 < 2,
+                isLocked: a.$6,
+                onTap: () => _onActionTap(a.$5),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -693,7 +714,29 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       return;
     }
 
-    // 4. Other sections (Locked for free users)
+    // 4. Practical Section (Allows entry for free users, locks applied inside)
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PracticalSectionScreen(
+            subjectId: widget.subjectId,
+            subjectName: widget.subjectName,
+            isViewOnly: true,
+            isFree: !_isActivated,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 5. Theoretical Lessons (Allows entry for free users, locks applied inside)
+    if (index == 6) {
+      _navigateToLessons();
+      return;
+    }
+
+    // Other sections (Locked for free users)
     if (!_isActivated) {
       _showPaywall();
       return;
@@ -711,18 +754,6 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           ),
         );
         break;
-      case 4:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PracticalSectionScreen(
-              subjectId: widget.subjectId,
-              subjectName: widget.subjectName,
-              isViewOnly: true, // Show student lesson view, not admin management
-            ),
-          ),
-        );
-        break;
       case 5:
         Navigator.push(
           context,
@@ -733,12 +764,6 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             ),
           ),
         );
-        break;
-      case 6:
-        // For lessons, we need to know the section ID. 
-        // Usually, 'Theoretical' is the default section for bank questions.
-        // I'll fetch the theory section ID or use a default one.
-        _navigateToLessons();
         break;
     }
   }

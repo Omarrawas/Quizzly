@@ -168,6 +168,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                     onEditContent: () => _showEditLessonContentDialog(id, data),
                     onPreview: () => _previewLesson(id, name, data),
                     onDelete: () => _confirmDelete(id, name),
+                    data: data,
                   );
                 },
               );
@@ -209,6 +210,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     VoidCallback? onPreview,
     required VoidCallback onDelete,
     bool showArrow = false,
+    Map<String, dynamic>? data, // Added to check for isFree
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -224,11 +226,35 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
       child: ListTile(
         onTap: onTap,
         dense: true,
-        title: Text(title, style: GoogleFonts.cairo(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.primaryBlue : null,
-          fontSize: 13,
-        )),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(title, style: GoogleFonts.cairo(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? AppColors.primaryBlue : null,
+                fontSize: 13,
+              )),
+            ),
+            if (data != null && data['isFree'] == true)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  'مجاني',
+                  style: GoogleFonts.cairo(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+          ],
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -522,17 +548,42 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     final descriptionController = TextEditingController(text: data['description'] ?? '');
     final videoUrlController = TextEditingController(text: data['videoUrl'] ?? '');
     final imageUrlsController = TextEditingController(text: (data['imageUrls'] as List<dynamic>?)?.join('\n') ?? '');
+    bool isFree = data['isFree'] == true;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تعديل المحتوى النظري للدرس', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('الشرح النظري', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('تعديل المحتوى النظري للدرس', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'درس مجاني',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      'يمكن للطلاب مشاهدة هذا الدرس بدون اشتراك',
+                      style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                    ),
+                    value: isFree,
+                    activeThumbColor: Colors.green,
+                    onChanged: (val) => setDialogState(() => isFree = val),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('الشرح النظري', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(height: 8),
               RichTextEditor(
                 initialHtml: descriptionController.text,
@@ -583,6 +634,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 'videoUrl': videoUrlController.text.trim(),
                 'imageUrls': imageUrls,
                 'mediaType': videoUrlController.text.isNotEmpty ? 'video' : (imageUrls.isNotEmpty ? 'images' : 'text'),
+                'isFree': isFree,
                 'lastUpdated': DateTime.now().toString().split(' ')[0],
               });
 
@@ -591,6 +643,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             child: Text('حفظ المحتوى', style: GoogleFonts.cairo()),
           ),
         ],
+      ),
       ),
     );
   }

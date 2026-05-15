@@ -11,14 +11,15 @@ import 'package:quizzly/features/subject/presentation/screens/practical_lesson_d
 class PracticalSectionScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
-  /// When true, always shows the student lesson view (never redirects to admin management)
   final bool isViewOnly;
+  final bool isFree;
 
   const PracticalSectionScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
     this.isViewOnly = false,
+    this.isFree = false,
   });
 
   @override
@@ -257,14 +258,64 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
     );
   }
 
+  void _showSubscriptionDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_rounded, color: Colors.amber, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'محتوى مقفل',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'هذا الدرس يتطلب الاشتراك في المادة. يرجى تفعيل المادة بالكود لفتح جميع الدروس والاختبارات العملية.',
+          style: GoogleFonts.cairo(
+            color: isDark ? Colors.white70 : AppColors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context); // Go back to subject hub to activate
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('الاشتراك الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLessonCard(BuildContext context, PracticalItem item, bool isDark, int index) {
+    final isLocked = widget.isFree && !item.isFree;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey[200]!,
+          color: isLocked ? (isDark ? Colors.amber.withValues(alpha: 0.2) : Colors.amber.shade200) : (isDark ? Colors.white10 : Colors.grey[200]!),
         ),
         boxShadow: [
           BoxShadow(
@@ -278,105 +329,180 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          onTap: () => Navigator.push(
-            context, 
-            MaterialPageRoute(
-              builder: (context) => PracticalLessonDetailScreen(item: item),
-            ),
-          ),
+          onTap: () {
+            if (isLocked) {
+              _showSubscriptionDialog();
+            } else {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(
+                  builder: (context) => PracticalLessonDetailScreen(item: item),
+                ),
+              );
+            }
+          },
           borderRadius: BorderRadius.circular(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              if (item.mediaType != 'none') 
-                _buildMediaPreview(item, isDark)
-              else
-                _buildDefaultPreview(item, isDark),
-              
-              Padding(
-                padding: const EdgeInsets.all(20),
+              Opacity(
+                opacity: isLocked ? 0.6 : 1.0,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
+                    if (item.mediaType != 'none') 
+                      _buildMediaPreview(item, isDark)
+                    else
+                      _buildDefaultPreview(item, isDark),
+                    
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildTypeBadge(item.mediaType, isDark),
-                              const SizedBox(height: 12),
-                              Text(
-                                item.title,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : AppColors.textPrimary,
-                                  height: 1.2,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildTypeBadge(item.mediaType, isDark),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      item.title,
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : AppColors.textPrimary,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              const SizedBox(width: 12),
+                              if (!isLocked)
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.primaryBlue,
+                                    size: 16,
+                                  ),
+                                ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
+                          if (item.description.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              item.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                color: isDark ? Colors.white60 : AppColors.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 14,
+                                color: Colors.grey[500],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'تحديث: ${item.lastUpdated}',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 11,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                              const Spacer(),
+                              if (!isLocked)
+                                Text(
+                                  'عرض الدرس',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ),
+                            ],
                           ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: AppColors.primaryBlue,
-                            size: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (item.description.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        item.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          color: isDark ? Colors.white60 : AppColors.textSecondary,
-                          height: 1.5,
-                        ),
+                        ],
                       ),
-                    ],
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 14,
-                          color: Colors.grey[500],
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'تحديث: ${item.lastUpdated}',
-                          style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'عرض الدرس',
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryBlue,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
+              if (isLocked)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.lock_rounded, color: Colors.amber, size: 32),
+                      ),
+                    ),
+                  ),
+                ),
+              if (item.isFree && widget.isFree)
+                Positioned.directional(
+                  textDirection: TextDirection.rtl,
+                  top: 16,
+                  end: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          'مجاني',
+                          style: GoogleFonts.cairo(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

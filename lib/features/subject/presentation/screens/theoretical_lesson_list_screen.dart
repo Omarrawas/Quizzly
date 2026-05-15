@@ -240,8 +240,8 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                 final parentId = data['parentId'];
                 final chapterName = _chapterNames[parentId] ?? 'عام';
                 
-                // For student view, limit access to first 3 lessons if free
-                final bool isLocked = !widget.isAdmin && widget.isFree && index >= 3;
+                // For student view, lock if the user is free and the lesson is not explicitly free
+                final bool isLocked = !widget.isAdmin && widget.isFree && data['isFree'] != true;
 
                 return _buildLessonCard(id, name, chapterName, isDark, isLocked, data);
               },
@@ -259,7 +259,9 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
+        border: Border.all(
+          color: isLocked ? (isDark ? Colors.amber.withValues(alpha: 0.2) : Colors.amber.shade200) : (isDark ? Colors.white10 : AppColors.borderLight),
+        ),
         boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -274,56 +276,124 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
         child: InkWell(
           onTap: isLocked ? _showPaywall : () => _openLessonInBookMode(id, name, data),
           borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    isLocked ? Icons.lock_rounded : Icons.menu_book_rounded, 
-                    color: isLocked ? Colors.amber : AppColors.primaryBlue
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            children: [
+              Opacity(
+                opacity: isLocked ? 0.6 : 1.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
                     children: [
-                      Text(
-                        name,
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.menu_book_rounded, 
+                          color: AppColors.primaryBlue
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.folder_open_rounded, size: 12, color: Colors.grey[400]),
-                          const SizedBox(width: 4),
-                          Text(
-                            chapterName,
-                            style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
-                          ),
-                        ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: isDark ? Colors.white : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.folder_open_rounded, size: 12, color: Colors.grey[400]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  chapterName,
+                                  style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
+                      if (!isLocked)
+                        Icon(
+                          Icons.arrow_forward_ios_rounded, 
+                          size: 14, 
+                          color: Colors.grey[300]
+                        ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded, 
-                  size: 14, 
-                  color: Colors.grey[300]
+              ),
+              if (isLocked)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.lock_rounded, color: Colors.amber, size: 24),
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              if (!isLocked && data['isFree'] == true && widget.isFree && !widget.isAdmin)
+                Positioned.directional(
+                  textDirection: TextDirection.rtl,
+                  top: 16,
+                  end: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.white, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          'مجاني',
+                          style: GoogleFonts.cairo(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -349,11 +419,49 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
   }
 
   void _showPaywall() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('اشترك لفتح جميع الدروس ومميزات التطبيق الكاملة!', style: GoogleFonts.cairo()),
-        backgroundColor: AppColors.primaryBlue,
-        behavior: SnackBarBehavior.floating,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_rounded, color: Colors.amber, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'محتوى مقفل',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'هذا الدرس يتطلب الاشتراك في المادة. يرجى تفعيل المادة بالكود لفتح جميع الدروس والاختبارات النظري.',
+          style: GoogleFonts.cairo(
+            color: isDark ? Colors.white70 : AppColors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context); // Go back to subject hub to activate
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('الاشتراك الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
