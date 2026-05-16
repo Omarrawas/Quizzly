@@ -91,7 +91,7 @@ jobs:
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.QUIZZLY_GITHUB_TOKEN }}
 
 # ================= WINDOWS BUILD =================
 
@@ -122,7 +122,7 @@ jobs:
           tag_name: v${{ github.run_number }}
           files: Quizzly-Windows.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.QUIZZLY_GITHUB_TOKEN }}
 
 # ================= NOTIFICATIONS =================
 
