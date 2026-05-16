@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
 import 'package:quizzly/features/subject/presentation/screens/practical_lesson_detail_screen.dart';
+import 'package:quizzly/core/widgets/rich_text_editor.dart';
 
 class PracticalManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -362,7 +363,6 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
   final _descCtrl = TextEditingController();
   final _videoUrlCtrl = TextEditingController();
   final _imageUrlCtrl = TextEditingController();
-  List<String> _imageUrls = [];
   bool _saving = false;
   bool _isFree = false;
 
@@ -373,7 +373,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       _titleCtrl.text = widget.initialData!['title'] ?? widget.initialData!['name'] ?? '';
       _descCtrl.text = widget.initialData!['description'] ?? '';
       _videoUrlCtrl.text = widget.initialData!['videoUrl'] ?? '';
-      _imageUrls = List<String>.from(widget.initialData!['imageUrls'] ?? []);
+      _imageUrlCtrl.text = (widget.initialData!['imageUrls'] as List<dynamic>?)?.join('\n') ?? '';
       _isFree = widget.initialData!['isFree'] == true;
     }
   }
@@ -384,11 +384,17 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
 
     setState(() => _saving = true);
 
+    final imageUrlsList = _imageUrlCtrl.text
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
     // Determine media type automatically
     String mediaType = 'none';
     if (_videoUrlCtrl.text.trim().isNotEmpty) {
       mediaType = 'video';
-    } else if (_imageUrls.isNotEmpty) {
+    } else if (imageUrlsList.isNotEmpty) {
       mediaType = 'images';
     }
 
@@ -401,7 +407,7 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
       'subType': 'lesson',
       'mediaType': mediaType,
       'videoUrl': _videoUrlCtrl.text.trim().isEmpty ? null : _videoUrlCtrl.text.trim(),
-      'imageUrls': _imageUrls,
+      'imageUrls': imageUrlsList,
       'isFree': _isFree,
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -490,78 +496,15 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
             const SizedBox(height: 20),
 
             // Images Section (Optional)
-            Text(
-              'صور توضيحية (اختياري)',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _field(
-                    _imageUrlCtrl,
-                    'رابط صورة',
-                    Icons.image_rounded,
-                    isDark,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_imageUrlCtrl.text.isNotEmpty) {
-                      setState(() {
-                        _imageUrls.add(_imageUrlCtrl.text.trim());
-                        _imageUrlCtrl.clear();
-                      });
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.all(12),
-                  ),
-                  child: const Icon(Icons.add_photo_alternate_rounded, color: Colors.white),
-                ),
-              ],
-            ),
-            if (_imageUrls.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _imageUrls.length,
-                  itemBuilder: (_, i) => Stack(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 80,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[300]!),
-                          image: DecorationImage(
-                            image: NetworkImage(_imageUrls[i]),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 12,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _imageUrls.removeAt(i)),
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                            child: const Icon(Icons.close, size: 12, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            TextField(
+              controller: _imageUrlCtrl,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'روابط الصور (رابط في كل سطر)',
+                prefixIcon: const Icon(Icons.image_rounded),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-            ],
+            ),
             const SizedBox(height: 20),
 
             // Description Section
@@ -570,24 +513,13 @@ class _AddLessonSheetState extends State<_AddLessonSheet> {
               style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             const SizedBox(height: 8),
-            TextField(
-              controller: _descCtrl,
-              maxLines: 5,
-              style: GoogleFonts.cairo(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'اكتب تفاصيل الدرس وشرح الخطوات هنا...',
-                hintStyle: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
-                filled: true,
-                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.grey[200]!),
-                ),
-              ),
+            RichTextEditor(
+              initialHtml: _descCtrl.text,
+              placeholder: 'اكتب تفاصيل الدرس وشرح الخطوات هنا...',
+              height: 250,
+              onContentChanged: (html) {
+                _descCtrl.text = html;
+              },
             ),
             const SizedBox(height: 32),
             SizedBox(

@@ -415,6 +415,37 @@ class QuestionCard extends StatelessWidget {
     );
   }
 
+  void _showExplanationDialog(BuildContext context, String explanation) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.lightbulb_rounded, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text('ترجمة / توضيح', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: TexViewWidget(
+            text: explanation,
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: 15,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('حسناً', style: GoogleFonts.cairo(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -452,6 +483,27 @@ class QuestionCard extends StatelessWidget {
               ],
             ),
           ),
+          
+          if (question.explanation != null && question.explanation!.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16, left: 16, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _showExplanationDialog(context, question.explanation!),
+                  icon: const Icon(Icons.g_translate_rounded, size: 16),
+                  label: Text('ترجمة / توضيح', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF16A34A),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    backgroundColor: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ),
           
           // Question Image (if exists)
           if (question.imageUrl != null)
