@@ -51,10 +51,10 @@ jobs:
           EOF
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Build AAB
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --no-tree-shake-icons
 
       - name: Prepare Release Notes
         shell: bash
