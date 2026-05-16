@@ -1,0 +1,163 @@
+name: Quizzly CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: Quizzly
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# ================= ANDROID BUILD =================
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/key.jks
+          cat > android/key.properties <<EOF
+          storeFile=key.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Build AAB
+        run: flutter build appbundle --release
+
+      - name: Prepare Release Notes
+        shell: bash
+        run: |
+          mkdir -p distribution/whatsnew
+          if [ -f "whatsnew_ar.txt" ]; then
+            cp whatsnew_ar.txt distribution/whatsnew/whatsnew-ar-SA
+          else
+            echo "تحسينات عامة وإصلاح بعض الأخطاء لضمان تجربة أفضل." > distribution/whatsnew/whatsnew-ar-SA
+          fi
+          if [ -f "whatsnew_en.txt" ]; then
+            cp whatsnew_en.txt distribution/whatsnew/whatsnew-en-US
+          else
+            echo "General improvements and bug fixes for a better experience." > distribution/whatsnew/whatsnew-en-US
+          fi
+
+      - name: Deploy to Google Play (Production)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.quizzly.app
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: production
+          status: completed
+          changesNotSentForReview: false
+          whatsNewDirectory: distribution/whatsnew
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Quizzly Release ${{ github.run_number }}
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# ================= WINDOWS BUILD =================
+
+  windows:
+    needs: android
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Zip Windows
+        run: powershell Compress-Archive build/windows/x64/runner/Release Quizzly-Windows.zip
+
+      - name: Upload Windows to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          files: Quizzly-Windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# ================= NOTIFICATIONS =================
+
+  notify:
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Telegram Notification
+      - name: Send Telegram Notification
+        shell: bash
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          NOTES=$(cat whatsnew_ar.txt 2>/dev/null || echo "تحسينات عامة وإصلاح أخطاء")
+          MSG="🚀 إصدار جديد من تطبيق Quizzly (رقم ${{ github.run_number }})
+          
+          📝 ما الجديد:
+          $NOTES
+          
+          ----------------------------------
+          🔗 روابط التحميل:
+          
+          🤖 Android APK:
+          https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/app-release.apk
+          
+          📦 Play Store AAB:
+          https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/app-release.aab
+          
+          💻 Windows:
+          https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/Quizzly-Windows.zip
+          "
+
+          curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+          -d chat_id="${TELEGRAM_CHAT_ID}" \
+          -d text="$MSG"
