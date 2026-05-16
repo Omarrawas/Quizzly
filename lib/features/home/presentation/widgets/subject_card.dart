@@ -123,17 +123,24 @@ class SubjectCard extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                subject['activationType'] == 'code' 
-                    ? 'تفعيل بواسطة كود'
-                    : (subject['activationType'] == 'free' || (subject['paidPrice'] ?? subject['price'] ?? 0) == 0 
-                        ? 'تفعيل مجاني' 
-                        : 'تفعيل بمبلغ ${subject['paidPrice'] ?? subject['price']} ليرة'),
-                style: GoogleFonts.cairo(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Builder(
+                builder: (context) {
+                  final activationType = subject['activationType'];
+                  if (activationType == 'code') {
+                    return Text('تفعيل بواسطة كود', style: GoogleFonts.cairo(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600));
+                  }
+                  
+                  final price = (subject['paidPrice'] as num?)?.toDouble() ?? (subject['price'] as num?)?.toDouble() ?? 0.0;
+                  final discount = (subject['discount'] as num?)?.toDouble() ?? 0.0;
+                  
+                  if (activationType == 'free' || price <= 0) {
+                    return Text('تفعيل مجاني', style: GoogleFonts.cairo(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600));
+                  }
+                  
+                  final finalPrice = discount > 0 ? (price * (1 - discount / 100)) : price;
+                  
+                  return Text('تفعيل بمبلغ ${finalPrice.toStringAsFixed(0)} ليرة', style: GoogleFonts.cairo(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600));
+                },
               ),
             ),
             

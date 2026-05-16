@@ -10,6 +10,7 @@ import 'package:quizzly/features/home/presentation/widgets/subject_card.dart';
 import 'package:quizzly/features/subject/presentation/screens/subject_hub_screen.dart';
 import 'package:quizzly/features/home/presentation/screens/subject_selection_screen.dart';
 import 'package:quizzly/features/quiz/presentation/screens/favorites_screen.dart';
+import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
 import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -159,6 +160,37 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'المظهر',
             );
           },
+        ),
+        Stack(
+          children: [
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                );
+              },
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: AppColors.textSecondary,
+                size: 26,
+              ),
+              tooltip: 'الإشعارات',
+            ),
+            // Badge Indicator (Simplified)
+            Positioned(
+              right: 12,
+              top: 12,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+              ),
+            ),
+          ],
         ),
         IconButton(
           onPressed: () {

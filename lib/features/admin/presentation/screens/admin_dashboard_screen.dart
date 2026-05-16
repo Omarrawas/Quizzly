@@ -8,6 +8,7 @@ import 'package:quizzly/features/admin/presentation/screens/analytics_dashboard_
 import 'package:quizzly/features/admin/presentation/screens/reports_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/user_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/financial_stats_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/send_notification_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -361,11 +362,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               },
               isDark: isDark,
             ),
+
             _buildActionTile(
               icon: Icons.notifications_active_rounded,
-              title: 'إرسال إشعار عام',
-              subtitle: 'تنبيه جميع المستخدمين بآخر التحديثات',
-              onTap: () {},
+              title: 'إرسال إشعارات',
+              subtitle: 'تنبيه الجميع أو طلاب مادة محددة',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SendNotificationScreen(),
+                  ),
+                );
+              },
               isDark: isDark,
             ),
             _buildActionTile(

@@ -905,7 +905,7 @@ class _SemesterCard extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${(price - discount).toStringAsFixed(0)} ل.س',
+                                          '${(price * (1 - discount / 100)).toStringAsFixed(0)} ل.س',
                                           style: GoogleFonts.cairo(
                                             color: Colors.white,
                                             fontSize: 11,
