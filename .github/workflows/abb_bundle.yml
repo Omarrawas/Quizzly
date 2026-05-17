@@ -1,0 +1,82 @@
+name: Quizzly CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: Quizzly
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# ================= ANDROID BUILD =================
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/key.jks
+          cat > android/key.properties <<EOF
+          storeFile=key.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build AAB
+        run: flutter build appbundle --release --no-tree-shake-icons
+
+      - name: Prepare Release Notes
+        shell: bash
+        run: |
+          mkdir -p distribution/whatsnew
+          if [ -f "whatsnew_ar.txt" ]; then
+            cp whatsnew_ar.txt distribution/whatsnew/whatsnew-ar-SA
+          else
+            echo "تحسينات عامة وإصلاح بعض الأخطاء لضمان تجربة أفضل." > distribution/whatsnew/whatsnew-ar-SA
+          fi
+          if [ -f "whatsnew_en.txt" ]; then
+            cp whatsnew_en.txt distribution/whatsnew/whatsnew-en-US
+          else
+            echo "General improvements and bug fixes for a better experience." > distribution/whatsnew/whatsnew-en-US
+          fi
+
+      - name: Upload AAB to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Quizzly Release ${{ github.run_number }}
+          files: |
+            build/app/outputs/bundle/release/app-release.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.QUIZZLY_GITHUB_TOKEN }}
+
+
+
