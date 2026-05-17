@@ -75,7 +75,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.quizzly.app
+          packageName: com.Quizzly.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: alpha
           status: completed
