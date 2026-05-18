@@ -340,8 +340,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   Widget _buildTimerWidget(bool isDark) {
-    if (_hasNoTimer)
+    if (_hasNoTimer) {
       return const SizedBox.shrink(); // Hide timer for no-limit exams
+    }
 
     final isWarning =
         !_isSpeedMode && _timeLeft < 60 || _isSpeedMode && _timeLeft <= 3;
