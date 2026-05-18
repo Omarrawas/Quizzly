@@ -19,6 +19,7 @@ import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
 import 'package:quizzly/features/training/presentation/screens/training_sessions_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
+import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,6 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> _manualOrder = [];
   String? _lastOpenedSubjectId;
 
+  // Subject selection for tab 1
+  List<Map<String, dynamic>> _allActiveSubjects = [];
+  int _selectedSubjectIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -59,9 +64,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       final settings = context.read<SettingsService>();
       final intervalMinutes = settings.autoUpdateInterval;
-      
+
       _contentUpdateTimer?.cancel();
-      _contentUpdateTimer = Timer.periodic(Duration(minutes: intervalMinutes), (timer) {
+      _contentUpdateTimer = Timer.periodic(Duration(minutes: intervalMinutes), (
+        timer,
+      ) {
         _checkContentUpdates();
       });
     }
@@ -73,7 +80,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final lastSyncedStr = prefs.getString('last_synced_content_time');
       if (lastSyncedStr == null) {
         // If the user has never synced before, treat current state as up-to-date initially
-        await prefs.setString('last_synced_content_time', DateTime.now().toIso8601String());
+        await prefs.setString(
+          'last_synced_content_time',
+          DateTime.now().toIso8601String(),
+        );
         return;
       }
 
@@ -86,7 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
           .get(const GetOptions(source: Source.server));
 
       if (doc.exists) {
-        final lastUpdateTimestamp = doc.data()?['lastContentUpdate'] as Timestamp?;
+        final lastUpdateTimestamp =
+            doc.data()?['lastContentUpdate'] as Timestamp?;
         if (lastUpdateTimestamp != null) {
           final lastUpdateTime = lastUpdateTimestamp.toDate();
           if (lastUpdateTime.isAfter(lastSyncedTime)) {
@@ -99,10 +110,14 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } else {
         // Automatically create metadata doc if it does not exist
-        await FirebaseFirestore.instance.collection('settings').doc('content_metadata').set({
-          'lastContentUpdate': FieldValue.serverTimestamp(),
-          'description': 'Quizzly content metadata for tracking offline version updates',
-        });
+        await FirebaseFirestore.instance
+            .collection('settings')
+            .doc('content_metadata')
+            .set({
+              'lastContentUpdate': FieldValue.serverTimestamp(),
+              'description':
+                  'Quizzly content metadata for tracking offline version updates',
+            });
       }
     } catch (e) {
       debugPrint('Error checking content updates: $e');
@@ -249,10 +264,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       await contentService.syncOfflineData(authService.user!.uid);
-      
+
       // Update local last synced time
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_synced_content_time', DateTime.now().toIso8601String());
+      await prefs.setString(
+        'last_synced_content_time',
+        DateTime.now().toIso8601String(),
+      );
 
       if (mounted) {
         setState(() {
@@ -301,7 +319,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPremiumBottomBar(bool isDark) {
-    final activeColor = isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1); // Lavender / Indigo
+    final activeColor = isDark
+        ? const Color(0xFF818CF8)
+        : const Color(0xFF6366F1); // Lavender / Indigo
     final inactiveColor = isDark ? Colors.white38 : Colors.grey.shade500;
     final backgroundColor = isDark ? const Color(0xFF0F172A) : Colors.white;
 
@@ -322,7 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         border: Border(
           top: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.grey.shade100,
             width: 1,
           ),
         ),
@@ -433,9 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (authService.user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     Widget currentBody;
@@ -451,7 +471,10 @@ class _HomeScreenState extends State<HomeScreen> {
             if (_contentUpdateAvailable)
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFFFFF7ED), Color(0xFFFDF2E9)],
@@ -533,20 +556,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              
+
               final activeSubjects = snapshot.data ?? [];
               if (activeSubjects.isEmpty) {
                 return const SubjectSelectionScreen();
               }
-              
-              var selectedSubject = activeSubjects.first;
-              if (_lastOpenedSubjectId != null) {
-                final found = activeSubjects.any((s) => s['id'] == _lastOpenedSubjectId);
-                if (found) {
-                  selectedSubject = activeSubjects.firstWhere((s) => s['id'] == _lastOpenedSubjectId);
+
+              // Update the list of active subjects and ensure selected index is valid
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && _allActiveSubjects != activeSubjects) {
+                  setState(() {
+                    _allActiveSubjects = activeSubjects;
+                    if (_selectedSubjectIndex >= activeSubjects.length) {
+                      _selectedSubjectIndex = 0;
+                    }
+                  });
                 }
+              });
+
+              if (_allActiveSubjects.isEmpty) {
+                _allActiveSubjects = activeSubjects;
               }
-              
+
+              final currentSubjects = _allActiveSubjects.isNotEmpty
+                  ? _allActiveSubjects
+                  : activeSubjects;
+              final idx = _selectedSubjectIndex < currentSubjects.length
+                  ? _selectedSubjectIndex
+                  : 0;
+              final selectedSubject = currentSubjects[idx];
+
               return SubjectHubScreen(
                 subjectId: selectedSubject['id'] as String,
                 subjectName: selectedSubject['name'] as String,
@@ -554,6 +593,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         );
+        currentAppBar = _buildSubjectSelectionAppBar(isDark);
         break;
       case 2:
         currentBody = _buildTabWrapper(const TrainingSessionsScreen());
@@ -700,11 +740,143 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// AppBar for the "المواد" tab - shows a dropdown subject selector
+  PreferredSizeWidget _buildSubjectSelectionAppBar(bool isDark) {
+    final theme = Theme.of(context);
+    return AppBar(
+      backgroundColor: theme.appBarTheme.backgroundColor,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: Builder(
+        builder: (context) => IconButton(
+          onPressed: () => Scaffold.of(context).openDrawer(),
+          icon: Icon(
+            Icons.menu_rounded,
+            color: theme.brightness == Brightness.light
+                ? AppColors.textPrimary
+                : Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+      title: _allActiveSubjects.isEmpty
+          ? Text(
+              'المواد',
+              style: GoogleFonts.cairo(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: theme.brightness == Brightness.light
+                    ? AppColors.textPrimary
+                    : Colors.white,
+              ),
+            )
+          : Directionality(
+              textDirection: TextDirection.rtl,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: _selectedSubjectIndex < _allActiveSubjects.length
+                      ? _selectedSubjectIndex
+                      : 0,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: theme.brightness == Brightness.light
+                        ? AppColors.textSecondary
+                        : Colors.white70,
+                  ),
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(16),
+                  dropdownColor: isDark
+                      ? const Color(0xFF1E293B)
+                      : Colors.white,
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: theme.brightness == Brightness.light
+                        ? AppColors.textPrimary
+                        : Colors.white,
+                  ),
+                  onChanged: (int? newIndex) {
+                    if (newIndex != null) {
+                      setState(() {
+                        _selectedSubjectIndex = newIndex;
+                        _trackLastOpenedSubject(
+                          _allActiveSubjects[newIndex]['id'],
+                        );
+                      });
+                    }
+                  },
+                  items: List.generate(_allActiveSubjects.length, (index) {
+                    final subject = _allActiveSubjects[index];
+                    return DropdownMenuItem<int>(
+                      value: index,
+                      child: SizedBox(
+                        width: 200,
+                        child: Text(
+                          subject['name'] ?? 'مادة ${index + 1}',
+                          style: GoogleFonts.cairo(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: theme.brightness == Brightness.light
+                                ? AppColors.textPrimary
+                                : Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    );
+                  }),
+                  isExpanded: false,
+                  alignment: AlignmentDirectional.centerEnd,
+                  hint: Text(
+                    'اختر مادة',
+                    style: GoogleFonts.cairo(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: theme.brightness == Brightness.light
+                          ? AppColors.textPrimary
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+      centerTitle: true,
+      actions: [
+        Consumer<ThemeService>(
+          builder: (context, themeService, _) {
+            final isLight = themeService.themeMode == ThemeMode.light;
+            return IconButton(
+              onPressed: themeService.toggleTheme,
+              icon: Icon(
+                isLight
+                    ? Icons.wb_sunny_outlined
+                    : Icons.nightlight_round_outlined,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? AppColors.textSecondary
+                    : Colors.white,
+                size: 24,
+              ),
+              tooltip: 'المظهر',
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
   Widget _buildSubHeaderSection(String userId) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .snapshots(),
       builder: (context, userSnapshot) {
-        final balance = (userSnapshot.data?.data() as Map<String, dynamic>?)?['balance'] as int? ?? 0;
+        final balance =
+            (userSnapshot.data?.data() as Map<String, dynamic>?)?['balance']
+                as int? ??
+            0;
         return _buildSubHeader(balance);
       },
     );
@@ -718,7 +890,9 @@ class _HomeScreenState extends State<HomeScreen> {
         color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.grey.shade200,
             width: 1,
           ),
         ),
@@ -748,7 +922,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
                 border: Border.all(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey.shade100,
                   width: 1,
                 ),
               ),
@@ -777,7 +953,9 @@ class _HomeScreenState extends State<HomeScreen> {
           // Sort Button
           PopupMenuButton<String>(
             onSelected: _changeSortType,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -807,7 +985,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text('يدوي =', style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text(
+                      'يدوي =',
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     const Icon(Icons.drag_handle_rounded, size: 16),
                   ],
@@ -827,7 +1011,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
                 border: Border.all(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey.shade100,
                   width: 1,
                 ),
               ),
@@ -957,6 +1143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             subject: subject,
                             index: index,
                             showDragHandle: true,
+                            userId: context.read<AuthService>().user!.uid,
                             onTap: () {
                               _trackLastOpenedSubject(subject['id']);
                               Navigator.push(
@@ -987,35 +1174,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 )
               : SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final subject = sortedSubjects[index];
-                      return Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 500),
-                          child: SubjectCard(
-                            key: ValueKey('card_${subject['id']}'),
-                            subject: subject,
-                            index: index,
-                            showDragHandle: false,
-                            onTap: () {
-                              _trackLastOpenedSubject(subject['id']);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SubjectHubScreen(
-                                    subjectId: subject['id'],
-                                    subjectName: subject['name'],
-                                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final subject = sortedSubjects[index];
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: SubjectCard(
+                          key: ValueKey('card_${subject['id']}'),
+                          subject: subject,
+                          index: index,
+                          showDragHandle: false,
+                          userId: context.read<AuthService>().user!.uid,
+                          onTap: () {
+                            _trackLastOpenedSubject(subject['id']);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SubjectHubScreen(
+                                  subjectId: subject['id'],
+                                  subjectName: subject['name'],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                    childCount: sortedSubjects.length,
-                  ),
+                      ),
+                    );
+                  }, childCount: sortedSubjects.length),
                 ),
         ),
         SliverToBoxAdapter(child: _buildStatsSection()),
@@ -1037,17 +1222,24 @@ class _HomeScreenState extends State<HomeScreen> {
               // 1. Streak Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey[200]!,
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.35 : 0.02,
+                        ),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -1084,7 +1276,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'أيام متتالية',
                         style: GoogleFonts.cairo(
-                          color: isDark ? Colors.white60 : AppColors.textSecondary,
+                          color: isDark
+                              ? Colors.white60
+                              : AppColors.textSecondary,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1097,17 +1291,24 @@ class _HomeScreenState extends State<HomeScreen> {
               // 2. Curriculum Completion Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey[200]!,
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.35 : 0.02,
+                        ),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -1126,14 +1327,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: CircularProgressIndicator(
                               value: 0.75,
                               strokeWidth: 5.5,
-                              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey[200]!,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5F5DFA)),
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.grey[200]!,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFF5F5DFA),
+                              ),
                             ),
                           ),
                           Text(
                             '75%',
                             style: GoogleFonts.inter(
-                              color: isDark ? Colors.white : AppColors.textPrimary,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
                             ),
@@ -1172,208 +1379,225 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLatestExamsSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final List<Map<String, dynamic>> exams = [
-      {
-        'title': 'الروابط الكيميائية',
-        'difficulty': 'سهل',
-        'difficultyColor': const Color(0xFF10B981),
-        'questions': 20,
-        'duration': 15,
-        'progress': 0.40,
-        'icon': Icons.science_outlined,
-        'iconColor': const Color(0xFF10B981),
-      },
-      {
-        'title': 'تفاضل وتكامل 2',
-        'difficulty': 'متوسط',
-        'difficultyColor': const Color(0xFFF59E0B),
-        'questions': 15,
-        'duration': 30,
-        'progress': 0.80,
-        'icon': 'Σ',
-        'iconColor': const Color(0xFF8B5CF6),
-      },
-      {
-        'title': 'علم النفس المعرفي',
-        'difficulty': 'صعب',
-        'difficultyColor': const Color(0xFFEF4444),
-        'questions': 40,
-        'duration': 45,
-        'progress': 0.0,
-        'icon': Icons.psychology_rounded,
-        'iconColor': const Color(0xFFEC4899),
-      },
-    ];
+    final authService = context.watch<AuthService>();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    if (authService.user == null) return const SizedBox.shrink();
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: ExamService().streamRecentAttempts(
+        authService.user!.uid,
+        limit: 5,
+      ),
+      builder: (context, snapshot) {
+        final attempts = snapshot.data ?? [];
+
+        if (attempts.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton(
-                    onPressed: () {
-                      // Navigate to exams or search
-                    },
-                    child: Text(
-                      'عرض الكل',
-                      style: GoogleFonts.cairo(
-                        color: const Color(0xFF5F5DFA),
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'آخر الاختبارات',
-                    style: GoogleFonts.cairo(
-                      color: isDark ? Colors.white : AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              
-              // Exam Cards List
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: exams.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 14),
-                itemBuilder: (context, index) {
-                  final e = exams[index];
-                  final hasProgress = e['progress'] > 0.0;
-                  
-                  return Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          // Navigate to exams history
+                        },
+                        child: Text(
+                          'عرض الكل',
+                          style: GoogleFonts.cairo(
+                            color: const Color(0xFF5F5DFA),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            // 1. Difficulty Badge (Left)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: (e['difficultyColor'] as Color).withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
+                      ),
+                      Text(
+                        'آخر الاختبارات',
+                        style: GoogleFonts.cairo(
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Exam Cards List
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: attempts.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      final e = attempts[index];
+                      final title = e['examTitle'] ?? 'اختبار';
+                      final totalQuestions = e['totalQuestions'] ?? 0;
+                      final correctCount = e['correctCount'] ?? 0;
+                      final score = (e['score'] as num?)?.toDouble() ?? 0.0;
+                      final hasProgress = totalQuestions > 0;
+                      final progress = totalQuestions > 0
+                          ? correctCount / totalQuestions
+                          : 0.0;
+
+                      // Calculate score color
+                      Color scoreColor;
+                      String scoreLabel;
+                      if (score >= 80) {
+                        scoreColor = const Color(0xFF10B981);
+                        scoreLabel = 'ممتاز';
+                      } else if (score >= 60) {
+                        scoreColor = const Color(0xFFF59E0B);
+                        scoreLabel = 'جيد';
+                      } else {
+                        scoreColor = const Color(0xFFEF4444);
+                        scoreLabel = 'ضعيف';
+                      }
+
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.grey[200]!,
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.35 : 0.02,
                               ),
-                              child: Text(
-                                e['difficulty'] as String,
-                                style: GoogleFonts.cairo(
-                                  color: e['difficultyColor'] as Color,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            
-                            const Spacer(),
-                            
-                            // 2. Title & Subtitle (Middle/Right)
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    e['title'] as String,
-                                    style: GoogleFonts.cairo(
-                                      color: isDark ? Colors.white : AppColors.textPrimary,
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${e['questions']} سؤال • ${e['duration']} دقيقة',
-                                    style: GoogleFonts.cairo(
-                                      color: isDark ? Colors.white30 : Colors.grey[400],
-                                      fontSize: 11.5,
-                                    ),
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            
-                            const SizedBox(width: 14),
-                            
-                            // 3. Icon Container (Far Right)
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Center(
-                                child: e['icon'] is IconData
-                                    ? Icon(
-                                        e['icon'] as IconData,
-                                        color: e['iconColor'] as Color,
-                                        size: 20,
-                                      )
-                                    : Text(
-                                        e['icon'] as String,
-                                        style: GoogleFonts.inter(
-                                          color: e['iconColor'] as Color,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                              ),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        
-                        // Progress Bar (if hasProgress)
-                        if (hasProgress) ...[
-                          const SizedBox(height: 16),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: e['progress'] as double,
-                              minHeight: 4.5,
-                              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]!,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                // 1. Score Badge (Left)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: scoreColor.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    scoreLabel,
+                                    style: GoogleFonts.cairo(
+                                      color: scoreColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+
+                                const Spacer(),
+
+                                // 2. Title & Subtitle (Middle/Right)
+                                Expanded(
+                                  flex: 4,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: GoogleFonts.cairo(
+                                          color: isDark
+                                              ? Colors.white
+                                              : AppColors.textPrimary,
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$correctCount من $totalQuestions صحيح • ${score.toStringAsFixed(0)}%',
+                                        style: GoogleFonts.cairo(
+                                          color: isDark
+                                              ? Colors.white30
+                                              : Colors.grey[400],
+                                          fontSize: 11.5,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(width: 14),
+
+                                // 3. Score Circle (Far Right)
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF0F172A)
+                                        : Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${score.toStringAsFixed(0)}%',
+                                      style: GoogleFonts.inter(
+                                        color: scoreColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
+
+                            // Progress Bar
+                            if (hasProgress) ...[
+                              const SizedBox(height: 16),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 4.5,
+                                  backgroundColor: isDark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.grey[100]!,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    scoreColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

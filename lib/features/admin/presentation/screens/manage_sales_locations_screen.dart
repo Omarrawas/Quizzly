@@ -7,10 +7,12 @@ class ManageSalesLocationsScreen extends StatefulWidget {
   const ManageSalesLocationsScreen({super.key});
 
   @override
-  State<ManageSalesLocationsScreen> createState() => _ManageSalesLocationsScreenState();
+  State<ManageSalesLocationsScreen> createState() =>
+      _ManageSalesLocationsScreenState();
 }
 
-class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen> {
+class _ManageSalesLocationsScreenState
+    extends State<ManageSalesLocationsScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -29,7 +31,9 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
         final data = doc.data()!;
         final List<dynamic> listRaw = data['provinces'] ?? [];
         setState(() {
-          _provinces = listRaw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          _provinces = listRaw
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
         });
       }
     } catch (e) {
@@ -50,7 +54,10 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم حفظ نقاط البيع بنجاح', style: GoogleFonts.cairo()),
+            content: Text(
+              'تم حفظ نقاط البيع بنجاح',
+              style: GoogleFonts.cairo(),
+            ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -76,8 +83,12 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
     final province = isEdit ? _provinces[index] : null;
 
     final nameController = TextEditingController(text: province?['name'] ?? '');
-    final countController = TextEditingController(text: province?['centersCount']?.toString() ?? '1');
-    final detailsController = TextEditingController(text: province?['details'] ?? '');
+    final countController = TextEditingController(
+      text: province?['centersCount']?.toString() ?? '1',
+    );
+    final detailsController = TextEditingController(
+      text: province?['details'] ?? '',
+    );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -104,7 +115,9 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
                 decoration: InputDecoration(
                   labelText: 'اسم المحافظة',
                   labelStyle: GoogleFonts.cairo(),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -115,7 +128,9 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
                 decoration: InputDecoration(
                   labelText: 'عدد المراكز المعتمدة',
                   labelStyle: GoogleFonts.cairo(),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -126,9 +141,15 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
                 decoration: InputDecoration(
                   labelText: 'تفاصيل المراكز بالأسفل (الترقيم تلقائي أو يدوي)',
                   labelStyle: GoogleFonts.cairo(),
-                  hintText: 'مثال:\n١. مكتبة الرائد - البرامكة\n٢. مكتبة الهدى - الحلبوني',
-                  hintStyle: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  hintText:
+                      'مثال:\n١. مكتبة الرائد - البرامكة\n٢. مكتبة الهدى - الحلبوني',
+                  hintStyle: GoogleFonts.cairo(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -173,9 +194,14 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: Text('حفظ', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            child: Text(
+              'حفظ',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -183,9 +209,63 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
   }
 
   void _deleteProvince(int index) {
-    setState(() {
-      _provinces.removeAt(index);
-    });
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final province = _provinces[index];
+    final name = province['name'] ?? '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'تأكيد الحذف',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف محافظة "$name"؟',
+          style: GoogleFonts.cairo(fontSize: 14),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _provinces.removeAt(index);
+              });
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'تم حذف "$name" بنجاح',
+                    style: GoogleFonts.cairo(),
+                  ),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'حذف',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -193,7 +273,9 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
           'إدارة نقاط وأماكن البيع',
@@ -229,35 +311,56 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
-                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 side: BorderSide(
-                                  color: isDark ? Colors.white10 : AppColors.borderLight,
+                                  color: isDark
+                                      ? Colors.white10
+                                      : AppColors.borderLight,
                                 ),
                               ),
                               child: ListTile(
-                                leading: Icon(Icons.location_on_rounded, color: AppColors.primaryBlue),
+                                leading: Icon(
+                                  Icons.location_on_rounded,
+                                  color: AppColors.primaryBlue,
+                                ),
                                 title: Text(
                                   name,
                                   style: GoogleFonts.cairo(
                                     fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : AppColors.textPrimary,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.textPrimary,
                                   ),
                                 ),
                                 subtitle: Text(
                                   '$count مراكز معتمدة',
-                                  style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey),
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-                                      onPressed: () => _showAddEditProvinceDialog(index: index),
+                                      icon: const Icon(
+                                        Icons.edit_rounded,
+                                        color: Colors.blue,
+                                      ),
+                                      onPressed: () =>
+                                          _showAddEditProvinceDialog(
+                                            index: index,
+                                          ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Colors.red,
+                                      ),
                                       onPressed: () => _deleteProvince(index),
                                     ),
                                   ],
@@ -285,7 +388,10 @@ class _ManageSalesLocationsScreenState extends State<ManageSalesLocationsScreen>
                           ? const CircularProgressIndicator(color: Colors.white)
                           : Text(
                               'تأكيد وحفظ التغييرات في السحابة',
-                              style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.cairo(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                   ),

@@ -31,18 +31,26 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   final SpacedRepetitionService _srsService = SpacedRepetitionService();
   int _currentIndex = 0;
   final Map<int, String> _userAnswers = {}; // index -> optionId
-  
+
   late int _timeLeft; // Total time or Per-question time
   bool _isSpeedMode = false;
   Timer? _timer;
   late List<QuizQuestion> _sessionQuestions;
-  final Set<int> _processedIndices = {}; 
+  final Set<int> _processedIndices = {};
+  bool _hasNoTimer = false; // Flag for exams with 0 duration (no time limit)
 
   @override
   void initState() {
     super.initState();
     _isSpeedMode = widget.initialSpeedMode;
+    _hasNoTimer = widget.config.durationSeconds <= 0;
     _timeLeft = _isSpeedMode ? 10 : widget.config.durationSeconds;
+    if (_timeLeft <= 0 && !_isSpeedMode) {
+      // For exams with no timer (durationSeconds = 0 / bank mode),
+      // set a large dummy value so timer never expires
+      _timeLeft = 999999;
+      _hasNoTimer = true;
+    }
     _sessionQuestions = List.from(widget.questions);
     _startTimer();
   }
@@ -56,6 +64,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_hasNoTimer) return; // Don't count down for no-timer exams
       if (_timeLeft > 0) {
         setState(() => _timeLeft--);
       } else {
@@ -79,6 +88,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   String _formatTime(int seconds) {
+    if (_hasNoTimer) return '--:--';
     if (_isSpeedMode) return seconds.toString();
     final m = seconds ~/ 60;
     final s = seconds % 60;
@@ -93,16 +103,14 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     });
 
     HapticFeedback.selectionClick();
-    
+
+    // In speed mode, auto-confirm and move to next question
     if (_isSpeedMode) {
-      // In speed mode, auto-confirm after selection to keep the pace
       Future.delayed(const Duration(milliseconds: 300), _handleNext);
     }
   }
 
   void _handleNext() {
-    if (_timer == null || !_timer!.isActive && !_isSpeedMode) return;
-
     // Process answer
     if (!_processedIndices.contains(_currentIndex)) {
       _processedIndices.add(_currentIndex);
@@ -118,9 +126,17 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     }
   }
 
+  void _handlePrevious() {
+    if (_currentIndex > 0) {
+      setState(() {
+        _currentIndex--;
+      });
+    }
+  }
+
   Future<void> _submitExam({bool auto = false}) async {
     _timer?.cancel();
-    
+
     final authService = context.read<AuthService>();
     final navigator = Navigator.of(context);
 
@@ -128,11 +144,22 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
       final String? action = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('إنهاء الاختبار؟', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'إنهاء الاختبار؟',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, 'cancel'), child: Text('إكمال', style: GoogleFonts.cairo())),
-            ElevatedButton(onPressed: () => Navigator.pop(context, 'submit'), child: Text('تسليم', style: GoogleFonts.cairo())),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'cancel'),
+              child: Text('إكمال', style: GoogleFonts.cairo()),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, 'submit'),
+              child: Text('تسليم', style: GoogleFonts.cairo()),
+            ),
           ],
         ),
       );
@@ -145,7 +172,11 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
     try {
       if (mounted) {
-        showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
       }
 
       int correctCount = 0;
@@ -159,7 +190,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         countedIds.add(qId);
 
         final userAns = _userAnswers[i];
-        final isCorrect = userAns != null && q.correctOptionIds.contains(userAns);
+        final isCorrect =
+            userAns != null && q.correctOptionIds.contains(userAns);
         if (isCorrect) correctCount++;
 
         results.add({
@@ -171,7 +203,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
       }
 
       final score = (correctCount / widget.questions.length) * 100;
-      final timeSpent = _isSpeedMode ? 0 : widget.config.durationSeconds - _timeLeft;
+      final timeSpent = _hasNoTimer
+          ? 0
+          : (_isSpeedMode ? 0 : widget.config.durationSeconds - _timeLeft);
 
       final userId = authService.user?.uid;
       if (userId != null && widget.config.id != null) {
@@ -181,6 +215,10 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           score: score,
           timeSpentSeconds: timeSpent,
           answers: results,
+          subjectId: widget.config.subjectId,
+          examTitle: widget.config.title,
+          totalQuestions: widget.questions.length,
+          correctCount: correctCount,
         );
         for (var res in results) {
           await _srsService.updateMastery(
@@ -210,7 +248,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     } catch (e) {
       if (mounted) {
         navigator.pop();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
@@ -223,17 +263,22 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     final progress = (_currentIndex + 1) / _sessionQuestions.length;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       appBar: _buildAppBar(isDark),
       body: Column(
         children: [
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(
-              isDark ? Colors.blueAccent : (_timeLeft < 60 ? Colors.red : AppColors.primaryBlue),
+          if (!_hasNoTimer)
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDark
+                    ? Colors.blueAccent
+                    : (_timeLeft < 60 ? Colors.red : AppColors.primaryBlue),
+              ),
             ),
-          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -249,7 +294,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: !_isSpeedMode ? _buildNavigationFooter(isDark) : null,
+      bottomNavigationBar: _buildNavigationFooter(isDark),
     );
   }
 
@@ -264,21 +309,30 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           Text(
             'سؤال ${_currentIndex + 1} / ${_sessionQuestions.length}',
             style: GoogleFonts.cairo(
-              fontSize: 14, 
-              fontWeight: FontWeight.bold, 
-              color: isDark ? Colors.white70 : AppColors.textPrimary
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white70 : AppColors.textPrimary,
             ),
           ),
           _buildTimerWidget(isDark),
           if (!_isSpeedMode)
             TextButton(
               onPressed: () => _submitExam(),
-              child: Text('إنهاء', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+              child: Text(
+                'إنهاء',
+                style: GoogleFonts.cairo(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             )
           else
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.close_rounded, color: isDark ? Colors.white70 : AppColors.textPrimary),
+              icon: Icon(
+                Icons.close_rounded,
+                color: isDark ? Colors.white70 : AppColors.textPrimary,
+              ),
             ),
         ],
       ),
@@ -286,17 +340,30 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   Widget _buildTimerWidget(bool isDark) {
-    final isWarning = !_isSpeedMode && _timeLeft < 60 || _isSpeedMode && _timeLeft <= 3;
+    if (_hasNoTimer)
+      return const SizedBox.shrink(); // Hide timer for no-limit exams
+
+    final isWarning =
+        !_isSpeedMode && _timeLeft < 60 || _isSpeedMode && _timeLeft <= 3;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isWarning ? Colors.red.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+        color: isWarning
+            ? Colors.red.withValues(alpha: 0.1)
+            : Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isWarning ? Colors.red : AppColors.primaryBlue, width: _isSpeedMode ? 2 : 1),
+        border: Border.all(
+          color: isWarning ? Colors.red : AppColors.primaryBlue,
+          width: _isSpeedMode ? 2 : 1,
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.timer_outlined, size: 16, color: isWarning ? Colors.red : AppColors.primaryBlue),
+          Icon(
+            Icons.timer_outlined,
+            size: 16,
+            color: isWarning ? Colors.red : AppColors.primaryBlue,
+          ),
           const SizedBox(width: 6),
           Text(
             _formatTime(_timeLeft),
@@ -319,15 +386,22 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: isDark ? Border.all(color: Colors.white10) : null,
-        boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                ),
+              ],
       ),
       child: Text(
         q.text,
         style: GoogleFonts.cairo(
-          fontSize: 18, 
-          fontWeight: FontWeight.bold, 
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
           height: 1.6,
-          color: isDark ? Colors.white : AppColors.textPrimary
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
         textAlign: TextAlign.center,
         textDirection: TextDirection.rtl,
@@ -339,9 +413,11 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     return Column(
       children: (q.options ?? []).map((opt) {
         final isSelected = _userAnswers[_currentIndex] == opt.id;
-        
+
         Color borderColor = isDark ? Colors.white24 : AppColors.borderLight;
-        Color bgColor = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white;
+        Color bgColor = isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white;
 
         if (isSelected) {
           borderColor = isDark ? Colors.blueAccent : AppColors.primaryBlue;
@@ -364,7 +440,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                   child: Text(
                     opt.text,
                     style: GoogleFonts.cairo(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       color: isDark ? Colors.white : AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
@@ -387,14 +465,18 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           color: isDark ? const Color(0xFF0F172A) : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black12, 
-              blurRadius: 10, 
-              offset: const Offset(0, -2)
-            )
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black12,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
           ],
           border: Border(
             top: BorderSide(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.shade200,
               width: 1,
             ),
           ),
@@ -404,38 +486,65 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           children: [
             if (_currentIndex > 0)
               OutlinedButton.icon(
-                onPressed: () => setState(() => _currentIndex--),
-                icon: Icon(Icons.arrow_back_ios_rounded, size: 14, color: isDark ? Colors.white70 : AppColors.primaryBlue),
-                label: Text('السابق', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                onPressed: _handlePrevious,
+                icon: Icon(
+                  Icons.arrow_back_ios_rounded,
+                  size: 14,
+                  color: isDark ? Colors.white70 : AppColors.primaryBlue,
+                ),
+                label: Text(
+                  'السابق',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? Colors.white70 : AppColors.primaryBlue,
-                  side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  foregroundColor: isDark
+                      ? Colors.white70
+                      : AppColors.primaryBlue,
+                  side: BorderSide(
+                    color: isDark ? Colors.white10 : Colors.grey.shade300,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               )
             else
               const SizedBox(width: 110),
-            
+
             ElevatedButton(
               onPressed: _handleNext,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue,
+                backgroundColor: isDark
+                    ? const Color(0xFF38BDF8)
+                    : AppColors.primaryBlue,
                 foregroundColor: isDark ? Colors.black : Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _currentIndex < _sessionQuestions.length - 1 ? 'التالي' : 'تسليم الاختبار',
+                    _currentIndex < _sessionQuestions.length - 1
+                        ? 'التالي'
+                        : 'تسليم الاختبار',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 8),
                   Icon(
-                    _currentIndex < _sessionQuestions.length - 1 ? Icons.arrow_forward_ios_rounded : Icons.check_circle_rounded,
+                    _currentIndex < _sessionQuestions.length - 1
+                        ? Icons.arrow_forward_ios_rounded
+                        : Icons.check_circle_rounded,
                     size: 14,
                     color: isDark ? Colors.black : Colors.white,
                   ),
