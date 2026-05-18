@@ -58,39 +58,81 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     super.dispose();
   }
 
+  List<_ChapterGroup> _groupTopics(List<Map<String, dynamic>> topics) {
+    List<_ChapterGroup> chapters = [];
+    _ChapterGroup? currentChapter;
+
+    for (var t in topics) {
+      final String name = t['name'] as String;
+      final String type = t['type'] as String? ?? '';
+      if (type == 'chapter' || name.startsWith('الفصل') || name.startsWith('الباب')) {
+        currentChapter = _ChapterGroup(doc: t, lessons: []);
+        chapters.add(currentChapter);
+      } else {
+        if (currentChapter == null) {
+          currentChapter = _ChapterGroup(
+            doc: const {'id': 'general', 'name': 'العامة'}, 
+            lessons: []
+          );
+          chapters.add(currentChapter);
+        }
+        currentChapter.lessons.add(t);
+      }
+    }
+    return chapters;
+  }
+
+  bool? _getChapterSelectionState(_ChapterGroup chapter, Set<String> selectedIds) {
+    if (chapter.lessons.isEmpty) {
+      return chapter.id != 'general' && selectedIds.contains(chapter.id);
+    }
+    
+    final lessonIds = chapter.lessons.map((l) => l['id'] as String).toList();
+    final selectedLessonsCount = lessonIds.where((id) => selectedIds.contains(id)).length;
+    final isChapterDocSelected = chapter.id != 'general' && selectedIds.contains(chapter.id);
+
+    if (selectedLessonsCount == 0 && !isChapterDocSelected) {
+      return false;
+    } else if (selectedLessonsCount == lessonIds.length && (chapter.id == 'general' || isChapterDocSelected)) {
+      return true;
+    } else {
+      return null; // Indeterminate state (minus sign)
+    }
+  }
+
+  void _toggleChapter(_ChapterGroup chapter, Set<String> selectedIds, bool? currentState) {
+    final lessonIds = chapter.lessons.map((l) => l['id'] as String).toList();
+    
+    if (currentState == true) {
+      // Deselect all
+      selectedIds.remove(chapter.id);
+      for (var id in lessonIds) {
+        selectedIds.remove(id);
+      }
+    } else {
+      // Select all
+      if (chapter.id != 'general') {
+        selectedIds.add(chapter.id);
+      }
+      for (var id in lessonIds) {
+        selectedIds.add(id);
+      }
+    }
+  }
+
   Future<void> _loadTopics() async {
     try {
-      final topics = await _service.getTopicsForSubject(widget.subjectId);
+      final rawTopics = await _service.getTopicsForSubject(widget.subjectId);
+      // Filter out practical topics to prevent loading them here
+      final topics = rawTopics.where((t) => t['type'] != 'practical').toList();
       
       if (mounted) {
-        final chapters = <String, String>{};
-        for (var t in topics) {
-          if (t['type'] == 'chapter') {
-            chapters[t['id']] = (t['name'] ?? t['title'] ?? '') as String;
-          }
-        }
-
-        final compositeTopics = <Map<String, dynamic>>[];
-        for (var t in topics) {
-          if (t['type'] == 'lesson' || t['parentId'] != null) {
-            final parentId = t['parentId'] as String?;
-            final parentName = parentId != null ? chapters[parentId] : null;
-            final currentName = (t['name'] ?? t['title'] ?? '') as String;
-            final compositeName = parentName != null ? '$parentName - $currentName' : currentName;
-            
-            // Create a modified copy of the topic
-            final modifiedTopic = Map<String, dynamic>.from(t);
-            modifiedTopic['name'] = compositeName;
-            compositeTopics.add(modifiedTopic);
-          } else if (t['type'] != 'chapter') {
-            final modifiedTopic = Map<String, dynamic>.from(t);
-            modifiedTopic['name'] = (t['name'] ?? t['title'] ?? '') as String;
-            compositeTopics.add(modifiedTopic);
-          }
-        }
-
         setState(() {
-          _topics = compositeTopics;
+          _topics = topics.map((t) {
+            final modified = Map<String, dynamic>.from(t);
+            modified['name'] = (t['name'] ?? t['title'] ?? '') as String;
+            return modified;
+          }).toList();
           _loading = false;
         });
       }
@@ -457,16 +499,6 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     );
   }
 
-  void _toggleTopic(String id) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      if (_selectedTopicIds.contains(id)) {
-        _selectedTopicIds.remove(id);
-      } else {
-        _selectedTopicIds.add(id);
-      }
-    });
-  }
 
   Future<void> _startPractice({
     List<String>? topicIds,
@@ -638,86 +670,135 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
   }
 
   Widget _buildTopicsList(bool isDark) {
+    final chapters = _groupTopics(_topics);
+
     return Column(
-      children: _topics.map((topic) {
-        final id = topic['id'] as String;
-        final name = topic['name'] as String? ?? '';
-        final isSelected = _selectedTopicIds.contains(id);
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: chapters.map((chapter) {
+        final chapterState = _getChapterSelectionState(chapter, _selectedTopicIds);
+        final isChapterSelected = chapterState == true || chapterState == null;
 
-        // Split "Chapter - Lesson" into structured parts
-        final parts = name.split(' - ');
-        final String lessonTitle = parts.length >= 2 ? parts.sublist(1).join(' - ') : name;
-        final String? chapterSubtitle = parts.length >= 2 ? parts[0] : null;
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: GestureDetector(
-            onTap: () => _toggleTopic(id),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Chapter Parent Checkbox Tile
+            Container(
+              margin: const EdgeInsets.only(bottom: 8, top: 4),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.08)
-                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white10 : AppColors.borderLight),
-                  width: isSelected ? 1.5 : 1,
+                  color: isChapterSelected 
+                      ? AppColors.primaryBlue 
+                      : (isDark ? Colors.white10 : AppColors.borderLight),
+                  width: isChapterSelected ? 1.5 : 1,
                 ),
               ),
-              child: Row(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white24 : AppColors.borderLight),
-                        width: 2,
+              child: CheckboxListTile(
+                tristate: true,
+                value: chapterState,
+                onChanged: (val) {
+                  setState(() {
+                    _toggleChapter(chapter, _selectedTopicIds, chapterState);
+                  });
+                },
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.folder_open_rounded, 
+                      color: isChapterSelected ? AppColors.primaryBlue : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      chapter.name,
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
                       ),
                     ),
-                    child: isSelected
-                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          lessonTitle,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected
-                                ? (isDark ? Colors.blue[400] : AppColors.primaryBlue)
-                                : (isDark ? Colors.white70 : AppColors.textPrimary),
-                          ),
-                        ),
-                        if (chapterSubtitle != null)
-                          Text(
-                            chapterSubtitle,
-                            style: GoogleFonts.cairo(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected
-                                  ? (isDark ? Colors.blue[300] : AppColors.primaryBlue.withValues(alpha: 0.7))
-                                  : (isDark ? Colors.white38 : Colors.grey),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
+                activeColor: AppColors.primaryBlue,
+                checkColor: Colors.white,
+                controlAffinity: ListTileControlAffinity.leading,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
-          ),
+            
+            // Indented Lessons Column (Tree-Children)
+            if (chapter.lessons.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 24), // RTL indent
+                child: Column(
+                  children: chapter.lessons.map((lesson) {
+                    final lessonId = lesson['id'] as String;
+                    final lessonName = lesson['name'] as String;
+                    final isLessonSelected = _selectedTopicIds.contains(lessonId);
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      decoration: BoxDecoration(
+                        color: isLessonSelected
+                            ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.08)
+                            : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isLessonSelected 
+                              ? AppColors.primaryBlue 
+                              : (isDark ? Colors.white10 : AppColors.borderLight),
+                          width: isLessonSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: CheckboxListTile(
+                        value: isLessonSelected,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val == true) {
+                              _selectedTopicIds.add(lessonId);
+                              // Auto select chapter if all lessons are selected
+                              final allLessonIds = chapter.lessons.map((l) => l['id'] as String).toList();
+                              final selectedLessonsCount = allLessonIds.where((id) => _selectedTopicIds.contains(id)).length;
+                              if (selectedLessonsCount == allLessonIds.length) {
+                                if (chapter.id != 'general') {
+                                  _selectedTopicIds.add(chapter.id);
+                                }
+                              }
+                            } else {
+                              _selectedTopicIds.remove(lessonId);
+                              // Auto deselect chapter
+                              _selectedTopicIds.remove(chapter.id);
+                            }
+                          });
+                        },
+                        title: Row(
+                          children: [
+                            Icon(
+                              Icons.description_outlined, 
+                              color: isLessonSelected ? AppColors.primaryBlue : Colors.grey,
+                              size: 18,
+                             ),
+                            const SizedBox(width: 8),
+                            Text(
+                              lessonName,
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                color: isDark ? Colors.white70 : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        activeColor: AppColors.primaryBlue,
+                        checkColor: Colors.white,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+          ],
         );
       }).toList(),
     );
@@ -779,4 +860,14 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
       ),
     );
   }
+}
+
+class _ChapterGroup {
+  final Map<String, dynamic> doc;
+  final List<Map<String, dynamic>> lessons;
+
+  const _ChapterGroup({required this.doc, required this.lessons});
+
+  String get id => doc['id'] as String;
+  String get name => doc['name'] as String;
 }

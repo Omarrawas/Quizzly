@@ -459,6 +459,69 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     );
   }
 
+  List<_ChapterGroup> _groupTopics(List<Map<String, dynamic>> topics) {
+    List<_ChapterGroup> chapters = [];
+    _ChapterGroup? currentChapter;
+
+    for (var t in topics) {
+      final String name = t['name'] as String;
+      if (name.startsWith('الفصل') || name.startsWith('الباب')) {
+        currentChapter = _ChapterGroup(doc: t, lessons: []);
+        chapters.add(currentChapter);
+      } else {
+        if (currentChapter == null) {
+          currentChapter = _ChapterGroup(
+            doc: const {'id': 'general', 'name': 'العامة'}, 
+            lessons: []
+          );
+          chapters.add(currentChapter);
+        }
+        currentChapter.lessons.add(t);
+      }
+    }
+    return chapters;
+  }
+
+  bool? _getChapterSelectionState(_ChapterGroup chapter, List<String> selectedIds) {
+    if (chapter.lessons.isEmpty) {
+      return chapter.id != 'general' && selectedIds.contains(chapter.id);
+    }
+    
+    final lessonIds = chapter.lessons.map((l) => l['id'] as String).toList();
+    final selectedLessonsCount = lessonIds.where((id) => selectedIds.contains(id)).length;
+    final isChapterDocSelected = chapter.id != 'general' && selectedIds.contains(chapter.id);
+
+    if (selectedLessonsCount == 0 && !isChapterDocSelected) {
+      return false;
+    } else if (selectedLessonsCount == lessonIds.length && (chapter.id == 'general' || isChapterDocSelected)) {
+      return true;
+    } else {
+      return null; // Indeterminate state (minus sign)
+    }
+  }
+
+  void _toggleChapter(_ChapterGroup chapter, List<String> selectedIds, bool? currentState) {
+    final lessonIds = chapter.lessons.map((l) => l['id'] as String).toList();
+    
+    if (currentState == true) {
+      // Deselect all
+      selectedIds.remove(chapter.id);
+      for (var id in lessonIds) {
+        selectedIds.remove(id);
+      }
+    } else {
+      // Select all
+      if (chapter.id != 'general' && !selectedIds.contains(chapter.id)) {
+        selectedIds.add(chapter.id);
+      }
+      for (var id in lessonIds) {
+        if (!selectedIds.contains(id)) {
+          selectedIds.add(id);
+        }
+      }
+    }
+  }
+
   void _showTopicSelectionBottomSheet(String userId, String userName) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
@@ -477,12 +540,14 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
         return StatefulBuilder(
           builder: (context, setModalState) {
             final hasTopics = _topics.isNotEmpty;
-            final isAllSelected = selectedIds.length == _topics.length;
+            final chapters = _groupTopics(_topics);
+            final totalRealTopicsCount = _topics.length;
+            final isAllSelected = selectedIds.length == totalRealTopicsCount;
 
             return DraggableScrollableSheet(
-              initialChildSize: 0.65,
-              minChildSize: 0.4,
-              maxChildSize: 0.85,
+              initialChildSize: 0.75,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
               expand: false,
               builder: (context, scrollController) {
                 return Padding(
@@ -513,51 +578,64 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                       ),
                       const SizedBox(height: 16),
 
-                      // Questions Count Selector Section
-                      Text(
-                        'عدد الأسئلة المطلوبة:',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white70 : AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                      // Questions Count Selector Section (Slider)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [5, 10, 15, 20].map((qCount) {
-                          final isSelected = selectedQuestionsCount == qCount;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: ChoiceChip(
-                                label: Text(
-                                  '$qCount أسئلة' == '20 أسئلة' ? '20 سؤالاً' : '$qCount أسئلة' == '15 أسئلة' ? '15 سؤالاً' : '$qCount أسئلة',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected 
-                                        ? Colors.white 
-                                        : (isDark ? Colors.white70 : AppColors.textPrimary),
-                                  ),
-                                ),
-                                selected: isSelected,
-                                onSelected: (val) {
-                                  if (val) {
-                                    setModalState(() {
-                                      selectedQuestionsCount = qCount;
-                                    });
-                                  }
-                                },
-                                selectedColor: AppColors.primaryBlue,
-                                backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
-                                checkmarkColor: Colors.white,
-                                showCheckmark: false,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        children: [
+                          Text(
+                            'عدد الأسئلة المطلوبة:',
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white70 : AppColors.textSecondary,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              '$selectedQuestionsCount ${selectedQuestionsCount >= 11 ? "سؤالاً" : "أسئلة"}',
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue,
                               ),
                             ),
-                          );
-                        }).toList(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: AppColors.primaryBlue,
+                          inactiveTrackColor: isDark ? Colors.white12 : Colors.grey[200],
+                          thumbColor: isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue,
+                          overlayColor: AppColors.primaryBlue.withValues(alpha: 0.12),
+                          valueIndicatorColor: AppColors.primaryBlue,
+                          valueIndicatorTextStyle: GoogleFonts.cairo(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          tickMarkShape: const RoundSliderTickMarkShape(tickMarkRadius: 4),
+                          activeTickMarkColor: isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue,
+                          inactiveTickMarkColor: isDark ? Colors.white24 : Colors.grey[300],
+                        ),
+                        child: Slider(
+                          value: selectedQuestionsCount.toDouble(),
+                          min: 5,
+                          max: 30,
+                          divisions: 5,
+                          label: '$selectedQuestionsCount',
+                          onChanged: (double value) {
+                            setModalState(() {
+                              selectedQuestionsCount = value.toInt();
+                            });
+                          },
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -608,48 +686,129 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                                   )
                                 : ListView.builder(
                                     controller: scrollController,
-                                    itemCount: _topics.length,
+                                    itemCount: chapters.length,
                                     itemBuilder: (context, index) {
-                                      final t = _topics[index];
-                                      final id = t['id'] as String;
-                                      final name = t['name'] as String;
-                                      final isSelected = selectedIds.contains(id);
+                                      final chapter = chapters[index];
+                                      final chapterState = _getChapterSelectionState(chapter, selectedIds);
+                                      final isChapterSelected = chapterState == true || chapterState == null;
 
-                                      return Container(
-                                        margin: const EdgeInsets.only(bottom: 8),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.3) : Colors.grey[50],
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: isSelected 
-                                                ? AppColors.primaryBlue.withValues(alpha: 0.5) 
-                                                : Colors.transparent,
-                                          ),
-                                        ),
-                                        child: CheckboxListTile(
-                                          value: isSelected,
-                                          onChanged: (val) {
-                                            setModalState(() {
-                                              if (val == true) {
-                                                selectedIds.add(id);
-                                              } else {
-                                                selectedIds.remove(id);
-                                              }
-                                            });
-                                          },
-                                          title: Text(
-                                            name,
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 14,
-                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                              color: isDark ? Colors.white : AppColors.textPrimary,
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Chapter Header Checkbox Tile
+                                          Container(
+                                            margin: const EdgeInsets.only(bottom: 8, top: 4),
+                                            decoration: BoxDecoration(
+                                              color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.4) : Colors.grey[100],
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: Border.all(
+                                                color: isChapterSelected 
+                                                    ? AppColors.primaryBlue.withValues(alpha: 0.4) 
+                                                    : (isDark ? Colors.white10 : Colors.grey.shade300),
+                                              ),
+                                            ),
+                                            child: CheckboxListTile(
+                                              tristate: true,
+                                              value: chapterState,
+                                              onChanged: (val) {
+                                                setModalState(() {
+                                                  _toggleChapter(chapter, selectedIds, chapterState);
+                                                });
+                                              },
+                                              title: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.folder_open_rounded, 
+                                                    color: isChapterSelected ? AppColors.primaryBlue : Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    chapter.name,
+                                                    style: GoogleFonts.cairo(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isDark ? Colors.white : AppColors.textPrimary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              activeColor: AppColors.primaryBlue,
+                                              checkColor: Colors.white,
+                                              controlAffinity: ListTileControlAffinity.leading,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                             ),
                                           ),
-                                          activeColor: AppColors.primaryBlue,
-                                          checkColor: Colors.white,
-                                          controlAffinity: ListTileControlAffinity.leading,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        ),
+                                          
+                                          // Indented Lessons Column (Tree-Children)
+                                          if (chapter.lessons.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(right: 24), // RTL indent
+                                              child: Column(
+                                                children: chapter.lessons.map((lesson) {
+                                                  final lessonId = lesson['id'] as String;
+                                                  final lessonName = lesson['name'] as String;
+                                                  final isLessonSelected = selectedIds.contains(lessonId);
+
+                                                  return Container(
+                                                    margin: const EdgeInsets.only(bottom: 6),
+                                                    decoration: BoxDecoration(
+                                                      color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.15) : Colors.grey[50],
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                        color: isLessonSelected 
+                                                            ? AppColors.primaryBlue.withValues(alpha: 0.3) 
+                                                            : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade200),
+                                                      ),
+                                                    ),
+                                                    child: CheckboxListTile(
+                                                      value: isLessonSelected,
+                                                      onChanged: (val) {
+                                                        setModalState(() {
+                                                          if (val == true) {
+                                                            selectedIds.add(lessonId);
+                                                            // Auto select chapter if all lessons are selected
+                                                            final allLessonIds = chapter.lessons.map((l) => l['id'] as String).toList();
+                                                            final selectedLessonsCount = allLessonIds.where((id) => selectedIds.contains(id)).length;
+                                                            if (selectedLessonsCount == allLessonIds.length) {
+                                                              if (chapter.id != 'general' && !selectedIds.contains(chapter.id)) {
+                                                                selectedIds.add(chapter.id);
+                                                              }
+                                                            }
+                                                          } else {
+                                                            selectedIds.remove(lessonId);
+                                                            // Auto deselect chapter
+                                                            selectedIds.remove(chapter.id);
+                                                          }
+                                                        });
+                                                      },
+                                                      title: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.description_outlined, 
+                                                            color: isLessonSelected ? AppColors.primaryBlue : Colors.grey,
+                                                            size: 18,
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          Text(
+                                                            lessonName,
+                                                            style: GoogleFonts.cairo(
+                                                              fontSize: 13,
+                                                              color: isDark ? Colors.white70 : AppColors.textPrimary,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      activeColor: AppColors.primaryBlue,
+                                                      checkColor: Colors.white,
+                                                      controlAffinity: ListTileControlAffinity.leading,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ),
+                                        ],
                                       );
                                     },
                                   ),
@@ -705,4 +864,14 @@ class _KeepAliveWrapperState extends State<KeepAliveWrapper> with AutomaticKeepA
     super.build(context);
     return widget.child;
   }
+}
+
+class _ChapterGroup {
+  final Map<String, dynamic> doc;
+  final List<Map<String, dynamic>> lessons;
+
+  const _ChapterGroup({required this.doc, required this.lessons});
+
+  String get id => doc['id'] as String;
+  String get name => doc['name'] as String;
 }

@@ -53,6 +53,7 @@ class QuestionAnalytics {
 /// نموذج سؤال متطور بنظام "Tutor Engine"
 class QuizQuestion {
   final String? id;
+  final String? subjectId;
   final int number;
   final String text;
   final String? translationText;
@@ -94,6 +95,7 @@ class QuizQuestion {
     this.translationText,
     required this.type,
     this.id,
+    this.subjectId,
     this.options,
     this.correctOptionIds = const [],
     this.essayAnswer,
@@ -123,6 +125,7 @@ class QuizQuestion {
 
   QuizQuestion copyWith({
     String? id,
+    String? subjectId,
     int? number,
     String? text,
     String? translationText,
@@ -155,6 +158,7 @@ class QuizQuestion {
   }) {
     return QuizQuestion(
       id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
       number: number ?? this.number,
       text: text ?? this.text,
       translationText: translationText ?? this.translationText,
@@ -194,6 +198,7 @@ class QuizQuestion {
   factory QuizQuestion.fromMap(Map<String, dynamic> data, [String? docId]) {
     return QuizQuestion(
       id: docId,
+      subjectId: data['subjectId'],
       number: data['order'] ?? 0,
       text: data['text'] ?? '',
       translationText: data['translationText'],
@@ -255,6 +260,7 @@ class QuizQuestion {
 
   Map<String, dynamic> toMap() {
     return {
+      'subjectId': subjectId,
       'order': number,
       'text': text,
       'translationText': translationText,

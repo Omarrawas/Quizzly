@@ -97,16 +97,31 @@ class BattleService {
     List<String>? topicIds,
     int questionsCount = 10,
   }) async {
-    Query query = _db.collection('questions').where('subjectId', isEqualTo: subjectId);
+    // Fetch all questions for this subject
+    final qSnap = await _db
+        .collection('questions')
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
 
+    List<DocumentSnapshot> docs = qSnap.docs;
+
+    // Filter by topic IDs in-memory if specified (matches PracticeService logic perfectly)
     if (topicIds != null && topicIds.isNotEmpty) {
-      // Firestore whereIn supports up to 30 items
-      query = query.where('topicId', whereIn: topicIds.take(30).toList());
+      docs = docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return false;
+        
+        final primaryTopicId = data['primaryTopicId'] as String?;
+        final questionTopicIds = (data['topicIds'] as List?)?.map((e) => e.toString()).toList();
+        
+        bool matchesPrimary = primaryTopicId != null && topicIds.contains(primaryTopicId);
+        bool matchesArray = questionTopicIds != null && questionTopicIds.any((id) => topicIds.contains(id));
+        
+        return matchesPrimary || matchesArray;
+      }).toList();
     }
 
-    final qSnap = await query.limit(100).get();
-
-    final allIds = qSnap.docs.map((d) => d.id).toList()..shuffle();
+    final allIds = docs.map((d) => d.id).toList()..shuffle();
     final selected = allIds.take(questionsCount).toList();
 
     if (selected.isEmpty) {

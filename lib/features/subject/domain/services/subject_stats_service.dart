@@ -54,15 +54,7 @@ class SubjectStatsService {
 
   /// Stream of favorites count for a subject
   Stream<int> streamFavoritesCount(String userId, String subjectId) {
-    return _db
-        .collection('users')
-        .doc(userId)
-        .collection('user_lists')
-        .doc('favorites')
-        .collection('questions')
-        .where('questionData.subjectId', isEqualTo: subjectId)
-        .snapshots()
-        .map((snap) => snap.size);
+    return streamFavoriteQuestions(userId, subjectId).map((list) => list.length);
   }
 
   /// Stream of questions due for review based on Spaced Repetition (SRS)
@@ -110,13 +102,20 @@ class SubjectStatsService {
 
   /// Stream of favorite questions for a subject
   Stream<List<QuizQuestion>> streamFavoriteQuestions(String userId, String subjectId) {
-    return _db
+    // 1. Stream the question IDs for this subject
+    final subjectQuestionsStream = _db
+        .collection('questions')
+        .where('subjectId', isEqualTo: subjectId)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) => doc.id).toSet());
+
+    // 2. Stream all favorites
+    final favoritesStream = _db
         .collection('users')
         .doc(userId)
         .collection('user_lists')
         .doc('favorites')
         .collection('questions')
-        .where('questionData.subjectId', isEqualTo: subjectId)
         .snapshots()
         .map((snap) {
           return snap.docs.map((doc) {
@@ -125,6 +124,18 @@ class SubjectStatsService {
             return QuizQuestion.fromMap(qData, doc.id);
           }).toList();
         });
+
+    // 3. Combine and filter
+    return Rx.combineLatest2(
+      favoritesStream,
+      subjectQuestionsStream,
+      (List<QuizQuestion> favorites, Set<String> subjectQuestionIds) {
+        return favorites.where((q) {
+          if (q.id == null) return false;
+          return q.subjectId == subjectId || subjectQuestionIds.contains(q.id);
+        }).toList();
+      },
+    );
   }
 
   /// Stream of questions answered incorrectly

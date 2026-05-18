@@ -245,29 +245,110 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
     );
   }
 
+  List<_ExploreChapterGroup> _groupTags(List<Map<String, dynamic>> tags) {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    final List<Map<String, dynamic>> generalTags = [];
+
+    for (var tag in tags) {
+      final String name = tag['name'] as String;
+      final parts = name.split(' - ');
+      if (parts.length >= 2) {
+        final chapterName = parts[0].trim();
+        if (!grouped.containsKey(chapterName)) {
+          grouped[chapterName] = [];
+        }
+        grouped[chapterName]!.add(tag);
+      } else {
+        generalTags.add(tag);
+      }
+    }
+
+    final List<_ExploreChapterGroup> list = [];
+    grouped.forEach((chapterName, chapterTags) {
+      list.add(_ExploreChapterGroup(name: chapterName, tags: chapterTags));
+    });
+
+    if (generalTags.isNotEmpty) {
+      list.add(_ExploreChapterGroup(name: 'مواضيع عامة', tags: generalTags));
+    }
+
+    return list;
+  }
+
   Widget _buildTagsGridSliver(bool isDark) {
     if (_isLoading) {
-      return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(50),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
+
+    final chapters = _groupTags(_tagsData);
 
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 200,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.0,
-        ),
+      sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) => _buildTagCard(_tagsData[index], index, isDark),
-          childCount: _tagsData.length,
+          (context, chapIndex) {
+            final chapter = chapters[chapIndex];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Chapter Header
+                Padding(
+                  padding: const EdgeInsets.only(top: 20, bottom: 10, right: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.bookmark_rounded, 
+                        color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        chapter.name,
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Divider(
+                          color: isDark ? Colors.white10 : Colors.grey[200],
+                          thickness: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Lessons vertical list under this chapter
+                Column(
+                  children: List.generate(chapter.tags.length, (lessonIndex) {
+                    final tag = chapter.tags[lessonIndex];
+                    // Find global index in _tagsData to apply lock condition
+                    final globalIndex = _tagsData.indexWhere((t) => t['name'] == tag['name']);
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildLessonCard(tag, globalIndex, isDark),
+                    );
+                  }),
+                ),
+              ],
+            );
+          },
+          childCount: chapters.length,
         ),
       ),
     );
   }
 
-  Widget _buildTagCard(Map<String, dynamic> tag, int index, bool isDark) {
+  Widget _buildLessonCard(Map<String, dynamic> tag, int index, bool isDark) {
     final String name = tag['name'];
     final int count = tag['count'];
     final bool hasViewed = _viewedTags.contains(name);
@@ -277,107 +358,145 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
     // Protection logic: Only first 3 tags are free
     final bool isLocked = widget.isFree && index >= 3;
 
-    // Split "Chapter - Lesson" into parts for structured display
+    // Split "Chapter - Lesson"
     final parts = name.split(' - ');
     final String lessonTitle = parts.length >= 2 ? parts.sublist(1).join(' - ') : name;
-    final String? chapterSubtitle = parts.length >= 2 ? parts[0] : null;
 
-    return InkWell(
-      onTap: isLocked ? _showLockInfo : () => _openTagQuestions(name),
-      borderRadius: BorderRadius.circular(20),
-      child: Opacity(
-        opacity: isLocked ? 0.6 : 1.0,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1),
+        ),
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF334155) : const Color(0xFFEEF2FF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isLocked ? Icons.lock_outline_rounded : Icons.local_offer_rounded, 
-                      color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1), 
-                      size: 22
-                    ),
-                  ),
-                  if (!hasViewed && !isLocked)
-                    Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isLocked ? _showLockInfo : () => _openTagQuestions(name),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                // Tag / Lock Icon
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF2D3748) : const Color(0xFFF0F4FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isLocked ? Icons.lock_outline_rounded : Icons.local_offer_rounded, 
+                        color: isLocked 
+                            ? (isDark ? Colors.red[300] : Colors.red[600])
+                            : (isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1)), 
+                        size: 20
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              // Lesson name — prominent
-              Text(
-                lessonTitle,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                  height: 1.3,
+                    if (!hasViewed && !isLocked)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 1.5),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-              // Chapter name — small subtitle
-              if (chapterSubtitle != null) ...[
-                const SizedBox(height: 3),
-                Text(
-                  chapterSubtitle,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.cairo(
-                    fontSize: 10,
-                    color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 16),
+                
+                // Lesson Title & Question Count
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lessonTitle,
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.help_outline_rounded,
+                            size: 12,
+                            color: isDark ? Colors.white38 : Colors.grey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isLocked ? 'محتوى مدفوع' : '$count سؤال',
+                            style: GoogleFonts.cairo(
+                              fontSize: 11,
+                              color: isLocked 
+                                  ? (isDark ? Colors.red[300] : Colors.red[600]) 
+                                  : (isDark ? const Color(0xFF94A3B8) : Colors.grey),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (hasStats && !isLocked) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: stats['answered']! / count,
+                                  backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
+                                  ),
+                                  minHeight: 4,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${((stats['answered']! / count) * 100).toInt()}%',
+                              style: GoogleFonts.cairo(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
-              const SizedBox(height: 6),
-              Text(
-                isLocked ? 'محتوى مدفوع' : '$count سؤال',
-                style: GoogleFonts.cairo(
-                  fontSize: 10,
-                  color: isLocked ? Colors.red[300] : (isDark ? const Color(0xFF94A3B8) : Colors.grey),
-                ),
-              ),
-              if (hasStats && !isLocked) ...[
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: stats['answered']! / count,
-                    backgroundColor: isDark ? Colors.white10 : Colors.grey[100],
-                    valueColor: AlwaysStoppedAnimation<Color>(isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1)),
-                    minHeight: 3,
-                  ),
+                
+                // Arrow Icon
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: isDark ? Colors.white24 : Colors.grey[300],
+                  size: 14,
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -460,4 +579,11 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
       ),
     );
   }
+}
+
+class _ExploreChapterGroup {
+  final String name;
+  final List<Map<String, dynamic>> tags;
+
+  const _ExploreChapterGroup({required this.name, required this.tags});
 }
