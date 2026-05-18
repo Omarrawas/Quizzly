@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.Quizzly.app",
+      "sha256_cert_fingerprints": [
+        "ff:92:82:e8:4a:5f:2f:9e:e6:df:32:77:fd:f2:9d:60:53:98:95:9c:d7:6d:f1:72:fb:af:83:3e:23:ab:48:84"
+      ]
+    }
+  }
+]

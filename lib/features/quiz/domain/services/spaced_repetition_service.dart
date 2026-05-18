@@ -75,9 +75,9 @@ class SpacedRepetitionService {
       }, SetOptions(merge: true));
 
       if (isCorrect) {
-        transaction.update(historyRef, {
+        transaction.set(historyRef, {
           'wrongAnswers_$subjectId': FieldValue.arrayRemove([questionId]),
-        });
+        }, SetOptions(merge: true));
       } else {
         transaction.set(historyRef, {
           'wrongAnswers_$subjectId': FieldValue.arrayUnion([questionId]),

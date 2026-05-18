@@ -36,6 +36,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   bool _isTimerRunning = false;
   bool _showAnswers = false;
   bool _showFilters = false;
+  bool _isSearchingMobile = false;
   
   // Filtering state
   final Set<String> _selectedTags = {};
@@ -359,7 +360,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       });
 
       if (userId != null && widget.config.subjectId.isNotEmpty) {
-        _srsService.updateMnemonic(userId, qId, widget.config.subjectId, note);
+        _srsService.updateNote(userId, qId, widget.config.subjectId, note);
       }
     }
     _saveState();
@@ -375,6 +376,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       'favorites': _favoriteIds.toList(),
       'checkedQuestions': _checkedQuestions.toList(),
       'elapsedMs': _stopwatch.elapsedMilliseconds + _elapsedOffset.inMilliseconds,
+      'notes': _notesByQuestionId,
     };
     await prefs.setString(_storageKey, jsonEncode(state));
   }
@@ -403,6 +405,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         }
         if (state['elapsedMs'] != null) {
           _elapsedOffset = Duration(milliseconds: state['elapsedMs'] as int);
+        }
+        if (state['notes'] != null) {
+          (state['notes'] as Map).forEach((k, v) {
+            _notesByQuestionId[k.toString()] = v.toString();
+          });
         }
       });
     }
@@ -559,6 +566,8 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 600;
 
     return Scaffold(
       floatingActionButton: _buildExpandableFab(isDark),
@@ -570,93 +579,152 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            // Back Button (Far Right in RTL)
-            if (widget.isSubExam && !widget.isGlobalSearch)
-              TextButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.arrow_forward_ios, size: 14, color: isDark ? Colors.white : Colors.black),
-                label: Text(
-                  'العودة للدورة', 
-                  style: GoogleFonts.cairo(
-                    fontSize: 12, 
-                    color: isDark ? Colors.white : Colors.black, 
-                    fontWeight: FontWeight.bold
-                  )
-                ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  backgroundColor: isDark ? Colors.white10 : Colors.grey.shade100,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              )
-            else
+            if (isSmallScreen && _isSearchingMobile) ...[
+              // Cancel Search Button on Mobile
               IconButton(
                 icon: Icon(Icons.arrow_forward_ios, size: 18, color: isDark ? Colors.white : Colors.black),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  setState(() {
+                    _isSearchingMobile = false;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                },
               ),
-            const SizedBox(width: 8),
-            // Title
-            Expanded(
-              child: Text(
-                widget.config.title,
-                style: GoogleFonts.cairo(
-                  fontSize: 15, 
-                  fontWeight: FontWeight.bold, 
-                  color: isDark ? Colors.white : AppColors.textPrimary
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const Spacer(),
-            // Show Solution Toggle
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'الحل',
-                  style: GoogleFonts.cairo(
-                    fontSize: 11, 
-                    fontWeight: FontWeight.bold, 
-                    color: isDark ? Colors.white38 : AppColors.textSecondary
+              const SizedBox(width: 8),
+              // Search Input occupying full remaining width on Mobile
+              Expanded(
+                child: Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    textAlign: TextAlign.right,
+                    autofocus: true,
+                    style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white : Colors.black),
+                    decoration: InputDecoration(
+                      hintText: 'بحث...',
+                      hintStyle: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey),
+                      prefixIcon: Icon(Icons.search, size: 18, color: isDark ? Colors.white38 : Colors.grey),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                setState(() {
+                                  _searchQuery = '';
+                                  _searchController.clear();
+                                });
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
                   ),
                 ),
-                Transform.scale(
-                  scale: 0.7,
-                  child: Switch(
-                    value: _showAnswers,
-                    onChanged: (v) => setState(() => _showAnswers = v),
-                    activeTrackColor: const Color(0xFF16A34A).withValues(alpha: 0.3),
-                    activeThumbColor: const Color(0xFF16A34A),
+              ),
+            ] else ...[
+              // Back Button (Far Right in RTL)
+              if (widget.isSubExam && !widget.isGlobalSearch)
+                TextButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_forward_ios, size: 14, color: isDark ? Colors.white : Colors.black),
+                  label: Text(
+                    'العودة للدورة', 
+                    style: GoogleFonts.cairo(
+                      fontSize: 12, 
+                      color: isDark ? Colors.white : Colors.black, 
+                      fontWeight: FontWeight.bold
+                    )
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    backgroundColor: isDark ? Colors.white10 : Colors.grey.shade100,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                )
+              else
+                IconButton(
+                  icon: Icon(Icons.arrow_forward_ios, size: 18, color: isDark ? Colors.white : Colors.black),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              const SizedBox(width: 8),
+              // Title
+              Expanded(
+                child: Text(
+                  widget.config.title,
+                  style: GoogleFonts.cairo(
+                    fontSize: 15, 
+                    fontWeight: FontWeight.bold, 
+                    color: isDark ? Colors.white : AppColors.textPrimary
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Spacer(),
+              // Show Solution Toggle
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'الحل',
+                    style: GoogleFonts.cairo(
+                      fontSize: 11, 
+                      fontWeight: FontWeight.bold, 
+                      color: isDark ? Colors.white38 : AppColors.textSecondary
+                    ),
+                  ),
+                  Transform.scale(
+                    scale: 0.7,
+                    child: Switch(
+                      value: _showAnswers,
+                      onChanged: (v) => setState(() => _showAnswers = v),
+                      activeTrackColor: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                      activeThumbColor: const Color(0xFF16A34A),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              if (isSmallScreen) ...[
+                // Search Toggle Icon for Mobile
+                IconButton(
+                  icon: Icon(Icons.search, color: isDark ? Colors.white : Colors.black),
+                  onPressed: () => setState(() => _isSearchingMobile = true),
+                ),
+              ] else ...[
+                // Standard Search Bar for Desktop/Tablet (Far Left in RTL)
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                      textAlign: TextAlign.right,
+                      style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white : Colors.black),
+                      decoration: InputDecoration(
+                        hintText: 'بحث...',
+                        hintStyle: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey),
+                        prefixIcon: Icon(Icons.search, size: 18, color: isDark ? Colors.white38 : Colors.grey),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(width: 8),
-            // Search Bar (Far Left in RTL)
-            Expanded(
-              flex: 2,
-              child: Container(
-                height: 36,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _searchQuery = v),
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    hintText: 'بحث...',
-                    hintStyle: GoogleFonts.cairo(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey),
-                    prefixIcon: Icon(Icons.search, size: 18, color: isDark ? Colors.white38 : Colors.grey),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
-              ),
-            ),
+            ],
           ],
         ),
       ),

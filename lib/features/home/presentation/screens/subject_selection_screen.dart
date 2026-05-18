@@ -45,12 +45,10 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
           _selectedUniversityId = defaults['universityId'];
           _selectedCollegeId = defaults['collegeId'];
           _selectedDepartmentId = defaults['departmentId'];
-          _selectedYearId = defaults['yearId'];
           
           _universityName = defaults['universityName'] ?? 'الجامعة';
           _collegeName = defaults['collegeName'] ?? 'الكلية';
           _departmentName = defaults['departmentName'] ?? 'القسم';
-          _yearName = defaults['yearName'] ?? 'السنة';
         });
       }
     }
@@ -64,11 +62,9 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
         'universityId': _selectedUniversityId,
         'collegeId': _selectedCollegeId,
         'departmentId': _selectedDepartmentId,
-        'yearId': _selectedYearId,
         'universityName': _universityName,
         'collegeName': _collegeName,
         'departmentName': _departmentName,
-        'yearName': _yearName,
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

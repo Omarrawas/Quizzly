@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
-import 'package:quizzly/features/home/presentation/screens/home_screen.dart';
+import 'package:quizzly/features/auth/presentation/screens/onboarding_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -28,7 +28,7 @@ class _SignupScreenState extends State<SignupScreen> {
   void _onSignupSuccess() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      MaterialPageRoute(builder: (context) => const OnboardingScreen()),
       (route) => false,
     );
   }
@@ -66,13 +66,17 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF0F172A) : AppColors.background;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: const BackButton(color: AppColors.textPrimary),
+        leading: BackButton(color: textColor),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -103,7 +107,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: textColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -112,7 +116,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.cairo(
                   fontSize: 16,
-                  color: AppColors.textSecondary,
+                  color: textSecondaryColor,
                 ),
               ),
               const SizedBox(height: 48),
@@ -182,7 +186,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   Text(
                     'لديك حساب بالفعل؟',
                     style: GoogleFonts.cairo(
-                      color: AppColors.textSecondary,
+                      color: textSecondaryColor,
                     ),
                   ),
                   TextButton(
@@ -213,17 +217,23 @@ class _SignupScreenState extends State<SignupScreen> {
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+    final hintColor = isDark ? Colors.white38 : AppColors.textSecondary;
+    final fillColor = isDark ? const Color(0xFF1E293B) : AppColors.splashBackground;
+
     return TextField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: keyboardType,
       textDirection: TextDirection.rtl,
+      style: GoogleFonts.cairo(color: textColor),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary),
-        prefixIcon: Icon(icon, color: AppColors.textSecondary),
+        hintStyle: GoogleFonts.cairo(color: hintColor),
+        prefixIcon: Icon(icon, color: hintColor),
         filled: true,
-        fillColor: AppColors.splashBackground,
+        fillColor: fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

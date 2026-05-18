@@ -57,7 +57,9 @@ class SubjectStatsService {
     return _db
         .collection('users')
         .doc(userId)
-        .collection('favorites')
+        .collection('user_lists')
+        .doc('favorites')
+        .collection('questions')
         .where('questionData.subjectId', isEqualTo: subjectId)
         .snapshots()
         .map((snap) => snap.size);
@@ -111,7 +113,9 @@ class SubjectStatsService {
     return _db
         .collection('users')
         .doc(userId)
-        .collection('favorites')
+        .collection('user_lists')
+        .doc('favorites')
+        .collection('questions')
         .where('questionData.subjectId', isEqualTo: subjectId)
         .snapshots()
         .map((snap) {

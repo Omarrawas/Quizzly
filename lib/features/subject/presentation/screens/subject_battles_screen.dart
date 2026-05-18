@@ -6,6 +6,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/domain/services/battle_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/battle_session_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SubjectBattlesScreen extends StatefulWidget {
   final String subjectId;
@@ -24,17 +25,47 @@ class SubjectBattlesScreen extends StatefulWidget {
 class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final BattleService _battleService = BattleService();
+  late TextEditingController _joinCodeController;
+  List<Map<String, dynamic>> _topics = [];
+  bool _isLoadingTopics = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _joinCodeController = TextEditingController();
+    _loadTopics();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _joinCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTopics() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('topics')
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      if (mounted) {
+        setState(() {
+          _topics = snap.docs.map((d) {
+            final t = d.data();
+            t['id'] = d.id;
+            t['name'] = t['name'] ?? t['title'] ?? '';
+            return t;
+          }).toList();
+          _isLoadingTopics = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTopics = false);
+      }
+    }
   }
 
   @override
@@ -70,8 +101,8 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildActionTab(user.uid, user.displayName ?? 'طالب', isDark),
-          _buildHistoryTab(user.uid),
+          KeepAliveWrapper(child: _buildActionTab(user.uid, user.displayName ?? 'طالب', isDark)),
+          KeepAliveWrapper(child: _buildHistoryTab(user.uid)),
         ],
       ),
     );
@@ -174,7 +205,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () => _createChallenge(userId, userName),
+            onPressed: () => _showTopicSelectionBottomSheet(userId, userName),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               foregroundColor: Colors.white,
@@ -189,7 +220,6 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
   }
 
   Widget _buildJoinCard(String userId, String userName, bool isDark) {
-    final codeController = TextEditingController();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -212,7 +242,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: codeController,
+            controller: _joinCodeController,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 2, color: isDark ? Colors.white : null),
             decoration: InputDecoration(
@@ -224,7 +254,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => _joinChallenge(userId, userName, codeController.text),
+            onPressed: () => _joinChallenge(userId, userName, _joinCodeController.text),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
@@ -310,7 +340,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     );
   }
 
-  Future<void> _createChallenge(String userId, String userName) async {
+  Future<void> _createChallenge(String userId, String userName, [List<String>? topicIds, int questionsCount = 10]) async {
     showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
     try {
       final battle = await _battleService.createChallenge(
@@ -318,6 +348,8 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
         challengerName: userName,
         subjectId: widget.subjectId,
         subjectName: widget.subjectName,
+        topicIds: topicIds,
+        questionsCount: questionsCount,
       );
       
       if (!mounted) return;
@@ -425,5 +457,252 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
         ],
       ),
     );
+  }
+
+  void _showTopicSelectionBottomSheet(String userId, String userName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Select all topics by default
+    List<String> selectedIds = _topics.map((t) => t['id'] as String).toList();
+    int selectedQuestionsCount = 10;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final hasTopics = _topics.isNotEmpty;
+            final isAllSelected = selectedIds.length == _topics.length;
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.65,
+              minChildSize: 0.4,
+              maxChildSize: 0.85,
+              expand: false,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white24 : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'إعدادات تحدي المعركة',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.cairo(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Questions Count Selector Section
+                      Text(
+                        'عدد الأسئلة المطلوبة:',
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white70 : AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [5, 10, 15, 20].map((qCount) {
+                          final isSelected = selectedQuestionsCount == qCount;
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: ChoiceChip(
+                                label: Text(
+                                  '$qCount أسئلة' == '20 أسئلة' ? '20 سؤالاً' : '$qCount أسئلة' == '15 أسئلة' ? '15 سؤالاً' : '$qCount أسئلة',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected 
+                                        ? Colors.white 
+                                        : (isDark ? Colors.white70 : AppColors.textPrimary),
+                                  ),
+                                ),
+                                selected: isSelected,
+                                onSelected: (val) {
+                                  if (val) {
+                                    setModalState(() {
+                                      selectedQuestionsCount = qCount;
+                                    });
+                                  }
+                                },
+                                selectedColor: AppColors.primaryBlue,
+                                backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                                checkmarkColor: Colors.white,
+                                showCheckmark: false,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+
+                      if (hasTopics)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'اختر مواضيع التحدي (${_topics.length})',
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white70 : AppColors.textSecondary,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  if (isAllSelected) {
+                                    selectedIds.clear();
+                                  } else {
+                                    selectedIds = _topics.map((t) => t['id'] as String).toList();
+                                  }
+                                });
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primaryBlue,
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                isAllSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل',
+                                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: _isLoadingTopics
+                            ? const Center(child: CircularProgressIndicator())
+                            : !hasTopics
+                                ? Center(
+                                    child: Text(
+                                      'لا توجد مواضيع متاحة لهذه المادة.',
+                                      style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    controller: scrollController,
+                                    itemCount: _topics.length,
+                                    itemBuilder: (context, index) {
+                                      final t = _topics[index];
+                                      final id = t['id'] as String;
+                                      final name = t['name'] as String;
+                                      final isSelected = selectedIds.contains(id);
+
+                                      return Container(
+                                        margin: const EdgeInsets.only(bottom: 8),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.3) : Colors.grey[50],
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: isSelected 
+                                                ? AppColors.primaryBlue.withValues(alpha: 0.5) 
+                                                : Colors.transparent,
+                                          ),
+                                        ),
+                                        child: CheckboxListTile(
+                                          value: isSelected,
+                                          onChanged: (val) {
+                                            setModalState(() {
+                                              if (val == true) {
+                                                selectedIds.add(id);
+                                              } else {
+                                                selectedIds.remove(id);
+                                              }
+                                            });
+                                          },
+                                          title: Text(
+                                            name,
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 14,
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              color: isDark ? Colors.white : AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          activeColor: AppColors.primaryBlue,
+                                          checkColor: Colors.white,
+                                          controlAffinity: ListTileControlAffinity.leading,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: selectedIds.isEmpty
+                            ? null
+                            : () {
+                                Navigator.pop(context); // Close sheet
+                                _createChallenge(userId, userName, selectedIds, selectedQuestionsCount);
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: isDark ? Colors.white10 : Colors.grey[200],
+                          disabledForegroundColor: isDark ? Colors.white24 : Colors.grey[400],
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          'تأكيد وإنشاء المعركة',
+                          style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class KeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+
+  const KeepAliveWrapper({super.key, required this.child});
+
+  @override
+  State<KeepAliveWrapper> createState() => _KeepAliveWrapperState();
+}
+
+class _KeepAliveWrapperState extends State<KeepAliveWrapper> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

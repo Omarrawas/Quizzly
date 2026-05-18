@@ -45,7 +45,7 @@ service cloud.firestore {
       // Allow creation only if recorded userId matches auth
       allow create: if request.auth != null 
         && request.resource.data.userId == request.auth.uid
-        && (isAdmin() || request.resource.data.price >= 0);
+        && (isAdmin() || !('price' in request.resource.data) || request.resource.data.price >= 0);
         
       // Allow admin to list/get all docs; users can only read their own
       allow get: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
@@ -103,6 +103,16 @@ service cloud.firestore {
       allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
       allow write: if isAdmin();
     }
+
+    match /practice_sessions/{id} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /user_history/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
     
     match /battles/{id} {
       allow read, create, update: if request.auth != null;
@@ -119,6 +129,12 @@ service cloud.firestore {
     match /system_settings/{id} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
+    }
+
+    // 10. Notifications
+    match /notifications/{id} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
     }
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 
 import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
@@ -30,16 +32,39 @@ class TexViewWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final defaultTextColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    double scaleFactor = 1.0;
+    try {
+      final settings = Provider.of<SettingsService>(context);
+      switch (settings.textSize) {
+        case 'smaller':
+          scaleFactor = 0.85;
+          break;
+        case 'larger':
+          scaleFactor = 1.15;
+          break;
+        case 'very_large':
+          scaleFactor = 1.35;
+          break;
+        case 'default':
+        default:
+          scaleFactor = 1.0;
+          break;
+      }
+    } catch (_) {}
+
+    final double baseSize = fontSize ?? 16.0;
+    final double finalFontSize = baseSize * scaleFactor;
     
     final defaultStyle = style?.copyWith(
           fontFamily: GoogleFonts.cairo().fontFamily,
           height: 1.5,
           color: color ?? style?.color ?? defaultTextColor,
-          fontSize: fontSize ?? style?.fontSize,
+          fontSize: finalFontSize,
           fontWeight: fontWeight ?? style?.fontWeight,
         ) ??
         GoogleFonts.cairo(
-          fontSize: fontSize ?? 16,
+          fontSize: finalFontSize,
           fontWeight: fontWeight ?? FontWeight.normal,
           height: 1.5,
           color: color ?? defaultTextColor,

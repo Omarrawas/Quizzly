@@ -48,12 +48,20 @@ class MathUtils {
   static String _processTextSegment(String input) {
     if (latexRegex.hasMatch(input)) return input;
 
-    if (isMathLike(input)) {
-      final latex = MathParser.convertToLatex(input);
-      return '\\($latex\\)';
-    }
-    
-    return input;
+    return input.splitMapJoin(
+      RegExp(r'\S+'),
+      onMatch: (Match match) {
+        final token = match.group(0)!;
+        if (isMathLike(token)) {
+          final latex = MathParser.convertToLatex(token);
+          return '\\($latex\\)';
+        }
+        return token;
+      },
+      onNonMatch: (String nonMatch) {
+        return nonMatch;
+      },
+    );
   }
 
   /// Detects if a string looks like a mathematical equation

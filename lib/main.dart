@@ -17,6 +17,8 @@ import 'package:quizzly/features/settings/domain/services/settings_service.dart'
 import 'package:quizzly/core/services/app_update_service.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +66,7 @@ class MyApp extends StatelessWidget {
           title: 'Quizzly',
           debugShowCheckedModeBanner: false,
           scaffoldMessengerKey: scaffoldMessengerKey,
+          navigatorKey: navigatorKey,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeService.themeMode,

@@ -7,6 +7,9 @@ class AdminNotificationService {
   Future<void> sendGeneralNotification({
     required String title,
     required String body,
+    String? imageUrl,
+    String? actionUrl,
+    String? route,
   }) async {
     await _db.collection('notifications').add({
       'title': title,
@@ -14,6 +17,9 @@ class AdminNotificationService {
       'target': 'all',
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'general',
+      if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+      if (actionUrl != null && actionUrl.isNotEmpty) 'actionUrl': actionUrl,
+      if (route != null && route.isNotEmpty) 'route': route,
     });
   }
 
@@ -23,6 +29,9 @@ class AdminNotificationService {
     required String body,
     required String subjectId,
     required String subjectName,
+    String? imageUrl,
+    String? actionUrl,
+    String? route,
   }) async {
     await _db.collection('notifications').add({
       'title': title,
@@ -32,6 +41,9 @@ class AdminNotificationService {
       'subjectName': subjectName,
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'subject_update',
+      if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+      if (actionUrl != null && actionUrl.isNotEmpty) 'actionUrl': actionUrl,
+      if (route != null && route.isNotEmpty) 'route': route,
     });
   }
 

@@ -217,19 +217,21 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark || _isSpeedMode;
     final q = _sessionQuestions[_currentIndex];
     final progress = (_currentIndex + 1) / _sessionQuestions.length;
 
     return Scaffold(
-      backgroundColor: _isSpeedMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      appBar: _buildAppBar(),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      appBar: _buildAppBar(isDark),
       body: Column(
         children: [
           LinearProgressIndicator(
             value: progress,
-            backgroundColor: _isSpeedMode ? Colors.white10 : Colors.grey[200],
+            backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
             valueColor: AlwaysStoppedAnimation<Color>(
-              _isSpeedMode ? Colors.blueAccent : (_timeLeft < 60 ? Colors.red : AppColors.primaryBlue),
+              isDark ? Colors.blueAccent : (_timeLeft < 60 ? Colors.red : AppColors.primaryBlue),
             ),
           ),
           Expanded(
@@ -238,22 +240,22 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildQuestionCard(q),
+                  _buildQuestionCard(q, isDark),
                   const SizedBox(height: 24),
-                  _buildOptions(q),
+                  _buildOptions(q, isDark),
                 ],
               ),
             ),
           ),
-          if (!_isSpeedMode) SafeArea(child: _buildNavigationFooter()),
         ],
       ),
+      bottomNavigationBar: !_isSpeedMode ? SafeArea(child: _buildNavigationFooter(isDark)) : null,
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(bool isDark) {
     return AppBar(
-      backgroundColor: _isSpeedMode ? Colors.transparent : Colors.white,
+      backgroundColor: isDark ? Colors.transparent : Colors.white,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -264,10 +266,10 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             style: GoogleFonts.cairo(
               fontSize: 14, 
               fontWeight: FontWeight.bold, 
-              color: _isSpeedMode ? Colors.white70 : AppColors.textPrimary
+              color: isDark ? Colors.white70 : AppColors.textPrimary
             ),
           ),
-          _buildTimerWidget(),
+          _buildTimerWidget(isDark),
           if (!_isSpeedMode)
             TextButton(
               onPressed: () => _submitExam(),
@@ -276,14 +278,14 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           else
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close_rounded, color: Colors.white70),
+              icon: Icon(Icons.close_rounded, color: isDark ? Colors.white70 : AppColors.textPrimary),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildTimerWidget() {
+  Widget _buildTimerWidget(bool isDark) {
     final isWarning = !_isSpeedMode && _timeLeft < 60 || _isSpeedMode && _timeLeft <= 3;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -309,15 +311,15 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     );
   }
 
-  Widget _buildQuestionCard(QuizQuestion q) {
+  Widget _buildQuestionCard(QuizQuestion q, bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _isSpeedMode ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: _isSpeedMode ? Border.all(color: Colors.white10) : null,
-        boxShadow: _isSpeedMode ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        border: isDark ? Border.all(color: Colors.white10) : null,
+        boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Text(
         q.text,
@@ -325,7 +327,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           fontSize: 18, 
           fontWeight: FontWeight.bold, 
           height: 1.6,
-          color: _isSpeedMode ? Colors.white : AppColors.textPrimary
+          color: isDark ? Colors.white : AppColors.textPrimary
         ),
         textAlign: TextAlign.center,
         textDirection: TextDirection.rtl,
@@ -333,16 +335,16 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     );
   }
 
-  Widget _buildOptions(QuizQuestion q) {
+  Widget _buildOptions(QuizQuestion q, bool isDark) {
     return Column(
       children: (q.options ?? []).map((opt) {
         final isSelected = _userAnswers[_currentIndex] == opt.id;
         
-        Color borderColor = _isSpeedMode ? Colors.white24 : AppColors.borderLight;
-        Color bgColor = _isSpeedMode ? Colors.white.withValues(alpha: 0.05) : Colors.white;
+        Color borderColor = isDark ? Colors.white24 : AppColors.borderLight;
+        Color bgColor = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white;
 
         if (isSelected) {
-          borderColor = _isSpeedMode ? Colors.blueAccent : AppColors.primaryBlue;
+          borderColor = isDark ? Colors.blueAccent : AppColors.primaryBlue;
           bgColor = isSelected ? (borderColor.withValues(alpha: 0.1)) : bgColor;
         }
 
@@ -363,7 +365,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                     opt.text,
                     style: GoogleFonts.cairo(
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: _isSpeedMode ? Colors.white : AppColors.textPrimary,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                     textDirection: TextDirection.rtl,
@@ -377,12 +379,19 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     );
   }
 
-  Widget _buildNavigationFooter() {
+  Widget _buildNavigationFooter(bool isDark) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black12, 
+            blurRadius: 10, 
+            offset: const Offset(0, -2)
+          )
+        ],
+        border: isDark ? const Border(top: BorderSide(color: Colors.white10)) : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -390,6 +399,12 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           if (_currentIndex > 0)
             OutlinedButton(
               onPressed: () => setState(() => _currentIndex--),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isDark ? Colors.white70 : AppColors.primaryBlue,
+                side: isDark ? const BorderSide(color: Colors.white24) : null,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: Text('السابق', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
             )
           else

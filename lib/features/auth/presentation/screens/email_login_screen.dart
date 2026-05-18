@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/signup_screen.dart';
 import 'package:quizzly/features/home/presentation/screens/home_screen.dart';
+import 'package:quizzly/features/auth/presentation/screens/onboarding_screen.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   const EmailLoginScreen({super.key});
@@ -23,7 +25,24 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     super.dispose();
   }
 
-  void _onLoginSuccess() {
+  Future<void> _onLoginSuccess() async {
+    final authService = context.read<AuthService>();
+    final contentService = context.read<ContentService>();
+
+    if (authService.user != null) {
+      final defaults = await contentService.getUserDefaults(authService.user!.uid);
+      if (!mounted) return;
+      if (defaults == null || defaults['fullName'] == null || defaults['universityId'] == null) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          (route) => false,
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const HomeScreen()),

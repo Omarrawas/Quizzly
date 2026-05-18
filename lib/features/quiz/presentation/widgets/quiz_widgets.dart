@@ -5,6 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
+import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 
 // ═══════════════════════════════════════════════════════
 //  1. شريط الحالة العلوي (HUD)
@@ -415,6 +418,47 @@ class QuestionCard extends StatelessWidget {
     );
   }
 
+  void _showSavedNoteBottomSheet(BuildContext context) {
+    int duration = 5;
+    try {
+      duration = Provider.of<SettingsService>(context, listen: false).notesDisplayDuration;
+    } catch (_) {}
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      barrierColor: Colors.black.withValues(alpha: 0.1),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (context) => AutoCloseNoteBottomSheet(
+        note: note ?? '',
+        durationSeconds: duration,
+        onEdit: () {
+          Navigator.pop(context);
+          _showNoteDialog(context);
+        },
+        onDelete: () {
+          onNoteChanged('');
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم حذف الملاحظة بنجاح',
+                style: GoogleFonts.cairo(),
+                textAlign: TextAlign.right,
+              ),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showExplanationDialog(BuildContext context, String explanation) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
@@ -567,7 +611,13 @@ class QuestionCard extends StatelessWidget {
             listIcon: listIcon,
             listColor: listColor,
             hasNote: note != null && note!.isNotEmpty,
-            onNoteTap: () => _showNoteDialog(context),
+            onNoteTap: () {
+              if (note == null || note!.trim().isEmpty) {
+                _showNoteDialog(context);
+              } else {
+                _showSavedNoteBottomSheet(context);
+              }
+            },
             onCheckTap: onCheckAnswer,
             isChecked: isChecked,
             canCheck: isSelected && !isChecked,
@@ -689,6 +739,12 @@ class _TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Split "Chapter - Lesson" into structured parts
+    final parts = label.split(' - ');
+    final String lessonTitle = parts.length >= 2 ? parts.sublist(1).join(' - ') : label;
+    final String? chapterSubtitle = parts.length >= 2 ? parts[0] : null;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -699,13 +755,30 @@ class _TagChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isDark ? const Color(0xFFE11D48).withValues(alpha: 0.3) : const Color(0xFFFECDD3)),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.cairo(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFFFB7185) : const Color(0xFFE11D48),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              lessonTitle,
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFFB7185) : const Color(0xFFE11D48),
+              ),
+            ),
+            if (chapterSubtitle != null)
+              Text(
+                chapterSubtitle,
+                style: GoogleFonts.cairo(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? const Color(0xFFFB7185).withValues(alpha: 0.65)
+                      : const Color(0xFFE11D48).withValues(alpha: 0.6),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -1071,88 +1144,312 @@ class _ReportOption extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────
-//  نافذة شرح الإجابة
+//  نافذة شرح الإجابة (Auto-closing Explanation Bottom Sheet)
 // ─────────────────────────────────────────
-void showExplanationDialog(BuildContext context, QuizQuestion question) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      surfaceTintColor: isDark ? Colors.transparent : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+class AutoCloseExplanationBottomSheet extends StatefulWidget {
+  final QuizQuestion question;
+  final int durationSeconds;
+
+  const AutoCloseExplanationBottomSheet({
+    super.key,
+    required this.question,
+    required this.durationSeconds,
+  });
+
+  @override
+  State<AutoCloseExplanationBottomSheet> createState() => _AutoCloseExplanationBottomSheetState();
+}
+
+class _AutoCloseExplanationBottomSheetState extends State<AutoCloseExplanationBottomSheet> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.durationSeconds != -1) {
+      _timer = Timer(Duration(seconds: widget.durationSeconds), () {
+        if (mounted) {
+          Navigator.of(context).maybePop();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.45,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'توضيح الإجابة',
-            style: GoogleFonts.cairo(
-              fontWeight: FontWeight.w900,
-              fontSize: 20,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
-            ),
+          // Header: X button on the left, Title and Icon on the right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  size: 20,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  padding: const EdgeInsets.all(6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'توضيح الإجابة',
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 16),
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (widget.question.explanationImageUrl != null && widget.question.explanationImageUrl!.isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.network(
+                        widget.question.explanationImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TexViewWidget(
+                    text: widget.question.explanation ?? 'لا يوجد شرح متوفر لهذا السؤال حالياً.',
+                    fontSize: 14,
+                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ],
+              ),
             ),
-            child: const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 24),
           ),
         ],
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (question.explanationImageUrl != null && question.explanationImageUrl!.isNotEmpty) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Image.network(
-                  question.explanationImageUrl!,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 150,
-                      alignment: Alignment.center,
-                      child: const CircularProgressIndicator(),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-            TexViewWidget(
-              text: question.explanation ?? 'لا يوجد شرح متوفر لهذا السؤال حالياً.',
-              fontSize: 15,
-              color: isDark ? Colors.white70 : const Color(0xFF475569),
-              fontWeight: FontWeight.w500,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          child: Text(
-            'فهمت ذلك',
-            style: GoogleFonts.cairo(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF2563EB),
-            ),
-          ),
-        ),
-      ],
+    );
+  }
+}
+
+void showExplanationDialog(BuildContext context, QuizQuestion question) {
+  int duration = 5;
+  try {
+    duration = Provider.of<SettingsService>(context, listen: false).explanationDisplayDuration;
+  } catch (_) {}
+
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+    barrierColor: Colors.black.withValues(alpha: 0.1),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    isScrollControlled: true,
+    builder: (context) => AutoCloseExplanationBottomSheet(
+      question: question,
+      durationSeconds: duration,
     ),
   );
+}
+
+// ─────────────────────────────────────────
+//  شريط عرض ملاحظة الطالب (Auto-closing Note Bottom Sheet)
+// ─────────────────────────────────────────
+class AutoCloseNoteBottomSheet extends StatefulWidget {
+  final String note;
+  final int durationSeconds;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const AutoCloseNoteBottomSheet({
+    super.key,
+    required this.note,
+    required this.durationSeconds,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<AutoCloseNoteBottomSheet> createState() => _AutoCloseNoteBottomSheetState();
+}
+
+class _AutoCloseNoteBottomSheetState extends State<AutoCloseNoteBottomSheet> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.durationSeconds != -1) {
+      _timer = Timer(Duration(seconds: widget.durationSeconds), () {
+        if (mounted) {
+          Navigator.of(context).maybePop();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.45,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header: X button on the left, Title and Icon on the right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  size: 20,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  padding: const EdgeInsets.all(6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'ملاحظتي',
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.note_alt_outlined,
+                    color: Color(0xFF0284C7),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Note content
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  widget.note,
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Actions: Delete and Edit
+          Row(
+            children: [
+              // Delete Button
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: widget.onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  label: Text('حذف', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Edit Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: widget.onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: Text('تعديل', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════

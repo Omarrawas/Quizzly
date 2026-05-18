@@ -277,8 +277,14 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
     // Protection logic: Only first 3 tags are free
     final bool isLocked = widget.isFree && index >= 3;
 
+    // Split "Chapter - Lesson" into parts for structured display
+    final parts = name.split(' - ');
+    final String lessonTitle = parts.length >= 2 ? parts.sublist(1).join(' - ') : name;
+    final String? chapterSubtitle = parts.length >= 2 ? parts[0] : null;
+
     return InkWell(
       onTap: isLocked ? _showLockInfo : () => _openTagQuestions(name),
+      borderRadius: BorderRadius.circular(20),
       child: Opacity(
         opacity: isLocked ? 0.6 : 1.0,
         child: Container(
@@ -303,7 +309,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
                     child: Icon(
                       isLocked ? Icons.lock_outline_rounded : Icons.local_offer_rounded, 
                       color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1), 
-                      size: 24
+                      size: 22
                     ),
                   ),
                   if (!hasViewed && !isLocked)
@@ -322,21 +328,45 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+              // Lesson name — prominent
               Text(
-                name,
+                lessonTitle,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : null),
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  height: 1.3,
+                ),
               ),
-              const SizedBox(height: 4),
+              // Chapter name — small subtitle
+              if (chapterSubtitle != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  chapterSubtitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cairo(
+                    fontSize: 10,
+                    color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 6),
               Text(
                 isLocked ? 'محتوى مدفوع' : '$count سؤال',
-                style: GoogleFonts.cairo(fontSize: 11, color: isLocked ? Colors.red[300] : (isDark ? const Color(0xFF94A3B8) : Colors.grey)),
+                style: GoogleFonts.cairo(
+                  fontSize: 10,
+                  color: isLocked ? Colors.red[300] : (isDark ? const Color(0xFF94A3B8) : Colors.grey),
+                ),
               ),
               if (hasStats && !isLocked) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(

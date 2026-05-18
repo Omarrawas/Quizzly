@@ -18,7 +18,8 @@ class ActiveRecallSessionScreen extends StatefulWidget {
   });
 
   @override
-  State<ActiveRecallSessionScreen> createState() => _ActiveRecallSessionScreenState();
+  State<ActiveRecallSessionScreen> createState() =>
+      _ActiveRecallSessionScreenState();
 }
 
 class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
@@ -26,7 +27,6 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
   late List<QuizQuestion> _queue;
   int _currentIndex = 0;
   bool _showAnswer = false;
-  bool _isFlashcardMode = false;
 
   @override
   void initState() {
@@ -42,21 +42,30 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
 
   Future<void> _recordPerformance(int quality) async {
     final userId = context.read<AuthService>().user?.uid;
-    if (userId != null) {
-      final q = _queue[_currentIndex];
-      await _srs.updateMastery(
-        userId: userId,
-        questionId: q.id!,
-        subjectId: widget.config.subjectId,
-        quality: quality,
+    final q = _queue[_currentIndex];
+    final qId = q.id;
+
+    if (userId != null && qId != null) {
+      try {
+        await _srs.updateMastery(
+          userId: userId,
+          questionId: qId,
+          subjectId: widget.config.subjectId,
+          quality: quality,
+        );
+      } catch (e) {
+        debugPrint('Error updating mastery in active recall: $e');
+      }
+    } else {
+      debugPrint(
+        'Warning: userId or question ID is null. userId: $userId, questionId: $qId',
       );
     }
 
     if (quality < 3) {
-      final currentQ = _queue[_currentIndex];
       final insertAt = (_currentIndex + 4).clamp(0, _queue.length);
       setState(() {
-        _queue.insert(insertAt, currentQ);
+        _queue.insert(insertAt, q);
       });
     }
 
@@ -82,38 +91,27 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
     final progress = (_currentIndex + 1) / _queue.length;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF1F5F9),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          _isFlashcardMode ? 'البطاقات الذكية' : 'وضع الحفظ (Active Recall)',
+          'البطاقات الذكية',
           style: GoogleFonts.cairo(
-            fontSize: 16, 
-            fontWeight: FontWeight.bold, 
-            color: isDark ? Colors.white : AppColors.textPrimary
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : AppColors.textPrimary),
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
-            ),
-            child: Row(
-              children: [
-                _buildModeTab(Icons.style_rounded, true, isDark),
-                _buildModeTab(Icons.list_alt_rounded, false, isDark),
-              ],
-            ),
+          icon: Icon(
+            Icons.close_rounded,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
-        ],
+        ),
       ),
       body: Column(
         children: [
@@ -125,7 +123,9 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
                 value: progress,
                 minHeight: 8,
                 backgroundColor: isDark ? Colors.white10 : Colors.white,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primaryBlue,
+                ),
               ),
             ),
           ),
@@ -133,74 +133,18 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
           Text(
             'بطاقة ${_currentIndex + 1} من ${_queue.length}',
             style: GoogleFonts.cairo(
-              fontSize: 12, 
-              color: isDark ? Colors.white38 : AppColors.textSecondary, 
-              fontWeight: FontWeight.bold
+              fontSize: 12,
+              color: isDark ? Colors.white38 : AppColors.textSecondary,
+              fontWeight: FontWeight.bold,
             ),
           ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: _isFlashcardMode ? _buildFlashcard(q, isDark) : _buildActiveRecallCard(q, isDark),
+              child: _buildFlashcard(q, isDark),
             ),
           ),
           _buildFooter(isDark),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModeTab(IconData icon, bool isFlash, bool isDark) {
-    final isSelected = _isFlashcardMode == isFlash;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _isFlashcardMode = isFlash;
-        _showAnswer = false;
-      }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white38 : Colors.grey), size: 18),
-      ),
-    );
-  }
-
-  Widget _buildActiveRecallCard(QuizQuestion q, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: isDark ? Border.all(color: Colors.white10) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), 
-            blurRadius: 20
-          )
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            q.text,
-            style: GoogleFonts.cairo(
-              fontSize: 18, 
-              fontWeight: FontWeight.bold, 
-              height: 1.6,
-              color: isDark ? Colors.white : Colors.black,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (_showAnswer) ...[
-            const SizedBox(height: 24),
-            Divider(color: isDark ? Colors.white10 : null),
-            const SizedBox(height: 24),
-            _buildAnswerSection(q, isDark),
-          ],
         ],
       ),
     );
@@ -220,7 +164,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
               final transform = Matrix4.identity()
                 ..setEntry(3, 2, 0.001)
                 ..rotateY(rotate.value);
-                
+
               return Transform(
                 transform: transform,
                 alignment: Alignment.center,
@@ -229,7 +173,9 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
             },
           );
         },
-        child: _showAnswer ? _buildFlashcardBack(q, isDark) : _buildFlashcardFront(q.text, isDark),
+        child: _showAnswer
+            ? _buildFlashcardBack(q, isDark)
+            : _buildFlashcardFront(q.text, isDark),
       ),
     );
   }
@@ -246,17 +192,17 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
         border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), 
-            blurRadius: 20
-          )
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 20,
+          ),
         ],
       ),
       child: Center(
         child: Text(
           text,
           style: GoogleFonts.cairo(
-            fontSize: 20, 
-            fontWeight: FontWeight.bold, 
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
             height: 1.6,
             color: isDark ? Colors.white : Colors.black,
           ),
@@ -278,17 +224,24 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF064E3B) : const Color(0xFFF0FDF4),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFF16A34A), width: 2),
+          border: Border.all(
+            color: isDark ? const Color(0xFF059669) : const Color(0xFF16A34A),
+            width: 2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05), 
-              blurRadius: 20
-            )
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 20,
+            ),
           ],
         ),
         child: Center(
           child: SingleChildScrollView(
-            child: _buildAnswerSection(q, isDark),
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.rotationY(3.14),
+              child: _buildAnswerSection(q, isDark),
+            ),
           ),
         ),
       ),
@@ -299,50 +252,41 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
     final correctOption = (q.options ?? []).isEmpty
         ? null
         : (q.options ?? []).cast<QuizOption?>().firstWhere(
-              (o) => o != null && q.correctOptionIds.contains(o.id),
-              orElse: () => null,
-            );
+            (o) => o != null && q.correctOptionIds.contains(o.id),
+            orElse: () => null,
+          );
     return Column(
       children: [
-        if (!_isFlashcardMode)
-          Text(
-            'الجواب الصحيح:',
-            style: GoogleFonts.cairo(
-              fontSize: 14, 
-              color: isDark ? Colors.white38 : AppColors.textSecondary
-            ),
-          ),
-        if (_isFlashcardMode)
-          Icon(
-            Icons.check_circle_rounded, 
-            color: isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A), 
-            size: 40
-          ),
+        Icon(
+          Icons.check_circle_rounded,
+          color: isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A),
+          size: 40,
+        ),
         const SizedBox(height: 12),
         Text(
           correctOption?.text ?? 'غير محدد',
           style: GoogleFonts.cairo(
-            fontSize: 20, 
-            fontWeight: FontWeight.bold, 
-            color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534)
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
           ),
           textAlign: TextAlign.center,
         ),
-        if (q.explanation != null) ...[
+        if (q.explanation != null && q.explanation!.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _isFlashcardMode 
-                ? (isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.5)) 
-                : (isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFFF8FAFC)),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               q.explanation!,
               style: GoogleFonts.cairo(
-                fontSize: 13, 
-                color: isDark ? Colors.white70 : AppColors.textPrimary
+                fontSize: 13,
+                color: isDark ? Colors.white70 : AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -358,12 +302,14 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: isDark ? const Border(top: BorderSide(color: Colors.white10)) : null,
+        border: isDark
+            ? const Border(top: BorderSide(color: Colors.white10))
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1), 
-            blurRadius: 20
-          )
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+            blurRadius: 20,
+          ),
         ],
       ),
       child: !_showAnswer
@@ -375,10 +321,17 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
                   backgroundColor: AppColors.primaryBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: Text(_isFlashcardMode ? 'اقلب البطاقة' : 'عرض الإجابة',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: Text(
+                  'اقلب البطاقة',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             )
           : Column(
@@ -387,8 +340,8 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
                 Text(
                   'هل استطعت تذكر الإجابة؟',
                   style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold, 
-                    color: isDark ? Colors.white : AppColors.textPrimary
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -396,16 +349,16 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
                   children: [
                     Expanded(
                       child: _RatingButton(
-                        label: 'صعب جداً',
-                        color: Colors.redAccent,
+                        label: 'سهل',
+                        color: Colors.greenAccent,
                         isDark: isDark,
-                        onTap: () => _recordPerformance(0),
+                        onTap: () => _recordPerformance(5),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _RatingButton(
-                        label: 'بصعوبة',
+                        label: 'متوسط',
                         color: Colors.orangeAccent,
                         isDark: isDark,
                         onTap: () => _recordPerformance(3),
@@ -414,10 +367,10 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _RatingButton(
-                        label: 'سهل',
-                        color: Colors.greenAccent,
+                        label: 'صعب',
+                        color: Colors.redAccent,
                         isDark: isDark,
-                        onTap: () => _recordPerformance(5),
+                        onTap: () => _recordPerformance(0),
                       ),
                     ),
                   ],
@@ -435,10 +388,10 @@ class _RatingButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _RatingButton({
-    required this.label, 
-    required this.color, 
+    required this.label,
+    required this.color,
     required this.isDark,
-    required this.onTap
+    required this.onTap,
   });
 
   @override
@@ -456,13 +409,9 @@ class _RatingButton extends StatelessWidget {
         ),
       ),
       child: Text(
-        label, 
-        style: GoogleFonts.cairo(
-          fontWeight: FontWeight.bold, 
-          fontSize: 12
-        )
+        label,
+        style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 12),
       ),
     );
   }
 }
-

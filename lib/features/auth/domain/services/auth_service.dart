@@ -7,6 +7,8 @@ import 'package:quizzly/main.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -60,6 +62,9 @@ class AuthService extends ChangeNotifier {
           if (!isBound) return; // Halt if not bound to this device
         }
 
+        // ── Record Actual Device Info ──
+        await _updateDeviceInfo(uid);
+
         notifyListeners();
         _applyScreenProtection();
       }
@@ -102,6 +107,46 @@ class AuthService extends ChangeNotifier {
     }
 
     return true; // Match
+  }
+
+  Future<void> _updateDeviceInfo(String uid) async {
+    try {
+      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      String deviceModel = 'Unknown';
+      String deviceOS = 'Unknown';
+      String deviceVersion = 'Unknown';
+
+      if (kIsWeb) {
+        final webBrowserInfo = await deviceInfo.webBrowserInfo;
+        deviceModel = webBrowserInfo.browserName.toString();
+        deviceOS = 'Web';
+        deviceVersion = webBrowserInfo.appVersion ?? 'Unknown';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        deviceModel = '${androidInfo.brand} ${androidInfo.model}';
+        deviceOS = 'Android';
+        deviceVersion = androidInfo.version.release;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceModel = iosInfo.utsname.machine;
+        deviceOS = 'iOS';
+        deviceVersion = iosInfo.systemVersion;
+      } else if (Platform.isWindows) {
+        final windowsInfo = await deviceInfo.windowsInfo;
+        deviceModel = 'PC';
+        deviceOS = 'Windows';
+        deviceVersion = '${windowsInfo.majorVersion}.${windowsInfo.minorVersion}';
+      }
+
+      await _firestore.collection('users').doc(uid).set({
+        'deviceModel': deviceModel,
+        'deviceOS': deviceOS,
+        'deviceVersion': deviceVersion,
+        'lastLogin': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error getting device info: $e');
+    }
   }
 
   Future<void> _applyScreenProtection() async {
@@ -228,6 +273,81 @@ class AuthService extends ChangeNotifier {
       try {
         await ScreenProtector.preventScreenshotOff(); // Turn off when logged out
       } catch (_) {}
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      final uid = _user?.uid;
+      if (uid == null) {
+        _setError('المستخدم غير مسجل الدخول');
+        _setLoading(false);
+        return false;
+      }
+
+      // 1. Delete Firestore User data
+      await _firestore.collection('users').doc(uid).delete();
+      
+      // 2. Delete practice history maps under user_history
+      await _firestore.collection('user_history').doc(uid).delete();
+
+      // 3. Delete practice sessions
+      final practiceSessions = await _firestore.collection('practice_sessions')
+          .where('userId', isEqualTo: uid)
+          .get();
+      for (var doc in practiceSessions.docs) {
+        await doc.reference.delete();
+      }
+
+      // 4. Delete favorites and other user_lists
+      final lists = await _firestore.collection('users')
+          .doc(uid)
+          .collection('user_lists')
+          .get();
+      for (var listDoc in lists.docs) {
+        final listQuestions = await listDoc.reference.collection('questions').get();
+        for (var qDoc in listQuestions.docs) {
+          await qDoc.reference.delete();
+        }
+        await listDoc.reference.delete();
+      }
+
+      // 5. Delete mastery
+      final mastery = await _firestore.collection('users')
+          .doc(uid)
+          .collection('mastery')
+          .get();
+      for (var doc in mastery.docs) {
+        await doc.reference.delete();
+      }
+
+      // 6. Delete user activated subjects
+      final userSubjects = await _firestore.collection('user_subjects')
+          .where('userId', isEqualTo: uid)
+          .get();
+      for (var doc in userSubjects.docs) {
+        await doc.reference.delete();
+      }
+
+      // 7. Delete the user from Firebase Auth
+      await _user?.delete();
+      
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _setError('يرجى إعادة تسجيل الدخول أولاً لتتمكن من حذف حسابك بشكل آمن.');
+      } else {
+        _setError(e.message ?? 'حدث خطأ أثناء حذف الحساب.');
+      }
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
     }
   }
 }

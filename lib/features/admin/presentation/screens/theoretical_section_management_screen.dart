@@ -521,10 +521,24 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     );
   }
 
+  /// Strip HTML tags for plain-text preview
+  String _stripHtml(String html) {
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&amp;', '&')
+        .trim();
+  }
+
   Widget _buildQuestionCard(String id, Map<String, dynamic> data, bool isDark, {Key? key}) {
     final String typeStr = data['type'] == 'mcq' ? 'أتمتة' : (data['type'] == 'tf' ? 'صح/خطأ' : 'مقالي');
     final Color typeColor = data['type'] == 'mcq' ? Colors.blue : (data['type'] == 'tf' ? Colors.teal : Colors.orange);
-    final questionText = data['text'] ?? '';
+    final questionText = _stripHtml(data['text'] ?? '');
+    final translationText = data['translationText'] != null && (data['translationText'] as String).isNotEmpty
+        ? _stripHtml(data['translationText'] as String)
+        : null;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -557,6 +571,20 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (translationText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        translationText,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          color: Colors.blueGrey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   if (data['topicIds'] != null && (data['topicIds'] as List).isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -649,7 +677,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                           Icon(isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
                                size: 16, color: isCorrect ? Colors.green : Colors.grey),
                           const SizedBox(width: 10),
-                          Expanded(child: Text(opt['text'] ?? '', style: GoogleFonts.cairo(fontSize: 12))),
+                          Expanded(child: Text(_stripHtml(opt['text'] ?? ''), style: GoogleFonts.cairo(fontSize: 12))),
                         ],
                       ),
                     );

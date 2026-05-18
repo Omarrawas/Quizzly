@@ -87,7 +87,6 @@ class BattleChallenge {
 
 class BattleService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static const int _questionsPerBattle = 10;
 
   // ── Create a new challenge (challenger side) ───────────────────────────────
   Future<BattleChallenge> createChallenge({
@@ -95,19 +94,23 @@ class BattleService {
     required String challengerName,
     required String subjectId,
     required String subjectName,
+    List<String>? topicIds,
+    int questionsCount = 10,
   }) async {
-    // Pick random questions for this subject
-    final qSnap = await _db
-        .collection('questions')
-        .where('subjectId', isEqualTo: subjectId)
-        .limit(50)
-        .get();
+    Query query = _db.collection('questions').where('subjectId', isEqualTo: subjectId);
+
+    if (topicIds != null && topicIds.isNotEmpty) {
+      // Firestore whereIn supports up to 30 items
+      query = query.where('topicId', whereIn: topicIds.take(30).toList());
+    }
+
+    final qSnap = await query.limit(100).get();
 
     final allIds = qSnap.docs.map((d) => d.id).toList()..shuffle();
-    final selected = allIds.take(_questionsPerBattle).toList();
+    final selected = allIds.take(questionsCount).toList();
 
     if (selected.isEmpty) {
-      throw Exception('لا توجد أسئلة متاحة في هذه المادة لإنشاء معركة.');
+      throw Exception('لا توجد أسئلة متاحة في المواضيع المحددة لإنشاء معركة.');
     }
 
     final data = {
@@ -115,6 +118,7 @@ class BattleService {
       'challengerName': challengerName,
       'subjectId': subjectId,
       'subjectName': subjectName,
+      'topicIds': topicIds ?? [],
       'questionIds': selected,
       'status': 'waiting',
       'scores': {},

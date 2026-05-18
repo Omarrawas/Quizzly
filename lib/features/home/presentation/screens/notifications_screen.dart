@@ -6,9 +6,29 @@ import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:quizzly/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _markAsSeen();
+  }
+
+  Future<void> _markAsSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Use slightly later time to ensure any current notification is considered seen
+    await prefs.setString('lastSeenNotifTime', DateTime.now().add(const Duration(seconds: 1)).toIso8601String());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +87,7 @@ class NotificationsScreen extends StatelessWidget {
                       return activeSubjectIds.contains(data['subjectId']);
                     }
                     return false;
-                  }).toList();
+                  }).take(5).toList();
 
                   if (filteredNotifs.isEmpty) {
                     return _buildEmptyState(isDark);
@@ -175,6 +195,68 @@ class NotificationsScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+                
+                // --- Rich Media: Image ---
+                if (data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      data['imageUrl'],
+                      width: double.infinity,
+                      height: 140,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                    ),
+                  ),
+                ],
+
+                // --- Action Buttons ---
+                if ((data['actionUrl'] != null && data['actionUrl'].toString().isNotEmpty) || 
+                    (data['route'] != null && data['route'].toString().isNotEmpty)) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (data['actionUrl'] != null && data['actionUrl'].toString().isNotEmpty)
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final url = Uri.parse(data['actionUrl']);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                          label: Text('فتح الرابط', style: GoogleFonts.cairo(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryBlue,
+                            side: const BorderSide(color: AppColors.primaryBlue),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          ),
+                        ),
+                      if (data['route'] != null && data['route'].toString().isNotEmpty)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            if (navigatorKey.currentState != null) {
+                              navigatorKey.currentState!.pushNamed(data['route']);
+                            }
+                          },
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                          label: Text('الانتقال', style: GoogleFonts.cairo(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            elevation: 0,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+
                 const SizedBox(height: 8),
                 Text(
                   dateStr,

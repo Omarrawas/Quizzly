@@ -66,7 +66,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
         final chapters = <String, String>{};
         for (var t in topics) {
           if (t['type'] == 'chapter') {
-            chapters[t['id']] = t['name'] as String;
+            chapters[t['id']] = (t['name'] ?? t['title'] ?? '') as String;
           }
         }
 
@@ -75,7 +75,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           if (t['type'] == 'lesson' || t['parentId'] != null) {
             final parentId = t['parentId'] as String?;
             final parentName = parentId != null ? chapters[parentId] : null;
-            final currentName = t['name'] as String;
+            final currentName = (t['name'] ?? t['title'] ?? '') as String;
             final compositeName = parentName != null ? '$parentName - $currentName' : currentName;
             
             // Create a modified copy of the topic
@@ -83,7 +83,9 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
             modifiedTopic['name'] = compositeName;
             compositeTopics.add(modifiedTopic);
           } else if (t['type'] != 'chapter') {
-            compositeTopics.add(t);
+            final modifiedTopic = Map<String, dynamic>.from(t);
+            modifiedTopic['name'] = (t['name'] ?? t['title'] ?? '') as String;
+            compositeTopics.add(modifiedTopic);
           }
         }
 
@@ -115,21 +117,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
-            actions: [
-              if (!widget.isFree)
-                IconButton(
-                  icon: const Icon(Icons.history_rounded, color: Colors.white),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PracticeHistoryScreen(
-                        subjectId: widget.subjectId,
-                        subjectName: widget.subjectName,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+            actions: const [],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
@@ -203,6 +191,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                         children: [
                           if (widget.isFree) _buildFreeNotice(),
                           _buildInfoCard(),
+                          _buildPreviousExamsCard(isDark),
                           const SizedBox(height: 24),
                           _buildSectionTitle('جلسات ذكية (سريعة)', Icons.bolt_rounded),
                           const SizedBox(height: 12),
@@ -285,6 +274,98 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           const SizedBox(width: 12),
           _buildInfoChip(Icons.description_outlined, 'مع الشرح'),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPreviousExamsCard(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PracticeHistoryScreen(
+                  subjectId: widget.subjectId,
+                  subjectName: widget.subjectName,
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    : [Colors.white, const Color(0xFFF1F5F9)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.assignment_turned_in_rounded,
+                    color: AppColors.primaryBlue,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'الامتحانات السابقة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'مراجعة الأخطاء، عرض نتائجك، وإعادة البدء من جديد',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          color: isDark ? Colors.white54 : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: isDark ? Colors.white30 : Colors.grey[400],
+                  size: 14,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -563,13 +644,18 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
         final name = topic['name'] as String? ?? '';
         final isSelected = _selectedTopicIds.contains(id);
 
+        // Split "Chapter - Lesson" into structured parts
+        final parts = name.split(' - ');
+        final String lessonTitle = parts.length >= 2 ? parts.sublist(1).join(' - ') : name;
+        final String? chapterSubtitle = parts.length >= 2 ? parts[0] : null;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: GestureDetector(
             onTap: () => _toggleTopic(id),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.08)
@@ -600,15 +686,32 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      name,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected 
-                          ? (isDark ? Colors.blue[400] : AppColors.primaryBlue) 
-                          : (isDark ? Colors.white70 : AppColors.textPrimary),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          lessonTitle,
+                          style: GoogleFonts.cairo(
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected
+                                ? (isDark ? Colors.blue[400] : AppColors.primaryBlue)
+                                : (isDark ? Colors.white70 : AppColors.textPrimary),
+                          ),
+                        ),
+                        if (chapterSubtitle != null)
+                          Text(
+                            chapterSubtitle,
+                            style: GoogleFonts.cairo(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: isSelected
+                                  ? (isDark ? Colors.blue[300] : AppColors.primaryBlue.withValues(alpha: 0.7))
+                                  : (isDark ? Colors.white38 : Colors.grey),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

@@ -37,16 +37,35 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
     final userId = context.read<AuthService>().user?.uid;
     if (userId == null) return;
 
-    setState(() => _isLoadingMnemonic = true);
-    final mastery = await _srsService.getQuestionMastery(
-      userId,
-      widget.questions[_currentIndex].id!,
-    );
-    if (mounted) {
+    final qId = widget.questions[_currentIndex].id;
+    if (qId == null) {
       setState(() {
-        _currentMnemonic = mastery?.mnemonic;
+        _currentMnemonic = null;
         _isLoadingMnemonic = false;
       });
+      return;
+    }
+
+    setState(() => _isLoadingMnemonic = true);
+    try {
+      final mastery = await _srsService.getQuestionMastery(
+        userId,
+        qId,
+      );
+      if (mounted) {
+        setState(() {
+          _currentMnemonic = mastery?.mnemonic;
+          _isLoadingMnemonic = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading mnemonic: $e');
+      if (mounted) {
+        setState(() {
+          _currentMnemonic = null;
+          _isLoadingMnemonic = false;
+        });
+      }
     }
   }
 
@@ -58,15 +77,22 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
   void _submitRecall(bool success) async {
     final userId = context.read<AuthService>().user?.uid;
     final question = widget.questions[_currentIndex];
+    final qId = question.id;
 
-    if (userId != null) {
-      // Update mastery: 5 for success, 1 for failure in cram mode
-      _srsService.updateMastery(
-        userId: userId,
-        questionId: question.id!,
-        subjectId: widget.subjectId,
-        quality: success ? 5 : 1,
-      );
+    if (userId != null && qId != null) {
+      try {
+        // Update mastery: 5 for success, 1 for failure in cram mode
+        await _srsService.updateMastery(
+          userId: userId,
+          questionId: qId,
+          subjectId: widget.subjectId,
+          quality: success ? 5 : 1,
+        );
+      } catch (e) {
+        debugPrint('Error updating mastery in cram mode: $e');
+      }
+    } else {
+      debugPrint('Warning: userId or question ID is null in cram mode. userId: $userId, questionId: $qId');
     }
 
     if (_currentIndex < widget.questions.length - 1) {
@@ -76,10 +102,12 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
       });
       _loadMnemonic();
     } else {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أنهيت جلسة المراجعة المكثفة بنجاح!')),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('أنهيت جلسة المراجعة المكثفة بنجاح!')),
+        );
+      }
     }
   }
 
@@ -243,14 +271,19 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
           ElevatedButton(
             onPressed: () async {
               final userId = context.read<AuthService>().user?.uid;
-              if (userId != null) {
-                await _srsService.updateMnemonic(
-                  userId,
-                  widget.questions[_currentIndex].id!,
-                  widget.subjectId,
-                  controller.text,
-                );
-                setState(() => _currentMnemonic = controller.text);
+              final qId = widget.questions[_currentIndex].id;
+              if (userId != null && qId != null) {
+                try {
+                  await _srsService.updateMnemonic(
+                    userId,
+                    qId,
+                    widget.subjectId,
+                    controller.text,
+                  );
+                  setState(() => _currentMnemonic = controller.text);
+                } catch (e) {
+                  debugPrint('Error updating mnemonic: $e');
+                }
               }
               if (context.mounted) Navigator.pop(context);
             },

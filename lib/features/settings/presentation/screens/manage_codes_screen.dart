@@ -116,8 +116,8 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
         allDocs.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>;
           final bData = b.data() as Map<String, dynamic>;
-          final aTs = (aData['activatedAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-          final bTs = (bData['activatedAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+          final aTs = aData['activatedAt'] is Timestamp ? (aData['activatedAt'] as Timestamp).millisecondsSinceEpoch : 0;
+          final bTs = bData['activatedAt'] is Timestamp ? (bData['activatedAt'] as Timestamp).millisecondsSinceEpoch : 0;
           return bTs.compareTo(aTs);
         });
 
@@ -155,13 +155,14 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           itemBuilder: (context, index) {
             final doc = docs[index];
             final data = doc.data() as Map<String, dynamic>;
-            final userId = data['userId'] as String;
-            final subjectId = data['subjectId'] as String;
-            final activationCode = data['activationCode'] as String?;
+            final userId = data['userId']?.toString() ?? '';
+            final subjectId = data['subjectId']?.toString() ?? '';
+            final activationCode = data['activationCode']?.toString();
             final price = (data['price'] as num?)?.toInt();
-            final date = data['activatedAt'] != null
-                ? (data['activatedAt'] as Timestamp).toDate()
-                : DateTime.now();
+            DateTime date = DateTime.now();
+            if (data['activatedAt'] is Timestamp) {
+              date = (data['activatedAt'] as Timestamp).toDate();
+            }
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -201,8 +202,8 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FutureBuilder<DocumentSnapshot>(
-                          future: _dbService.getUser(userId),
+                        FutureBuilder<DocumentSnapshot?>(
+                          future: userId.isNotEmpty ? _dbService.getUser(userId) : Future.value(null),
                           builder: (context, userSnap) {
                             final name =
                                 (userSnap.data?.data()
@@ -231,8 +232,8 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
                             ),
                             const SizedBox(width: 4),
                             Expanded(
-                              child: FutureBuilder<DocumentSnapshot>(
-                                future: _dbService.getSubject(subjectId),
+                              child: FutureBuilder<DocumentSnapshot?>(
+                                future: subjectId.isNotEmpty ? _dbService.getSubject(subjectId) : Future.value(null),
                                 builder: (context, subjSnap) {
                                   final name =
                                       (subjSnap.data?.data()

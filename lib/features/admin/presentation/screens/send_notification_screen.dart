@@ -15,6 +15,9 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
+  final _imageUrlController = TextEditingController();
+  final _actionUrlController = TextEditingController();
+  final _routeController = TextEditingController();
   final _notifService = AdminNotificationService();
   
   String _targetType = 'all'; // 'all' or 'subject'
@@ -26,6 +29,9 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
+    _imageUrlController.dispose();
+    _actionUrlController.dispose();
+    _routeController.dispose();
     super.dispose();
   }
 
@@ -44,6 +50,9 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
         await _notifService.sendGeneralNotification(
           title: _titleController.text.trim(),
           body: _bodyController.text.trim(),
+          imageUrl: _imageUrlController.text.trim(),
+          actionUrl: _actionUrlController.text.trim(),
+          route: _routeController.text.trim(),
         );
       } else {
         await _notifService.sendSubjectNotification(
@@ -51,6 +60,9 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
           body: _bodyController.text.trim(),
           subjectId: _selectedSubjectId!,
           subjectName: _selectedSubjectName!,
+          imageUrl: _imageUrlController.text.trim(),
+          actionUrl: _actionUrlController.text.trim(),
+          route: _routeController.text.trim(),
         );
       }
 
@@ -124,6 +136,27 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
                     style: GoogleFonts.cairo(),
                     validator: (v) => v!.isEmpty ? 'يرجى إدخال النص' : null,
                   ),
+                  const SizedBox(height: 32),
+                  
+                  _buildSectionTitle('إجراءات إضافية (اختياري)', isDark),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _imageUrlController,
+                    decoration: _inputDecoration('رابط صورة (URL)', Icons.image_rounded, isDark),
+                    style: GoogleFonts.cairo(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _actionUrlController,
+                    decoration: _inputDecoration('رابط خارجي للفتح (URL)', Icons.link_rounded, isDark),
+                    style: GoogleFonts.cairo(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _routeController,
+                    decoration: _inputDecoration('توجيه داخلي (Route)', Icons.directions_rounded, isDark),
+                    style: GoogleFonts.cairo(),
+                  ),
                   const SizedBox(height: 40),
                   
                   SizedBox(
@@ -185,7 +218,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : AppColors.textPrimary),
                 ),
               ),
             ],

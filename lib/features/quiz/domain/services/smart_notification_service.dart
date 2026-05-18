@@ -71,6 +71,32 @@ class SmartNotificationService {
     );
   }
 
+  /// Shows a standard plain notification without quiz actions
+  Future<void> showPlainNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'general_notifications_channel',
+      'General Notifications',
+      channelDescription: 'Important updates and announcements',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await _notificationsPlugin.show(
+      id,
+      title,
+      body,
+      details,
+    );
+  }
+
   void _handleNotificationClick(NotificationResponse response) {
     if (response.actionId != null) {
       final parts = response.actionId!.split('_');

@@ -187,7 +187,14 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         children: [
           Icon(icon, size: 20, color: AppColors.primaryBlue),
           const SizedBox(width: 8),
-          Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+          Flexible(
+            child: Text(
+              title,
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryBlue, size: 20),

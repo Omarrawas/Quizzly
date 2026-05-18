@@ -13,6 +13,7 @@ class ReportsManagementScreen extends StatefulWidget {
 
 class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  bool _showResolved = false;
 
   @override
   Widget build(BuildContext context) {
@@ -28,64 +29,161 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _db.collection('question_reports').orderBy('createdAt', descending: true).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('حدث خطأ: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final reports = snapshot.data?.docs ?? [];
-
-          if (reports.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.3)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'لا توجد بلاغات حالياً',
-                    style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 16),
+      body: Column(
+        children: [
+          // Premium Segmented Control Tabs
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showResolved = false),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: !_showResolved ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: !_showResolved
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'البلاغات الواردة',
+                          style: GoogleFonts.cairo(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: !_showResolved ? AppColors.primaryBlue : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ],
-              ),
-            );
-          }
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showResolved = true),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _showResolved ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: _showResolved
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'البلاغات المعالجة',
+                          style: GoogleFonts.cairo(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: _showResolved ? AppColors.primaryBlue : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Stream Builder for Reports List
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _db.collection('question_reports').orderBy('createdAt', descending: true).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('حدث خطأ: ${snapshot.error}', style: GoogleFonts.cairo()));
+                }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: reports.length,
-            itemBuilder: (context, index) {
-              final report = reports[index].data() as Map<String, dynamic>;
-              final reportId = reports[index].id;
-              final timestamp = report['createdAt'] as Timestamp?;
-              final dateStr = timestamp != null 
-                  ? intl.DateFormat('yyyy/MM/dd - hh:mm a').format(timestamp.toDate())
-                  : 'غير متوفر';
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              return _ReportCard(
-                reportId: reportId,
-                questionId: report['questionId'] ?? 'N/A',
-                questionNumber: report['questionNumber']?.toString() ?? report['questionId'] ?? 'N/A',
-                questionText: report['questionText'] ?? '',
-                tagLabel: report['tagLabel'] ?? '',
-                topicNames: (report['topicNames'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-                type: report['type'] ?? 'غير محدد',
-                details: report['details'] ?? '',
-                userEmail: report['userEmail'] ?? 'anonymous',
-                date: dateStr,
-                status: report['status'] ?? 'pending',
-                onDelete: () => _deleteReport(reportId),
-                onResolve: () => _resolveReport(reportId),
-              );
-            },
-          );
-        },
+                final allReports = snapshot.data?.docs ?? [];
+                
+                // Client-side filter based on status
+                final reports = allReports.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final status = data['status'] ?? 'pending';
+                  final isResolved = status == 'resolved';
+                  return _showResolved ? isResolved : !isResolved;
+                }).toList();
+
+                if (reports.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _showResolved ? Icons.playlist_add_check_rounded : Icons.mark_email_read_outlined, 
+                          size: 64, 
+                          color: AppColors.textSecondary.withValues(alpha: 0.3)
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _showResolved ? 'لا توجد بلاغات معالجة' : 'لا توجد بلاغات واردة حالياً',
+                          style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: reports.length,
+                  itemBuilder: (context, index) {
+                    final report = reports[index].data() as Map<String, dynamic>;
+                    final reportId = reports[index].id;
+                    final timestamp = report['createdAt'] as Timestamp?;
+                    final dateStr = timestamp != null 
+                        ? intl.DateFormat('yyyy/MM/dd - hh:mm a').format(timestamp.toDate())
+                        : 'غير متوفر';
+
+                    return _ReportCard(
+                      reportId: reportId,
+                      questionId: report['questionId'] ?? 'N/A',
+                      questionNumber: report['questionNumber']?.toString() ?? report['questionId'] ?? 'N/A',
+                      questionText: report['questionText'] ?? '',
+                      tagLabel: report['tagLabel'] ?? '',
+                      topicNames: (report['topicNames'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+                      type: report['type'] ?? 'غير محدد',
+                      details: report['details'] ?? '',
+                      userEmail: report['userEmail'] ?? 'anonymous',
+                      date: dateStr,
+                      status: report['status'] ?? 'pending',
+                      onDelete: () => _deleteReport(reportId),
+                      onResolve: () => _resolveReport(reportId),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

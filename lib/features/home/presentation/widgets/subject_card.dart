@@ -5,12 +5,14 @@ class SubjectCard extends StatelessWidget {
   final Map<String, dynamic> subject;
   final VoidCallback onTap;
   final int index;
+  final bool showDragHandle;
 
   const SubjectCard({
     super.key,
     required this.subject,
     required this.onTap,
     this.index = 0,
+    this.showDragHandle = false,
   });
 
   @override
@@ -94,14 +96,41 @@ class SubjectCard extends StatelessWidget {
                     ),
                   ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
+                if (showDragHandle)
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '=',
+                            style: GoogleFonts.cairo(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.drag_handle_rounded, color: Colors.white, size: 18),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
                   ),
-                  child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
-                ),
               ],
             ),
             const SizedBox(height: 16),

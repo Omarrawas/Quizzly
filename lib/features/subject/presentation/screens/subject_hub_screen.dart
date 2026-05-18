@@ -258,6 +258,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       builder: (context, snapshot) {
         final sections = snapshot.data?.docs ?? [];
         bool showPractical = false;
+        bool showTheoretical = false;
 
         for (var doc in sections) {
           final data = doc.data() as Map<String, dynamic>;
@@ -265,7 +266,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           final isHidden = data['isHidden'] == true;
           if (name.contains('عملي') && !isHidden) {
             showPractical = true;
-            break;
+          }
+          if (name.contains('نظري') && !isHidden) {
+            showTheoretical = true;
           }
         }
 
@@ -319,14 +322,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             5,
             !_isActivated,
           ),
-          (
-            Icons.menu_book_rounded,
-            'تصفح الدروس',
-            const Color(0xFF8B5CF6),
-            _statsService.streamTopicsCount(widget.subjectId), // Using topic count as a proxy
-            6,
-            false, // Allow free users to enter and see free/locked lessons
-          ),
+          if (showTheoretical)
+            (
+              Icons.menu_book_rounded,
+              'تصفح الدروس',
+              const Color(0xFF8B5CF6),
+              _statsService.streamTopicsCount(widget.subjectId),
+              6,
+              false, // Allow free users to enter and see free/locked lessons
+            ),
         ];
 
         return Padding(

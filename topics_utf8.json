@@ -1,0 +1,312 @@
+﻿{
+    "documents":  [
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/90tKuDC9lR6CymgZRTYl",
+                          "fields":  {
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "sectionId":  {
+                                                           "stringValue":  "AmaJ1UWkLukLnVyTEMRA"
+                                                       },
+                                         "order":  {
+                                                       "integerValue":  "3"
+                                                   },
+                                         "type":  {
+                                                      "stringValue":  "chapter"
+                                                  },
+                                         "name":  {
+                                                      "stringValue":  "الفصل الثالث"
+                                                  },
+                                         "parentId":  {
+                                                          "nullValue":  null
+                                                      },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-04-27T16:43:27.870Z"
+                                                       },
+                                         "ancestors":  {
+                                                           "arrayValue":  {
+
+                                                                          }
+                                                       }
+                                     },
+                          "createTime":  "2026-04-27T16:43:27.892071Z",
+                          "updateTime":  "2026-04-27T16:54:41.539876Z"
+                      },
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/Nt4V1qBZagVQ8GQOQaqy",
+                          "fields":  {
+                                         "ancestors":  {
+                                                           "arrayValue":  {
+                                                                              "values":  [
+                                                                                             {
+                                                                                                 "stringValue":  "W0R4E1rPtsfBQ5s9zcpI"
+                                                                                             }
+                                                                                         ]
+                                                                          }
+                                                       },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-04-27T07:35:21.776Z"
+                                                       },
+                                         "parentId":  {
+                                                          "stringValue":  "W0R4E1rPtsfBQ5s9zcpI"
+                                                      },
+                                         "name":  {
+                                                      "stringValue":  "الدرس الثالث"
+                                                  },
+                                         "type":  {
+                                                      "stringValue":  "lesson"
+                                                  },
+                                         "order":  {
+                                                       "integerValue":  "3"
+                                                   },
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "sectionId":  {
+                                                           "stringValue":  "AmaJ1UWkLukLnVyTEMRA"
+                                                       }
+                                     },
+                          "createTime":  "2026-04-27T07:35:21.802805Z",
+                          "updateTime":  "2026-05-14T20:35:21.809514Z"
+                      },
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/OMaqiLt6R60KUqWly13h",
+                          "fields":  {
+                                         "type":  {
+                                                      "stringValue":  "chapter"
+                                                  },
+                                         "order":  {
+                                                       "integerValue":  "0"
+                                                   },
+                                         "sectionId":  {
+                                                           "stringValue":  "AmaJ1UWkLukLnVyTEMRA"
+                                                       },
+                                         "name":  {
+                                                      "stringValue":  "الفصل الاول"
+                                                  },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-04-23T20:19:20.695Z"
+                                                       },
+                                         "parentId":  {
+                                                          "nullValue":  null
+                                                      },
+                                         "description":  {
+                                                             "stringValue":  ""
+                                                         },
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "ancestors":  {
+                                                           "arrayValue":  {
+
+                                                                          }
+                                                       }
+                                     },
+                          "createTime":  "2026-04-23T20:19:20.709491Z",
+                          "updateTime":  "2026-04-27T16:54:01.304288Z"
+                      },
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/Q2bqf004rFa8j3dKG1VH",
+                          "fields":  {
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "updatedAt":  {
+                                                           "timestampValue":  "2026-05-15T23:46:09.791Z"
+                                                       },
+                                         "isFree":  {
+                                                        "booleanValue":  true
+                                                    },
+                                         "subType":  {
+                                                         "stringValue":  "lesson"
+                                                     },
+                                         "imageUrls":  {
+                                                           "arrayValue":  {
+
+                                                                          }
+                                                       },
+                                         "title":  {
+                                                       "stringValue":  "الاكسدة والارجاع"
+                                                   },
+                                         "videoUrl":  {
+                                                          "stringValue":  "https://youtu.be/VYesfjzglgg?si=lRwlDCSkhkZDDQk7"
+                                                      },
+                                         "description":  {
+                                                             "stringValue":  "تسمية المركبات العضوية تعتمد بشكل أساسي على نظام الاتحاد الدولي للكيمياء البحتة والتطبيقية (IUPAC)، والذي يهدف إلى إعطاء كل مركب اسماً فريداً بناءً على بنيته الجزيئية. تشمل الخطوات تحديد أطول سلسلة كربونية، ترقيمها لإعطاء المجموعات الوظيفية والتفرعات أقل أرقام، وتحديد نوع الهيدروكربون (ألكان، ألكين، ألكاين).قواعد تسمية المركبات العضوية (IUPAC):تحديد السلسلة الكربونية الأم: يتم اختيار أطول سلسلة كربونية متصلة تحتوي على المجموعة الوظيفية الرئيسية.ترقيم السلسلة: يتم ترقيم ذرات الكربون في السلسلة بدءاً من الطرف الأقرب للمجموعة الوظيفية أو الرابطة المضاعفة (ثنائية أو ثلاثية)، وإذا لم توجد، فالأقرب للتفرعات.تحديد التفرعات (المجموعات البديلة): يتم ذكر التفرعات أبجدياً مع تحديد رقم ذرة الكربون المرتبطة بها (مثلاً: 2-ميثيل).كتابة الاسم النهائي: يتم تجميع الاسم بناءً على: (رقم التفرع - اسم التفرع) + (اسم السلسلة الأم).أمثلة على التسمية:الألكانات (روابط أحادية): تنتهي بـ \"ان\". أمثلة: \\(CH_{4}\\) (ميثان)، \\(C_{2}H_{6}\\) (إيثان)، \\(C_{3}H_{8}\\) (بروبان).الألكينات (روابط ثنائية): تنتهي بـ \"ين\". مثال: \\(C_{2}H_{4}\\) (إيثين).الألكاينات (روابط ثلاثية): تنتهي بـ \"اين\". مثال: \\(C_{2}H_{2}\\) (إيثاين).الكحولات: تنتهي بـ \"ول\" (مثل: ميثانول).الألدهيدات: تنتهي بـ \"ال\".الكيتونات: تنتهي بـ \"ون\"."
+                                                         },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-05-14T22:22:51.102Z"
+                                                       },
+                                         "order":  {
+                                                       "integerValue":  "0"
+                                                   },
+                                         "type":  {
+                                                      "stringValue":  "practical"
+                                                  },
+                                         "sectionId":  {
+                                                           "stringValue":  "to9u8YTHnwNLpRI1u41W"
+                                                       },
+                                         "mediaType":  {
+                                                           "stringValue":  "video"
+                                                       }
+                                     },
+                          "createTime":  "2026-05-14T22:22:51.136748Z",
+                          "updateTime":  "2026-05-15T23:46:09.819459Z"
+                      },
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/W0R4E1rPtsfBQ5s9zcpI",
+                          "fields":  {
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "sectionId":  {
+                                                           "stringValue":  "AmaJ1UWkLukLnVyTEMRA"
+                                                       },
+                                         "type":  {
+                                                      "stringValue":  "chapter"
+                                                  },
+                                         "order":  {
+                                                       "integerValue":  "2"
+                                                   },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-04-24T17:33:48.250Z"
+                                                       },
+                                         "parentId":  {
+                                                          "nullValue":  null
+                                                      },
+                                         "name":  {
+                                                      "stringValue":  "الفصل الثاني"
+                                                  },
+                                         "ancestors":  {
+                                                           "arrayValue":  {
+
+                                                                          }
+                                                       }
+                                     },
+                          "createTime":  "2026-04-24T17:33:48.283098Z",
+                          "updateTime":  "2026-04-27T16:54:17.149240Z"
+                      },
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/ZSgkEPLtR8RoJCemCc2o",
+                          "fields":  {
+                                         "ancestors":  {
+                                                           "arrayValue":  {
+                                                                              "values":  [
+                                                                                             {
+                                                                                                 "stringValue":  "OMaqiLt6R60KUqWly13h"
+                                                                                             }
+                                                                                         ]
+                                                                          }
+                                                       },
+                                         "lastUpdated":  {
+                                                             "stringValue":  "2026-05-16"
+                                                         },
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "parentId":  {
+                                                          "stringValue":  "OMaqiLt6R60KUqWly13h"
+                                                      },
+                                         "isFree":  {
+                                                        "booleanValue":  true
+                                                    },
+                                         "name":  {
+                                                      "stringValue":  "الدرس الاول"
+                                                  },
+                                         "imageUrls":  {
+                                                           "arrayValue":  {
+                                                                              "values":  [
+                                                                                             {
+                                                                                                 "stringValue":  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpclJPyr5CJGWnbeE74kbf2mpZ_QvYLQf2zQ\u0026s"
+                                                                                             },
+                                                                                             {
+                                                                                                 "stringValue":  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRe354ka0oebJwGEsg0FJ-XZRc1olv9OZ_ztQ\u0026s"
+                                                                                             }
+                                                                                         ]
+                                                                          }
+                                                       },
+                                         "videoUrl":  {
+                                                          "stringValue":  "https://youtu.be/VNURJVhcMQI?si=O9VPuU16WX_-XdjR"
+                                                      },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-04-24T16:35:16.586Z"
+                                                       },
+                                         "description":  {
+                                                             "stringValue":  "\u003cp\u003e\u003cstrong\u003eتسمية المركبات العضوية تعتمد بشكل أساسي على نظام الاتحاد الدولي للكيمياء البحتة والتطبيقية (IUPAC)،\u003c/strong\u003e والذي يهدف إلى إعطاء كل مركب اسماً فريداً بناءً على بنيته الجزيئية. تشمل الخطوات تحديد أطول سلسلة كربونية، ترقيمها لإعطاء المجموعات الوظيفية والتفرعات أقل أرقام، وتحديد نوع الهيدروكربون (ألكان، ألكين، ألكاين).قواعد تسمية المركبات العضوية (IUPAC):تحديد السلسلة الكربونية الأم: يتم اختيار أطول سلسلة كربونية متصلة تحتوي على المجموعة الوظيفية الرئيسية.ترقيم السلسلة: يتم ترقيم ذرات الكربون في السلسلة بدءاً من الطرف الأقرب للمجموعة الوظيفية أو الرابطة المضاعفة (ثنائية أو ثلاثية)، وإذا لم توجد، فالأقرب للتفرعات.تحديد التفرعات (المجموعات البديلة): يتم ذكر التفرعات أبجدياً مع تحديد رقم ذرة الكربون المرتبطة بها (مثلاً: 2-ميثيل).كتابة الاسم النهائي: يتم تجميع الاسم بناءً على: (رقم التفرع - اسم التفرع) + (اسم السلسلة الأم).أمثلة على التسمية:الألكانات (روابط أحادية): تنتهي بـ \u0026quot;ان\u0026quot;. أمثلة:  (ميثان)،  (إيثان)،  (بروبان).الألكينات (روابط ثنائية): تنتهي بـ \u0026quot;ين\u0026quot;. مثال:  (إيثين).الألكاينات (روابط ثلاثية): تنتهي بـ \u0026quot;اين\u0026quot;. مثال:  (إيثاين).الكحولات: تنتهي بـ \u0026quot;ول\u0026quot; (مثل: ميثانول).الألدهيدات: تنتهي بـ \u0026quot;ال\u0026quot;.الكيتونات: تنتهي بـ \u0026quot;ون\u0026quot;.\u003c/p\u003e"
+                                                         },
+                                         "sectionId":  {
+                                                           "stringValue":  "AmaJ1UWkLukLnVyTEMRA"
+                                                       },
+                                         "mediaType":  {
+                                                           "stringValue":  "video"
+                                                       },
+                                         "order":  {
+                                                       "integerValue":  "0"
+                                                   },
+                                         "type":  {
+                                                      "stringValue":  "lesson"
+                                                  }
+                                     },
+                          "createTime":  "2026-04-24T16:35:16.607952Z",
+                          "updateTime":  "2026-05-15T23:46:58.345828Z"
+                      },
+                      {
+                          "name":  "projects/quizzly-7404c/databases/(default)/documents/topics/p6CSetmjsVXkzPDpx928",
+                          "fields":  {
+                                         "lastUpdated":  {
+                                                             "stringValue":  "2026-05-16"
+                                                         },
+                                         "ancestors":  {
+                                                           "arrayValue":  {
+                                                                              "values":  [
+                                                                                             {
+                                                                                                 "stringValue":  "OMaqiLt6R60KUqWly13h"
+                                                                                             }
+                                                                                         ]
+                                                                          }
+                                                       },
+                                         "subjectId":  {
+                                                           "stringValue":  "hoIgPJpt7ZQlLlNKSGav"
+                                                       },
+                                         "name":  {
+                                                      "stringValue":  "الدرس الثاني"
+                                                  },
+                                         "parentId":  {
+                                                          "stringValue":  "OMaqiLt6R60KUqWly13h"
+                                                      },
+                                         "isFree":  {
+                                                        "booleanValue":  false
+                                                    },
+                                         "imageUrls":  {
+                                                           "arrayValue":  {
+
+                                                                          }
+                                                       },
+                                         "description":  {
+                                                             "stringValue":  ""
+                                                         },
+                                         "createdAt":  {
+                                                           "timestampValue":  "2026-04-24T21:11:28.300Z"
+                                                       },
+                                         "videoUrl":  {
+                                                          "stringValue":  ""
+                                                      },
+                                         "mediaType":  {
+                                                           "stringValue":  "text"
+                                                       },
+                                         "sectionId":  {
+                                                           "stringValue":  "AmaJ1UWkLukLnVyTEMRA"
+                                                       },
+                                         "type":  {
+                                                      "stringValue":  "lesson"
+                                                  },
+                                         "order":  {
+                                                       "integerValue":  "1"
+                                                   }
+                                     },
+                          "createTime":  "2026-04-24T21:11:28.315728Z",
+                          "updateTime":  "2026-05-15T23:47:09.997878Z"
+                      }
+                  ]
+}

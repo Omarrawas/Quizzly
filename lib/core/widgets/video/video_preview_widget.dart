@@ -44,6 +44,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
   bool _isYoutube = false;
   bool _hasStarted = false;
   bool _isInitialized = false;
+  bool _isFullScreen = false;
   final GlobalKey _youtubePlayerKey = GlobalKey();
 
   late AnimationController _pulseController;
@@ -185,8 +186,9 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
     }
   }
 
-  void _enterFullScreen() {
-    Navigator.of(context).push(
+  void _enterFullScreen() async {
+    setState(() => _isFullScreen = true);
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FullScreenVideoPage(
           isYoutube: _isYoutube,
@@ -198,6 +200,9 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
         ),
       ),
     );
+    if (mounted) {
+      setState(() => _isFullScreen = false);
+    }
   }
 
   String get _thumbnailUrl =>
@@ -221,7 +226,14 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
         final bool isLandscape = orientation == Orientation.landscape;
 
         Widget playerWidget;
-        if (_isYoutube && !useExternalYoutube && _youtubeController != null) {
+        if (_isFullScreen) {
+          playerWidget = Container(
+            color: Colors.black,
+            child: const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryBlue),
+            ),
+          );
+        } else if (_isYoutube && !useExternalYoutube && _youtubeController != null) {
           playerWidget = Center(
             child: AspectRatio(
               aspectRatio: 16 / 9,
@@ -469,11 +481,7 @@ class _FullScreenVideoPage extends StatelessWidget {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
-        if (isYoutube && youtubeController != null) {
-          youtubeController!.pause();
-        } else if (videoController != null) {
-          videoController!.pause();
-        }
+        // Let it continue playing seamlessly on exit fullscreen
       },
       child: Scaffold(
         backgroundColor: Colors.black,

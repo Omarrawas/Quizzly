@@ -322,6 +322,29 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       }).toList();
       _gamificationService.processQuizAttempt(userId, mappedAnswers, _questions);
 
+      // Compile mistakes for smart history logging
+      final List<Map<String, dynamic>> mistakes = [];
+      for (var a in _userAnswers) {
+        if (!(a['isCorrect'] as bool)) {
+          try {
+            final q = _questions.firstWhere((element) => element.id == a['questionId']);
+            String? correctOptText;
+            if (q.options != null && q.options!.isNotEmpty) {
+              final correctOpt = q.options!.firstWhere(
+                (o) => q.correctOptionIds.contains(o.id),
+                orElse: () => q.options!.first,
+              );
+              correctOptText = correctOpt.text;
+            }
+            mistakes.add({
+              'questionText': q.text,
+              'correctOption': correctOptText ?? '',
+              'explanation': q.explanation ?? '',
+            });
+          } catch (_) {}
+        }
+      }
+
       FirebaseFirestore.instance.collection('practice_sessions').add({
         'userId': userId,
         'subjectId': widget.subjectId,
@@ -331,6 +354,8 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         'wrongAnswers': _wrong,
         'topicIds': widget.topicIds,
         'topicNames': widget.topicNames,
+        'difficulty': widget.selectedDifficulty?.name,
+        'mistakes': mistakes,
       });
     }
 

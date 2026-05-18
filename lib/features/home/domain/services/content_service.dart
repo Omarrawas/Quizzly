@@ -71,6 +71,7 @@ class ContentService {
       'activatedAt': FieldValue.serverTimestamp(),
       'activationType': activationCode != null ? 'code' : 'free',
       'activationCode': activationCode, 
+      'price': 0, // Add price field to satisfy firestore rules (price >= 0)
     });
   }
 

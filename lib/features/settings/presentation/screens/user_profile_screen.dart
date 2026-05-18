@@ -21,12 +21,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? _selectedUniversityId;
   String? _selectedCollegeId;
   String? _selectedDepartmentId;
-  String? _selectedYearId;
 
   String _universityName = '';
   String _collegeName = '';
   String _departmentName = '';
-  String _yearName = '';
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -54,12 +52,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _selectedUniversityId = defaults['universityId'];
           _selectedCollegeId = defaults['collegeId'];
           _selectedDepartmentId = defaults['departmentId'];
-          _selectedYearId = defaults['yearId'];
 
           _universityName = defaults['universityName'] ?? '';
           _collegeName = defaults['collegeName'] ?? '';
           _departmentName = defaults['departmentName'] ?? '';
-          _yearName = defaults['yearName'] ?? '';
           
           _isLoading = false;
         });
@@ -94,8 +90,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           'collegeName': _collegeName,
           'departmentId': _selectedDepartmentId,
           'departmentName': _departmentName,
-          'yearId': _selectedYearId,
-          'yearName': _yearName,
         }
       };
 
@@ -194,8 +188,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               _collegeName = '';
                               _selectedDepartmentId = null;
                               _departmentName = '';
-                              _selectedYearId = null;
-                              _yearName = '';
                             });
                           },
                           isDark: isDark,
@@ -218,8 +210,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 _collegeName = doc['name'];
                                 _selectedDepartmentId = null;
                                 _departmentName = '';
-                                _selectedYearId = null;
-                                _yearName = '';
                               });
                             },
                             isDark: isDark,
@@ -241,29 +231,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               setState(() {
                                 _selectedDepartmentId = doc.id;
                                 _departmentName = doc['name'];
-                                _selectedYearId = null;
-                                _yearName = '';
-                              });
-                            },
-                            isDark: isDark,
-                          ),
-                          isDark: isDark,
-                        ),
-                      ],
-
-                      if (_selectedDepartmentId != null) ...[
-                        const SizedBox(height: 12),
-                        _buildSelectionTile(
-                          label: 'السنة الدراسية',
-                          value: _yearName.isEmpty ? 'اختر السنة' : _yearName,
-                          icon: Icons.calendar_today_rounded,
-                          onTap: () => _showHierarchyPicker(
-                            title: 'اختر السنة',
-                            stream: contentService.getYears(_selectedDepartmentId!),
-                            onSelected: (doc) {
-                              setState(() {
-                                _selectedYearId = doc.id;
-                                _yearName = doc['name'];
                               });
                             },
                             isDark: isDark,

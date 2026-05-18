@@ -33,6 +33,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
 
   late String selectedTypeId;
   late TextEditingController textController;
+  late TextEditingController translationTextController;
   late TextEditingController essayAnswerController;
   late TextEditingController explanationController;
   late TextEditingController explanationImageUrlController;
@@ -63,6 +64,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     
     selectedTypeId = currentData?['type'] ?? 'mcq';
     textController = TextEditingController(text: currentData?['text']);
+    translationTextController = TextEditingController(text: currentData?['translationText'] ?? '');
     essayAnswerController = TextEditingController(text: currentData?['essayAnswer']);
     explanationController = TextEditingController(text: currentData?['explanation']);
     explanationImageUrlController = TextEditingController(text: currentData?['explanationImageUrl']);
@@ -165,6 +167,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   @override
   void dispose() {
     textController.dispose();
+    translationTextController.dispose();
     essayAnswerController.dispose();
     explanationController.dispose();
     explanationImageUrlController.dispose();
@@ -305,6 +308,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     
     final Map<String, dynamic> questionData = {
       'text': textController.text.trim(),
+      'translationText': translationTextController.text.trim(),
       'type': selectedTypeId == 'checkbox' ? 'mcq' : selectedTypeId,
       'subjectId': widget.subjectId,
       'explanation': explanationController.text.trim(),
@@ -351,6 +355,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -418,7 +423,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                  Text('نص السؤال', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                      Text('نص السؤال', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   RichTextEditor(
                     initialHtml: textController.text,
@@ -427,6 +432,26 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     onContentChanged: (html) {
                       textController.text = html;
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  Text('ترجمة السؤال (اختياري)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: translationTextController,
+                    decoration: InputDecoration(
+                      hintText: 'ترجمة نص السؤال بالعربية...',
+                      hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 13),
+                      prefixIcon: const Icon(Icons.translate_rounded, color: AppColors.primaryBlue),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey[50],
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
+                      ),
+                    ),
+                    style: GoogleFonts.cairo(fontSize: 14),
+                    maxLines: 3,
                   ),
                 ],
               ),
