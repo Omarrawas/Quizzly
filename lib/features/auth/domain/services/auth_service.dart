@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -112,38 +113,70 @@ class AuthService extends ChangeNotifier {
   Future<void> _updateDeviceInfo(String uid) async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-      String deviceModel = 'Unknown';
-      String deviceOS = 'Unknown';
-      String deviceVersion = 'Unknown';
+      Map<String, dynamic> deviceInfoMap = {
+        'lastLogin': FieldValue.serverTimestamp(),
+      };
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      deviceInfoMap['appVersion'] = "${packageInfo.version} (${packageInfo.buildNumber})";
+
+      final currentUser = _auth.currentUser;
+      if (currentUser != null && currentUser.email != null) {
+        deviceInfoMap['email'] = currentUser.email;
+      }
 
       if (kIsWeb) {
         final webBrowserInfo = await deviceInfo.webBrowserInfo;
-        deviceModel = webBrowserInfo.browserName.toString();
-        deviceOS = 'Web';
-        deviceVersion = webBrowserInfo.appVersion ?? 'Unknown';
+        deviceInfoMap['platform'] = 'web';
+        deviceInfoMap['deviceName'] = webBrowserInfo.browserName.toString();
+        deviceInfoMap['deviceModel'] = 'Web Browser';
+        deviceInfoMap['brand'] = 'Web';
+        deviceInfoMap['system'] = webBrowserInfo.appVersion ?? 'Unknown';
+        deviceInfoMap['uniqueId'] = 'web_session';
+        deviceInfoMap['androidId'] = 'web_session';
+        deviceInfoMap['fingerprint'] = 'web|browser';
+        deviceInfoMap['buildId'] = 'web_build';
       } else if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
-        deviceModel = '${androidInfo.brand} ${androidInfo.model}';
-        deviceOS = 'Android';
-        deviceVersion = androidInfo.version.release;
+        deviceInfoMap['platform'] = 'android';
+        deviceInfoMap['deviceName'] = androidInfo.device;
+        deviceInfoMap['deviceModel'] = androidInfo.model;
+        deviceInfoMap['brand'] = androidInfo.brand;
+        deviceInfoMap['system'] = 'Android ${androidInfo.version.release}';
+        deviceInfoMap['uniqueId'] = androidInfo.id;
+        deviceInfoMap['androidId'] = androidInfo.id;
+        deviceInfoMap['fingerprint'] = "${androidInfo.id}|${androidInfo.model}|${androidInfo.brand}|Android";
+        deviceInfoMap['buildId'] = androidInfo.display;
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfo.iosInfo;
-        deviceModel = iosInfo.utsname.machine;
-        deviceOS = 'iOS';
-        deviceVersion = iosInfo.systemVersion;
+        deviceInfoMap['platform'] = 'ios';
+        deviceInfoMap['deviceName'] = iosInfo.name;
+        deviceInfoMap['deviceModel'] = iosInfo.model;
+        deviceInfoMap['brand'] = 'Apple';
+        deviceInfoMap['system'] = 'iOS ${iosInfo.systemVersion}';
+        deviceInfoMap['uniqueId'] = iosInfo.identifierForVendor ?? 'unknown_ios';
+        deviceInfoMap['androidId'] = iosInfo.identifierForVendor ?? 'unknown_ios';
+        deviceInfoMap['fingerprint'] = "${iosInfo.identifierForVendor}|${iosInfo.model}|Apple|iOS";
+        deviceInfoMap['buildId'] = 'ios_build';
       } else if (Platform.isWindows) {
         final windowsInfo = await deviceInfo.windowsInfo;
-        deviceModel = 'PC';
-        deviceOS = 'Windows';
-        deviceVersion = '${windowsInfo.majorVersion}.${windowsInfo.minorVersion}';
+        deviceInfoMap['platform'] = 'windows';
+        deviceInfoMap['deviceName'] = windowsInfo.computerName;
+        deviceInfoMap['deviceModel'] = 'PC';
+        deviceInfoMap['brand'] = 'Windows PC';
+        deviceInfoMap['system'] = 'Windows ${windowsInfo.majorVersion}.${windowsInfo.minorVersion}';
+        deviceInfoMap['uniqueId'] = 'windows_pc';
+        deviceInfoMap['androidId'] = 'windows_pc';
+        deviceInfoMap['fingerprint'] = "windows|PC";
+        deviceInfoMap['buildId'] = 'windows_build';
       }
 
-      await _firestore.collection('users').doc(uid).set({
-        'deviceModel': deviceModel,
-        'deviceOS': deviceOS,
-        'deviceVersion': deviceVersion,
-        'lastLogin': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      // Backward compatibility fields
+      deviceInfoMap['deviceModel'] = deviceInfoMap['deviceModel'];
+      deviceInfoMap['deviceOS'] = deviceInfoMap['platform'];
+      deviceInfoMap['deviceVersion'] = deviceInfoMap['system'];
+
+      await _firestore.collection('users').doc(uid).set(deviceInfoMap, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Error getting device info: $e');
     }

@@ -249,7 +249,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: !_isSpeedMode ? SafeArea(child: _buildNavigationFooter(isDark)) : null,
+      bottomNavigationBar: !_isSpeedMode ? _buildNavigationFooter(isDark) : null,
     );
   }
 
@@ -380,50 +380,70 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   Widget _buildNavigationFooter(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black12, 
-            blurRadius: 10, 
-            offset: const Offset(0, -2)
-          )
-        ],
-        border: isDark ? const Border(top: BorderSide(color: Colors.white10)) : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (_currentIndex > 0)
-            OutlinedButton(
-              onPressed: () => setState(() => _currentIndex--),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isDark ? Colors.white70 : AppColors.primaryBlue,
-                side: isDark ? const BorderSide(color: Colors.white24) : null,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text('السابق', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black12, 
+              blurRadius: 10, 
+              offset: const Offset(0, -2)
             )
-          else
-            const SizedBox(width: 80),
-          
-          ElevatedButton(
-            onPressed: _handleNext,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(
-              _currentIndex < _sessionQuestions.length - 1 ? 'التالي' : 'تسليم الاختبار',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ],
+          border: Border(
+            top: BorderSide(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
+              width: 1,
             ),
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_currentIndex > 0)
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _currentIndex--),
+                icon: Icon(Icons.arrow_back_ios_rounded, size: 14, color: isDark ? Colors.white70 : AppColors.primaryBlue),
+                label: Text('السابق', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white70 : AppColors.primaryBlue,
+                  side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              )
+            else
+              const SizedBox(width: 110),
+            
+            ElevatedButton(
+              onPressed: _handleNext,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue,
+                foregroundColor: isDark ? Colors.black : Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _currentIndex < _sessionQuestions.length - 1 ? 'التالي' : 'تسليم الاختبار',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _currentIndex < _sessionQuestions.length - 1 ? Icons.arrow_forward_ios_rounded : Icons.check_circle_rounded,
+                    size: 14,
+                    color: isDark ? Colors.black : Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

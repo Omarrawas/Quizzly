@@ -7,6 +7,7 @@ import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -285,6 +286,26 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                 ),
               ),
+              const SizedBox(height: 12),
+              
+              // ── Sham Cash Purchase Button ──
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showShamCashOptions(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0EA5E9),
+                    side: const BorderSide(color: Color(0xFF0EA5E9), width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.account_balance_wallet_rounded, size: 22),
+                  label: Text(
+                    'الشراء عبر شام كاش',
+                    style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -462,5 +483,119 @@ class _WalletScreenState extends State<WalletScreen> {
         );
       },
     );
+  }
+
+  void _showShamCashOptions(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'الشراء عبر شام كاش',
+              style: GoogleFonts.cairo(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'اختر وسيلة التواصل المفضلة للتواصل مع بوت شام كاش وتفعيل حسابك تلقائياً:',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _launchURL('https://t.me/ShamCashBot');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0088CC),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.telegram_rounded, size: 24),
+              label: Text(
+                'التواصل عبر بوت تلغرام',
+                style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _launchURL('https://wa.me/963955555555');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.chat_rounded, size: 24),
+              label: Text(
+                'التواصل عبر واتساب',
+                style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch $urlString';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر فتح الرابط: $urlString', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

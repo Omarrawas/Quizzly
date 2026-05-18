@@ -9,6 +9,8 @@ import 'package:quizzly/features/admin/presentation/screens/reports_management_s
 import 'package:quizzly/features/admin/presentation/screens/user_management_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/financial_stats_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/send_notification_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/manage_socials_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/manage_sales_locations_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -400,6 +402,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ReportsManagementScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.share_rounded,
+              title: 'ضبط وسائل التواصل الاجتماعي',
+              subtitle: 'تعديل روابط تليجرام، واتساب، فيسبوك، وبوت الدعم',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManageSocialsScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.location_on_rounded,
+              title: 'إدارة أماكن بيع الأكواد',
+              subtitle: 'تعديل وإضافة المحافظات ومراكز بيع الرصيد المعتمدة',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManageSalesLocationsScreen(),
                   ),
                 );
               },

@@ -14,7 +14,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
 import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
+import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
+import 'package:quizzly/features/training/presentation/screens/training_sessions_screen.dart';
+import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
+import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +30,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isSyncing = false;
   bool _hasNewNotification = false;
+  bool _contentUpdateAvailable = false;
+  int _currentTabIndex = 0;
   StreamSubscription? _notifSubscription;
+  Timer? _contentUpdateTimer;
 
   // Sorting state variables
   String _sortType = 'newest';
@@ -39,8 +46,67 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadSortingSettings();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthService>().addListener(_authListener);
+      _initContentUpdateCheck();
     });
     _checkNewNotifications();
+  }
+
+  Future<void> _initContentUpdateCheck() async {
+    // Run initial check
+    await _checkContentUpdates();
+
+    // Setup periodic checking based on user settings
+    if (mounted) {
+      final settings = context.read<SettingsService>();
+      final intervalMinutes = settings.autoUpdateInterval;
+      
+      _contentUpdateTimer?.cancel();
+      _contentUpdateTimer = Timer.periodic(Duration(minutes: intervalMinutes), (timer) {
+        _checkContentUpdates();
+      });
+    }
+  }
+
+  Future<void> _checkContentUpdates() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastSyncedStr = prefs.getString('last_synced_content_time');
+      if (lastSyncedStr == null) {
+        // If the user has never synced before, treat current state as up-to-date initially
+        await prefs.setString('last_synced_content_time', DateTime.now().toIso8601String());
+        return;
+      }
+
+      final lastSyncedTime = DateTime.parse(lastSyncedStr);
+
+      // Query server directly to bypass local cached document state
+      final doc = await FirebaseFirestore.instance
+          .collection('settings')
+          .doc('content_metadata')
+          .get(const GetOptions(source: Source.server));
+
+      if (doc.exists) {
+        final lastUpdateTimestamp = doc.data()?['lastContentUpdate'] as Timestamp?;
+        if (lastUpdateTimestamp != null) {
+          final lastUpdateTime = lastUpdateTimestamp.toDate();
+          if (lastUpdateTime.isAfter(lastSyncedTime)) {
+            if (mounted) {
+              setState(() {
+                _contentUpdateAvailable = true;
+              });
+            }
+          }
+        }
+      } else {
+        // Automatically create metadata doc if it does not exist
+        await FirebaseFirestore.instance.collection('settings').doc('content_metadata').set({
+          'lastContentUpdate': FieldValue.serverTimestamp(),
+          'description': 'Quizzly content metadata for tracking offline version updates',
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking content updates: $e');
+    }
   }
 
   Future<void> _loadSortingSettings() async {
@@ -161,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _notifSubscription?.cancel();
+    _contentUpdateTimer?.cancel();
     context.read<AuthService>().removeListener(_authListener);
     super.dispose();
   }
@@ -182,7 +249,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       await contentService.syncOfflineData(authService.user!.uid);
+      
+      // Update local last synced time
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_synced_content_time', DateTime.now().toIso8601String());
+
       if (mounted) {
+        setState(() {
+          _contentUpdateAvailable = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -211,39 +286,303 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildTabWrapper(Widget child) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (mounted) {
+          setState(() {
+            _currentTabIndex = 0;
+          });
+        }
+      },
+      child: child,
+    );
+  }
+
+  Widget _buildPremiumBottomBar(bool isDark) {
+    final activeColor = isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1); // Lavender / Indigo
+    final inactiveColor = isDark ? Colors.white38 : Colors.grey.shade500;
+    final backgroundColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBottomTabItem(
+                index: 0,
+                label: 'الرئيسية',
+                icon: Icons.home_outlined,
+                selectedIcon: Icons.home_rounded,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                isDark: isDark,
+              ),
+              _buildBottomTabItem(
+                index: 1,
+                label: 'المواد',
+                icon: Icons.school_outlined,
+                selectedIcon: Icons.school_rounded,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                isDark: isDark,
+              ),
+              _buildBottomTabItem(
+                index: 2,
+                label: 'الاختبارات',
+                icon: Icons.assignment_outlined,
+                selectedIcon: Icons.assignment_rounded,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                isDark: isDark,
+              ),
+              _buildBottomTabItem(
+                index: 3,
+                label: 'حسابي',
+                icon: Icons.person_outline_rounded,
+                selectedIcon: Icons.person_rounded,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                isDark: isDark,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomTabItem({
+    required int index,
+    required String label,
+    required IconData icon,
+    required IconData selectedIcon,
+    required Color activeColor,
+    required Color inactiveColor,
+    required bool isDark,
+  }) {
+    final isSelected = _currentTabIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentTabIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? selectedIcon : icon,
+              color: isSelected ? activeColor : inactiveColor,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final contentService = context.read<ContentService>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: const AppDrawer(),
-      appBar: _buildAppBar(),
-      body: authService.user == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildSubHeaderSection(authService.user!.uid),
-                Expanded(
-                  child: StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: contentService.getUserActiveSubjects(
-                      authService.user!.uid,
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+    if (authService.user == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-                      final subjects = snapshot.data ?? [];
+    Widget currentBody;
+    PreferredSizeWidget? currentAppBar;
+    Widget? currentDrawer;
+    Widget? currentFAB;
 
-                      return _buildBody(subjects);
-                    },
+    switch (_currentTabIndex) {
+      case 0:
+        currentBody = Column(
+          children: [
+            _buildSubHeaderSection(authService.user!.uid),
+            if (_contentUpdateAvailable)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFF7ED), Color(0xFFFDF2E9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFFFEDD5),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEA580C).withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ],
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEA580C).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.info_rounded,
+                        color: Color(0xFFEA580C),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '📢 يتوفر تحديث جديد للمناهج والأسئلة! يرجى الضغط على زر التحديث الدائري البرتقالي في الأعلى للحصول عليه.',
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFC2410C),
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: contentService.getUserActiveSubjects(
+                  authService.user!.uid,
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final subjects = snapshot.data ?? [];
+
+                  return _buildBody(subjects);
+                },
+              ),
             ),
-      floatingActionButton: _buildFAB(),
+          ],
+        );
+        currentAppBar = _buildAppBar();
+        currentDrawer = const AppDrawer();
+        currentFAB = _buildFAB();
+        break;
+      case 1:
+        currentBody = _buildTabWrapper(
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: contentService.getUserActiveSubjects(authService.user!.uid),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              
+              final activeSubjects = snapshot.data ?? [];
+              if (activeSubjects.isEmpty) {
+                return const SubjectSelectionScreen();
+              }
+              
+              var selectedSubject = activeSubjects.first;
+              if (_lastOpenedSubjectId != null) {
+                final found = activeSubjects.any((s) => s['id'] == _lastOpenedSubjectId);
+                if (found) {
+                  selectedSubject = activeSubjects.firstWhere((s) => s['id'] == _lastOpenedSubjectId);
+                }
+              }
+              
+              return SubjectHubScreen(
+                subjectId: selectedSubject['id'] as String,
+                subjectName: selectedSubject['name'] as String,
+              );
+            },
+          ),
+        );
+        break;
+      case 2:
+        currentBody = _buildTabWrapper(const TrainingSessionsScreen());
+        break;
+      case 3:
+        currentBody = _buildTabWrapper(const UserProfileScreen());
+        break;
+      default:
+        currentBody = const SizedBox.shrink();
+    }
+
+    return PopScope(
+      canPop: _currentTabIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentTabIndex != 0) {
+          setState(() {
+            _currentTabIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        drawer: currentDrawer,
+        appBar: currentAppBar,
+        body: currentBody,
+        floatingActionButton: currentFAB,
+        bottomNavigationBar: _buildPremiumBottomBar(isDark),
+      ),
     );
   }
 
@@ -388,41 +727,50 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Balance Pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: Colors.green,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'الرصيد: $balance ل.س',
-                  style: GoogleFonts.cairo(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white70 : AppColors.textPrimary,
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WalletScreen()),
+              );
+            },
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
+                ],
+                border: Border.all(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  width: 1,
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: Colors.green,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'الرصيد: $balance ل.س',
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white70 : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -670,8 +1018,362 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
         ),
+        SliverToBoxAdapter(child: _buildStatsSection()),
+        SliverToBoxAdapter(child: _buildLatestExamsSection(context)),
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
+    );
+  }
+
+  Widget _buildStatsSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Row(
+            children: [
+              // 1. Streak Card
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Fire Icon
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.local_fire_department_rounded,
+                          color: Color(0xFFEF4444),
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Number
+                      Text(
+                        '5',
+                        style: GoogleFonts.inter(
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Text
+                      Text(
+                        'أيام متتالية',
+                        style: GoogleFonts.cairo(
+                          color: isDark ? Colors.white60 : AppColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // 2. Curriculum Completion Card
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Progress Ring
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 54,
+                            height: 54,
+                            child: CircularProgressIndicator(
+                              value: 0.75,
+                              strokeWidth: 5.5,
+                              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey[200]!,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5F5DFA)),
+                            ),
+                          ),
+                          Text(
+                            '75%',
+                            style: GoogleFonts.inter(
+                              color: isDark ? Colors.white : AppColors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Label Title
+                      Text(
+                        'إكمال المنهج',
+                        style: GoogleFonts.cairo(
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Subtitle
+                      Text(
+                        'بقي 3 فصول فقط',
+                        style: GoogleFonts.cairo(
+                          color: isDark ? Colors.white30 : Colors.grey[400],
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLatestExamsSection(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final List<Map<String, dynamic>> exams = [
+      {
+        'title': 'الروابط الكيميائية',
+        'difficulty': 'سهل',
+        'difficultyColor': const Color(0xFF10B981),
+        'questions': 20,
+        'duration': 15,
+        'progress': 0.40,
+        'icon': Icons.science_outlined,
+        'iconColor': const Color(0xFF10B981),
+      },
+      {
+        'title': 'تفاضل وتكامل 2',
+        'difficulty': 'متوسط',
+        'difficultyColor': const Color(0xFFF59E0B),
+        'questions': 15,
+        'duration': 30,
+        'progress': 0.80,
+        'icon': 'Σ',
+        'iconColor': const Color(0xFF8B5CF6),
+      },
+      {
+        'title': 'علم النفس المعرفي',
+        'difficulty': 'صعب',
+        'difficultyColor': const Color(0xFFEF4444),
+        'questions': 40,
+        'duration': 45,
+        'progress': 0.0,
+        'icon': Icons.psychology_rounded,
+        'iconColor': const Color(0xFFEC4899),
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      // Navigate to exams or search
+                    },
+                    child: Text(
+                      'عرض الكل',
+                      style: GoogleFonts.cairo(
+                        color: const Color(0xFF5F5DFA),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'آخر الاختبارات',
+                    style: GoogleFonts.cairo(
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              
+              // Exam Cards List
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: exams.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 14),
+                itemBuilder: (context, index) {
+                  final e = exams[index];
+                  final hasProgress = e['progress'] > 0.0;
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            // 1. Difficulty Badge (Left)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (e['difficultyColor'] as Color).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                e['difficulty'] as String,
+                                style: GoogleFonts.cairo(
+                                  color: e['difficultyColor'] as Color,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            
+                            const Spacer(),
+                            
+                            // 2. Title & Subtitle (Middle/Right)
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    e['title'] as String,
+                                    style: GoogleFonts.cairo(
+                                      color: isDark ? Colors.white : AppColors.textPrimary,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${e['questions']} سؤال • ${e['duration']} دقيقة',
+                                    style: GoogleFonts.cairo(
+                                      color: isDark ? Colors.white30 : Colors.grey[400],
+                                      fontSize: 11.5,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            const SizedBox(width: 14),
+                            
+                            // 3. Icon Container (Far Right)
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Center(
+                                child: e['icon'] is IconData
+                                    ? Icon(
+                                        e['icon'] as IconData,
+                                        color: e['iconColor'] as Color,
+                                        size: 20,
+                                      )
+                                    : Text(
+                                        e['icon'] as String,
+                                        style: GoogleFonts.inter(
+                                          color: e['iconColor'] as Color,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        // Progress Bar (if hasProgress)
+                        if (hasProgress) ...[
+                          const SizedBox(height: 16),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: e['progress'] as double,
+                              minHeight: 4.5,
+                              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]!,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

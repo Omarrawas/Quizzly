@@ -384,6 +384,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                           child: DropdownButton<String>(
                             value: selectedTypeId,
                             isExpanded: true,
+                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                             onChanged: (val) {
                               setState(() {
                                 final oldType = selectedTypeId;
@@ -415,7 +416,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                 children: [
                                   Icon(type['icon'] as IconData, size: 20, color: AppColors.primaryBlue),
                                   const SizedBox(width: 12),
-                                  Text(type['label'] as String, style: GoogleFonts.cairo(fontSize: 14)),
+                                  Text(
+                                    type['label'] as String,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
                                 ],
                               ),
                             )).toList(),
@@ -605,8 +612,21 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       Expanded(
                         child: DropdownButtonFormField<Difficulty>(
                           initialValue: selectedDifficulty,
-                          decoration: InputDecoration(labelText: 'الصعوبة', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                          items: Difficulty.values.map((e) => DropdownMenuItem(value: e, child: Text(_translateDifficulty(e), style: GoogleFonts.cairo()))).toList(),
+                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          decoration: InputDecoration(
+                            labelText: 'الصعوبة',
+                            labelStyle: GoogleFonts.cairo(),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          items: Difficulty.values.map((e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(
+                              _translateDifficulty(e),
+                              style: GoogleFonts.cairo(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                          )).toList(),
                           onChanged: (v) => setState(() => selectedDifficulty = v!),
                         ),
                       ),

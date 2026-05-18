@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:quizzly/features/auth/domain/services/activation_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
-import 'package:quizzly/features/subject/presentation/widgets/hub_action_card.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/domain/services/cram_mode_service.dart';
@@ -83,7 +82,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           SliverToBoxAdapter(child: _buildReadinessHeader(userId, isDark)),
           SliverToBoxAdapter(child: _buildDynamicCoachBanner(userId)),
           _buildCramModeSliver(userId, isDark),
-          SliverToBoxAdapter(child: _buildActionsGrid(userId, isDark)),
+          SliverToBoxAdapter(child: _buildActionsLayout(userId, isDark)),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -124,26 +123,29 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         final score = snapshot.data ?? 0.0;
         final percentage = (score * 100).toInt();
 
-        Color statusColor = Colors.redAccent;
-        String statusText = 'غير مستعد';
+        Color statusColor = const Color(0xFFFBBF24); // Warm orange/yellow from screenshot
+        String statusText = 'جاهزية متوسطة';
         if (score > 0.8) {
-          statusColor = Colors.greenAccent;
+          statusColor = const Color(0xFF10B981); // Emerald Green
           statusText = 'مستعد تماماً';
-        } else if (score > 0.5) {
-          statusColor = Colors.amberAccent;
-          statusText = 'جاهزية متوسطة';
+        } else if (score < 0.5) {
+          statusColor = const Color(0xFFEF4444); // Red
+          statusText = 'غير مستعد';
         }
 
         return Container(
           margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A), // Keep it dark as it's a premium header style
-            borderRadius: BorderRadius.circular(30),
-            border: isDark ? Border.all(color: Colors.white10) : null,
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -151,6 +153,32 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           ),
           child: Row(
             children: [
+              // Circular progress on the LEFT
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 76,
+                    height: 76,
+                    child: CircularProgressIndicator(
+                      value: score,
+                      strokeWidth: 9,
+                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey[200]!,
+                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                    ),
+                  ),
+                  Text(
+                    '%$percentage',
+                    style: GoogleFonts.inter(
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 20),
+              // Texts on the RIGHT (takes remaining space)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,7 +186,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     Text(
                       'نسبة الاستعداد للامتحان',
                       style: GoogleFonts.cairo(
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : AppColors.textSecondary,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -176,35 +204,12 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     Text(
                       _isActivated ? 'بناءً على إتقانك وتغطية المنهج' : 'اشترك لتفعيل خارطة الإتقان الكاملة',
                       style: GoogleFonts.cairo(
-                        color: Colors.white30,
-                        fontSize: 10,
+                        color: isDark ? Colors.white30 : Colors.grey[400],
+                        fontSize: 11,
                       ),
                     ),
                   ],
                 ),
-              ),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: CircularProgressIndicator(
-                      value: score,
-                      strokeWidth: 8,
-                      backgroundColor: Colors.white.withValues(alpha: 0.05),
-                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                    ),
-                  ),
-                  Text(
-                    '%$percentage',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -214,29 +219,34 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   }
 
   SliverAppBar _buildSliverAppBar(String userId, ThemeData theme, bool isDark) {
+    final canPop = Navigator.canPop(context);
+
     return SliverAppBar(
       backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
       pinned: true,
       centerTitle: true,
+      // Left side: Mastery Map icon
       leading: IconButton(
+        onPressed: () => _showMasteryMap(context, userId),
         icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
+          Icons.map_outlined,
           color: isDark ? Colors.white : AppColors.textPrimary,
-          size: 20,
+          size: 24,
         ),
-        onPressed: () => Navigator.pop(context),
+        tooltip: 'خارطة الإتقان',
       ),
+      // Right side: Back arrow (pointing right in RTL)
       actions: [
-        IconButton(
-          onPressed: () => _showMasteryMap(context, userId),
-          icon: Icon(
-            Icons.map_outlined,
-            color: isDark ? Colors.white : AppColors.textPrimary,
-            size: 24,
+        if (canPop)
+          IconButton(
+            icon: Icon(
+              Icons.arrow_forward_ios_rounded, // Chevron pointing right for Arabic RTL back navigation
+              color: isDark ? Colors.white : AppColors.textPrimary,
+              size: 20,
+            ),
+            onPressed: () => Navigator.maybePop(context),
           ),
-          tooltip: 'خارطة الإتقان',
-        ),
       ],
       title: Text(
         widget.subjectName,
@@ -249,7 +259,127 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     );
   }
 
-  Widget _buildActionsGrid(String userId, bool isDark) {
+  Widget _buildPremiumActionCard({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isLocked,
+    required int badgeCount,
+    required bool showBadge,
+    required VoidCallback onTap,
+    required bool isDark,
+    bool isFullWidth = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Centered Main Content
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon container with gorgeous glow
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color.withValues(alpha: 0.12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 26,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Label
+                  Text(
+                    label,
+                    style: GoogleFonts.cairo(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            
+            // Lock icon in the top-right
+            if (isLocked)
+              Positioned(
+                top: -8,
+                right: -8,
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  color: color.withValues(alpha: 0.6),
+                  size: 16,
+                ),
+              ),
+            
+            // Badge icon in the top-left (RTL)
+            if (showBadge && badgeCount > 0)
+              Positioned(
+                top: -8,
+                left: -8,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF5F5DFA), // Indigo/purple badge from screenshot
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 19,
+                    minHeight: 19,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$badgeCount',
+                      style: GoogleFonts.inter(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionsLayout(String userId, bool isDark) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('sections')
@@ -272,27 +402,27 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           }
         }
 
-        final List<(IconData, String, Color, Stream<int>, int, bool)> actions = [
+        final List<(IconData, String, Color, Stream<int>, int, bool)> gridActions = [
           (
             Icons.assignment_rounded,
             'الامتحانات',
-            const Color(0xFF2563EB),
+            const Color(0xFF8B93FF), // Purple theme color
             _statsService.streamExamsCount(widget.subjectId),
             0,
-            false, // Always protected at exam level
+            false,
           ),
           (
             Icons.explore_rounded,
             'استكشاف المحتوى',
-            const Color(0xFF6366F1),
+            const Color(0xFF6366F1), // Blue theme color
             _statsService.streamTopicsCount(widget.subjectId),
             1,
-            !_isActivated, // Show lock if not activated
+            !_isActivated,
           ),
           (
             Icons.auto_awesome_motion_rounded,
             'مركز الإتقان',
-            isDark ? Colors.white : const Color(0xFF0F172A),
+            isDark ? Colors.white60 : const Color(0xFF475569), // Slate theme color
             _statsService.streamWrongAnswersCount(userId, widget.subjectId),
             2,
             !_isActivated,
@@ -300,7 +430,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           (
             Icons.school_rounded,
             'تدرب بنفسك',
-            const Color(0xFF0EA5E9),
+            const Color(0xFF0EA5E9), // Cyan/Teal theme color
             _statsService.streamPracticeCount(userId, widget.subjectId),
             3,
             !_isActivated,
@@ -309,93 +439,82 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             (
               Icons.science_rounded,
               'القسم العملي',
-              const Color(0xFF0D9488),
+              const Color(0xFF0D9488), // Green/Teal beaker color
               _statsService.streamPracticalTopicsCount(widget.subjectId),
               4,
-              false, // Let free users enter to see free lessons and locked ones
+              false,
             ),
           (
             Icons.groups_rounded,
             'معارك المواد',
-            const Color(0xFFE11D48),
+            const Color(0xFFE11D48), // Pink/Crimson color
             Stream<int>.value(0),
             5,
             !_isActivated,
           ),
-          if (showTheoretical)
-            (
-              Icons.menu_book_rounded,
-              'تصفح الدروس',
-              const Color(0xFF8B5CF6),
-              _statsService.streamTopicsCount(widget.subjectId),
-              6,
-              false, // Allow free users to enter and see free/locked lessons
-            ),
         ];
 
         return Padding(
-          padding: const EdgeInsets.all(20),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: actions.length,
-            itemBuilder: (context, index) {
-              final a = actions[index];
-              return _buildActionCard(
-                icon: a.$1,
-                label: a.$2,
-                color: a.$3,
-                countStream: a.$4,
-                showBadge: a.$5 < 2,
-                isLocked: a.$6,
-                onTap: () => _onActionTap(a.$5),
-              );
-            },
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 2-Column Grid for regular actions
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 1.15,
+                ),
+                itemCount: gridActions.length,
+                itemBuilder: (context, index) {
+                  final a = gridActions[index];
+                  return StreamBuilder<int>(
+                    stream: a.$4,
+                    builder: (context, countSnap) {
+                      final count = countSnap.data ?? 0;
+                      final showBadge = a.$5 == 0 || (a.$5 == 1 && count > 0);
+                      
+                      return _buildPremiumActionCard(
+                        icon: a.$1,
+                        label: a.$2,
+                        color: a.$3,
+                        isLocked: a.$6,
+                        badgeCount: count,
+                        showBadge: showBadge,
+                        onTap: () => _onActionTap(a.$5),
+                        isDark: isDark,
+                      );
+                    },
+                  );
+                },
+              ),
+              
+              // Full-Width Card for "تصفح الدروس" at the bottom
+              if (showTheoretical) ...[
+                const SizedBox(height: 16),
+                StreamBuilder<int>(
+                  stream: _statsService.streamTopicsCount(widget.subjectId),
+                  builder: (context, countSnap) {
+                    return _buildPremiumActionCard(
+                      icon: Icons.menu_book_rounded,
+                      label: 'تصفح الدروس',
+                      color: const Color(0xFF8B5CF6), // Violet theme color
+                      isLocked: false,
+                      badgeCount: 0,
+                      showBadge: false,
+                      onTap: () => _onActionTap(6),
+                      isDark: isDark,
+                      isFullWidth: true,
+                    );
+                  },
+                ),
+              ],
+            ],
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildActionCard({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required Stream<int> countStream,
-    required bool showBadge,
-    required bool isLocked,
-    required VoidCallback onTap,
-  }) {
-    return StreamBuilder<int>(
-      stream: countStream,
-      builder: (context, snapshot) {
-        final count = snapshot.data ?? 0;
-        return Stack(
-          children: [
-            HubActionCard(
-              action: HubAction(
-                icon: icon,
-                label: label,
-                iconColor: color,
-                iconBackground: color.withValues(alpha: 0.1),
-                badgeCount: count,
-                showBadge: showBadge,
-              ),
-              onTap: onTap,
-            ),
-            if (isLocked)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Icon(Icons.lock_outline_rounded, color: color.withValues(alpha: 0.5), size: 16),
-              ),
-          ],
         );
       },
     );
@@ -407,14 +526,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       child: FutureBuilder<List<QuizQuestion>>(
         future: _cramModeService.generateCramSession(userId, widget.subjectId),
         builder: (context, snapshot) {
-          // Still loading — don't block the rest of the UI
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SizedBox.shrink();
           }
-          // Error or empty — hide gracefully
-          if (snapshot.hasError ||
-              !snapshot.hasData ||
-              snapshot.data!.isEmpty) {
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
             return const SizedBox.shrink();
           }
           final count = snapshot.data!.length;
@@ -423,41 +538,16 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : Colors.amber[50],
+              color: isDark ? const Color(0xFF1E1711) : Colors.amber[50]!.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: isDark ? const Color(0xFF92400E) : Colors.amber[200]!),
+              border: Border.all(
+                color: isDark ? const Color(0xFF92400E).withValues(alpha: 0.5) : Colors.amber[200]!,
+                width: 1.5,
+              ),
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.offline_bolt_rounded,
-                  color: Colors.amber,
-                  size: 32,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'وضع اللمسات الأخيرة',
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: isDark ? Colors.amber[400] : Colors.black,
-                        ),
-                      ),
-                      Text(
-                        'لديك $count سؤال تحتاج لمراجعتها الآن',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          color: isDark ? Colors.amber[200] : Colors.amber[900],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // 1. Far Left: "ابدأ الآن" button
                 ElevatedButton(
                   onPressed: () => Navigator.push(
                     context,
@@ -469,20 +559,59 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
+                    backgroundColor: const Color(0xFFFBBF24), // Yellow background
                     foregroundColor: Colors.black,
+                    elevation: 0,
                     minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: Text(
                     'ابدأ الآن',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // 2. Middle: Title & Subtitle aligned to the right (Expanded)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'وضع اللمسات الأخيرة',
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: isDark ? const Color(0xFFFBBF24) : Colors.amber[900],
+                        ),
+                      ),
+                      Text(
+                        'لديك $count سؤال تحتاج لمراجعتها الآن',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11.5,
+                          color: isDark ? Colors.white70 : Colors.amber[950],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // 3. Far Right: Lightning bolt circular badge
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.bolt_rounded,
+                    color: Color(0xFFFBBF24),
+                    size: 20,
                   ),
                 ),
               ],

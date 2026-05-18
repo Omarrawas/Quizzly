@@ -55,6 +55,7 @@ class QuizQuestion {
   final String? id;
   final int number;
   final String text;
+  final String? translationText;
   final QuestionType type;
   final List<QuizOption>? options;
   final List<String> correctOptionIds; 
@@ -90,6 +91,7 @@ class QuizQuestion {
   const QuizQuestion({
     required this.number,
     required this.text,
+    this.translationText,
     required this.type,
     this.id,
     this.options,
@@ -123,6 +125,7 @@ class QuizQuestion {
     String? id,
     int? number,
     String? text,
+    String? translationText,
     QuestionType? type,
     List<QuizOption>? options,
     List<String>? correctOptionIds,
@@ -154,6 +157,7 @@ class QuizQuestion {
       id: id ?? this.id,
       number: number ?? this.number,
       text: text ?? this.text,
+      translationText: translationText ?? this.translationText,
       type: type ?? this.type,
       options: options ?? this.options,
       correctOptionIds: correctOptionIds ?? this.correctOptionIds,
@@ -192,6 +196,7 @@ class QuizQuestion {
       id: docId,
       number: data['order'] ?? 0,
       text: data['text'] ?? '',
+      translationText: data['translationText'],
       type: _parseType(data['type']),
       options: (data['options'] as List?)?.map((e) => QuizOption(id: e['id'].toString(), text: e['text'].toString())).toList(),
       correctOptionIds: data['correctOptionIds'] != null 
@@ -252,6 +257,7 @@ class QuizQuestion {
     return {
       'order': number,
       'text': text,
+      'translationText': translationText,
       'type': type.name,
       'options': options?.map((e) => {'id': e.id, 'text': e.text}).toList(),
       'correctOptionIds': correctOptionIds,

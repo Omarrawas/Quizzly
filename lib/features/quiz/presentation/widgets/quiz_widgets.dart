@@ -373,6 +373,34 @@ class QuestionCard extends StatelessWidget {
     this.onTagTap,
   });
 
+  Color _getTagColor(String text, bool isDark) {
+    final List<Color> darkColors = [
+      const Color(0xFF38BDF8), // Sky Blue
+      const Color(0xFFF472B6), // Pink/Rose
+      const Color(0xFF34D399), // Emerald
+      const Color(0xFFFBBF24), // Amber/Yellow
+      const Color(0xFFA78BFA), // Lavender/Purple
+      const Color(0xFFFB923C), // Orange
+      const Color(0xFF2DD4BF), // Teal
+      const Color(0xFFF87171), // Coral Red
+    ];
+
+    final List<Color> lightColors = [
+      const Color(0xFF0284C7), // Deep Sky Blue
+      const Color(0xFFDB2777), // Magenta/Rose
+      const Color(0xFF059669), // Forest Emerald
+      const Color(0xFFD97706), // Amber/Brown
+      const Color(0xFF7C3AED), // Dark Purple
+      const Color(0xFFEA580C), // Dark Orange
+      const Color(0xFF0D9488), // Dark Teal
+      const Color(0xFFDC2626), // Dark Red
+    ];
+
+    final int hash = text.hashCode.abs();
+    final int index = hash % darkColors.length;
+    return isDark ? darkColors[index] : lightColors[index];
+  }
+
   void _showNoteDialog(BuildContext context) {
     final controller = TextEditingController(text: note);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -459,7 +487,7 @@ class QuestionCard extends StatelessWidget {
     );
   }
 
-  void _showExplanationDialog(BuildContext context, String explanation) {
+  void _showTranslationDialog(BuildContext context, String translationText) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
@@ -468,14 +496,14 @@ class QuestionCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.lightbulb_rounded, color: Colors.orange),
+            const Icon(Icons.translate_rounded, color: AppColors.primaryBlue),
             const SizedBox(width: 8),
-            Text('ترجمة / توضيح', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
+            Text('ترجمة السؤال', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
           ],
         ),
         content: SingleChildScrollView(
           child: TexViewWidget(
-            text: explanation,
+            text: translationText,
             color: isDark ? Colors.white : Colors.black87,
             fontSize: 15,
           ),
@@ -495,15 +523,25 @@ class QuestionCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.35) : Colors.grey.shade200,
+          width: 1.5,
+        ),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: const Color(0xFF38BDF8).withValues(alpha: 0.12),
+              blurRadius: 16,
+              spreadRadius: 2,
+            )
+          else
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
         ],
       ),
       child: Column(
@@ -528,20 +566,20 @@ class QuestionCard extends StatelessWidget {
             ),
           ),
           
-          if (question.explanation != null && question.explanation!.trim().isNotEmpty)
+          if (question.translationText != null && question.translationText!.trim().isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 16, left: 16, bottom: 8),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () => _showExplanationDialog(context, question.explanation!),
+                  onPressed: () => _showTranslationDialog(context, question.translationText!),
                   icon: const Icon(Icons.g_translate_rounded, size: 16),
                   label: Text('ترجمة / توضيح', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13)),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF16A34A),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    backgroundColor: const Color(0xFF16A34A).withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    foregroundColor: const Color(0xFF34D399),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -574,32 +612,75 @@ class QuestionCard extends StatelessWidget {
                 showCorrect: showCorrect,
                 onTap: () {
                   if (answerState == AnswerState.unanswered) {
-                    onOptionSelected(option.id);
+                     onOptionSelected(option.id);
                   }
                 },
               ),
             ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Topic Labels
-          if (question.topicNames != null && question.topicNames!.isNotEmpty)
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16, bottom: 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    for (final topic in question.topicNames!)
-                      _TagChip(
-                        label: topic,
-                        onTap: onTagTap != null ? () => onTagTap!(topic) : null,
-                      ),
-                  ],
-                ),
+          // Topic Info Row: Chapter/Lesson and Tag
+          if ((question.topicNames != null && question.topicNames!.isNotEmpty) || question.tagLabel != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 14, top: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left side: Lesson/Tag (e.g. الأسس)
+                  Builder(
+                    builder: (context) {
+                      final tagText = question.tagLabel ?? 
+                          (question.topicNames != null && question.topicNames!.isNotEmpty 
+                              ? question.topicNames!.first.split(' - ').last 
+                              : '');
+                      if (tagText.isEmpty) return const SizedBox.shrink();
+                      final color = _getTagColor(tagText, isDark);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+                        ),
+                        child: Text(
+                          tagText,
+                          style: GoogleFonts.cairo(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      );
+                    }
+                  ),
+                  
+                  // Right side: Chapter | Lesson (e.g. الفصل الأول | الدرس الأول)
+                  Builder(
+                    builder: (context) {
+                      final chapterText = question.topicNames != null && question.topicNames!.isNotEmpty 
+                          ? question.topicNames!.first 
+                          : 'العامة';
+                      final color = _getTagColor(chapterText, isDark);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+                        ),
+                        child: Text(
+                          chapterText.replaceAll(' - ', ' | '),
+                          style: GoogleFonts.cairo(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      );
+                    }
+                  ),
+                ],
               ),
             ),
 
@@ -655,7 +736,7 @@ class _OptionTile extends StatelessWidget {
   Color get _bgColor {
     if (showCorrect && isCorrect) return const Color(0xFF16A34A).withValues(alpha: 0.15);
     if (answerState == AnswerState.unanswered) {
-      return isSelected ? const Color(0xFF2563EB).withValues(alpha: 0.08) : Colors.transparent;
+      return isSelected ? const Color(0xFF38BDF8).withValues(alpha: 0.08) : Colors.transparent;
     }
     if (isSelected && answerState == AnswerState.wrong) {
       return const Color(0xFFDC2626).withValues(alpha: 0.15);
@@ -668,7 +749,7 @@ class _OptionTile extends StatelessWidget {
 
   Color get _radioColor {
     if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected) return const Color(0xFF2563EB);
+    if (isSelected) return const Color(0xFF38BDF8);
     return Colors.grey.withValues(alpha: 0.3);
   }
 
@@ -683,14 +764,37 @@ class _OptionTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: _bgColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? _radioColor : Colors.transparent,
+            color: isSelected 
+                ? _radioColor 
+                : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
             width: 1.5,
           ),
         ),
         child: Row(
+          textDirection: TextDirection.ltr,
           children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TexViewWidget(
+                  text: option.text,
+                  fontSize: 15,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (showCorrect && isCorrect) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+            ],
+            if (isSelected && answerState == AnswerState.wrong) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+            ],
+            const SizedBox(width: 12),
             // Radio circle on the right
             Container(
               width: 22,
@@ -704,80 +808,6 @@ class _OptionTile extends StatelessWidget {
                   ? const Icon(Icons.circle, size: 8, color: Colors.white)
                   : null,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TexViewWidget(
-                text: option.text,
-                fontSize: 15,
-                color: isDark ? Colors.white : AppColors.textPrimary,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-            if (showCorrect && isCorrect) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
-            ],
-            if (isSelected && answerState == AnswerState.wrong) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────
-//  وسم التصنيف (Tag Chip)
-// ─────────────────────────────────────────
-class _TagChip extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-  const _TagChip({required this.label, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Split "Chapter - Lesson" into structured parts
-    final parts = label.split(' - ');
-    final String lessonTitle = parts.length >= 2 ? parts.sublist(1).join(' - ') : label;
-    final String? chapterSubtitle = parts.length >= 2 ? parts[0] : null;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFFE11D48).withValues(alpha: 0.15) : const Color(0xFFFFF1F2),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isDark ? const Color(0xFFE11D48).withValues(alpha: 0.3) : const Color(0xFFFECDD3)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              lessonTitle,
-              style: GoogleFonts.cairo(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isDark ? const Color(0xFFFB7185) : const Color(0xFFE11D48),
-              ),
-            ),
-            if (chapterSubtitle != null)
-              Text(
-                chapterSubtitle,
-                style: GoogleFonts.cairo(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: isDark
-                      ? const Color(0xFFFB7185).withValues(alpha: 0.65)
-                      : const Color(0xFFE11D48).withValues(alpha: 0.6),
-                ),
-              ),
           ],
         ),
       ),
@@ -1489,34 +1519,61 @@ class QuestionBottomBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          if (onExplanationTap != null)
-            _ActionButton(
-              icon: Icons.lightbulb_rounded,
-              color: isDark ? Colors.amber[300] : Colors.amber.shade600,
-              onTap: onExplanationTap,
-            ),
-          _ActionButton(
-            icon: hasNote ? Icons.note_alt_rounded : Icons.note_add_outlined,
-            color: hasNote ? const Color(0xFF16A34A) : null,
-            onTap: onNoteTap,
-          ),
+          // 1. Favorite/List Button
           _ActionButton(
             icon: listIcon,
-            color: isInPrimaryList ? listColor : null,
+            color: isInPrimaryList 
+                ? (listIcon == Icons.favorite_rounded || listIcon == Icons.favorite_outline ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)) 
+                : (isDark ? Colors.white60 : AppColors.textSecondary),
+            customBgColor: isInPrimaryList 
+                ? (listIcon == Icons.favorite_rounded || listIcon == Icons.favorite_outline 
+                    ? const Color(0xFFEF4444).withValues(alpha: 0.15) 
+                    : const Color(0xFFF59E0B).withValues(alpha: 0.15)) 
+                : null,
             onTap: onListToggle,
             onLongPress: onListLongPress,
           ),
+          
+          // 2. Note Button
+          _ActionButton(
+            icon: hasNote ? Icons.note_alt_rounded : Icons.note_add_outlined,
+            color: hasNote ? const Color(0xFF10B981) : (isDark ? Colors.white60 : AppColors.textSecondary),
+            customBgColor: hasNote ? const Color(0xFF10B981).withValues(alpha: 0.15) : null,
+            onTap: onNoteTap,
+          ),
+          
+          // 3. Check Button
           _ActionButton(
             icon: isChecked ? Icons.check_circle_rounded : Icons.check_circle_outlined,
-            color: isChecked ? const Color(0xFF16A34A) : (canCheck ? const Color(0xFF2563EB) : (isDark ? Colors.white10 : Colors.grey.shade400)),
+            color: isChecked 
+                ? const Color(0xFF10B981) 
+                : (canCheck ? const Color(0xFF38BDF8) : (isDark ? Colors.white24 : Colors.grey.shade400)),
+            customBgColor: isChecked 
+                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                : (canCheck ? const Color(0xFF38BDF8).withValues(alpha: 0.15) : null),
             onTap: canCheck ? onCheckTap : null,
           ),
+
+          // 4. Explanation Button
+          if (onExplanationTap != null)
+            _ActionButton(
+              icon: Icons.lightbulb_rounded,
+              color: const Color(0xFF34D399),
+              customBgColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+              onTap: onExplanationTap,
+            ),
         ],
       ),
     );
@@ -1528,12 +1585,14 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final Color? color;
+  final Color? customBgColor;
 
   const _ActionButton({
     required this.icon,
     this.onTap,
     this.onLongPress,
     this.color,
+    this.customBgColor,
   });
 
   @override
@@ -1545,12 +1604,21 @@ class _ActionButton extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: customBgColor ?? (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.transparent,
+              width: 1,
+            ),
+          ),
           child: Icon(
             icon,
             color: color ?? (isDark ? Colors.white60 : AppColors.textSecondary),
-            size: 24,
+            size: 22,
           ),
         ),
       ),

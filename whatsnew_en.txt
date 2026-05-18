@@ -1,1 +1,8 @@
-General improvements and bug fixes for a better experience.
+* New Balance Dashboard Widget: View and track your wallet balance instantly from the header card on the Home screen.
+* Advanced Subject Sorting: Organize your subjects dynamically by Newest, Last Opened, or custom Manual Drag & Drop ordering.
+* Dynamic Social Dashboard: Control all social media urls, channels, and support bots instantly from the Admin Panel.
+* Sham Cash Direct Recharge: New convenient direct recharge shortcuts via Telegram or WhatsApp.
+* Device Information Audit: Enhanced security logs and simplified device metadata copying for tech support.
+* Modernized Technical Support: Direct premium card to contact the trained Quizzly Telegram bot.
+* Enhanced Offline Experience: Solve and review downloaded quizzes perfectly without any internet connection.
+* Certified Sale Locations: A dedicated new section to find official credit code vendors per province with dynamic counters.
