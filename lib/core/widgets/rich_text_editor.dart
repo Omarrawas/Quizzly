@@ -5,6 +5,8 @@ import 'package:flutter_quill_extensions/flutter_quill_extensions.dart' as quill
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:quizzly/core/services/github_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
 import '../utils/math_parser.dart';
@@ -362,6 +364,67 @@ class _RichTextEditorState extends State<RichTextEditor> {
     widget.onContentChanged(html);
   }
 
+  Future<void> _uploadAndInsertImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.bytes == null) return;
+
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+
+        final githubService = GithubStorageService();
+        final url = await githubService.uploadFile(
+          fileBytes: file.bytes!,
+          fileExtension: file.extension ?? 'png',
+          folderName: 'question_images',
+        );
+
+        if (mounted) Navigator.pop(context);
+
+        if (url != null) {
+          final index = _controller.selection.baseOffset;
+          final length = _controller.selection.extentOffset - index;
+          
+          _controller.replaceText(
+            index,
+            length,
+            quill.BlockEmbed.image(url),
+            null,
+          );
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تم رفع وإدراج الصورة بنجاح!'), backgroundColor: Colors.green),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('فشل رفع الصورة.'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   void _toggleInlineStyle(quill.Attribute attribute) {
     _focusNode.requestFocus();
     final isActive = _selectionStyle.attributes.containsKey(attribute.key);
@@ -478,6 +541,13 @@ class _RichTextEditorState extends State<RichTextEditor> {
                     icon: Icons.format_align_left,
                     isSelected: _selectionStyle.attributes[quill.Attribute.align.key]?.value == 'left',
                     onPressed: () => _controller.formatSelection(quill.Attribute.leftAlignment),
+                  ),
+                  const VerticalDivider(width: 12),
+                  _buildToolbarButton(
+                    icon: Icons.image_rounded,
+                    isSelected: false,
+                    onPressed: _uploadAndInsertImage,
+                    tooltip: 'إضافة صورة من جهازك',
                   ),
                 ],
               ),
