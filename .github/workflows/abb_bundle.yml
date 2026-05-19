@@ -51,7 +51,7 @@ jobs:
           EOF
 
       - name: Build AAB
-        run: flutter build appbundle --release --no-tree-shake-icons
+        run: flutter build appbundle --release --no-tree-shake-icons --dart-define=GITHUB_TOKEN=${{ secrets.QUIZZLY_GITHUB_TOKEN }}
 
       - name: Prepare Release Notes
         shell: bash

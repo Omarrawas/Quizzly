@@ -51,10 +51,10 @@ jobs:
           EOF
 
       - name: Build APK
-        run: flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons --dart-define=GITHUB_TOKEN=${{ secrets.QUIZZLY_GITHUB_TOKEN }}
 
       - name: Build AAB
-        run: flutter build appbundle --release --no-tree-shake-icons
+        run: flutter build appbundle --release --no-tree-shake-icons --dart-define=GITHUB_TOKEN=${{ secrets.QUIZZLY_GITHUB_TOKEN }}
 
       - name: Prepare Release Notes
         shell: bash
@@ -111,7 +111,7 @@ jobs:
       - run: flutter pub get
 
       - name: Build Windows
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define=GITHUB_TOKEN=${{ secrets.QUIZZLY_GITHUB_TOKEN }}
 
       - name: Zip Windows
         run: powershell Compress-Archive build/windows/x64/runner/Release Quizzly-Windows.zip
