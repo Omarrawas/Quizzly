@@ -4,7 +4,7 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/settings/presentation/screens/my_lists_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/manage_codes_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/download_management_screen.dart';
-import 'package:quizzly/features/settings/presentation/screens/settings_screen.dart';
+import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/admin_dashboard_screen.dart';
@@ -211,11 +211,11 @@ class AppDrawer extends StatelessWidget {
 
                       _buildMenuItem(
                         context,
-                        icon: Icons.settings_outlined,
-                        label: 'الإعدادات',
+                        icon: Icons.person_rounded,
+                        label: 'تعديل الحساب',
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()));
                         },
                       ),
 

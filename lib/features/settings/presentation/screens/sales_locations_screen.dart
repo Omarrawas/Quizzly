@@ -11,7 +11,8 @@ class SalesLocationsScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
           'أماكن بيع أكواد الرصيد',
@@ -20,24 +21,40 @@ class SalesLocationsScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('settings').doc('sales_locations').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('settings')
+            .doc('sales_locations')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+          final data =
+              snapshot.data?.data() as Map<String, dynamic>? ?? {};
           final List<dynamic> provincesRaw = data['provinces'] ?? [];
-          final List<Map<String, dynamic>> provinces = provincesRaw
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList();
+
+          // Parse provinces with new centers structure
+          final provinces = provincesRaw.map((e) {
+            final map = Map<String, dynamic>.from(e as Map);
+            final rawCenters = map['centers'] as List<dynamic>? ?? [];
+            final centers = rawCenters
+                .map((c) => Map<String, String>.from(
+                    (c as Map).map((k, v) => MapEntry(k.toString(), v.toString()))))
+                .toList();
+            return {
+              'name': map['name'] as String? ?? '',
+              'centers': centers,
+            };
+          }).where((p) => (p['name'] as String).isNotEmpty).toList();
 
           if (provinces.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.location_off_rounded, size: 64, color: Colors.grey.shade400),
+                  Icon(Icons.location_off_rounded,
+                      size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 16),
                   Text(
                     'لا توجد نقاط بيع مضافة حالياً',
@@ -52,16 +69,17 @@ class SalesLocationsScreen extends StatelessWidget {
             );
           }
 
-          // Calculate counters dynamically
+          // Calculate counters dynamically from centers list
           final provincesCount = provinces.length;
           final totalCentersCount = provinces.fold<int>(
             0,
-            (total, item) => total + (item['centersCount'] as int? ?? 0),
+            (total, p) =>
+                total + (p['centers'] as List).length,
           );
 
           return Column(
             children: [
-              // ── Dynamic Premium Counters Header ────────────────
+              // ── Dynamic counters header ─────────────────────────
               Container(
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(20),
@@ -82,11 +100,12 @@ class SalesLocationsScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    // Provinces Counter
                     Expanded(
                       child: Column(
                         children: [
-                          Icon(Icons.map_rounded, color: Colors.white.withValues(alpha: 0.9), size: 28),
+                          Icon(Icons.map_rounded,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              size: 28),
                           const SizedBox(height: 8),
                           Text(
                             'عدد المحافظات',
@@ -109,15 +128,15 @@ class SalesLocationsScreen extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      width: 1,
-                      height: 50,
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
-                    // Centers Counter
+                        width: 1,
+                        height: 50,
+                        color: Colors.white.withValues(alpha: 0.2)),
                     Expanded(
                       child: Column(
                         children: [
-                          Icon(Icons.store_mall_directory_rounded, color: Colors.white.withValues(alpha: 0.9), size: 28),
+                          Icon(Icons.store_mall_directory_rounded,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              size: 28),
                           const SizedBox(height: 8),
                           Text(
                             'المراكز المعتمدة',
@@ -143,28 +162,35 @@ class SalesLocationsScreen extends StatelessWidget {
                 ),
               ),
 
-              // ── Provinces list ─────────────────────────────────
+              // ── Provinces list ──────────────────────────────────
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+                  padding:
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 24),
                   itemCount: provinces.length,
                   itemBuilder: (context, index) {
                     final province = provinces[index];
-                    final name = province['name'] ?? '';
-                    final centersCount = province['centersCount'] ?? 0;
-                    final details = province['details'] ?? '';
+                    final name = province['name'] as String;
+                    final centers =
+                        province['centers'] as List<Map<String, String>>;
+                    final count = centers.length;
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isDark ? Colors.white10 : AppColors.borderLight,
+                          color: isDark
+                              ? Colors.white10
+                              : AppColors.borderLight,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                            color: Colors.black
+                                .withValues(alpha: isDark ? 0.2 : 0.03),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -179,7 +205,8 @@ class SalesLocationsScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                                color: AppColors.primaryBlue
+                                    .withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -194,65 +221,118 @@ class SalesLocationsScreen extends StatelessWidget {
                               style: GoogleFonts.cairo(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : AppColors.textPrimary,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ],
                         ),
                         trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '$centersCount مراكز معتمدة',
+                            '$count ${count == 1 ? 'مركز' : 'مراكز'}',
                             style: GoogleFonts.cairo(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue,
+                              color: isDark
+                                  ? const Color(0xFF60A5FA)
+                                  : AppColors.primaryBlue,
                             ),
                           ),
                         ),
                         children: [
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                          if (centers.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                'لا توجد مراكز مضافة لهذه المحافظة حالياً.',
+                                style: GoogleFonts.cairo(
+                                    color: Colors.grey, fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          else
+                            ...centers.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final center = entry.value;
+                              return Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    20, 4, 20, 4),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                   children: [
-                                    Icon(Icons.info_outline_rounded, color: AppColors.primaryBlue, size: 16),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'تفاصيل مراكز البيع والترقيم:',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white70 : AppColors.textPrimary,
+                                    // Number badge
+                                    CircleAvatar(
+                                      radius: 13,
+                                      backgroundColor: AppColors.primaryBlue
+                                          .withValues(alpha: 0.12),
+                                      child: Text(
+                                        '${idx + 1}',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryBlue,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            center['name'] ?? '',
+                                            style: GoogleFonts.cairo(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          if ((center['address'] ?? '')
+                                              .isNotEmpty) ...[
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                    Icons
+                                                        .location_on_outlined,
+                                                    size: 13,
+                                                    color: Colors.grey),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    center['address'] ?? '',
+                                                    style: GoogleFonts.cairo(
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? Colors.white54
+                                                          : Colors.black54,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                          const Divider(height: 16),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                const Divider(height: 20),
-                                Text(
-                                  details,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 13,
-                                    color: isDark ? Colors.white60 : Colors.black87,
-                                    height: 1.6,
-                                  ),
-                                  textAlign: TextAlign.right,
-                                ),
-                              ],
-                            ),
-                          ),
+                              );
+                            }),
                         ],
                       ),
                     );

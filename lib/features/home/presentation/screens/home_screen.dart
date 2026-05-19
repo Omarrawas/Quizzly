@@ -16,8 +16,8 @@ import 'package:quizzly/features/quiz/domain/services/smart_notification_service
 import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
-import 'package:quizzly/features/training/presentation/screens/training_sessions_screen.dart';
-import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
+
+import 'package:quizzly/features/settings/presentation/screens/settings_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
 
@@ -375,15 +375,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               _buildBottomTabItem(
                 index: 2,
-                label: 'الاختبارات',
-                icon: Icons.assignment_outlined,
-                selectedIcon: Icons.assignment_rounded,
-                activeColor: activeColor,
-                inactiveColor: inactiveColor,
-                isDark: isDark,
-              ),
-              _buildBottomTabItem(
-                index: 3,
                 label: 'حسابي',
                 icon: Icons.person_outline_rounded,
                 selectedIcon: Icons.person_rounded,
@@ -596,10 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
         currentAppBar = _buildSubjectSelectionAppBar(isDark);
         break;
       case 2:
-        currentBody = _buildTabWrapper(const TrainingSessionsScreen());
-        break;
-      case 3:
-        currentBody = _buildTabWrapper(const UserProfileScreen());
+        currentBody = _buildTabWrapper(const SettingsScreen());
         break;
       default:
         currentBody = const SizedBox.shrink();

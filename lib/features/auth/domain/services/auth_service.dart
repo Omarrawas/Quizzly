@@ -47,15 +47,26 @@ class AuthService extends ChangeNotifier {
   Future<void> _fetchUserRole(String uid) async {
     try {
       final currentUser = _auth.currentUser;
+      final doc = await _firestore.collection('users').doc(uid).get();
+      
+      Map<String, dynamic> updateData = {};
       if (currentUser != null && currentUser.email != null) {
-        await _firestore.collection('users').doc(uid).set({
-          'email': currentUser.email,
-        }, SetOptions(merge: true));
+        updateData['email'] = currentUser.email;
+      }
+      
+      if (!doc.exists || (doc.data()?['profilePic'] == null || doc.data()?['profilePic'] == '')) {
+        if (currentUser?.photoURL != null && currentUser!.photoURL!.isNotEmpty) {
+           updateData['profilePic'] = currentUser.photoURL;
+        }
+      }
+      
+      if (updateData.isNotEmpty) {
+        await _firestore.collection('users').doc(uid).set(updateData, SetOptions(merge: true));
       }
 
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        _role = doc.data()?['role'] ?? 'user';
+      final updatedDoc = doc.exists ? doc : await _firestore.collection('users').doc(uid).get();
+      if (updatedDoc.exists) {
+        _role = updatedDoc.data()?['role'] ?? 'user';
         
         // ── Device Binding Check for Students ──
         if (!isAdmin) {

@@ -17,10 +17,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:quizzly/core/services/github_storage_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -155,10 +162,7 @@ class SettingsScreen extends StatelessWidget {
                                     right: 4,
                                     child: GestureDetector(
                                       onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (_) => const UserProfileScreen()),
-                                        );
+                                        _showProfilePicDialog(context, profilePicUrl, userId);
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.all(7),
@@ -633,6 +637,158 @@ class SettingsScreen extends StatelessWidget {
         Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
       }
     }
+  }
+
+  void _showProfilePicDialog(BuildContext context, String currentUrl, String userId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 24,
+            left: 24,
+            right: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'تعديل صورة البروفايل',
+                style: GoogleFonts.cairo(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.cloud_upload_rounded, color: Color(0xFF8B93FF)),
+                title: Text('تحميل صورة', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _uploadImageToGithub(context, userId);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.link_rounded, color: Color(0xFF8B93FF)),
+                title: Text('وضع رابط صورة', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showLinkDialog(context, userId, currentUrl);
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _uploadImageToGithub(BuildContext context, String userId) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.bytes == null) return;
+
+        if (!context.mounted) return;
+
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+
+        final githubService = GithubStorageService();
+        final url = await githubService.uploadProfilePicture(
+          file.bytes!, 
+          file.extension ?? 'png'
+        );
+
+        // Hide loading
+        if (context.mounted) Navigator.pop(context);
+
+        if (url != null) {
+          await FirebaseFirestore.instance.collection('users').doc(userId).set({
+            'profilePic': url,
+          }, SetOptions(merge: true));
+          
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('تم تحديث الصورة بنجاح!'), backgroundColor: Colors.green),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('فشل رفع الصورة. يرجى التحقق من الإعدادات.'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showLinkDialog(BuildContext context, String userId, String currentUrl) {
+    final TextEditingController linkController = TextEditingController(text: currentUrl);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'رابط الصورة',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.right,
+          ),
+          content: TextField(
+            controller: linkController,
+            decoration: InputDecoration(
+              hintText: 'https://...',
+              hintStyle: GoogleFonts.cairo(),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            textDirection: TextDirection.ltr,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newUrl = linkController.text.trim();
+                if (newUrl.isNotEmpty) {
+                  Navigator.pop(context);
+                  await FirebaseFirestore.instance.collection('users').doc(userId).set({
+                    'profilePic': newUrl,
+                  }, SetOptions(merge: true));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B93FF)),
+              child: Text('حفظ', style: GoogleFonts.cairo(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 

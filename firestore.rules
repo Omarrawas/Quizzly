@@ -19,18 +19,22 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       
-      // Strict Balance Control: Users cannot just write any balance
+      // ── Safe profile fields: users can freely update their own profile info ──
+      // Covers: name, profilePic, social links, defaults, bio, device info, etc.
+      // Explicitly EXCLUDES balance changes (handled below).
+      allow update: if isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['balance', 'role'])
+        || isAdmin();
+
+      // ── Balance Control: enforce valid balance transitions ──
       allow update: if (isOwner(userId) || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys().hasAny(['balance'])
         && (
-          // If balance is being changed, ensure it follows logic
-          !request.resource.data.diff(resource.data).affectedKeys().contains('balance')
-          || (
-            // Deduction: Balance must decrease and stay non-negative
-            (request.resource.data.balance < resource.data.balance && request.resource.data.balance >= 0)
-            ||
-            // Increment: Allowed only via admin or valid batch process (handled by app logic + rules below)
-            (request.resource.data.balance > resource.data.balance)
-          )
+          // Deduction: balance decreases but stays non-negative
+          (request.resource.data.balance < resource.data.balance && request.resource.data.balance >= 0)
+          ||
+          // Credit: only admins or system flows (app logic guards this)
+          (request.resource.data.balance > resource.data.balance)
         );
       
       allow create: if request.auth != null; // Allow initial profile creation
@@ -125,9 +129,14 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // 9. Sales Locations (Admin only)
+    // 9. Settings Documents
     match /settings/sales_locations {
       allow read, write: if isAdmin();
+    }
+
+    match /settings/socials {
+      allow read: if request.auth != null; // All logged-in users can read social links
+      allow write: if isAdmin();           // Only admins can update them
     }
 
     // 11. System Settings
