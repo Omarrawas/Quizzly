@@ -443,22 +443,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                   const SizedBox(height: 16),
                   Text('ترجمة السؤال (اختياري)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: translationTextController,
-                    decoration: InputDecoration(
-                      hintText: 'ترجمة نص السؤال بالعربية...',
-                      hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 13),
-                      prefixIcon: const Icon(Icons.translate_rounded, color: AppColors.primaryBlue),
-                      filled: true,
-                      fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey[50],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
-                      ),
-                    ),
-                    style: GoogleFonts.cairo(fontSize: 14),
-                    maxLines: 3,
+                  RichTextEditor(
+                    initialHtml: translationTextController.text,
+                    placeholder: 'ترجمة نص السؤال بالعربية...',
+                    height: 150,
+                    onContentChanged: (html) {
+                      translationTextController.text = html;
+                    },
                   ),
                 ],
               ),
