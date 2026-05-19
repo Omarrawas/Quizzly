@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class ContentService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -304,10 +305,42 @@ class ContentService {
           .get(const GetOptions(source: Source.server));
           
       // 4. Fetch all approved questions for this subject
-      await _db.collection('questions')
+      final questionsSnapshot = await _db.collection('questions')
           .where('subjectId', isEqualTo: subjectId)
           .where('status', isEqualTo: 'approved')
           .get(const GetOptions(source: Source.server));
+
+      // 5. Pre-download all explanation and question attachments in background
+      final cacheManager = DefaultCacheManager();
+      for (var qDoc in questionsSnapshot.docs) {
+        final data = qDoc.data();
+        
+        final String? explanationImageUrl = data['explanationImageUrl'];
+        final String? explanationAudioUrl = data['explanationAudioUrl'];
+        final String? explanationPdfUrl = data['explanationPdfUrl'];
+        final String? imageUrl = data['imageUrl'];
+
+        if (explanationImageUrl != null && explanationImageUrl.isNotEmpty) {
+          _downloadToCacheSilently(cacheManager, explanationImageUrl);
+        }
+        if (explanationAudioUrl != null && explanationAudioUrl.isNotEmpty) {
+          _downloadToCacheSilently(cacheManager, explanationAudioUrl);
+        }
+        if (explanationPdfUrl != null && explanationPdfUrl.isNotEmpty) {
+          _downloadToCacheSilently(cacheManager, explanationPdfUrl);
+        }
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          _downloadToCacheSilently(cacheManager, imageUrl);
+        }
+      }
+    }
+  }
+
+  Future<void> _downloadToCacheSilently(DefaultCacheManager cacheManager, String url) async {
+    try {
+      await cacheManager.downloadFile(url);
+    } catch (_) {
+      // Suppress background sync errors silently
     }
   }
 }

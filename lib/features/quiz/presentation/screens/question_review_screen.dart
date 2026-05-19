@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanation.dart';
@@ -130,13 +131,17 @@ class QuestionReviewScreen extends StatelessWidget {
                     question.explanation!,
                     style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
                   ),
-                  if (question.explanationImageUrl != null) ...[
+                  if (question.explanationImageUrl != null && question.explanationImageUrl!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        question.explanationImageUrl!,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                      child: CachedNetworkImage(
+                        imageUrl: question.explanationImageUrl!,
+                        placeholder: (context, url) => const SizedBox(
+                          height: 50,
+                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        errorWidget: (context, url, error) => const SizedBox(),
                       ),
                     ),
                   ],
@@ -147,6 +152,10 @@ class QuestionReviewScreen extends StatelessWidget {
                   if (question.explanationAudioUrl != null && question.explanationAudioUrl!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     AudioExplanationPlayer(audioUrl: question.explanationAudioUrl!),
+                  ],
+                  if (question.explanationPdfUrl != null && question.explanationPdfUrl!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    PdfExplanationViewer(pdfUrl: question.explanationPdfUrl!),
                   ],
                 ],
               ],

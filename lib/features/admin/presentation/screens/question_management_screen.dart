@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:quizzly/core/services/github_storage_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
@@ -37,6 +40,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   late TextEditingController essayAnswerController;
   late TextEditingController explanationController;
   late TextEditingController explanationImageUrlController;
+  late TextEditingController explanationAudioUrlController;
+  late TextEditingController explanationPdfUrlController;
   late TextEditingController timeController;
   late bool isEnabled;
   late Difficulty selectedDifficulty;
@@ -68,6 +73,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     essayAnswerController = TextEditingController(text: currentData?['essayAnswer']);
     explanationController = TextEditingController(text: currentData?['explanation']);
     explanationImageUrlController = TextEditingController(text: currentData?['explanationImageUrl']);
+    explanationAudioUrlController = TextEditingController(text: currentData?['explanationAudioUrl'] ?? '');
+    explanationPdfUrlController = TextEditingController(text: currentData?['explanationPdfUrl'] ?? '');
     timeController = TextEditingController(text: currentData?['estimatedTime']?.toString() ?? '60');
     isEnabled = currentData?['isEnabled'] ?? true;
     
@@ -171,6 +178,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     essayAnswerController.dispose();
     explanationController.dispose();
     explanationImageUrlController.dispose();
+    explanationAudioUrlController.dispose();
+    explanationPdfUrlController.dispose();
     timeController.dispose();
     for (var c in optionControllers) {
       c.dispose();
@@ -313,6 +322,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'subjectId': widget.subjectId,
       'explanation': explanationController.text.trim(),
       'explanationImageUrl': explanationImageUrlController.text.trim(),
+      'explanationAudioUrl': explanationAudioUrlController.text.trim(),
+      'explanationPdfUrl': explanationPdfUrlController.text.trim(),
       'difficulty': selectedDifficulty.name,
       'primaryTopicId': selectedTopicIds.isNotEmpty ? selectedTopicIds.first : (widget.lessonId ?? 'global'),
       'topicIds': selectedTopicIds,
@@ -347,6 +358,211 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     } catch (e) {
       if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
     }
+  }
+
+  bool _isUploadingFile = false;
+  String? _uploadingFileType; // 'image', 'audio', 'pdf'
+
+  Future<void> _pickAndUploadFile(String fileType) async {
+    try {
+      FileType pickerType;
+      List<String>? allowedExtensions;
+      String folderName;
+
+      if (fileType == 'image') {
+        pickerType = FileType.image;
+        folderName = 'explanation_images';
+      } else if (fileType == 'audio') {
+        pickerType = FileType.audio;
+        folderName = 'explanation_audios';
+      } else if (fileType == 'pdf') {
+        pickerType = FileType.custom;
+        allowedExtensions = ['pdf'];
+        folderName = 'explanation_pdfs';
+      } else {
+        return;
+      }
+
+      final result = await FilePicker.platform.pickFiles(
+        type: pickerType,
+        allowedExtensions: allowedExtensions,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.bytes == null) {
+          _showStatusSnackBar('لا يمكن قراءة بيانات الملف المختار', isError: true);
+          return;
+        }
+
+        setState(() {
+          _isUploadingFile = true;
+          _uploadingFileType = fileType;
+        });
+
+        final githubService = GithubStorageService();
+        final url = await githubService.uploadFile(
+          fileBytes: file.bytes!,
+          fileExtension: file.extension ?? (fileType == 'pdf' ? 'pdf' : (fileType == 'audio' ? 'mp3' : 'png')),
+          folderName: folderName,
+        );
+
+        setState(() {
+          _isUploadingFile = false;
+          _uploadingFileType = null;
+        });
+
+        if (url != null) {
+          setState(() {
+            if (fileType == 'image') {
+              explanationImageUrlController.text = url;
+            } else if (fileType == 'audio') {
+              explanationAudioUrlController.text = url;
+            } else if (fileType == 'pdf') {
+              explanationPdfUrlController.text = url;
+            }
+          });
+          _showStatusSnackBar('تم رفع الملف بنجاح!', isError: false);
+        } else {
+          _showStatusSnackBar('فشل رفع الملف إلى الخادم الرئيسي', isError: true);
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingFile = false;
+        _uploadingFileType = null;
+      });
+      _showStatusSnackBar('حدث خطأ أثناء رفع الملف: $e', isError: true);
+    }
+  }
+
+  Widget _buildAttachmentCard({
+    required String title,
+    required IconData icon,
+    required String url,
+    required String fileType,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasAttachment = url.isNotEmpty;
+    final isUploadingThisType = _isUploadingFile && _uploadingFileType == fileType;
+
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasAttachment 
+              ? color 
+              : (isDark ? Colors.white10 : Colors.grey.shade300),
+          width: hasAttachment ? 2 : 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isUploadingThisType 
+              ? null 
+              : () {
+                  if (hasAttachment) {
+                    _showAttachmentOptionsDialog(title, url, fileType);
+                  } else {
+                    _pickAndUploadFile(fileType);
+                  }
+                },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isUploadingThisType)
+                  SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
+                  )
+                else
+                  Icon(
+                    hasAttachment ? Icons.check_circle_rounded : icon,
+                    color: hasAttachment ? color : (isDark ? Colors.white30 : Colors.grey.shade400),
+                    size: 28,
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  hasAttachment ? 'تم الإرفاق' : title,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: hasAttachment 
+                        ? color 
+                        : (isDark ? Colors.white70 : Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAttachmentOptionsDialog(String title, String url, String fileType) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded, color: AppColors.primaryBlue),
+              title: Text('عرض/استعراض الملف', style: GoogleFonts.cairo()),
+              onTap: () async {
+                Navigator.pop(context);
+                try {
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                } catch (e) {
+                  _showStatusSnackBar('تعذر فتح الملف: $e', isError: true);
+                }
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+              title: Text('حذف المرفق', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  if (fileType == 'image') {
+                    explanationImageUrlController.clear();
+                  } else if (fileType == 'audio') {
+                    explanationAudioUrlController.clear();
+                  } else if (fileType == 'pdf') {
+                    explanationPdfUrlController.clear();
+                  }
+                });
+                _showStatusSnackBar('تم حذف المرفق بنجاح', isError: false);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -581,21 +797,42 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       explanationController.text = html;
                     },
                   ),
-                  if (explanationImageUrlController.text.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.image_outlined, size: 16, color: Colors.green),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text('تم إرفاق صورة للشرح', style: GoogleFonts.cairo(fontSize: 12, color: Colors.green))),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 16, color: Colors.red),
-                            onPressed: () => setState(() => explanationImageUrlController.clear()),
-                          ),
-                        ],
+                  const SizedBox(height: 16),
+                  Text('مرفقات الشرح (صورة، صوت، أو PDF)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildAttachmentCard(
+                          title: 'صورة توضيحية',
+                          icon: Icons.image_rounded,
+                          url: explanationImageUrlController.text,
+                          fileType: 'image',
+                          color: const Color(0xFF10B981),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildAttachmentCard(
+                          title: 'مقطع صوتي',
+                          icon: Icons.audiotrack_rounded,
+                          url: explanationAudioUrlController.text,
+                          fileType: 'audio',
+                          color: const Color(0xFF6366F1),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildAttachmentCard(
+                          title: 'ملف PDF',
+                          icon: Icons.picture_as_pdf_rounded,
+                          url: explanationPdfUrlController.text,
+                          fileType: 'pdf',
+                          color: const Color(0xFFEF4444),
+                        ),
+                      ),
+                    ],
+                  ),
                   
                   const SizedBox(height: 24),
                   Row(

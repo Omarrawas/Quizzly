@@ -65,6 +65,7 @@ class QuizQuestion {
   final String? explanationImageUrl; 
   final String? explanationVideoUrl; 
   final String? explanationAudioUrl; 
+  final String? explanationPdfUrl; 
   final Difficulty? difficulty;
   final CognitiveLevel? cognitiveLevel;
   final int? estimatedTime;      
@@ -103,6 +104,7 @@ class QuizQuestion {
     this.explanationImageUrl,
     this.explanationVideoUrl,
     this.explanationAudioUrl,
+    this.explanationPdfUrl,
     this.difficulty,
     this.cognitiveLevel,
     this.estimatedTime,
@@ -137,6 +139,7 @@ class QuizQuestion {
     String? explanationImageUrl,
     String? explanationVideoUrl,
     String? explanationAudioUrl,
+    String? explanationPdfUrl,
     Difficulty? difficulty,
     CognitiveLevel? cognitiveLevel,
     int? estimatedTime,
@@ -170,6 +173,7 @@ class QuizQuestion {
       explanationImageUrl: explanationImageUrl ?? this.explanationImageUrl,
       explanationVideoUrl: explanationVideoUrl ?? this.explanationVideoUrl,
       explanationAudioUrl: explanationAudioUrl ?? this.explanationAudioUrl,
+      explanationPdfUrl: explanationPdfUrl ?? this.explanationPdfUrl,
       difficulty: difficulty ?? this.difficulty,
       cognitiveLevel: cognitiveLevel ?? this.cognitiveLevel,
       estimatedTime: estimatedTime ?? this.estimatedTime,
@@ -212,6 +216,7 @@ class QuizQuestion {
       explanationImageUrl: data['explanationImageUrl'],
       explanationVideoUrl: data['explanationVideoUrl'],
       explanationAudioUrl: data['explanationAudioUrl'],
+      explanationPdfUrl: data['explanationPdfUrl'],
       difficulty: _parseDifficulty(data['difficulty']),
       cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']),
       estimatedTime: data['estimatedTime'],
@@ -272,6 +277,7 @@ class QuizQuestion {
       'explanationImageUrl': explanationImageUrl,
       'explanationVideoUrl': explanationVideoUrl,
       'explanationAudioUrl': explanationAudioUrl,
+      'explanationPdfUrl': explanationPdfUrl,
       'difficulty': difficulty?.name,
       'cognitiveLevel': cognitiveLevel?.name,
       'estimatedTime': estimatedTime,
