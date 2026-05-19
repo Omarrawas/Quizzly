@@ -22,21 +22,23 @@ class GithubStorageService {
     };
   }
 
-  /// Uploads a file to GitHub and returns the raw URL
-  Future<String?> uploadProfilePicture(
-    List<int> fileBytes,
-    String fileExtension,
-  ) async {
+  /// Uploads any file to a custom folder in GitHub and returns the raw URL
+  Future<String?> uploadFile({
+    required List<int> fileBytes,
+    required String fileExtension,
+    required String folderName,
+    String? customFileName,
+  }) async {
     try {
-      final String fileName = 'profile_${const Uuid().v4()}.$fileExtension';
-      final String path = 'profile_pics/$fileName';
+      final String fileName = customFileName ?? '${folderName.replaceAll('/', '_')}_${const Uuid().v4()}.$fileExtension';
+      final String path = '$folderName/$fileName';
 
       final String base64Content = base64Encode(fileBytes);
 
       final response = await _dio.put(
         'https://api.github.com/repos/$_githubOwner/$_repoName/contents/$path',
         data: {
-          'message': 'Upload profile picture $fileName',
+          'message': 'Upload $fileName to $folderName',
           'content': base64Content,
           'branch': _branch,
         },
@@ -48,8 +50,20 @@ class GithubStorageService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error uploading to GitHub: $e');
+      debugPrint('Error uploading file to GitHub: $e');
       return null;
     }
+  }
+
+  /// Uploads a profile picture using the generic uploadFile method
+  Future<String?> uploadProfilePicture(
+    List<int> fileBytes,
+    String fileExtension,
+  ) async {
+    return uploadFile(
+      fileBytes: fileBytes,
+      fileExtension: fileExtension,
+      folderName: 'profile_pics',
+    );
   }
 }
