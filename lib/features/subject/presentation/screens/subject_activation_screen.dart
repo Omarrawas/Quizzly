@@ -173,9 +173,18 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
+        leading: Builder(
+          builder: (context) {
+            final isRtl = Directionality.of(context) == TextDirection.rtl;
+            return IconButton(
+              icon: Icon(
+                isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(context),
+            );
+          },
         ),
       ),
       body: Stack(

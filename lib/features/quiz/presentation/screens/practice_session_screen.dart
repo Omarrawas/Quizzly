@@ -774,6 +774,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               border: Border.all(color: borderColor, width: revealed && (isCorrect || isSelected) ? 1.5 : 1),
             ),
             child: Row(
+              textDirection: TextDirection.ltr,
               children: [
                 Container(
                   width: 28,

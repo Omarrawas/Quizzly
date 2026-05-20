@@ -35,9 +35,17 @@ class ReadinessDetailScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
+        leading: Builder(
+          builder: (context) {
+            final isRtl = Directionality.of(context) == TextDirection.rtl;
+            return IconButton(
+              icon: Icon(
+                isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+              onPressed: () => Navigator.pop(context),
+            );
+          },
         ),
       ),
       body: StreamBuilder<double>(

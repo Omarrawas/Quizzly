@@ -205,9 +205,11 @@ class ContentService {
   }
 
   Future<void> setUserDefaults(String userId, Map<String, dynamic> defaults) async {
-    await _db.collection('users').doc(userId).update({
-      'defaults': defaults,
+    final Map<String, dynamic> updates = {};
+    defaults.forEach((key, value) {
+      updates['defaults.$key'] = value;
     });
+    await _db.collection('users').doc(userId).set(updates, SetOptions(merge: true));
   }
 
   // --- Content Codes ---

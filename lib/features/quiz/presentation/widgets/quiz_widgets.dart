@@ -620,67 +620,76 @@ class QuestionCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Topic Info Row: Chapter/Lesson and Tag
-          if ((question.topicNames != null && question.topicNames!.isNotEmpty) || question.tagLabel != null)
+          // Topic Info Row: Chapter/Lesson (e.g. الفصل الأول | الدرس الأول)
+          if (question.topicNames != null && question.topicNames!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 14, top: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Left side: Lesson/Tag (e.g. الأسس)
-                  Builder(
-                    builder: (context) {
-                      final tagText = question.tagLabel ?? 
-                          (question.topicNames != null && question.topicNames!.isNotEmpty 
-                              ? question.topicNames!.first.split(' - ').last 
-                              : '');
-                      if (tagText.isEmpty) return const SizedBox.shrink();
-                      final color = _getTagColor(tagText, isDark);
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Builder(
+                  builder: (context) {
+                    final chapterText = question.topicNames!.first;
+                    final color = _getTagColor(chapterText, isDark);
+                    
+                    final parts = chapterText.contains(' - ') 
+                        ? chapterText.split(' - ') 
+                        : chapterText.split(' | ');
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        if (onTagTap != null) {
+                          onTagTap!(chapterText);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
                         ),
-                        child: Text(
-                          tagText,
-                          style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                      );
-                    }
-                  ),
-                  
-                  // Right side: Chapter | Lesson (e.g. الفصل الأول | الدرس الأول)
-                  Builder(
-                    builder: (context) {
-                      final chapterText = question.topicNames != null && question.topicNames!.isNotEmpty 
-                          ? question.topicNames!.first 
-                          : 'العامة';
-                      final color = _getTagColor(chapterText, isDark);
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
-                        ),
-                        child: Text(
-                          chapterText.replaceAll(' - ', ' | '),
-                          style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                      );
-                    }
-                  ),
-                ],
+                        child: parts.length >= 2
+                            ? RichText(
+                                text: TextSpan(
+                                  style: GoogleFonts.cairo(color: color),
+                                  children: [
+                                    TextSpan(
+                                      text: parts[1].trim(), // Lesson name (Large)
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: ' | ',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 11,
+                                        color: color.withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: parts[0].trim(), // Chapter name (Small)
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.normal,
+                                        color: color.withValues(alpha: 0.8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Text(
+                                chapterText,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: color,
+                                ),
+                              ),
+                      ),
+                    );
+                  }
+                ),
               ),
             ),
 
@@ -756,6 +765,7 @@ class _OptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -773,11 +783,11 @@ class _OptionTile extends StatelessWidget {
           ),
         ),
         child: Row(
-          textDirection: TextDirection.ltr,
+          textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
           children: [
             Expanded(
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
                 child: TexViewWidget(
                   text: option.text,
                   fontSize: 15,
@@ -787,15 +797,17 @@ class _OptionTile extends StatelessWidget {
               ),
             ),
             if (showCorrect && isCorrect) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: isRtl ? 0 : 8),
               const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+              SizedBox(width: isRtl ? 8 : 0),
             ],
             if (isSelected && answerState == AnswerState.wrong) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: isRtl ? 0 : 8),
               const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+              SizedBox(width: isRtl ? 8 : 0),
             ],
             const SizedBox(width: 12),
-            // Radio circle on the right
+            // Radio circle
             Container(
               width: 22,
               height: 22,

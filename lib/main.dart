@@ -15,6 +15,7 @@ import 'package:quizzly/features/quiz/domain/services/smart_notification_service
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 import 'package:quizzly/core/services/app_update_service.dart';
+import 'package:flutter/foundation.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -31,11 +32,13 @@ void main() async {
   // Initialize Smart Notifications
   await SmartNotificationService().init();
 
-  // Enable 100% offline persistence to store data, results, and queue writes automatically.
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  // Enable 100% offline persistence to store data, results, and queue writes automatically (Android/iOS only).
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  }
 
   // Initialize App Update Service
   await AppUpdateService().initialize();

@@ -147,13 +147,15 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
   }
 
   Widget _buildAppBar(BuildContext context, bool isDark) {
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
     return SliverAppBar(
       expandedHeight: 0,
       pinned: true,
       elevation: 0,
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new_rounded, 
+        icon: Icon(
+          isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded, 
           color: isDark ? Colors.white : AppColors.textPrimary, size: 20),
         onPressed: () => Navigator.pop(context),
       ),

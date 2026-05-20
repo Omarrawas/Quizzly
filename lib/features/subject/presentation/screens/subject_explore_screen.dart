@@ -168,13 +168,18 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
   }
 
   Widget _buildSliverAppBar() {
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
     return SliverAppBar(
       expandedHeight: 100,
       pinned: true,
       backgroundColor: const Color(0xFF0F172A),
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+        icon: Icon(
+          isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
+          color: Colors.white,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       flexibleSpace: FlexibleSpaceBar(

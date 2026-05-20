@@ -44,9 +44,18 @@ class MuzakaraDetailScreen extends StatelessWidget {
       pinned: true,
       backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0D9488),
       elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-        onPressed: () => Navigator.pop(context),
+      leading: Builder(
+        builder: (context) {
+          final isRtl = Directionality.of(context) == TextDirection.rtl;
+          return IconButton(
+            icon: Icon(
+              isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
+          );
+        },
       ),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,

@@ -102,13 +102,18 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     return AppBar(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       elevation: 0,
-      leading: IconButton(
-        onPressed: () => Navigator.maybePop(context),
-        icon: Icon(
-          Icons.arrow_forward_ios_rounded, 
-          color: isDark ? Colors.white : AppColors.textPrimary, 
-          size: 20
-        ),
+      leading: Builder(
+        builder: (context) {
+          final isRtl = Directionality.of(context) == TextDirection.rtl;
+          return IconButton(
+            onPressed: () => Navigator.maybePop(context),
+            icon: Icon(
+              isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded, 
+              color: isDark ? Colors.white : AppColors.textPrimary, 
+              size: 20
+            ),
+          );
+        },
       ),
       title: Text(
         'الامتحانات - ${widget.subjectName}',

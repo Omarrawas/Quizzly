@@ -220,33 +220,35 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   SliverAppBar _buildSliverAppBar(String userId, ThemeData theme, bool isDark) {
     final canPop = Navigator.canPop(context);
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
 
     return SliverAppBar(
       backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
       pinned: true,
       centerTitle: true,
-      // Left side: Mastery Map icon
-      leading: IconButton(
-        onPressed: () => _showMasteryMap(context, userId),
-        icon: Icon(
-          Icons.map_outlined,
-          color: isDark ? Colors.white : AppColors.textPrimary,
-          size: 24,
-        ),
-        tooltip: 'خارطة الإتقان',
-      ),
-      // Right side: Back arrow (pointing right in RTL)
+      // Back button on leading (which is right side in RTL Arabic)
+      leading: canPop
+          ? IconButton(
+              icon: Icon(
+                isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+                size: 20,
+              ),
+              onPressed: () => Navigator.maybePop(context),
+            )
+          : null,
+      // Mastery Map icon on actions (which is left side in RTL Arabic)
       actions: [
-        if (canPop)
-          IconButton(
-            icon: Icon(
-              Icons.arrow_forward_ios_rounded, // Chevron pointing right for Arabic RTL back navigation
-              color: isDark ? Colors.white : AppColors.textPrimary,
-              size: 20,
-            ),
-            onPressed: () => Navigator.maybePop(context),
+        IconButton(
+          onPressed: () => _showMasteryMap(context, userId),
+          icon: Icon(
+            Icons.map_outlined,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+            size: 24,
           ),
+          tooltip: 'خارطة الإتقان',
+        ),
       ],
       title: Text(
         widget.subjectName,

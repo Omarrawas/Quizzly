@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentTabIndex = 0;
   StreamSubscription? _notifSubscription;
   Timer? _contentUpdateTimer;
+  Stream<List<Map<String, dynamic>>>? _activeSubjectsStream;
 
   // Sorting state variables
   String _sortType = 'newest';
@@ -44,6 +45,14 @@ class _HomeScreenState extends State<HomeScreen> {
   // Subject selection for tab 1
   List<Map<String, dynamic>> _allActiveSubjects = [];
   int _selectedSubjectIndex = 0;
+
+  bool _areSubjectListsEqual(List<Map<String, dynamic>> list1, List<Map<String, dynamic>> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i]['id'] != list2[i]['id']) return false;
+    }
+    return true;
+  }
 
   @override
   void initState() {
@@ -449,6 +458,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    _activeSubjectsStream ??= contentService.getUserActiveSubjects(authService.user!.uid);
+
     Widget currentBody;
     PreferredSizeWidget? currentAppBar;
     Widget? currentDrawer;
@@ -517,9 +528,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             Expanded(
               child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: contentService.getUserActiveSubjects(
-                  authService.user!.uid,
-                ),
+                stream: _activeSubjectsStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -540,7 +549,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         currentBody = _buildTabWrapper(
           StreamBuilder<List<Map<String, dynamic>>>(
-            stream: contentService.getUserActiveSubjects(authService.user!.uid),
+            stream: _activeSubjectsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
@@ -555,7 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Update the list of active subjects and ensure selected index is valid
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && _allActiveSubjects != activeSubjects) {
+                if (mounted && !_areSubjectListsEqual(_allActiveSubjects, activeSubjects)) {
                   setState(() {
                     _allActiveSubjects = activeSubjects;
                     if (_selectedSubjectIndex >= activeSubjects.length) {

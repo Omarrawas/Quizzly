@@ -85,18 +85,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() => _isSaving = true);
     try {
       final data = {
-        'defaults': {
-          'fullName': _nameController.text.trim(),
-          'phoneNumber': _phoneController.text.trim(),
-          'universityId': _selectedUniversityId,
-          'universityName': _universityName,
-          'collegeId': _selectedCollegeId,
-          'collegeName': _collegeName,
-          'departmentId': _selectedDepartmentId,
-          'departmentName': _departmentName,
-          'yearId': _selectedYearId,
-          'yearName': _yearName,
-        }
+        'defaults.fullName': _nameController.text.trim(),
+        'defaults.phoneNumber': _phoneController.text.trim(),
+        'defaults.universityId': _selectedUniversityId,
+        'defaults.universityName': _universityName,
+        'defaults.collegeId': _selectedCollegeId,
+        'defaults.collegeName': _collegeName,
+        'defaults.departmentId': _selectedDepartmentId,
+        'defaults.departmentName': _departmentName,
+        'defaults.yearId': _selectedYearId,
+        'defaults.yearName': _yearName,
       };
 
       await FirebaseFirestore.instance.collection('users').doc(authService.user!.uid).set(
