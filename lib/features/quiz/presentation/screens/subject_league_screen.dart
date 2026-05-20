@@ -86,31 +86,38 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
   }
 
   Future<void> _runWeeklyResetCheck() async {
-    final auth = context.read<AuthService>();
-    final user = auth.user;
-    if (user != null) {
-      final name = user.displayName ?? user.email?.split('@').first ?? 'طالب';
-      final avatar = user.photoURL;
+    try {
+      final auth = context.read<AuthService>();
+      final user = auth.user;
+      if (user != null) {
+        final name = user.displayName ?? user.email?.split('@').first ?? 'طالب';
+        final avatar = user.photoURL;
 
-      final resetResult = await _leagueService.checkAndApplyWeeklyReset(
-        userId: user.uid,
-        subjectId: widget.subjectId,
-        userName: name,
-        userAvatar: avatar,
-      );
+        final resetResult = await _leagueService.checkAndApplyWeeklyReset(
+          userId: user.uid,
+          subjectId: widget.subjectId,
+          userName: name,
+          userAvatar: avatar,
+        );
 
-      if (resetResult != null && resetResult['reset'] == true) {
-        final status = resetResult['status'];
-        final oldL = resetResult['oldLeague'];
-        final newL = resetResult['newLeague'];
-        if (status == 'promoted') {
-          _showPromotionDialog(oldL, newL);
-        } else if (status == 'demoted') {
-          _showDemotionDialog(oldL, newL);
+        if (resetResult != null && resetResult['reset'] == true && mounted) {
+          final status = resetResult['status'];
+          final oldL = resetResult['oldLeague'];
+          final newL = resetResult['newLeague'];
+          if (status == 'promoted') {
+            _showPromotionDialog(oldL, newL);
+          } else if (status == 'demoted') {
+            _showDemotionDialog(oldL, newL);
+          }
         }
       }
+    } catch (e) {
+      debugPrint('Error during weekly reset check: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _checkingReset = false);
+      }
     }
-    setState(() => _checkingReset = false);
   }
 
   void _startCountdown() {

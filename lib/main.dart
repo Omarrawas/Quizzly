@@ -29,8 +29,10 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
 
-  // Initialize Smart Notifications
-  await SmartNotificationService().init();
+  // Initialize Smart Notifications in background
+  SmartNotificationService().init().catchError((e) {
+    debugPrint('Smart Notification initialization failed: $e');
+  });
 
   // Enable 100% offline persistence to store data, results, and queue writes automatically (Android/iOS only).
   if (!kIsWeb) {
@@ -40,8 +42,8 @@ void main() async {
     );
   }
 
-  // Initialize App Update Service
-  await AppUpdateService().initialize();
+  // Initialize App Update Service in background
+  AppUpdateService().initialize();
 
   runApp(
     MultiProvider(
