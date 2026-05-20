@@ -50,7 +50,12 @@ class GithubStorageService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error uploading file to GitHub: $e');
+      if (e is DioException) {
+        debugPrint('Error uploading file to GitHub (DioException): ${e.message}');
+        debugPrint('Response data: ${e.response?.data}');
+      } else {
+        debugPrint('Error uploading file to GitHub: $e');
+      }
       return null;
     }
   }

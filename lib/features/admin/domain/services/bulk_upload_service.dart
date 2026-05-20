@@ -59,17 +59,27 @@ class BulkUploadService {
     
     // Find column indices
     int colText = header.indexOf('questiontext');
+    int colTranslation = header.indexOf('translationtext');
     int colType = header.indexOf('type');
     int colOptA = header.indexOf('opt_a');
     int colOptB = header.indexOf('opt_b');
     int colOptC = header.indexOf('opt_c');
     int colOptD = header.indexOf('opt_d');
+    int colOptE = header.indexOf('opt_e');
+    int colOptF = header.indexOf('opt_f');
     int colCorrect = header.indexOf('correctans');
     int colDiff = header.indexOf('difficulty');
     int colCognitive = header.indexOf('cognitivelevel');
     int colTime = header.indexOf('timesec');
     int colTopic = header.indexOf('topicname');
     int colExpl = header.indexOf('explanation');
+    int colExplImg = header.indexOf('explanationimageurl');
+    int colExplVid = header.indexOf('explanationvideourl');
+    int colExplAud = header.indexOf('explanationaudiourl');
+    int colExplPdf = header.indexOf('explanationpdfurl');
+    int colImg = header.indexOf('imageurl');
+    int colTag = header.indexOf('taglabel');
+    int colExamTags = header.indexOf('examtags');
 
     if (colText == -1) {
       return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'العمود QuestionText مفقود.')]);
@@ -113,6 +123,20 @@ class BulkUploadService {
       }
       seenQuestions.add(normalizedText);
 
+      // Other fields
+      String translation = colTranslation != -1 && row.length > colTranslation ? row[colTranslation].toString().trim() : '';
+      String explImg = colExplImg != -1 && row.length > colExplImg ? row[colExplImg].toString().trim() : '';
+      String explVid = colExplVid != -1 && row.length > colExplVid ? row[colExplVid].toString().trim() : '';
+      String explAud = colExplAud != -1 && row.length > colExplAud ? row[colExplAud].toString().trim() : '';
+      String explPdf = colExplPdf != -1 && row.length > colExplPdf ? row[colExplPdf].toString().trim() : '';
+      String imgUrl = colImg != -1 && row.length > colImg ? row[colImg].toString().trim() : '';
+      String tag = colTag != -1 && row.length > colTag ? row[colTag].toString().trim() : '';
+      
+      String examTagsRaw = colExamTags != -1 && row.length > colExamTags ? row[colExamTags].toString().trim() : '';
+      List<String> examTags = [];
+      if (examTagsRaw.isNotEmpty) {
+        examTags = examTagsRaw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      }
       
       // Map Topic (Handle "Chapter - Lesson" format)
       String fullTopicPath = colTopic != -1 && row.length > colTopic ? row[colTopic].toString().trim() : '';
@@ -175,6 +199,8 @@ class BulkUploadService {
         if (colOptB != -1 && row.length > colOptB && row[colOptB].toString().trim().isNotEmpty) options.add(row[colOptB].toString().trim());
         if (colOptC != -1 && row.length > colOptC && row[colOptC].toString().trim().isNotEmpty) options.add(row[colOptC].toString().trim());
         if (colOptD != -1 && row.length > colOptD && row[colOptD].toString().trim().isNotEmpty) options.add(row[colOptD].toString().trim());
+        if (colOptE != -1 && row.length > colOptE && row[colOptE].toString().trim().isNotEmpty) options.add(row[colOptE].toString().trim());
+        if (colOptF != -1 && row.length > colOptF && row[colOptF].toString().trim().isNotEmpty) options.add(row[colOptF].toString().trim());
         
         if (type == QuestionType.mcq && options.length < 2) {
           errors.add(UploadError(row: i + 1, message: 'أسئلة الاختيارات يجب أن تحتوي على خيارين على الأقل.'));
@@ -185,13 +211,15 @@ class BulkUploadService {
       String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect].toString().trim() : '';
       dynamic correctAnswer;
       if (type == QuestionType.mcq) {
-        // Map a, b, c, d to index 0, 1, 2, 3
+        // Map a, b, c, d, e, f to index 0, 1, 2, 3, 4, 5
         int ansIndex = -1;
         switch (correctAnsRaw.toLowerCase()) {
           case 'a': ansIndex = 0; break;
           case 'b': ansIndex = 1; break;
           case 'c': ansIndex = 2; break;
           case 'd': ansIndex = 3; break;
+          case 'e': ansIndex = 4; break;
+          case 'f': ansIndex = 5; break;
         }
         if (ansIndex != -1 && ansIndex < options.length) {
           correctAnswer = ansIndex;
@@ -242,6 +270,7 @@ class BulkUploadService {
         id: _generateQuestionId(text),
         number: i,
         text: text,
+        translationText: translation.isNotEmpty ? translation : null,
         type: type,
         options: options.isNotEmpty 
             ? options.asMap().entries.map((e) => QuizOption(id: e.key.toString(), text: e.value)).toList() 
@@ -249,12 +278,18 @@ class BulkUploadService {
         correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? (correctAnswer != null ? [correctAnswer.toString()] : []) : [],
         essayAnswer: type == QuestionType.essay ? correctAnswer?.toString() : null,
         explanation: expl.isNotEmpty ? expl : null,
+        explanationImageUrl: explImg.isNotEmpty ? explImg : null,
+        explanationVideoUrl: explVid.isNotEmpty ? explVid : null,
+        explanationAudioUrl: explAud.isNotEmpty ? explAud : null,
+        explanationPdfUrl: explPdf.isNotEmpty ? explPdf : null,
+        imageUrl: imgUrl.isNotEmpty ? imgUrl : null,
+        tagLabel: tag.isNotEmpty ? tag : null,
+        examTags: examTags,
         difficulty: diff,
         cognitiveLevel: cog,
         topicIds: topicIds.isNotEmpty ? topicIds : null,
         estimatedTime: timeSec,
       );
-
 
       parsedQuestions.add(q);
     }
@@ -281,17 +316,27 @@ class BulkUploadService {
     final header = headerRow.map((e) => e?.value?.toString().trim().toLowerCase() ?? '').toList();
 
     int colText = header.indexOf('questiontext');
+    int colTranslation = header.indexOf('translationtext');
     int colType = header.indexOf('type');
     int colOptA = header.indexOf('opt_a');
     int colOptB = header.indexOf('opt_b');
     int colOptC = header.indexOf('opt_c');
     int colOptD = header.indexOf('opt_d');
+    int colOptE = header.indexOf('opt_e');
+    int colOptF = header.indexOf('opt_f');
     int colCorrect = header.indexOf('correctans');
     int colDiff = header.indexOf('difficulty');
     int colCognitive = header.indexOf('cognitivelevel');
     int colTime = header.indexOf('timesec');
     int colTopic = header.indexOf('topicname');
     int colExpl = header.indexOf('explanation');
+    int colExplImg = header.indexOf('explanationimageurl');
+    int colExplVid = header.indexOf('explanationvideourl');
+    int colExplAud = header.indexOf('explanationaudiourl');
+    int colExplPdf = header.indexOf('explanationpdfurl');
+    int colImg = header.indexOf('imageurl');
+    int colTag = header.indexOf('taglabel');
+    int colExamTags = header.indexOf('examtags');
 
     if (colText == -1) {
       return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'العمود QuestionText مفقود.')]);
@@ -329,6 +374,21 @@ class BulkUploadService {
         continue;
       }
       seenQuestions.add(normalizedText);
+
+      // Extract new fields safely
+      String translation = colTranslation != -1 && row.length > colTranslation ? row[colTranslation]?.value?.toString().trim() ?? '' : '';
+      String explImg = colExplImg != -1 && row.length > colExplImg ? row[colExplImg]?.value?.toString().trim() ?? '' : '';
+      String explVid = colExplVid != -1 && row.length > colExplVid ? row[colExplVid]?.value?.toString().trim() ?? '' : '';
+      String explAud = colExplAud != -1 && row.length > colExplAud ? row[colExplAud]?.value?.toString().trim() ?? '' : '';
+      String explPdf = colExplPdf != -1 && row.length > colExplPdf ? row[colExplPdf]?.value?.toString().trim() ?? '' : '';
+      String imgUrl = colImg != -1 && row.length > colImg ? row[colImg]?.value?.toString().trim() ?? '' : '';
+      String tag = colTag != -1 && row.length > colTag ? row[colTag]?.value?.toString().trim() ?? '' : '';
+      
+      String examTagsRaw = colExamTags != -1 && row.length > colExamTags ? row[colExamTags]?.value?.toString().trim() ?? '' : '';
+      List<String> examTags = [];
+      if (examTagsRaw.isNotEmpty) {
+        examTags = examTagsRaw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      }
 
       String fullTopicPath = colTopic != -1 && row.length > colTopic ? row[colTopic]?.value?.toString().trim() ?? '' : '';
       List<String> topicIds = [];
@@ -369,10 +429,12 @@ class BulkUploadService {
 
       List<String> options = [];
       if (type == QuestionType.mcq || type == QuestionType.trueFalse) {
-        if (colOptA != -1 && row.length > colOptA && row[colOptA]?.value != null) options.add(row[colOptA]!.value.toString().trim());
-        if (colOptB != -1 && row.length > colOptB && row[colOptB]?.value != null) options.add(row[colOptB]!.value.toString().trim());
-        if (colOptC != -1 && row.length > colOptC && row[colOptC]?.value != null) options.add(row[colOptC]!.value.toString().trim());
-        if (colOptD != -1 && row.length > colOptD && row[colOptD]?.value != null) options.add(row[colOptD]!.value.toString().trim());
+        if (colOptA != -1 && row.length > colOptA && row[colOptA]?.value != null && row[colOptA]!.value.toString().trim().isNotEmpty) options.add(row[colOptA]!.value.toString().trim());
+        if (colOptB != -1 && row.length > colOptB && row[colOptB]?.value != null && row[colOptB]!.value.toString().trim().isNotEmpty) options.add(row[colOptB]!.value.toString().trim());
+        if (colOptC != -1 && row.length > colOptC && row[colOptC]?.value != null && row[colOptC]!.value.toString().trim().isNotEmpty) options.add(row[colOptC]!.value.toString().trim());
+        if (colOptD != -1 && row.length > colOptD && row[colOptD]?.value != null && row[colOptD]!.value.toString().trim().isNotEmpty) options.add(row[colOptD]!.value.toString().trim());
+        if (colOptE != -1 && row.length > colOptE && row[colOptE]?.value != null && row[colOptE]!.value.toString().trim().isNotEmpty) options.add(row[colOptE]!.value.toString().trim());
+        if (colOptF != -1 && row.length > colOptF && row[colOptF]?.value != null && row[colOptF]!.value.toString().trim().isNotEmpty) options.add(row[colOptF]!.value.toString().trim());
       }
 
       String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect]?.value?.toString().trim() ?? '' : '';
@@ -384,6 +446,8 @@ class BulkUploadService {
           case 'b': ansIndex = 1; break;
           case 'c': ansIndex = 2; break;
           case 'd': ansIndex = 3; break;
+          case 'e': ansIndex = 4; break;
+          case 'f': ansIndex = 5; break;
         }
         if (ansIndex != -1 && ansIndex < options.length) correctAnswer = ansIndex;
       } else if (type == QuestionType.trueFalse) {
@@ -404,11 +468,19 @@ class BulkUploadService {
         id: _generateQuestionId(text),
         number: i,
         text: text,
+        translationText: translation.isNotEmpty ? translation : null,
         type: type,
         options: options.isNotEmpty ? options.asMap().entries.map((e) => QuizOption(id: e.key.toString(), text: e.value)).toList() : null,
         correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? (correctAnswer != null ? [correctAnswer.toString()] : []) : [],
         essayAnswer: type == QuestionType.essay ? correctAnswer?.toString() : null,
         explanation: colExpl != -1 && row.length > colExpl ? row[colExpl]?.value?.toString().trim() : null,
+        explanationImageUrl: explImg.isNotEmpty ? explImg : null,
+        explanationVideoUrl: explVid.isNotEmpty ? explVid : null,
+        explanationAudioUrl: explAud.isNotEmpty ? explAud : null,
+        explanationPdfUrl: explPdf.isNotEmpty ? explPdf : null,
+        imageUrl: imgUrl.isNotEmpty ? imgUrl : null,
+        tagLabel: tag.isNotEmpty ? tag : null,
+        examTags: examTags,
         difficulty: diff,
         cognitiveLevel: cog,
         topicIds: topicIds.isNotEmpty ? topicIds : null,
@@ -478,9 +550,28 @@ class BulkUploadService {
     );
 
     final List<String> headers = [
-      'QuestionText', 'Type', 'Opt_A', 'Opt_B', 'Opt_C', 'Opt_D', 
-      'CorrectAns', 'Difficulty', 'CognitiveLevel', 'TimeSec', 
-      'TopicName', 'Explanation'
+      'QuestionText',
+      'TranslationText',
+      'Type',
+      'Opt_A',
+      'Opt_B',
+      'Opt_C',
+      'Opt_D',
+      'Opt_E',
+      'Opt_F',
+      'CorrectAns',
+      'Difficulty',
+      'CognitiveLevel',
+      'TimeSec',
+      'TopicName',
+      'Explanation',
+      'ExplanationImageUrl',
+      'ExplanationVideoUrl',
+      'ExplanationAudioUrl',
+      'ExplanationPdfUrl',
+      'ImageUrl',
+      'TagLabel',
+      'ExamTags'
     ];
 
     for (int i = 0; i < headers.length; i++) {
@@ -519,17 +610,28 @@ class BulkUploadService {
       }
 
       final rowValues = [
-        q.text, q.type.name,
+        q.text,
+        q.translationText ?? '',
+        q.type.name,
         options.isNotEmpty ? options[0].text : '',
         options.length > 1 ? options[1].text : '',
         options.length > 2 ? options[2].text : '',
         options.length > 3 ? options[3].text : '',
+        options.length > 4 ? options[4].text : '',
+        options.length > 5 ? options[5].text : '',
         correctAns,
         q.difficulty?.name ?? 'medium',
         q.cognitiveLevel?.name ?? 'understanding',
         q.estimatedTime,
         topicName,
-        q.explanation ?? ''
+        q.explanation ?? '',
+        q.explanationImageUrl ?? '',
+        q.explanationVideoUrl ?? '',
+        q.explanationAudioUrl ?? '',
+        q.explanationPdfUrl ?? '',
+        q.imageUrl ?? '',
+        q.tagLabel ?? '',
+        q.examTags.join(', '),
       ];
 
       for (int j = 0; j < rowValues.length; j++) {

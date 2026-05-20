@@ -182,7 +182,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ],
         FloatingActionButton(
           onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
           elevation: 4,
           shape: const CircleBorder(),
           child: Icon(
@@ -371,14 +371,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           floatingActionButton: filteredDocs.isNotEmpty ? _buildExpandableFab(filteredDocs) : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.black),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
               onPressed: () => Navigator.pop(context),
             ),
             title: _isSearching
@@ -399,13 +399,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   )
                 : Text(
                     listName,
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary),
                   ),
             centerTitle: true,
             actions: [
               _isSearching
                   ? IconButton(
-                      icon: const Icon(Icons.close, color: Colors.black),
+                      icon: const Icon(Icons.close),
                       onPressed: () {
                         setState(() {
                           _isSearching = false;
@@ -415,7 +415,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       },
                     )
                   : IconButton(
-                      icon: const Icon(Icons.search, color: Colors.black),
+                      icon: const Icon(Icons.search),
                       onPressed: () => setState(() => _isSearching = true),
                     ),
             ],
@@ -437,9 +437,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderLight),
+                  border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : AppColors.borderLight),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.02),

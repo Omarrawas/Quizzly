@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quizzly/features/auth/domain/services/activation_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/features/quiz/presentation/screens/subject_league_screen.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/domain/services/cram_mode_service.dart';
@@ -40,11 +41,34 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   final ActivationService _activationService = ActivationService();
   bool _isActivated = false;
   bool _checkingActivation = true;
+  late String _contentSubjectId;
 
   @override
   void initState() {
     super.initState();
+    _contentSubjectId = widget.subjectId;
     _checkActivation();
+    _resolveContentSubjectId();
+  }
+
+  Future<void> _resolveContentSubjectId() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc(widget.subjectId)
+          .get();
+      if (doc.exists && mounted) {
+        final data = doc.data();
+        if (data != null && data['referenceSubjectId'] != null) {
+          final refId = data['referenceSubjectId'] as String;
+          if (refId.isNotEmpty) {
+            setState(() {
+              _contentSubjectId = refId;
+            });
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _checkActivation() async {
@@ -93,7 +117,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   Widget _buildDynamicCoachBanner(String userId) {
     if (!_isActivated) return const SizedBox.shrink(); // Hide coach for free users to keep it clean
     return StreamBuilder<double>(
-      stream: ReadinessService().streamReadinessScore(userId, widget.subjectId),
+      stream: ReadinessService().streamReadinessScore(userId, _contentSubjectId),
       builder: (context, snapshot) {
         final score = snapshot.data ?? 0.0;
         if (score >= 0.5) return const SizedBox.shrink();
@@ -105,7 +129,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) => PracticeScreen(
-                  subjectId: widget.subjectId,
+                  subjectId: _contentSubjectId,
                   subjectName: widget.subjectName,
                 ),
               ),
@@ -118,7 +142,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   Widget _buildReadinessHeader(String userId, bool isDark) {
     return StreamBuilder<double>(
-      stream: ReadinessService().streamReadinessScore(userId, widget.subjectId),
+      stream: ReadinessService().streamReadinessScore(userId, _contentSubjectId),
       builder: (context, snapshot) {
         final score = snapshot.data ?? 0.0;
         final percentage = (score * 100).toInt();
@@ -385,7 +409,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('sections')
-          .where('parentId', isEqualTo: widget.subjectId)
+          .where('parentId', isEqualTo: _contentSubjectId)
           .snapshots(),
       builder: (context, snapshot) {
         final sections = snapshot.data?.docs ?? [];
@@ -409,7 +433,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             Icons.assignment_rounded,
             'الامتحانات',
             const Color(0xFF8B93FF), // Purple theme color
-            _statsService.streamExamsCount(widget.subjectId),
+            _statsService.streamExamsCount(_contentSubjectId),
             0,
             false,
           ),
@@ -417,7 +441,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             Icons.explore_rounded,
             'استكشاف المحتوى',
             const Color(0xFF6366F1), // Blue theme color
-            _statsService.streamTopicsCount(widget.subjectId),
+            _statsService.streamTopicsCount(_contentSubjectId),
             1,
             !_isActivated,
           ),
@@ -425,7 +449,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             Icons.auto_awesome_motion_rounded,
             'مركز الإتقان',
             isDark ? Colors.white60 : const Color(0xFF475569), // Slate theme color
-            _statsService.streamWrongAnswersCount(userId, widget.subjectId),
+            _statsService.streamWrongAnswersCount(userId, _contentSubjectId),
             2,
             !_isActivated,
           ),
@@ -433,7 +457,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             Icons.school_rounded,
             'تدرب بنفسك',
             const Color(0xFF0EA5E9), // Cyan/Teal theme color
-            _statsService.streamPracticeCount(userId, widget.subjectId),
+            _statsService.streamPracticeCount(userId, _contentSubjectId),
             3,
             !_isActivated,
           ),
@@ -442,7 +466,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               Icons.science_rounded,
               'القسم العملي',
               const Color(0xFF0D9488), // Green/Teal beaker color
-              _statsService.streamPracticalTopicsCount(widget.subjectId),
+              _statsService.streamPracticalTopicsCount(_contentSubjectId),
               4,
               false,
             ),
@@ -453,6 +477,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             Stream<int>.value(0),
             5,
             !_isActivated,
+          ),
+          (
+            Icons.emoji_events_rounded,
+            'دوري التحدي',
+            const Color(0xFFF59E0B), // Amber/Gold
+            Stream<int>.value(0),
+            7,
+            false,
           ),
         ];
 
@@ -499,7 +531,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               if (showTheoretical) ...[
                 const SizedBox(height: 16),
                 StreamBuilder<int>(
-                  stream: _statsService.streamTopicsCount(widget.subjectId),
+                  stream: _statsService.streamTopicsCount(_contentSubjectId),
                   builder: (context, countSnap) {
                     return _buildPremiumActionCard(
                       icon: Icons.menu_book_rounded,
@@ -526,7 +558,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     if (!_isActivated) return const SliverToBoxAdapter(child: SizedBox.shrink());
     return SliverToBoxAdapter(
       child: FutureBuilder<List<QuizQuestion>>(
-        future: _cramModeService.generateCramSession(userId, widget.subjectId),
+        future: _cramModeService.generateCramSession(userId, _contentSubjectId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SizedBox.shrink();
@@ -556,7 +588,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     MaterialPageRoute(
                       builder: (_) => CramModeSessionScreen(
                         questions: snapshot.data!,
-                        subjectId: widget.subjectId,
+                        subjectId: _contentSubjectId,
                       ),
                     ),
                   ),
@@ -810,7 +842,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => ExamsListScreen(
-            subjectId: widget.subjectId,
+            subjectId: _contentSubjectId,
             subjectName: widget.subjectName,
             isFree: !_isActivated,
           ),
@@ -825,7 +857,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => SubjectExploreScreen(
-            subjectId: widget.subjectId,
+            subjectId: _contentSubjectId,
             subjectName: widget.subjectName,
             isFree: !_isActivated,
           ),
@@ -840,7 +872,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => PracticeScreen(
-            subjectId: widget.subjectId,
+            subjectId: _contentSubjectId,
             subjectName: widget.subjectName,
             isFree: !_isActivated,
           ),
@@ -855,7 +887,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => PracticalSectionScreen(
-            subjectId: widget.subjectId,
+            subjectId: _contentSubjectId,
             subjectName: widget.subjectName,
             isViewOnly: true,
             isFree: !_isActivated,
@@ -871,6 +903,20 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       return;
     }
 
+    // 7. Challenge League
+    if (index == 7) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SubjectLeagueScreen(
+            subjectId: _contentSubjectId,
+            subjectName: widget.subjectName,
+          ),
+        ),
+      );
+      return;
+    }
+
     // Other sections (Locked for free users)
     if (!_isActivated) {
       _showPaywall();
@@ -883,7 +929,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => MasteryDashboardScreen(
-              subjectId: widget.subjectId,
+              subjectId: _contentSubjectId,
               subjectName: widget.subjectName,
             ),
           ),
@@ -894,7 +940,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => SubjectBattlesScreen(
-              subjectId: widget.subjectId,
+              subjectId: _contentSubjectId,
               subjectName: widget.subjectName,
             ),
           ),
@@ -907,7 +953,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     // 1. Try to find a section that explicitly contains 'نظري' in its name
     final sectionsSnap = await FirebaseFirestore.instance
         .collection(DatabaseService.colSections)
-        .where('parentId', isEqualTo: widget.subjectId)
+        .where('parentId', isEqualTo: _contentSubjectId)
         .get();
     
     String? theorySectionId;
@@ -933,7 +979,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     if (theorySectionId == null) {
       final lessonsSnap = await FirebaseFirestore.instance
           .collection(DatabaseService.colTopics)
-          .where('subjectId', isEqualTo: widget.subjectId)
+          .where('subjectId', isEqualTo: _contentSubjectId)
           .where('type', isEqualTo: 'lesson')
           .limit(1)
           .get();
@@ -958,7 +1004,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => TheoreticalLessonListScreen(
-          subjectId: widget.subjectId,
+          subjectId: _contentSubjectId,
           subjectName: widget.subjectName,
           sectionId: theorySectionId!,
           sectionName: theorySectionName!,
@@ -975,7 +1021,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) =>
-          _MasteryMapSheet(userId: userId, subjectId: widget.subjectId),
+          _MasteryMapSheet(userId: userId, subjectId: _contentSubjectId),
     );
   }
 }

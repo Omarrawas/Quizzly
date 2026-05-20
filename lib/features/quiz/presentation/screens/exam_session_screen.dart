@@ -9,6 +9,8 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_result_screen.dart';
+import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
+import 'package:quizzly/features/gamification/domain/services/subject_league_service.dart';
 
 class ExamSessionScreen extends StatefulWidget {
   final ExamConfig config;
@@ -228,6 +230,29 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             quality: res['isCorrect'] ? 5 : 0,
           );
         }
+
+        final mappedAnswers = results.map((r) => {
+          'questionId': r['questionId'],
+          'isCorrect': r['isCorrect'],
+          'timeSpent': results.isNotEmpty ? (timeSpent / results.length).round() : 0,
+        }).toList();
+
+        final gamificationService = GamificationService();
+        final subjectLeagueService = SubjectLeagueService();
+
+        gamificationService.processQuizAttempt(userId, mappedAnswers, widget.questions).then((result) {
+          final userName = authService.user?.displayName ?? 
+                           authService.user?.email?.split('@').first ?? 
+                           'طالب';
+          final userAvatar = authService.user?.photoURL;
+          subjectLeagueService.addSubjectXp(
+            userId: userId,
+            subjectId: widget.config.subjectId,
+            xpGained: result.xpGained,
+            userName: userName,
+            userAvatar: userAvatar,
+          );
+        });
       }
 
       if (mounted) navigator.pop(); // Close loading
@@ -292,9 +317,9 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
               ),
             ),
           ),
+          _buildNavigationFooter(isDark),
         ],
       ),
-      bottomNavigationBar: _buildNavigationFooter(isDark),
     );
   }
 

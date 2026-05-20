@@ -124,6 +124,36 @@ class GamificationService {
         .map((snap) => snap.docs.map((d) => GameModeConfig.fromFirestore(d)).toList());
   }
 
+  Future<XpResult> addXp(String userId, int xpGained) async {
+    final profileRef = _db.collection('user_gamification').doc(userId);
+    return await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(profileRef);
+      GamificationProfile currentProfile = GamificationProfile.fromFirestore(snapshot);
+      final int newTotalXp = currentProfile.xp + xpGained;
+      final int calculatedLevel = GamificationProfile.calculateLevel(newTotalXp);
+      final bool hasLeveledUp = calculatedLevel > currentProfile.level;
+      final int finalLevel = hasLeveledUp ? calculatedLevel : currentProfile.level;
+
+      final updatedProfile = GamificationProfile(
+        userId: userId,
+        xp: newTotalXp,
+        level: finalLevel,
+        currentStreak: currentProfile.currentStreak,
+        longestStreak: currentProfile.longestStreak,
+        lastActiveDate: DateTime.now(),
+        earnedBadges: currentProfile.earnedBadges,
+      );
+
+      transaction.set(profileRef, updatedProfile.toMap(), SetOptions(merge: true));
+
+      return XpResult(
+        xpGained: xpGained,
+        newLevel: finalLevel,
+        levelUp: hasLeveledUp,
+      );
+    });
+  }
+
   QuizQuestion _defaultQuestion() {
     return const QuizQuestion(number: 0, text: '', type: QuestionType.mcq, difficulty: Difficulty.easy, estimatedTime: 60);
   }

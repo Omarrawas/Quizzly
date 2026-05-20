@@ -130,20 +130,54 @@ class _ManageSalesLocationsScreenState
           surfaceTintColor: Colors.transparent,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('اختر المحافظة',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center),
-          content: DropdownButton<String>(
-            value: selected,
-            isExpanded: true,
-            items: available
-                .map((g) => DropdownMenuItem(
-                    value: g,
-                    child: Text(g, style: GoogleFonts.cairo(fontSize: 15))))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setDialogState(() => selected = v);
-            },
+          title: Text(
+            'اختر المحافظة',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white10 : Colors.black12,
+                width: 1,
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selected,
+                isExpanded: true,
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: isDark ? Colors.white70 : AppColors.primaryBlue,
+                ),
+                style: GoogleFonts.cairo(
+                  fontSize: 15,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+                items: available
+                    .map((g) => DropdownMenuItem(
+                          value: g,
+                          child: Text(
+                            g,
+                            style: GoogleFonts.cairo(
+                              fontSize: 15,
+                              color: isDark ? Colors.white : AppColors.textPrimary,
+                            ),
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setDialogState(() => selected = v);
+                },
+              ),
+            ),
           ),
           actions: [
             TextButton(

@@ -17,8 +17,10 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'بلاغات المستخدمين',
@@ -26,8 +28,8 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        foregroundColor: isDark ? Colors.white : AppColors.textPrimary,
       ),
       body: Column(
         children: [
@@ -36,7 +38,7 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
             margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: isDark ? const Color(0xFF1E293B) : Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -48,7 +50,7 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: !_showResolved ? Colors.white : Colors.transparent,
+                        color: !_showResolved ? (isDark ? const Color(0xFF334155) : Colors.white) : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: !_showResolved
                             ? [
@@ -80,7 +82,7 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: _showResolved ? Colors.white : Colors.transparent,
+                        color: _showResolved ? (isDark ? const Color(0xFF334155) : Colors.white) : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: _showResolved
                             ? [
@@ -261,12 +263,14 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isResolved = status == 'resolved';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        border: isDark ? Border.all(color: Colors.white10) : null,
+        boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
@@ -302,7 +306,7 @@ class _ReportCard extends StatelessWidget {
                   'سؤال #$questionNumber',
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -347,24 +351,24 @@ class _ReportCard extends StatelessWidget {
                 if (questionText.isNotEmpty) ...[
                   Text(
                     'نص السؤال:',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondary),
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     questionText,
-                    style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textPrimary),
+                    style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : AppColors.textPrimary),
                     textDirection: TextDirection.rtl,
                   ),
                   const SizedBox(height: 12),
                 ],
                 Text(
                   'تفاصيل البلاغ:',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textSecondary),
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   details.isEmpty ? '(لا توجد تفاصيل)' : details,
-                  style: GoogleFonts.cairo(fontSize: 14, color: AppColors.textPrimary),
+                  style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white70 : AppColors.textPrimary),
                   textDirection: TextDirection.rtl,
                 ),
                 const SizedBox(height: 12),

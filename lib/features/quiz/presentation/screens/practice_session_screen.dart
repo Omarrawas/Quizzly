@@ -6,6 +6,7 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/practice_service.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_quiz_service.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
+import 'package:quizzly/features/gamification/domain/services/subject_league_service.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -320,7 +321,21 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         'isCorrect': a['isCorrect'],
         'timeSpent': 30,
       }).toList();
-      _gamificationService.processQuizAttempt(userId, mappedAnswers, _questions);
+      final auth = context.read<AuthService>();
+      final userName = auth.user?.displayName ?? 
+                       auth.user?.email?.split('@').first ?? 
+                       'طالب';
+      final userAvatar = auth.user?.photoURL;
+
+      _gamificationService.processQuizAttempt(userId, mappedAnswers, _questions).then((result) {
+        SubjectLeagueService().addSubjectXp(
+          userId: userId,
+          subjectId: widget.subjectId,
+          xpGained: result.xpGained,
+          userName: userName,
+          userAvatar: userAvatar,
+        );
+      });
 
       // Compile mistakes for smart history logging
       final List<Map<String, dynamic>> mistakes = [];

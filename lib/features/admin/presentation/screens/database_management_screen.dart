@@ -195,7 +195,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               finalPrice: finalPrice,
               discount: discount,
               isDark: isDark,
-              onTap: () => _onItemTap(id, name, _currentLevel),
+              onTap: () => _onItemTap(id, name, _currentLevel, referenceSubjectId: data['referenceSubjectId']),
               onEdit: () => _showEditDialog(id, data),
               onDelete: () => _confirmDelete(id, name),
             );
@@ -219,7 +219,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
   }
 
-  void _onItemTap(String id, String name, ManagementLevel fromLevel) {
+  void _onItemTap(String id, String name, ManagementLevel fromLevel, {String? referenceSubjectId}) {
     if (fromLevel == ManagementLevel.subject) {
       List<String> breadcrumbs = [];
       for (var level in ManagementLevel.values) {
@@ -235,6 +235,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             subjectId: id,
             subjectName: name,
             breadcrumbs: breadcrumbs,
+            referenceSubjectId: referenceSubjectId,
           ),
         ),
       );
@@ -489,71 +490,125 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
     final nameController = TextEditingController(text: currentData['name']);
     final descController = TextEditingController(text: currentData['description'] ?? currentData['subtitle']);
+    String? referenceSubjectId = currentData['referenceSubjectId'];
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تعديل ${_getAddLabel()}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
-            const SizedBox(height: 16),
-            TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
-            if (_currentLevel == ManagementLevel.subject) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: TextEditingController(text: currentData['price']?.toString() ?? ''),
-                      onChanged: (v) => currentData['price'] = double.tryParse(v),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
-                    ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('تعديل ${_getAddLabel()}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
+                const SizedBox(height: 16),
+                TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
+                if (_currentLevel == ManagementLevel.subject) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: TextEditingController(text: currentData['price']?.toString() ?? ''),
+                          onChanged: (v) => currentData['price'] = double.tryParse(v),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: TextEditingController(text: currentData['discount']?.toString() ?? ''),
+                          onChanged: (v) => currentData['discount'] = double.tryParse(v),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: TextEditingController(text: currentData['discount']?.toString() ?? ''),
-                      onChanged: (v) => currentData['discount'] = double.tryParse(v),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
-                    ),
+                  const SizedBox(height: 20),
+                  FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance.collection('subjects').get(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const SizedBox(
+                          height: 48,
+                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        );
+                      }
+                      
+                      // Filter out:
+                      // 1. Current subject to prevent self-reference loops
+                      // 2. Subjects that are already aliases to avoid multi-level chains
+                      final masterSubjects = snapshot.data!.docs.where((doc) {
+                        if (doc.id == id) return false;
+                        final data = doc.data() as Map<String, dynamic>;
+                        return data['referenceSubjectId'] == null;
+                      }).toList();
+
+                      return DropdownButtonFormField<String?>(
+                        initialValue: referenceSubjectId,
+                        decoration: InputDecoration(
+                          labelText: 'ربط المحتوى بمادة أخرى (مستعارة)',
+                          labelStyle: GoogleFonts.cairo(fontSize: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('مادة رئيسية (لا يوجد ربط)', style: GoogleFonts.cairo(fontSize: 12)),
+                          ),
+                          ...masterSubjects.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return DropdownMenuItem<String?>(
+                              value: doc.id,
+                              child: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 12)),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          setDialogState(() {
+                            referenceSubjectId = val;
+                          });
+                        },
+                      );
+                    },
                   ),
                 ],
-              ),
-            ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+            ElevatedButton(
+              onPressed: () async {
+                final updatedData = {
+                  'name': nameController.text.trim(),
+                  if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
+                  else 'description': descController.text.trim(),
+                  if (_currentLevel == ManagementLevel.subject || _currentLevel == ManagementLevel.semester) ...{
+                    'price': currentData['price'],
+                    'discount': currentData['discount'],
+                    if (_currentLevel == ManagementLevel.semester) 'totalPrice': currentData['totalPrice'],
+                  },
+                  if (_currentLevel == ManagementLevel.subject) 'referenceSubjectId': referenceSubjectId,
+                };
+                try {
+                  await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    _showStatusSnackBar('تم التعديل بنجاح', isError: false);
+                  }
+                } catch (e) {
+                  if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+                }
+              },
+              child: Text('حفظ التغييرات'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              final updatedData = {
-                'name': nameController.text.trim(),
-                if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
-                else 'description': descController.text.trim(),
-                if (_currentLevel == ManagementLevel.subject || _currentLevel == ManagementLevel.semester) ...{
-                  'price': currentData['price'],
-                  'discount': currentData['discount'],
-                  if (_currentLevel == ManagementLevel.semester) 'totalPrice': currentData['totalPrice'],
-                },
-              };
-              try {
-                await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  _showStatusSnackBar('تم التعديل بنجاح', isError: false);
-                }
-              } catch (e) {
-                if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
-              }
-            },
-            child: Text('حفظ التغييرات'),
-          ),
-        ],
       ),
     );
   }
@@ -800,56 +855,104 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     final descController = TextEditingController();
     double? price;
     double? discount;
+    String? referenceSubjectId;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('إضافة ${_getAddLabel()} جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
-            const SizedBox(height: 16),
-            TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف (اختياري)', labelStyle: GoogleFonts.cairo())),
-            if (_currentLevel == ManagementLevel.subject) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      onChanged: (v) => price = double.tryParse(v),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
-                    ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('إضافة ${_getAddLabel()} جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
+                const SizedBox(height: 16),
+                TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف (اختياري)', labelStyle: GoogleFonts.cairo())),
+                if (_currentLevel == ManagementLevel.subject) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          onChanged: (v) => price = double.tryParse(v),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          onChanged: (v) => discount = double.tryParse(v),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      onChanged: (v) => discount = double.tryParse(v),
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
-                    ),
+                  const SizedBox(height: 20),
+                  FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance.collection('subjects').get(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const SizedBox(
+                          height: 48,
+                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        );
+                      }
+                      final masterSubjects = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return data['referenceSubjectId'] == null;
+                      }).toList();
+
+                      return DropdownButtonFormField<String?>(
+                        initialValue: referenceSubjectId,
+                        decoration: InputDecoration(
+                          labelText: 'ربط المحتوى بمادة أخرى (مستعارة)',
+                          labelStyle: GoogleFonts.cairo(fontSize: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('مادة رئيسية (لا يوجد ربط)', style: GoogleFonts.cairo(fontSize: 12)),
+                          ),
+                          ...masterSubjects.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return DropdownMenuItem<String?>(
+                              value: doc.id,
+                              child: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 12)),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          setDialogState(() {
+                            referenceSubjectId = val;
+                          });
+                        },
+                      );
+                    },
                   ),
                 ],
-              ),
-            ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final desc = descController.text.trim();
+                if (name.isNotEmpty) {
+                  await _performAdd(name, desc, price: price, discount: discount, referenceSubjectId: referenceSubjectId);
+                  if (context.mounted) Navigator.pop(context);
+                }
+              },
+              child: Text('إضافة'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final desc = descController.text.trim();
-              if (name.isNotEmpty) {
-                await _performAdd(name, desc, price: price, discount: discount);
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-            child: Text('إضافة'),
-          ),
-        ],
       ),
     );
   }
@@ -866,13 +969,14 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
   }
 
-  Future<void> _performAdd(String name, String desc, {double? price, double? discount}) async {
+  Future<void> _performAdd(String name, String desc, {double? price, double? discount, String? referenceSubjectId}) async {
     final Map<String, dynamic> data = {
       'name': name,
       _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
       if (_currentLevel == ManagementLevel.subject) ...{
         'price': price,
         'discount': discount,
+        'referenceSubjectId': referenceSubjectId,
       },
     };
 

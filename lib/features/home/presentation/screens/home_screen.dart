@@ -118,15 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       } else {
-        // Automatically create metadata doc if it does not exist
-        await FirebaseFirestore.instance
-            .collection('settings')
-            .doc('content_metadata')
-            .set({
-              'lastContentUpdate': FieldValue.serverTimestamp(),
-              'description':
-                  'Quizzly content metadata for tracking offline version updates',
-            });
+        debugPrint('Content metadata document does not exist on the server.');
       }
     } catch (e) {
       debugPrint('Error checking content updates: $e');
@@ -530,6 +522,19 @@ class _HomeScreenState extends State<HomeScreen> {
               child: StreamBuilder<List<Map<String, dynamic>>>(
                 stream: _activeSubjectsStream,
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Text(
+                          'حدث خطأ أثناء تحميل البيانات: ${snapshot.error}',
+                          style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }
+
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -551,6 +556,21 @@ class _HomeScreenState extends State<HomeScreen> {
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: _activeSubjectsStream,
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Scaffold(
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'حدث خطأ أثناء تحميل المواد: ${snapshot.error}',
+                        style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),

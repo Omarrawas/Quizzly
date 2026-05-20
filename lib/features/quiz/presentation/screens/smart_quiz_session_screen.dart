@@ -8,6 +8,7 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_quiz_service.dart';
 import 'package:quizzly/features/quiz/domain/services/practice_service.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
+import 'package:quizzly/features/gamification/domain/services/subject_league_service.dart';
 
 class SmartQuizSessionScreen extends StatefulWidget {
   final String subjectId;
@@ -152,7 +153,21 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
         'timeSpent': 30, // Default for now
       }).toList();
       
-      _gamificationService.processQuizAttempt(userId, mappedAnswers, _questions);
+      final auth = context.read<AuthService>();
+      final userName = auth.user?.displayName ?? 
+                       auth.user?.email?.split('@').first ?? 
+                       'طالب';
+      final userAvatar = auth.user?.photoURL;
+
+      _gamificationService.processQuizAttempt(userId, mappedAnswers, _questions).then((result) {
+        SubjectLeagueService().addSubjectXp(
+          userId: userId,
+          subjectId: widget.subjectId,
+          xpGained: result.xpGained,
+          userName: userName,
+          userAvatar: userAvatar,
+        );
+      });
     }
     _showResultsSheet();
   }

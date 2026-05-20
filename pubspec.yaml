@@ -1,7 +1,7 @@
 name: quizzly
 description: "كويزلي"
 publish_to: 'none' 
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.11.1
@@ -69,8 +69,7 @@ dev_dependencies:
 
 
   flutter_lints: ^6.0.0
-
-
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
 
@@ -81,4 +80,10 @@ flutter:
     - assets/icons/google_logo.png
     - assets/images/logo.png
     - assets/fonts/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+  remove_alpha_ios: true
 

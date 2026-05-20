@@ -26,6 +26,23 @@ class SmartNotificationService {
         _handleNotificationClick(response);
       },
     );
+
+    // Request permissions for Android (13+) and iOS
+    if (!kIsWeb) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          _notificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidImplementation?.requestNotificationsPermission();
+
+      final IOSFlutterLocalNotificationsPlugin? iosImplementation =
+          _notificationsPlugin.resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+      await iosImplementation?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
   }
 
   /// Schedules a "Flash Quiz" notification

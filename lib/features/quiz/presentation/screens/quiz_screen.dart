@@ -191,7 +191,7 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -314,17 +314,18 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   AppBar _buildAppBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
       automaticallyImplyLeading: false,
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(
+        icon: Icon(
           Icons.arrow_forward_ios_rounded,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white70 : AppColors.textPrimary,
           size: 20,
         ),
       ),
@@ -337,7 +338,7 @@ class _QuizScreenState extends State<QuizScreen> {
               style: GoogleFonts.cairo(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -354,7 +355,7 @@ class _QuizScreenState extends State<QuizScreen> {
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFF1F5F9)),
+        child: Container(height: 1, color: isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
       ),
     );
   }

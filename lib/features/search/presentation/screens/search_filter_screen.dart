@@ -155,7 +155,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -214,42 +214,44 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
 
   // ── AppBar ─────────────────────────────────────────
   AppBar _buildAppBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
       automaticallyImplyLeading: false,
       leading: IconButton(
         onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(Icons.arrow_forward_ios_rounded,
-            color: AppColors.textPrimary, size: 20),
+        icon: Icon(Icons.arrow_forward_ios_rounded,
+            color: isDark ? Colors.white70 : AppColors.textPrimary, size: 20),
       ),
       title: Text(
         'الأسئلة',
         style: GoogleFonts.cairo(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
       ),
       centerTitle: true,
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: const Color(0xFFF1F5F9)),
+        child: Container(height: 1, color: isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
       ),
     );
   }
 
   // ── Search Bar ─────────────────────────────────────
   Widget _buildSearchBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: isDark ? Colors.white12 : AppColors.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -439,6 +441,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
 
   // ── Paper Type Toggle ───────────────────────────────
   Widget _buildPaperTypeGroup() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: _paperTypes.map((type) {
         final isSelected = _filters.paperType == type['id'];
@@ -452,12 +455,10 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryBlue : Colors.white,
+                color: isSelected ? AppColors.primaryBlue : (isDark ? const Color(0xFF334155) : Colors.white),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected
-                      ? AppColors.primaryBlue
-                      : AppColors.borderLight,
+                  color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white24 : AppColors.borderLight),
                 ),
                 boxShadow: isSelected
                     ? [
@@ -507,6 +508,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
 
   // ── Bottom Action Bar ───────────────────────────────
   Widget _buildBottomBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.only(
         left: 20,
@@ -515,10 +517,10 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
         bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
             blurRadius: 12,
             offset: const Offset(0, -3),
           ),

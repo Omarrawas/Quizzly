@@ -14,6 +14,8 @@ class SubjectDashboardScreen extends StatelessWidget {
   final List<String> breadcrumbs;
   final String? sectionId;
   final String? sectionName;
+  final String? referenceSubjectId;
+  final String resolvedSubjectId;
 
   const SubjectDashboardScreen({
     super.key,
@@ -22,7 +24,8 @@ class SubjectDashboardScreen extends StatelessWidget {
     required this.breadcrumbs,
     this.sectionId,
     this.sectionName,
-  });
+    this.referenceSubjectId,
+  }) : resolvedSubjectId = referenceSubjectId ?? subjectId;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +47,8 @@ class SubjectDashboardScreen extends StatelessWidget {
       body: Column(
         children: [
           _buildBreadcrumbs(isDark),
+          if (referenceSubjectId != null)
+            _buildWarningBanner(isDark),
           Expanded(
             child: sectionId == null
                 ? _buildSectionSelector(context, isDark)
@@ -58,7 +63,7 @@ class SubjectDashboardScreen extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection(DatabaseService.colSections)
-          .where('parentId', isEqualTo: subjectId)
+          .where('parentId', isEqualTo: resolvedSubjectId)
           .orderBy('order')
           .snapshots(),
       builder: (context, snapshot) {
@@ -141,6 +146,7 @@ class SubjectDashboardScreen extends StatelessWidget {
                               breadcrumbs: [...breadcrumbs, subjectName],
                               sectionId: doc.id,
                               sectionName: name,
+                              referenceSubjectId: referenceSubjectId,
                             ),
                           ),
                         );
@@ -149,7 +155,7 @@ class SubjectDashboardScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => PracticalManagementScreen(
-                              subjectId: subjectId,
+                              subjectId: resolvedSubjectId,
                               subjectName: subjectName,
                               sectionId: doc.id,
                               sectionName: name,
@@ -284,7 +290,7 @@ class SubjectDashboardScreen extends StatelessWidget {
             builder: (context) => TheoreticalSectionManagementScreen(
               sectionId: sectionId!,
               sectionName: sectionName!,
-              subjectId: subjectId,
+              subjectId: resolvedSubjectId,
               breadcrumbs: [...breadcrumbs, sectionName!],
             ),
           ),
@@ -306,6 +312,7 @@ class SubjectDashboardScreen extends StatelessWidget {
               breadcrumbs: [...breadcrumbs, sectionName!],
               sectionId: sectionId!,
               sectionName: sectionName!,
+              referenceSubjectId: referenceSubjectId,
             ),
           ),
         ),
@@ -324,7 +331,7 @@ class SubjectDashboardScreen extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (context) => PracticalManagementScreen(
-            subjectId: subjectId,
+            subjectId: resolvedSubjectId,
             subjectName: subjectName,
             sectionId: sectionId!,
             sectionName: sectionName!,
@@ -345,7 +352,7 @@ class SubjectDashboardScreen extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (context) => ExamManagementScreen(
-            subjectId: subjectId,
+            subjectId: resolvedSubjectId,
             sectionId: sectionId!,
             subjectName: subjectName,
             breadcrumbs: [...breadcrumbs, sectionName!],
@@ -685,7 +692,36 @@ class SubjectDashboardScreen extends StatelessWidget {
   }
 
   Future<void> _addSectionAndPop(BuildContext context, String name) async {
-    await DatabaseService().addSection(subjectId, {'name': name});
+    await DatabaseService().addSection(resolvedSubjectId, {'name': name});
     if (context.mounted) Navigator.pop(context);
+  }
+
+  Widget _buildWarningBanner(bool isDark) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'تنبيه: هذه المادة تستعير محتواها بالكامل. أي تعديلات أو إضافات هنا ستؤثر على المادة المرجعية الأصلية وكافة المواد المرتبطة بها.',
+              style: GoogleFonts.cairo(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.orange[200] : Colors.orange[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

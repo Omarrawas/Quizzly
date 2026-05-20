@@ -159,6 +159,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       const SizedBox(height: 32),
 
+                      _buildStatsSection(isDark),
+                      const SizedBox(height: 32),
+
                       _buildSectionTitle('المعلومات الأساسية', isDark),
                       const SizedBox(height: 16),
                       _buildTextField(
@@ -304,6 +307,287 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             'حفظ البيانات',
             style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsSection(bool isDark) {
+    final authService = context.read<AuthService>();
+    final userId = authService.user?.uid;
+    if (userId == null) return const SizedBox.shrink();
+
+    final contentService = context.read<ContentService>();
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('user_gamification').doc(userId).snapshots(),
+      builder: (context, gamificationSnap) {
+        int currentStreak = 0;
+        if (gamificationSnap.hasData && gamificationSnap.data!.exists) {
+          final gData = gamificationSnap.data!.data() as Map<String, dynamic>? ?? {};
+          currentStreak = gData['currentStreak'] as int? ?? 0;
+        }
+
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: contentService.getUserActiveSubjects(userId),
+          builder: (context, activeSubjectsSnap) {
+            if (activeSubjectsSnap.hasError) {
+              return _buildStatsCards(isDark, currentStreak, 0.0, 0, hasActiveSubjects: false);
+            }
+
+            final activeSubjects = activeSubjectsSnap.data ?? [];
+            if (activeSubjects.isEmpty) {
+              return _buildStatsCards(isDark, currentStreak, 0.0, 0, hasActiveSubjects: false);
+            }
+
+            final activeSubjectIds = activeSubjects.map((s) => s['id'] as String).toList();
+
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userId)
+                  .collection('mastery')
+                  .snapshots(),
+              builder: (context, masterySnap) {
+                final masteredDocs = masterySnap.hasError ? [] : (masterySnap.data?.docs ?? []);
+                
+                final masteredInActiveSubjects = masteredDocs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>? ?? {};
+                  final sId = data['subjectId'] as String?;
+                  return sId != null && activeSubjectIds.contains(sId);
+                }).length;
+
+                return FutureBuilder<QuerySnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('questions')
+                      .where('subjectId', whereIn: activeSubjectIds.take(10).toList())
+                      .where('status', isEqualTo: 'approved')
+                      .get(),
+                  builder: (context, questionsSnap) {
+                    final totalQuestions = (questionsSnap.hasError || !questionsSnap.hasData) ? 0 : questionsSnap.data!.size;
+                    final progressFraction = totalQuestions > 0 ? (masteredInActiveSubjects / totalQuestions).clamp(0.0, 1.0) : 0.0;
+
+                    return FutureBuilder<QuerySnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection('sections')
+                          .where('parentId', whereIn: activeSubjectIds.take(10).toList())
+                          .get(),
+                      builder: (context, sectionsSnap) {
+                        final totalSections = (sectionsSnap.hasError || !sectionsSnap.hasData) ? 0 : sectionsSnap.data!.size;
+                        int remainingChapters = 0;
+                        if (totalSections > 0) {
+                          remainingChapters = (totalSections * (1.0 - progressFraction)).round();
+                          if (remainingChapters == 0 && progressFraction < 1.0) {
+                            remainingChapters = 1;
+                          }
+                        } else {
+                          final fallbackTotal = activeSubjectIds.length * 5;
+                          remainingChapters = (fallbackTotal * (1.0 - progressFraction)).round();
+                          if (remainingChapters == 0 && progressFraction < 1.0) {
+                            remainingChapters = 1;
+                          }
+                        }
+
+                        return _buildStatsCards(
+                          isDark,
+                          currentStreak,
+                          progressFraction,
+                          remainingChapters,
+                          hasActiveSubjects: true,
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsCards(
+    bool isDark,
+    int streak,
+    double progressFraction,
+    int remainingChapters, {
+    bool hasActiveSubjects = true,
+  }) {
+    final progressPercentage = (progressFraction * 100).toInt();
+    
+    String remainingText;
+    if (!hasActiveSubjects) {
+      remainingText = 'لا توجد مواد نشطة حالياً';
+    } else if (remainingChapters == 0) {
+      remainingText = 'أكملت المنهج بالكامل 🎉';
+    } else if (remainingChapters == 1) {
+      remainingText = 'بقي فصل واحد فقط';
+    } else if (remainingChapters == 2) {
+      remainingText = 'بقي فصلين فقط';
+    } else if (remainingChapters > 2 && remainingChapters <= 10) {
+      remainingText = 'بقي $remainingChapters فصول فقط';
+    } else {
+      remainingText = 'بقي $remainingChapters فصلاً فقط';
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Row(
+          children: [
+            // 1. Streak Card
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey[200]!,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.35 : 0.02,
+                      ),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Fire Icon
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: Color(0xFFEF4444),
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Number
+                    Text(
+                      '$streak',
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Text
+                    Text(
+                      'أيام متتالية',
+                      style: GoogleFonts.cairo(
+                        color: isDark
+                            ? Colors.white60
+                            : AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // 2. Curriculum Completion Card
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey[200]!,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.35 : 0.02,
+                      ),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Progress Ring
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 54,
+                          height: 54,
+                          child: CircularProgressIndicator(
+                            value: progressFraction,
+                            strokeWidth: 5.5,
+                            backgroundColor: isDark
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : Colors.grey[200]!,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF5F5DFA),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '$progressPercentage%',
+                          style: GoogleFonts.inter(
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Label Title
+                    Text(
+                      'إكمال المنهج',
+                      style: GoogleFonts.cairo(
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // Subtitle
+                    Text(
+                      remainingText,
+                      style: GoogleFonts.cairo(
+                        color: isDark ? Colors.white54 : Colors.grey[500],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
