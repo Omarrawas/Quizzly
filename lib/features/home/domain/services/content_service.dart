@@ -125,66 +125,76 @@ class ContentService {
         .snapshots()
         .asyncMap((snapshot) async {
           List<Map<String, dynamic>> subjects = [];
-          for (var doc in snapshot.docs) {
-            final subjectId = doc.get('subjectId');
-            final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
-            if (subjectDoc.exists) {
-              final subjectData = subjectDoc.data()!;
-              final semesterId = subjectData['parentId'];
-              
-              Map<String, String> hierarchy = {};
-              if (semesterId != null) {
-                if (_hierarchyCache.containsKey(semesterId)) {
-                  hierarchy = _hierarchyCache[semesterId]!;
-                } else {
-                  try {
-                    final semDoc = await _db.collection('semesters').doc(semesterId).get();
-                    final semName = semDoc.data()?['name'] ?? 'فصل غير محدد';
-                    final yearId = semDoc.data()?['parentId'];
+          try {
+            for (var doc in snapshot.docs) {
+              try {
+                final docData = doc.data();
+                final subjectId = docData['subjectId'] as String?;
+                if (subjectId == null) continue;
 
-                    final yearDoc = await _db.collection('academic_years').doc(yearId).get();
-                    final yearName = yearDoc.data()?['name'] ?? 'سنة غير محددة';
-                    final depId = yearDoc.data()?['parentId'];
+                final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
+                if (subjectDoc.exists) {
+                  final subjectData = subjectDoc.data()!;
+                  final semesterId = subjectData['parentId'];
+                  
+                  Map<String, String> hierarchy = {};
+                  if (semesterId != null) {
+                    if (_hierarchyCache.containsKey(semesterId)) {
+                      hierarchy = _hierarchyCache[semesterId]!;
+                    } else {
+                      try {
+                        final semDoc = await _db.collection('semesters').doc(semesterId).get();
+                        final semName = semDoc.data()?['name'] ?? 'فصل غير محدد';
+                        final yearId = semDoc.data()?['parentId'];
 
-                    final depDoc = await _db.collection('departments').doc(depId).get();
-                    final depName = depDoc.data()?['name'] ?? 'قسم غير محدد';
-                    final colId = depDoc.data()?['parentId'];
+                        final yearDoc = await _db.collection('academic_years').doc(yearId).get();
+                        final yearName = yearDoc.data()?['name'] ?? 'سنة غير محددة';
+                        final depId = yearDoc.data()?['parentId'];
 
-                    final colDoc = await _db.collection('colleges').doc(colId).get();
-                    final colName = colDoc.data()?['name'] ?? 'كلية غير محددة';
-                    final uniId = colDoc.data()?['parentId'];
+                        final depDoc = await _db.collection('departments').doc(depId).get();
+                        final depName = depDoc.data()?['name'] ?? 'قسم غير محدد';
+                        final colId = depDoc.data()?['parentId'];
 
-                    final uniDoc = await _db.collection('universities').doc(uniId).get();
-                    final uniName = uniDoc.data()?['name'] ?? 'جامعة غير محددة';
+                        final colDoc = await _db.collection('colleges').doc(colId).get();
+                        final colName = colDoc.data()?['name'] ?? 'كلية غير محددة';
+                        final uniId = colDoc.data()?['parentId'];
 
-                    hierarchy = {
-                      'semesterName': semName,
-                      'yearName': yearName,
-                      'departmentName': depName,
-                      'collegeName': colName,
-                      'universityName': uniName,
-                    };
-                    _hierarchyCache[semesterId] = hierarchy;
-                  } catch (e) {
-                    // Ignore errors, will use fallback
+                        final uniDoc = await _db.collection('universities').doc(uniId).get();
+                        final uniName = uniDoc.data()?['name'] ?? 'جامعة غير محددة';
+
+                        hierarchy = {
+                          'semesterName': semName,
+                          'yearName': yearName,
+                          'departmentName': depName,
+                          'collegeName': colName,
+                          'universityName': uniName,
+                        };
+                        _hierarchyCache[semesterId] = hierarchy;
+                      } catch (e) {
+                        // Ignore errors, will use fallback
+                      }
+                    }
                   }
-                }
-              }
 
-              final docData = doc.data();
-              subjects.add({
-                ...subjectData,
-                'id': subjectDoc.id,
-                // 'addedAt' for code-activation; 'activatedAt' for purchase — accept either
-                'addedAt': docData['addedAt'] ?? docData['activatedAt'],
-                'activationType': docData['activationType'],
-                'paidPrice': docData['price'],
-                ...hierarchy,
-              });
+                  subjects.add({
+                    ...subjectData,
+                    'id': subjectDoc.id,
+                    // 'addedAt' for code-activation; 'activatedAt' for purchase — accept either
+                    'addedAt': docData['addedAt'] ?? docData['activatedAt'],
+                    'activationType': docData['activationType'],
+                    'paidPrice': docData['price'],
+                    ...hierarchy,
+                  });
+                }
+              } catch (e) {
+                // Ignore single document error, continue mapping others
+              }
             }
+          } catch (e) {
+            // General query error
           }
           return subjects;
-        });
+        }).asBroadcastStream();
   }
 
   /// Fetches only the IDs of subjects added by the user

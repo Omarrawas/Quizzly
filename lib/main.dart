@@ -11,6 +11,8 @@ import 'package:quizzly/firebase_options.dart';
 import 'package:quizzly/features/home/domain/services/college_service.dart';
 import 'package:quizzly/features/home/domain/services/content_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
+import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
+import 'package:quizzly/features/home/presentation/screens/home_screen.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
@@ -85,7 +87,12 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const SplashScreen(),
+          initialRoute: '/splash',
+          routes: {
+            '/splash': (context) => const SplashScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/home': (context) => const HomeScreen(),
+          },
         );
       },
     );

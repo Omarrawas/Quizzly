@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
+import 'package:quizzly/main.dart';
 
 class AppUpdateService {
   static final AppUpdateService _instance = AppUpdateService._internal();
@@ -43,18 +44,21 @@ class AppUpdateService {
       final updateNotes = _remoteConfig.getString('update_notes');
       final isMandatory = _remoteConfig.getBool('is_mandatory');
 
+      // Use top-most active navigator context if local context is unmounted
+      final activeContext = navigatorKey.currentContext ?? context;
+
       if (_isNewerVersion(currentVersion, latestVersion)) {
-        if (context.mounted) {
+        if (activeContext.mounted) {
           _showUpdateDialog(
-            context,
+            activeContext,
             latestVersion: latestVersion,
             downloadUrl: updateUrl,
             updateNotes: updateNotes,
             isMandatory: isMandatory,
           );
         }
-      } else if (showNoUpdateDialog && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      } else if (showNoUpdateDialog && activeContext.mounted) {
+        ScaffoldMessenger.of(activeContext).showSnackBar(
           const SnackBar(
             content: Text('أنت تستخدم أحدث إصدار من التطبيق'),
             backgroundColor: Colors.green,
@@ -68,8 +72,11 @@ class AppUpdateService {
 
   bool _isNewerVersion(String current, String latest) {
     try {
-      final currentParts = current.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-      final latestParts = latest.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final currentClean = current.split('+')[0];
+      final latestClean = latest.split('+')[0];
+
+      final currentParts = currentClean.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final latestParts = latestClean.split('.').map((e) => int.tryParse(e) ?? 0).toList();
       
       for (int i = 0; i < 3; i++) {
         final currentPart = i < currentParts.length ? currentParts[i] : 0;
@@ -77,6 +84,11 @@ class AppUpdateService {
         if (latestPart > currentPart) return true;
         if (latestPart < currentPart) return false;
       }
+
+      // If semantic version is same, compare build number code
+      final currentBuild = current.contains('+') ? int.tryParse(current.split('+')[1]) ?? 0 : 0;
+      final latestBuild = latest.contains('+') ? int.tryParse(latest.split('+')[1]) ?? 0 : 0;
+      if (latestBuild > currentBuild) return true;
     } catch (_) {}
     return false;
   }

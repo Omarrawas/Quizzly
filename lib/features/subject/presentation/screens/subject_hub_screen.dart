@@ -42,22 +42,37 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   bool _isActivated = false;
   bool _checkingActivation = true;
   late String _contentSubjectId;
+  String? _checkedUserId;
 
   @override
   void initState() {
     super.initState();
     _contentSubjectId = widget.subjectId;
-    _checkActivation();
     _resolveContentSubjectId();
   }
 
+  @override
+  void didUpdateWidget(covariant SubjectHubScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.subjectId != widget.subjectId) {
+      setState(() {
+        _contentSubjectId = widget.subjectId;
+        _isActivated = false;
+        _checkingActivation = true;
+        _checkedUserId = null;
+      });
+      _resolveContentSubjectId();
+    }
+  }
+
   Future<void> _resolveContentSubjectId() async {
+    final targetId = widget.subjectId;
     try {
       final doc = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc(widget.subjectId)
+          .doc(targetId)
           .get();
-      if (doc.exists && mounted) {
+      if (doc.exists && mounted && targetId == widget.subjectId) {
         final data = doc.data();
         if (data != null && data['referenceSubjectId'] != null) {
           final refId = data['referenceSubjectId'] as String;
@@ -71,13 +86,20 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     } catch (_) {}
   }
 
-  Future<void> _checkActivation() async {
-    final userId = context.read<AuthService>().user?.uid;
-    if (userId != null) {
-      final active = await _activationService.isSubjectActivated(userId, widget.subjectId);
-      if (mounted) {
+  Future<void> _checkActivationForUser(String userId) async {
+    final targetSubjectId = widget.subjectId;
+    try {
+      final active = await _activationService.isSubjectActivated(userId, targetSubjectId);
+      if (mounted && targetSubjectId == widget.subjectId) {
         setState(() {
           _isActivated = active;
+          _checkingActivation = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && targetSubjectId == widget.subjectId) {
+        setState(() {
+          _isActivated = false;
           _checkingActivation = false;
         });
       }
@@ -90,7 +112,22 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     final isDark = theme.brightness == Brightness.dark;
     
     final user = context.watch<AuthService>().user;
-    if (user == null || _checkingActivation) {
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator())
+      );
+    }
+
+    if (_checkedUserId != user.uid) {
+      _checkedUserId = user.uid;
+      _checkingActivation = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkActivationForUser(user.uid);
+      });
+    }
+
+    if (_checkingActivation) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: const Center(child: CircularProgressIndicator())
@@ -812,8 +849,13 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     SnackBar(content: Text(result['message'], style: GoogleFonts.cairo())),
                   );
                   // Refresh Hub
-                  setState(() => _isActivated = true);
-                  _checkActivation();
+                  setState(() {
+                    _isActivated = true;
+                    _checkingActivation = true;
+                  });
+                  if (userId != null) {
+                    _checkActivationForUser(userId);
+                  }
                 } else {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(

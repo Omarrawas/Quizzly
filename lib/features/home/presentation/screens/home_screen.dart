@@ -17,6 +17,7 @@ import 'package:quizzly/features/quiz/domain/services/smart_notification_service
 import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/login_screen.dart';
+import 'package:quizzly/main.dart';
 
 import 'package:quizzly/features/settings/presentation/screens/settings_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
@@ -37,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription? _notifSubscription;
   Timer? _contentUpdateTimer;
   Stream<List<Map<String, dynamic>>>? _activeSubjectsStream;
+  String? _activeSubjectsUserId;
 
   // Sorting state variables
   String _sortType = 'newest';
@@ -452,10 +454,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (authService.user == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushNamedAndRemoveUntil('/splash', (route) => false);
+      });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    _activeSubjectsStream ??= contentService.getUserActiveSubjects(authService.user!.uid);
+    final userId = authService.user!.uid;
+    if (_activeSubjectsStream == null || _activeSubjectsUserId != userId) {
+      _activeSubjectsUserId = userId;
+      _activeSubjectsStream = contentService.getUserActiveSubjects(userId);
+    }
 
     Widget currentBody;
     PreferredSizeWidget? currentAppBar;

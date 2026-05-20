@@ -21,13 +21,13 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToNext() async {
+    // Check for updates on startup for all users
+    AppUpdateService().checkForUpdates(context);
+
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       final authService = context.read<AuthService>();
       if (authService.user != null) {
-        // Check for updates after login check
-        AppUpdateService().checkForUpdates(context);
-        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
