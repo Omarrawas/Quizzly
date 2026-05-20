@@ -176,7 +176,11 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             child: Center(
               child: Text(
                 'لا توجد دروس في هذا الفصل حالياً.',
-                style: GoogleFonts.cairo(color: Colors.grey, fontSize: 12),
+                style: GoogleFonts.cairo(
+                  color: isDark ? Colors.white60 : Colors.black54, 
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           );
@@ -244,7 +248,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             Expanded(
               child: Text(title, style: GoogleFonts.cairo(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.primaryBlue : null,
+                color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white : Colors.black87),
                 fontSize: 13,
               )),
             ),
@@ -767,6 +771,8 @@ class _ChapterCardState extends State<_ChapterCard> {
         ),
         child: ExpansionTile(
           key: PageStorageKey<String>(widget.chapterId),
+          backgroundColor: Colors.transparent,
+          collapsedBackgroundColor: Colors.transparent,
           leading: const Icon(Icons.folder_rounded, color: AppColors.primaryBlue, size: 24),
           title: Text(
             widget.chapterName,

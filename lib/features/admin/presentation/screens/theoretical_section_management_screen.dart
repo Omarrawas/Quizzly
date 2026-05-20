@@ -549,6 +549,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       ),
       child: ExpansionTile(
         key: PageStorageKey(id),
+        backgroundColor: Colors.transparent,
+        collapsedBackgroundColor: Colors.transparent,
         tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         title: Row(
           children: [

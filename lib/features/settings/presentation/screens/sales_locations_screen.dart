@@ -197,6 +197,8 @@ class SalesLocationsScreen extends StatelessWidget {
                         ],
                       ),
                       child: ExpansionTile(
+                        backgroundColor: Colors.transparent,
+                        collapsedBackgroundColor: Colors.transparent,
                         shape: const Border(),
                         iconColor: AppColors.primaryBlue,
                         collapsedIconColor: Colors.grey,

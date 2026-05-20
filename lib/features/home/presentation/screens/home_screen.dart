@@ -11,6 +11,7 @@ import 'package:quizzly/features/subject/presentation/screens/subject_hub_screen
 import 'package:quizzly/features/home/presentation/screens/subject_selection_screen.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_notification_service.dart';
 import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
@@ -85,6 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkContentUpdates() async {
     try {
+      // Guard: skip if user is not authenticated (avoids permission-denied on web)
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
       final prefs = await SharedPreferences.getInstance();
       final lastSyncedStr = prefs.getString('last_synced_content_time');
       if (lastSyncedStr == null) {
@@ -1220,179 +1225,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   }, childCount: sortedSubjects.length),
                 ),
         ),
-        SliverToBoxAdapter(child: _buildStatsSection()),
         SliverToBoxAdapter(child: _buildLatestExamsSection(context)),
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
     );
   }
 
-  Widget _buildStatsSection() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
-          child: Row(
-            children: [
-              // 1. Streak Card
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 24,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : Colors.grey[200]!,
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.35 : 0.02,
-                        ),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Fire Icon
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.local_fire_department_rounded,
-                          color: Color(0xFFEF4444),
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Number
-                      Text(
-                        '5',
-                        style: GoogleFonts.inter(
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Text
-                      Text(
-                        'أيام متتالية',
-                        style: GoogleFonts.cairo(
-                          color: isDark
-                              ? Colors.white60
-                              : AppColors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 2. Curriculum Completion Card
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 24,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : Colors.grey[200]!,
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.35 : 0.02,
-                        ),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Progress Ring
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 54,
-                            height: 54,
-                            child: CircularProgressIndicator(
-                              value: 0.75,
-                              strokeWidth: 5.5,
-                              backgroundColor: isDark
-                                  ? Colors.white.withValues(alpha: 0.06)
-                                  : Colors.grey[200]!,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFF5F5DFA),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '75%',
-                            style: GoogleFonts.inter(
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Label Title
-                      Text(
-                        'إكمال المنهج',
-                        style: GoogleFonts.cairo(
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      // Subtitle
-                      Text(
-                        'بقي 3 فصول فقط',
-                        style: GoogleFonts.cairo(
-                          color: isDark ? Colors.white30 : Colors.grey[400],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildLatestExamsSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

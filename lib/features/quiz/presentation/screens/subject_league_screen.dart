@@ -27,6 +27,11 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
   Timer? _countdownTimer;
   Duration _timeLeft = Duration.zero;
 
+  // Leaderboard stream state
+  List<Map<String, dynamic>> _leaderboardData = [];
+  bool _leaderboardLoading = true;
+  StreamSubscription<List<Map<String, dynamic>>>? _leaderboardSub;
+
   static const Map<String, Map<String, dynamic>> leagueMeta = {
     'bronze': {
       'name': 'الدوري البرونزي',
@@ -59,11 +64,24 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
     super.initState();
     _runWeeklyResetCheck();
     _startCountdown();
+    _subscribeLeaderboard();
+  }
+
+  void _subscribeLeaderboard() {
+    _leaderboardSub?.cancel();
+    _leaderboardSub = _leagueService
+        .getLeaderboardStream(widget.subjectId, _selectedLeague)
+        .listen((data) {
+      if (mounted) setState(() { _leaderboardData = data; _leaderboardLoading = false; });
+    }, onError: (_) {
+      if (mounted) setState(() => _leaderboardLoading = false);
+    });
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _leaderboardSub?.cancel();
     super.dispose();
   }
 
@@ -316,7 +334,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
           // to make it smooth.
         }
 
-        return Scaffold(
+    return Scaffold(
           backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -464,7 +482,12 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
           return GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
-              setState(() => _selectedLeague = key);
+              setState(() {
+                _selectedLeague = key;
+                _leaderboardLoading = true;
+                _leaderboardData = [];
+              });
+              _subscribeLeaderboard();
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
@@ -531,141 +554,133 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
   }
 
   Widget _buildLeaderboardList(String currentUserId, bool isDark) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _leagueService.getLeaderboardStream(widget.subjectId, _selectedLeague),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(40),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        }
+    if (_leaderboardLoading) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
 
-        final list = snapshot.data ?? [];
-        if (list.isEmpty) {
-          return SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
-              child: Column(
-                children: [
-                  const Text('👻', style: TextStyle(fontSize: 50)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'لا يوجد متسابقون في هذا الدوري بعد!',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cairo(
-                      color: isDark ? Colors.white30 : Colors.grey,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'كن أول من يسجل نقاطًا دراسية هنا عن طريق حل الأسئلة!',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cairo(
-                      color: isDark ? Colors.white24 : Colors.grey[400],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+    final list = _leaderboardData;
+    if (list.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
+          child: Column(
+            children: [
+              const Text('👻', style: TextStyle(fontSize: 50)),
+              const SizedBox(height: 16),
+              Text(
+                'لا يوجد متسابقون في هذا الدوري بعد!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(
+                  color: isDark ? Colors.white30 : Colors.grey,
+                  fontSize: 14,
+                ),
               ),
-            ),
-          );
-        }
-
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final user = list[index];
-                final userId = user['userId'] as String;
-                final isMe = userId == currentUserId;
-                final xp = user['weeklyXp'] as int;
-                final name = user['userName'] as String;
-                final avatar = user['userAvatar'] as String?;
-                final rank = index + 1;
-
-                // Determine Zone backgrounds
-                Color? zoneBg;
-                final isPromotion = rank <= 3 || rank <= (list.length * 0.25).ceil();
-                final isDemotion = list.length > 5 && rank > (list.length * 0.8).floor();
-
-                if (isPromotion) {
-                  zoneBg = Colors.green.withValues(alpha: isDark ? 0.05 : 0.03);
-                } else if (isDemotion) {
-                  zoneBg = Colors.red.withValues(alpha: isDark ? 0.05 : 0.03);
-                }
-
-                // Me style
-                if (isMe) {
-                  zoneBg = leagueMeta[_selectedLeague]!['color'].withValues(alpha: 0.1);
-                }
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    color: zoneBg ?? (isDark ? const Color(0xFF1E293B) : Colors.white),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isMe
-                          ? leagueMeta[_selectedLeague]!['color']
-                          : isDark
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : Colors.grey[200]!,
-                      width: isMe ? 1.5 : 1,
-                    ),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildRankBadge(rank),
-                        const SizedBox(width: 12),
-                        _buildUserAvatar(name, avatar, isDark),
-                      ],
-                    ),
-                    title: Text(
-                      name,
-                      style: GoogleFonts.cairo(
-                        fontWeight: isMe ? FontWeight.w900 : FontWeight.bold,
-                        fontSize: 14,
-                        color: isMe
-                            ? (isDark ? Colors.white : Colors.black)
-                            : (isDark ? Colors.white70 : Colors.black87),
-                      ),
-                    ),
-                    subtitle: isMe
-                        ? Text(
-                            'أنت',
-                            style: GoogleFonts.cairo(
-                              fontSize: 10,
-                              color: leagueMeta[_selectedLeague]!['color'],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
-                    trailing: Text(
-                      '$xp XP',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w900,
-                        color: isMe
-                            ? leagueMeta[_selectedLeague]!['color']
-                            : (isDark ? Colors.white60 : Colors.grey[700]),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                );
-              },
-              childCount: list.length,
-            ),
+              const SizedBox(height: 8),
+              Text(
+                'كن أول من يسجل نقاطًا دراسية هنا عن طريق حل الأسئلة!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(
+                  color: isDark ? Colors.white24 : Colors.grey[400],
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final user = list[index];
+            final userId = user['userId'] as String;
+            final isMe = userId == currentUserId;
+            final xp = user['weeklyXp'] as int;
+            final name = user['userName'] as String;
+            final avatar = user['userAvatar'] as String?;
+            final rank = index + 1;
+
+            Color? zoneBg;
+            final isPromotion = rank <= 3 || rank <= (list.length * 0.25).ceil();
+            final isDemotion = list.length > 5 && rank > (list.length * 0.8).floor();
+
+            if (isPromotion) {
+              zoneBg = Colors.green.withValues(alpha: isDark ? 0.05 : 0.03);
+            } else if (isDemotion) {
+              zoneBg = Colors.red.withValues(alpha: isDark ? 0.05 : 0.03);
+            }
+            if (isMe) {
+              zoneBg = leagueMeta[_selectedLeague]!['color'].withValues(alpha: 0.1);
+            }
+
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: zoneBg ?? (isDark ? const Color(0xFF1E293B) : Colors.white),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isMe
+                      ? leagueMeta[_selectedLeague]!['color']
+                      : isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey[200]!,
+                  width: isMe ? 1.5 : 1,
+                ),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildRankBadge(rank),
+                    const SizedBox(width: 12),
+                    _buildUserAvatar(name, avatar, isDark),
+                  ],
+                ),
+                title: Text(
+                  name,
+                  style: GoogleFonts.cairo(
+                    fontWeight: isMe ? FontWeight.w900 : FontWeight.bold,
+                    fontSize: 14,
+                    color: isMe
+                        ? (isDark ? Colors.white : Colors.black)
+                        : (isDark ? Colors.white70 : Colors.black87),
+                  ),
+                ),
+                subtitle: isMe
+                    ? Text(
+                        'أنت',
+                        style: GoogleFonts.cairo(
+                          fontSize: 10,
+                          color: leagueMeta[_selectedLeague]!['color'],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+                trailing: Text(
+                  '$xp XP',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w900,
+                    color: isMe
+                        ? leagueMeta[_selectedLeague]!['color']
+                        : (isDark ? Colors.white60 : Colors.grey[700]),
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            );
+          },
+          childCount: list.length,
+        ),
+      ),
     );
   }
 
