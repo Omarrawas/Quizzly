@@ -853,9 +853,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     _isActivated = true;
                     _checkingActivation = true;
                   });
-                  if (userId != null) {
-                    _checkActivationForUser(userId);
-                  }
+                  _checkActivationForUser(userId);
                 } else {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
