@@ -68,10 +68,20 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   Future<void> _resolveContentSubjectId() async {
     final targetId = widget.subjectId;
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('subjects')
-          .doc(targetId)
-          .get();
+      DocumentSnapshot<Map<String, dynamic>> doc;
+      try {
+        doc = await FirebaseFirestore.instance
+            .collection('subjects')
+            .doc(targetId)
+            .get()
+            .timeout(const Duration(seconds: 2));
+      } catch (_) {
+        doc = await FirebaseFirestore.instance
+            .collection('subjects')
+            .doc(targetId)
+            .get(const GetOptions(source: Source.cache));
+      }
+      
       if (doc.exists && mounted && targetId == widget.subjectId) {
         final data = doc.data();
         if (data != null && data['referenceSubjectId'] != null) {
@@ -88,21 +98,30 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   Future<void> _checkActivationForUser(String userId) async {
     final targetSubjectId = widget.subjectId;
+    bool active = false;
     try {
-      final active = await _activationService.isSubjectActivated(userId, targetSubjectId);
-      if (mounted && targetSubjectId == widget.subjectId) {
-        setState(() {
-          _isActivated = active;
-          _checkingActivation = false;
-        });
-      }
+      // Try primary activation check with a reasonable timeout
+      active = await _activationService.isSubjectActivated(userId, targetSubjectId)
+          .timeout(const Duration(seconds: 5), onTimeout: () => false);
     } catch (_) {
-      if (mounted && targetSubjectId == widget.subjectId) {
-        setState(() {
-          _isActivated = false;
-          _checkingActivation = false;
-        });
+      // Fallback to cache if primary check fails or times out
+      try {
+        final cachedDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('active_subjects')
+            .doc(targetSubjectId)
+            .get(const GetOptions(source: Source.cache));
+        active = cachedDoc.exists;
+      } catch (_) {
+        active = false;
       }
+    }
+    if (mounted && targetSubjectId == widget.subjectId) {
+      setState(() {
+        _isActivated = active;
+        _checkingActivation = false;
+      });
     }
   }
 

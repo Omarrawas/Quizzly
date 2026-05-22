@@ -3,6 +3,27 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class ContentService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static const Duration _subjectLookupTimeout = Duration(seconds: 2);
+  static const Duration _hierarchyLookupTimeout = Duration(milliseconds: 1200);
+  static const Duration _activeSubjectsTimeout = Duration(seconds: 8);
+
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _getDocWithCacheFallback(
+    CollectionReference<Map<String, dynamic>> collection,
+    String docId, {
+    required Duration timeout,
+  }) async {
+    try {
+      return await collection.doc(docId).get().timeout(timeout);
+    } catch (_) {
+      try {
+        return await collection
+            .doc(docId)
+            .get(const GetOptions(source: Source.cache));
+      } catch (_) {
+        return null;
+      }
+    }
+  }
 
   // --- Hierarchy Fetchers ---
 
@@ -121,80 +142,131 @@ class ContentService {
 
   /// Fetches subjects added by the user
   Stream<List<Map<String, dynamic>>> getUserActiveSubjects(String userId) {
-    return _db.collection('users').doc(userId).collection('active_subjects')
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('active_subjects')
         .snapshots()
         .asyncMap((snapshot) async {
-          List<Map<String, dynamic>> subjects = [];
-          try {
-            for (var doc in snapshot.docs) {
+      // Prepare a list of futures for each active subject document
+      final List<Future<Map<String, dynamic>?>> futures = [];
+
+      for (var doc in snapshot.docs) {
+        futures.add(() async {
+          final docData = doc.data();
+          final subjectId = docData['subjectId'] as String?;
+          if (subjectId == null) return null;
+
+          // Fetch the subject document (try server first, then cache)
+          final subjectDoc = await _getDocWithCacheFallback(
+            _db.collection('subjects'),
+            subjectId,
+            timeout: _subjectLookupTimeout,
+          );
+
+          if (subjectDoc == null || !subjectDoc.exists) return null;
+          final subjectData = subjectDoc.data()!;
+          final semesterId = subjectData['parentId'];
+
+          Map<String, String> hierarchy = {};
+          if (semesterId != null) {
+            if (_hierarchyCache.containsKey(semesterId)) {
+              hierarchy = _hierarchyCache[semesterId]!;
+            } else {
               try {
-                final docData = doc.data();
-                final subjectId = docData['subjectId'] as String?;
-                if (subjectId == null) continue;
+                // 1. Fetch semester
+                final semDoc = await _getDocWithCacheFallback(
+                  _db.collection('semesters'),
+                  semesterId,
+                  timeout: _hierarchyLookupTimeout,
+                );
+                final semData = semDoc?.data();
+                final semName = semData?['name'] ?? 'فصل غير محدد';
+                final yearId = semData?['parentId'];
 
-                final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
-                if (subjectDoc.exists) {
-                  final subjectData = subjectDoc.data()!;
-                  final semesterId = subjectData['parentId'];
-                  
-                  Map<String, String> hierarchy = {};
-                  if (semesterId != null) {
-                    if (_hierarchyCache.containsKey(semesterId)) {
-                      hierarchy = _hierarchyCache[semesterId]!;
-                    } else {
-                      try {
-                        final semDoc = await _db.collection('semesters').doc(semesterId).get();
-                        final semName = semDoc.data()?['name'] ?? 'فصل غير محدد';
-                        final yearId = semDoc.data()?['parentId'];
+                // 2. Fetch year
+                final yearDoc = yearId != null
+                    ? await _getDocWithCacheFallback(
+                        _db.collection('academic_years'),
+                        yearId,
+                        timeout: _hierarchyLookupTimeout,
+                      )
+                    : null;
+                final yearData = yearDoc?.data();
+                final yearName = yearData?['name'] ?? 'سنة غير محددة';
+                final depId = yearData?['parentId'];
 
-                        final yearDoc = await _db.collection('academic_years').doc(yearId).get();
-                        final yearName = yearDoc.data()?['name'] ?? 'سنة غير محددة';
-                        final depId = yearDoc.data()?['parentId'];
+                // 3. Fetch department
+                final depDoc = depId != null
+                    ? await _getDocWithCacheFallback(
+                        _db.collection('departments'),
+                        depId,
+                        timeout: _hierarchyLookupTimeout,
+                      )
+                    : null;
+                final depData = depDoc?.data();
+                final depName = depData?['name'] ?? 'قسم غير محدد';
+                final colId = depData?['parentId'];
 
-                        final depDoc = await _db.collection('departments').doc(depId).get();
-                        final depName = depDoc.data()?['name'] ?? 'قسم غير محدد';
-                        final colId = depDoc.data()?['parentId'];
+                // 4. Fetch college
+                final colDoc = colId != null
+                    ? await _getDocWithCacheFallback(
+                        _db.collection('colleges'),
+                        colId,
+                        timeout: _hierarchyLookupTimeout,
+                      )
+                    : null;
+                final colData = colDoc?.data();
+                final colName = colData?['name'] ?? 'كلية غير محددة';
+                final uniId = colData?['parentId'];
 
-                        final colDoc = await _db.collection('colleges').doc(colId).get();
-                        final colName = colDoc.data()?['name'] ?? 'كلية غير محددة';
-                        final uniId = colDoc.data()?['parentId'];
+                // 5. Fetch university
+                final uniDoc = uniId != null
+                    ? await _getDocWithCacheFallback(
+                        _db.collection('universities'),
+                        uniId,
+                        timeout: _hierarchyLookupTimeout,
+                      )
+                    : null;
+                final uniName = uniDoc?.data()?['name'] ?? 'جامعة غير محددة';
 
-                        final uniDoc = await _db.collection('universities').doc(uniId).get();
-                        final uniName = uniDoc.data()?['name'] ?? 'جامعة غير محددة';
-
-                        hierarchy = {
-                          'semesterName': semName,
-                          'yearName': yearName,
-                          'departmentName': depName,
-                          'collegeName': colName,
-                          'universityName': uniName,
-                        };
-                        _hierarchyCache[semesterId] = hierarchy;
-                      } catch (e) {
-                        // Ignore errors, will use fallback
-                      }
-                    }
-                  }
-
-                  subjects.add({
-                    ...subjectData,
-                    'id': subjectDoc.id,
-                    // 'addedAt' for code-activation; 'activatedAt' for purchase — accept either
-                    'addedAt': docData['addedAt'] ?? docData['activatedAt'],
-                    'activationType': docData['activationType'],
-                    'paidPrice': docData['price'],
-                    ...hierarchy,
-                  });
-                }
-              } catch (e) {
-                // Ignore single document error, continue mapping others
+                hierarchy = {
+                  'semesterName': semName,
+                  'yearName': yearName,
+                  'departmentName': depName,
+                  'collegeName': colName,
+                  'universityName': uniName,
+                };
+                _hierarchyCache[semesterId] = hierarchy;
+              } catch (_) {
+                hierarchy = {
+                  'semesterName': 'فصل غير محدد',
+                  'yearName': 'سنة غير محددة',
+                  'departmentName': 'قسم غير محدد',
+                  'collegeName': 'كلية غير محددة',
+                  'universityName': 'جامعة غير محددة',
+                };
               }
             }
-          } catch (e) {
-            // General query error
           }
-          return subjects;
-        }).asBroadcastStream();
+
+          return {
+            ...subjectData,
+            'id': subjectDoc.id,
+            'addedAt': docData['addedAt'] ?? docData['activatedAt'],
+            'activationType': docData['activationType'],
+            'paidPrice': docData['price'],
+            ...hierarchy,
+          };
+        }());
+      }
+
+      final results = await Future.wait(futures);
+      return results.whereType<Map<String, dynamic>>().toList();
+    }).timeout(
+      _activeSubjectsTimeout,
+      onTimeout: (sink) => sink.add(const <Map<String, dynamic>>[]),
+    ).asBroadcastStream();
   }
 
   /// Fetches only the IDs of subjects added by the user

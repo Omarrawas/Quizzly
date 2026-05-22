@@ -1,4 +1,6 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
-    "flutter.hotReloadOnSave": "all"
+    "flutter.hotReloadOnSave": "all",
+    "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
+    "debug.terminal.clearBeforeReusing": true
 }

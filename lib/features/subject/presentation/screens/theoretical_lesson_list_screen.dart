@@ -48,7 +48,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           .where('sectionId', isEqualTo: widget.sectionId)
           .where('type', isEqualTo: 'chapter')
           .get();
-      
+
       final Map<String, String> chapters = {};
       final Map<String, int> orders = {};
       for (var doc in snap.docs) {
@@ -56,7 +56,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
         chapters[doc.id] = data['name'] ?? '';
         orders[doc.id] = data['order'] ?? 0;
       }
-      
+
       if (mounted) {
         setState(() {
           _chapterNames = chapters;
@@ -64,7 +64,8 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('❌ _loadChapters error: $e\n$stack');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -114,9 +115,9 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: isDark 
-                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                : [Colors.white, const Color(0xFFF1F5F9)],
+              colors: isDark
+                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                  : [Colors.white, const Color(0xFFF1F5F9)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -136,13 +137,15 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
               decoration: BoxDecoration(
                 color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: isDark ? [] : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+                boxShadow: isDark
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                 border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
               ),
               child: TextField(
@@ -164,7 +167,11 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
   }
 
   Widget _buildLessonsList(bool isDark) {
-    if (_isLoading) return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
+    if (_isLoading) {
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -176,24 +183,29 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return SliverFillRemaining(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Text(
-                  'حدث خطأ في جلب الدروس. قد يكون السبب نقص في الفهرسة (Index).\nالخطأ: ${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cairo(color: Colors.red),
-                ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'حدث خطأ في جلب الدروس. قد يكون السبب نقص في الفهرسة (Index).\nالخطأ: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.cairo(color: Colors.red),
               ),
             ),
           );
         }
-        if (!snapshot.hasData) return const SliverToBoxAdapter(child: SizedBox());
-        
+
+        if (!snapshot.hasData) {
+          return const SliverToBoxAdapter(child: SizedBox());
+        }
+
         var docs = snapshot.data!.docs;
+
         if (_searchQuery.isNotEmpty) {
           docs = docs.where((doc) {
-            final name = (doc.data() as Map<String, dynamic>)['name']?.toString().toLowerCase() ?? '';
+            final name = (doc.data() as Map<String, dynamic>)['name']
+                    ?.toString()
+                    .toLowerCase() ??
+                '';
             return name.contains(_searchQuery);
           }).toList();
         }
@@ -202,13 +214,13 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
         docs.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>;
           final bData = b.data() as Map<String, dynamic>;
-          
+
           final aParentId = aData['parentId'] ?? '';
           final bParentId = bData['parentId'] ?? '';
-          
+
           final aChapterOrder = _chapterOrders[aParentId] ?? 999;
           final bChapterOrder = _chapterOrders[bParentId] ?? 999;
-          
+
           if (aChapterOrder != bChapterOrder) {
             return aChapterOrder.compareTo(bChapterOrder);
           }
@@ -244,9 +256,10 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                 final name = data['name'] ?? '';
                 final parentId = data['parentId'];
                 final chapterName = _chapterNames[parentId] ?? 'عام';
-                
+
                 // For student view, lock if the user is free and the lesson is not explicitly free
-                final bool isLocked = !widget.isAdmin && widget.isFree && data['isFree'] != true;
+                final bool isLocked =
+                    !widget.isAdmin && widget.isFree && data['isFree'] != true;
 
                 return _buildLessonCard(id, name, chapterName, isDark, isLocked, data);
               },
@@ -258,22 +271,33 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     );
   }
 
-  Widget _buildLessonCard(String id, String name, String chapterName, bool isDark, bool isLocked, Map<String, dynamic> data) {
+  Widget _buildLessonCard(
+    String id,
+    String name,
+    String chapterName,
+    bool isDark,
+    bool isLocked,
+    Map<String, dynamic> data,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isLocked ? (isDark ? Colors.amber.withValues(alpha: 0.2) : Colors.amber.shade200) : (isDark ? Colors.white10 : AppColors.borderLight),
+          color: isLocked
+              ? (isDark ? Colors.amber.withValues(alpha: 0.2) : Colors.amber.shade200)
+              : (isDark ? Colors.white10 : AppColors.borderLight),
         ),
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -297,8 +321,8 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(
-                          Icons.menu_book_rounded, 
-                          color: AppColors.primaryBlue
+                          Icons.menu_book_rounded,
+                          color: AppColors.primaryBlue,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -317,7 +341,8 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.folder_open_rounded, size: 12, color: Colors.grey[400]),
+                                Icon(Icons.folder_open_rounded,
+                                    size: 12, color: Colors.grey[400]),
                                 const SizedBox(width: 4),
                                 Text(
                                   chapterName,
@@ -330,9 +355,9 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                       ),
                       if (!isLocked)
                         Icon(
-                          Icons.arrow_forward_ios_rounded, 
-                          size: 14, 
-                          color: Colors.grey[300]
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: Colors.grey[300],
                         ),
                     ],
                   ),
@@ -342,14 +367,18 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.3),
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.4)
+                          : Colors.white.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.9),
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.7)
+                              : Colors.white.withValues(alpha: 0.9),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
@@ -405,7 +434,11 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     );
   }
 
-  Future<void> _openLessonInBookMode(String lessonId, String lessonName, Map<String, dynamic> data) async {
+  Future<void> _openLessonInBookMode(
+    String lessonId,
+    String lessonName,
+    Map<String, dynamic> data,
+  ) async {
     if (!mounted) return;
 
     Navigator.push(
@@ -464,7 +497,10 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
               backgroundColor: AppColors.primaryBlue,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: Text('الاشتراك الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'الاشتراك الآن',
+              style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
