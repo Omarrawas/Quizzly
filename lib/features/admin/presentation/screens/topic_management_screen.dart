@@ -48,8 +48,10 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          'إدارة الفصول والدروس - ${widget.sectionName}', 
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold)
+          'إدارة الفصول والدروس - ${widget.sectionName}',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -106,7 +108,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
       stream: _dbService.getTopics(_resolvedSubjectId, sectionId: widget.sectionId, parentId: null, type: 'chapter'),
       builder: (context, snapshot) {
         if (snapshot.hasError) return _buildErrorState(snapshot.error.toString());
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting || !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
         
@@ -156,7 +158,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             child: Text('خطأ: ${snapshot.error}', style: GoogleFonts.cairo(color: Colors.red, fontSize: 12)),
           );
         }
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting || !snapshot.hasData) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Center(child: SizedBox(width: 24, height: 2, child: LinearProgressIndicator())),
@@ -246,11 +248,16 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         title: Row(
           children: [
             Expanded(
-              child: Text(title, style: GoogleFonts.cairo(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white : Colors.black87),
-                fontSize: 13,
-              )),
+              child: Text(
+                title,
+                style: GoogleFonts.cairo(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white : Colors.black87),
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             if (data != null && data['isFree'] == true)
               Container(
@@ -781,6 +788,8 @@ class _ChapterCardState extends State<_ChapterCard> {
               fontSize: 14,
               color: widget.isDark ? Colors.white : Colors.black87,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

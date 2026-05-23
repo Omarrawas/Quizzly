@@ -198,7 +198,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           return const SliverToBoxAdapter(child: SizedBox());
         }
 
-        var docs = snapshot.data!.docs;
+        var docs = snapshot.data!.docs.toList();
 
         if (_searchQuery.isNotEmpty) {
           docs = docs.where((doc) {

@@ -44,6 +44,8 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
         title: Text(
           'الاختبارات - ${widget.subjectName}',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
       body: Column(

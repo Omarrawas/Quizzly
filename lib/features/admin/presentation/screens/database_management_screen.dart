@@ -46,6 +46,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         title: Text(
           _getPageTitle(),
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         actions: [
           IconButton(
@@ -362,7 +364,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16))),
+            Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis)),
             if (finalPrice != null) ...[
               const SizedBox(width: 8),
               Column(
@@ -407,7 +409,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
             ],
           ],
         ),
-        subtitle: subtitle.isNotEmpty ? Text(subtitle, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)) : null,
+        subtitle: subtitle.isNotEmpty ? Text(subtitle, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis) : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

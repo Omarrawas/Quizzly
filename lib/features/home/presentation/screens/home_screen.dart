@@ -466,152 +466,125 @@ class _HomeScreenState extends State<HomeScreen> {
       _activeSubjectsStream = contentService.getUserActiveSubjects(userId);
     }
 
-    Widget currentBody;
-    PreferredSizeWidget? currentAppBar;
-    Widget? currentDrawer;
-    Widget? currentFAB;
-
-    switch (_currentTabIndex) {
-      case 0:
-        currentBody = Column(
-          children: [
-            _buildSubHeaderSection(authService.user!.uid),
-            if (_contentUpdateAvailable)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _activeSubjectsStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text(
+                  'حدث خطأ أثناء تحميل البيانات: ${snapshot.error}',
+                  style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFF7ED), Color(0xFFFDF2E9)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFFFEDD5),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFEA580C).withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEA580C).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.info_rounded,
-                        color: Color(0xFFEA580C),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '📢 يتوفر تحديث جديد للمناهج والأسئلة! يرجى الضغط على زر التحديث الدائري البرتقالي في الأعلى للحصول عليه.',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFC2410C),
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _activeSubjectsStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Text(
-                          'حدث خطأ أثناء تحميل البيانات: ${snapshot.error}',
-                          style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final subjects = snapshot.data ?? [];
-
-                  return _buildBody(subjects);
-                },
               ),
             ),
-          ],
-        );
-        currentAppBar = _buildAppBar();
-        currentDrawer = const AppDrawer();
-        currentFAB = _buildFAB();
-        break;
-      case 1:
-        currentBody = _buildTabWrapper(
-          StreamBuilder<List<Map<String, dynamic>>>(
-            stream: _activeSubjectsStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Scaffold(
-                  body: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        'حدث خطأ أثناء تحميل المواد: ${snapshot.error}',
-                        style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting && _allActiveSubjects.isEmpty) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final activeSubjects = snapshot.data ?? _allActiveSubjects;
+
+        // Update the list of active subjects and ensure selected index is valid
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_areSubjectListsEqual(_allActiveSubjects, activeSubjects)) {
+            setState(() {
+              _allActiveSubjects = activeSubjects;
+              if (_selectedSubjectIndex >= activeSubjects.length) {
+                _selectedSubjectIndex = 0;
+              }
+            });
+          }
+        });
+
+        Widget currentBody;
+        PreferredSizeWidget? currentAppBar;
+        Widget? currentDrawer;
+        Widget? currentFAB;
+
+        switch (_currentTabIndex) {
+          case 0:
+            currentBody = Column(
+              children: [
+                _buildSubHeaderSection(authService.user!.uid),
+                if (_contentUpdateAvailable)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFF7ED), Color(0xFFFDF2E9)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFFEDD5),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEA580C).withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEA580C).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.info_rounded,
+                            color: Color(0xFFEA580C),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '📢 يتوفر تحديث جديد للمناهج والأسئلة! يرجى الضغط على زر التحديث الدائري البرتقالي في الأعلى للحصول عليه.',
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFC2410C),
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              }
-
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              final activeSubjects = snapshot.data ?? [];
-              if (activeSubjects.isEmpty) {
-                return const SubjectSelectionScreen();
-              }
-
-              // Update the list of active subjects and ensure selected index is valid
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && !_areSubjectListsEqual(_allActiveSubjects, activeSubjects)) {
-                  setState(() {
-                    _allActiveSubjects = activeSubjects;
-                    if (_selectedSubjectIndex >= activeSubjects.length) {
-                      _selectedSubjectIndex = 0;
-                    }
-                  });
-                }
-              });
-
-              if (_allActiveSubjects.isEmpty) {
-                _allActiveSubjects = activeSubjects;
-              }
-
+                Expanded(
+                  child: _buildBody(activeSubjects),
+                ),
+              ],
+            );
+            currentAppBar = _buildAppBar();
+            currentDrawer = const AppDrawer();
+            currentFAB = _buildFAB();
+            break;
+          case 1:
+            if (activeSubjects.isEmpty) {
+              currentBody = const SubjectSelectionScreen();
+            } else {
               final currentSubjects = _allActiveSubjects.isNotEmpty
                   ? _allActiveSubjects
                   : activeSubjects;
@@ -620,40 +593,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   : 0;
               final selectedSubject = currentSubjects[idx];
 
-              return SubjectHubScreen(
-                subjectId: selectedSubject['id'] as String,
-                subjectName: selectedSubject['name'] as String,
+              currentBody = _buildTabWrapper(
+                SubjectHubScreen(
+                  subjectId: selectedSubject['id'] as String,
+                  subjectName: selectedSubject['name'] as String,
+                ),
               );
-            },
+            }
+            currentAppBar = _buildSubjectSelectionAppBar(isDark);
+            break;
+          case 2:
+            currentBody = _buildTabWrapper(const SettingsScreen());
+            break;
+          default:
+            currentBody = const SizedBox.shrink();
+        }
+
+        return PopScope(
+          canPop: _currentTabIndex == 0,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (_currentTabIndex != 0) {
+              setState(() {
+                _currentTabIndex = 0;
+              });
+            }
+          },
+          child: Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            drawer: currentDrawer,
+            appBar: currentAppBar,
+            body: currentBody,
+            floatingActionButton: currentFAB,
+            bottomNavigationBar: _buildPremiumBottomBar(isDark),
           ),
         );
-        currentAppBar = _buildSubjectSelectionAppBar(isDark);
-        break;
-      case 2:
-        currentBody = _buildTabWrapper(const SettingsScreen());
-        break;
-      default:
-        currentBody = const SizedBox.shrink();
-    }
-
-    return PopScope(
-      canPop: _currentTabIndex == 0,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_currentTabIndex != 0) {
-          setState(() {
-            _currentTabIndex = 0;
-          });
-        }
       },
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        drawer: currentDrawer,
-        appBar: currentAppBar,
-        body: currentBody,
-        floatingActionButton: currentFAB,
-        bottomNavigationBar: _buildPremiumBottomBar(isDark),
-      ),
     );
   }
 
@@ -851,6 +826,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? AppColors.textPrimary
                                 : Colors.white,
                           ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.right,
                         ),
