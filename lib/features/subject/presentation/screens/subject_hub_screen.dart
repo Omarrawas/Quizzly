@@ -350,7 +350,6 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     required bool showBadge,
     required VoidCallback onTap,
     required bool isDark,
-    bool isFullWidth = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -534,6 +533,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             5,
             !_isActivated,
           ),
+          if (showTheoretical)
+            (
+              Icons.menu_book_rounded,
+              'تصفح الدروس',
+              const Color(0xFF8B5CF6), // Violet theme color
+              _statsService.streamTopicsCount(_contentSubjectId),
+              6,
+              false,
+            ),
           (
             Icons.emoji_events_rounded,
             'دوري التحدي',
@@ -546,64 +554,37 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 2-Column Grid for regular actions
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 200,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.15,
-                ),
-                itemCount: gridActions.length,
-                itemBuilder: (context, index) {
-                  final a = gridActions[index];
-                  return StreamBuilder<int>(
-                    stream: a.$4,
-                    builder: (context, countSnap) {
-                      final count = countSnap.data ?? 0;
-                      final showBadge = a.$5 == 0 || (a.$5 == 1 && count > 0);
-                      
-                      return _buildPremiumActionCard(
-                        icon: a.$1,
-                        label: a.$2,
-                        color: a.$3,
-                        isLocked: a.$6,
-                        badgeCount: count,
-                        showBadge: showBadge,
-                        onTap: () => _onActionTap(a.$5),
-                        isDark: isDark,
-                      );
-                    },
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.15,
+            ),
+            itemCount: gridActions.length,
+            itemBuilder: (context, index) {
+              final a = gridActions[index];
+              return StreamBuilder<int>(
+                stream: a.$4,
+                builder: (context, countSnap) {
+                  final count = countSnap.data ?? 0;
+                  final showBadge = a.$5 == 0 || (a.$5 == 1 && count > 0);
+                  
+                  return _buildPremiumActionCard(
+                    icon: a.$1,
+                    label: a.$2,
+                    color: a.$3,
+                    isLocked: a.$6,
+                    badgeCount: count,
+                    showBadge: showBadge,
+                    onTap: () => _onActionTap(a.$5),
+                    isDark: isDark,
                   );
                 },
-              ),
-              
-              // Full-Width Card for "تصفح الدروس" at the bottom
-              if (showTheoretical) ...[
-                const SizedBox(height: 16),
-                StreamBuilder<int>(
-                  stream: _statsService.streamTopicsCount(_contentSubjectId),
-                  builder: (context, countSnap) {
-                    return _buildPremiumActionCard(
-                      icon: Icons.menu_book_rounded,
-                      label: 'تصفح الدروس',
-                      color: const Color(0xFF8B5CF6), // Violet theme color
-                      isLocked: false,
-                      badgeCount: 0,
-                      showBadge: false,
-                      onTap: () => _onActionTap(6),
-                      isDark: isDark,
-                      isFullWidth: true,
-                    );
-                  },
-                ),
-              ],
-            ],
+              );
+            },
           ),
         );
       },

@@ -126,8 +126,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         type: 'chapter',
       ),
       builder: (context, snapshot) {
-        if (snapshot.hasError)
+        if (snapshot.hasError) {
           return _buildErrorState(snapshot.error.toString());
+        }
         if (snapshot.connectionState == ConnectionState.waiting ||
             !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -579,7 +580,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                   parentId,
                   {'name': nameController.text.trim(), 'type': type},
                 );
-                if (context.mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               }
             },
             child: Text('إضافة'),
@@ -609,7 +612,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
 
     final chapters = chaptersSnap.docs.where((doc) => doc.id != id).toList();
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -733,7 +738,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
               ),
               onPressed: () async {
                 final name = nameController.text.trim();
-                if (name.isEmpty) return;
+                if (name.isEmpty) {
+                  return;
+                }
 
                 if (currentType == 'lesson' && currentParentId == null) {
                   ScaffoldMessenger.of(context).showSnackBar(

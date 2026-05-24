@@ -43,8 +43,9 @@ class _ManageActivationCodesScreenState
 
       final pdf = pw.Document();
 
-      // We'll use 3x7 grid for codes (21 per page)
-      const codesPerPage = 21;
+      // We'll use 3x4 grid for larger, clearer codes (12 per page)
+      // This matches the preview design better and avoids rendering issues
+      const codesPerPage = 12;
 
       for (int i = 0; i < codes.length; i += codesPerPage) {
         final pageCodes = codes.sublist(
@@ -55,7 +56,7 @@ class _ManageActivationCodesScreenState
         pdf.addPage(
           pw.Page(
             pageFormat: PdfPageFormat.a4,
-            margin: const pw.EdgeInsets.all(10),
+            margin: const pw.EdgeInsets.all(20),
             theme: pw.ThemeData.withFont(
               base: arabicFont,
               bold: arabicFontBold,
@@ -65,7 +66,9 @@ class _ManageActivationCodesScreenState
                 textDirection: pw.TextDirection.rtl,
                 child: pw.GridView(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.65,
+                  childAspectRatio: 0.62, // Vertical proportion similar to preview
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
                   children: pageCodes
                       .map((code) => _buildQrCell(code, arabicFontBold, logoImage))
                       .toList(),
@@ -100,71 +103,63 @@ class _ManageActivationCodesScreenState
     final int duration = (codeData['durationDays'] as int?) ?? 0;
 
     return pw.Container(
-      margin: const pw.EdgeInsets.all(3),
-      padding: const pw.EdgeInsets.all(5),
       decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+        color: PdfColors.grey100, // Light grey background like preview header area
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+        border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
       ),
       child: pw.Column(
-        mainAxisAlignment: pw.MainAxisAlignment.center,
         children: [
-          pw.Text(
-            'Quizzly Activation',
-            style: pw.TextStyle(
-              fontSize: 7,
-              color: PdfColors.blue900,
-              font: boldFont,
-            ),
-          ),
-          pw.SizedBox(height: 2),
+          // Header Part
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
             decoration: const pw.BoxDecoration(
-              color: PdfColors.blue100,
-              borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+              color: PdfColors.blue50,
+              borderRadius: pw.BorderRadius.vertical(top: pw.Radius.circular(12)),
             ),
-            child: pw.Text(
-              'رصيد شحن',
-              style: pw.TextStyle(
-                fontSize: 6,
-                font: boldFont,
-                color: PdfColors.blue800,
-              ),
-            ),
-          ),
-          // Content Card (White background)
-          pw.Container(
-            padding: const pw.EdgeInsets.all(6),
-            decoration: const pw.BoxDecoration(
-              color: PdfColors.white,
-              borderRadius: pw.BorderRadius.all(pw.Radius.circular(6)),
-            ),
-            child: pw.Column(
+            child: pw.Row(
               children: [
-                // Price inside white card
-                pw.Text(
-                  '$creditValue ل.س',
-                  style: pw.TextStyle(
-                    fontSize: 9,
-                    font: boldFont,
-                    color: PdfColors.black,
-                  ),
+                pw.Image(logo, width: 12, height: 12),
+                pw.SizedBox(width: 4),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('Quizzly Activation',
+                        style: pw.TextStyle(fontSize: 6, font: boldFont, color: PdfColors.blue900)),
+                    pw.Text('كود شحن رصيد',
+                        style: pw.TextStyle(fontSize: 5, color: PdfColors.grey700)),
+                  ],
                 ),
-                pw.SizedBox(height: 3),
-                // QR with Logo
-                pw.Directionality(
-                  textDirection: pw.TextDirection.ltr,
-                  child: pw.Stack(
+              ],
+            ),
+          ),
+          
+          // White Card Content
+          pw.Expanded(
+            child: pw.Container(
+              margin: const pw.EdgeInsets.all(6),
+              padding: const pw.EdgeInsets.all(6),
+              decoration: const pw.BoxDecoration(
+                color: PdfColors.white,
+                borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
+              ),
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    '$creditValue ل.س',
+                    style: pw.TextStyle(fontSize: 10, font: boldFont, color: PdfColors.blue800),
+                  ),
+                  pw.SizedBox(height: 6),
+                  // QR with Logo inside
+                  pw.Stack(
                     alignment: pw.Alignment.center,
                     children: [
                       pw.BarcodeWidget(
                         data: code,
-                        barcode: pw.Barcode.qrCode(
-                          errorCorrectLevel: BarcodeQRCorrectionLevel.high,
-                        ),
-                        width: 45,
-                        height: 45,
+                        barcode: pw.Barcode.qrCode(),
+                        width: 48,
+                        height: 48,
                         color: PdfColors.black,
                         drawText: false,
                       ),
@@ -174,56 +169,25 @@ class _ManageActivationCodesScreenState
                         padding: const pw.EdgeInsets.all(0.5),
                         decoration: const pw.BoxDecoration(
                           color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(1.2)),
+                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(1.5)),
                         ),
                         child: pw.Image(logo),
                       ),
                     ],
                   ),
-                ),
-                pw.SizedBox(height: 3),
-                // Code Text with Label for manual entry
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.center,
-                  children: [
-                    pw.Text(
-                      'الرمز: ',
-                      style: pw.TextStyle(
-                        fontSize: 6.5,
-                        font: boldFont,
-                        color: PdfColors.grey700,
-                      ),
-                    ),
-                    pw.Directionality(
-                      textDirection: pw.TextDirection.ltr,
-                      child: pw.Text(
-                        code,
-                        style: pw.TextStyle(
-                          fontSize: 8.5,
-                          font: boldFont,
-                          letterSpacing: 1.0,
-                          color: PdfColors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 2),
-                // Batch & Duration
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'Batch: $batchName',
-                      style: const pw.TextStyle(fontSize: 4, color: PdfColors.grey900),
-                    ),
-                    pw.Text(
-                      '$duration Days',
-                      style: const pw.TextStyle(fontSize: 4, color: PdfColors.grey900),
-                    ),
-                  ],
-                ),
-              ],
+                  pw.SizedBox(height: 6),
+                  pw.Text(
+                    code,
+                    style: pw.TextStyle(fontSize: 9, font: boldFont, letterSpacing: 1.5),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Batch: $batchName • $duration Days',
+                    style: const pw.TextStyle(fontSize: 4, color: PdfColors.grey600),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
