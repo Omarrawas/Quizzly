@@ -41,9 +41,9 @@ class _ManageActivationCodesScreenState
 
       final pdf = pw.Document();
 
-      // We'll use 3x4 grid for larger, clearer codes (12 per page)
-      // This matches the preview design better and avoids rendering issues
-      const codesPerPage = 12;
+      // 3x3 grid (9 per page) to allow for HUGE, detailed vertical tickets
+      // This ensures nothing gets clipped and matches the preview perfectly
+      const codesPerPage = 9;
 
       for (int i = 0; i < codes.length; i += codesPerPage) {
         final pageCodes = codes.sublist(
@@ -78,10 +78,10 @@ class _ManageActivationCodesScreenState
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: rowCodes.map((code) {
                         return pw.Padding(
-                          padding: const pw.EdgeInsets.only(bottom: 12),
+                          padding: const pw.EdgeInsets.only(bottom: 20),
                           child: pw.SizedBox(
-                            width: 170, // Fixed width
-                            height: 240, // Fixed height for ticket look
+                            width: 180, // Fixed width
+                            height: 260, // Fixed height for ticket look
                             child: _buildQrCell(code, arabicFontBold, logoImage),
                           ),
                         );
@@ -169,14 +169,14 @@ class _ManageActivationCodesScreenState
                       pw.BarcodeWidget(
                         data: code,
                         barcode: pw.Barcode.qrCode(),
-                        width: 100, // Size increased for clarity
-                        height: 100,
+                        width: 85, // Balanced size to fits bottom info
+                        height: 85,
                         color: PdfColors.black,
                         drawText: false,
                       ),
                       pw.Container(
-                        width: 18,
-                        height: 18,
+                        width: 16,
+                        height: 16,
                         padding: const pw.EdgeInsets.all(1),
                         decoration: const pw.BoxDecoration(
                           color: PdfColors.white,
