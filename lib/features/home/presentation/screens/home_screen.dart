@@ -57,6 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return true;
   }
 
+  bool _hasReceivedSnapshotData = false;
+
   @override
   void initState() {
     super.initState();
@@ -485,14 +487,17 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (snapshot.connectionState == ConnectionState.waiting && _allActiveSubjects.isEmpty) {
+        if (snapshot.connectionState == ConnectionState.waiting && _allActiveSubjects.isEmpty && !_hasReceivedSnapshotData) {
           return Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: const Center(child: CircularProgressIndicator()),
           );
         }
 
-        final activeSubjects = snapshot.data ?? _allActiveSubjects;
+        final activeSubjects = (snapshot.data != null && snapshot.data!.isNotEmpty)
+            ? snapshot.data!
+            : _allActiveSubjects;
+        _hasReceivedSnapshotData = true;
 
         // Update the list of active subjects and ensure selected index is valid
         WidgetsBinding.instance.addPostFrameCallback((_) {

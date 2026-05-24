@@ -3,9 +3,9 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class ContentService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static const Duration _subjectLookupTimeout = Duration(seconds: 2);
-  static const Duration _hierarchyLookupTimeout = Duration(milliseconds: 1200);
-  static const Duration _activeSubjectsTimeout = Duration(seconds: 8);
+  static const Duration _subjectLookupTimeout = Duration(seconds: 4);
+  static const Duration _hierarchyLookupTimeout = Duration(milliseconds: 2000);
+  static const Duration _activeSubjectsTimeout = Duration(seconds: 15);
 
   Future<DocumentSnapshot<Map<String, dynamic>>?> _getDocWithCacheFallback(
     CollectionReference<Map<String, dynamic>> collection,
@@ -13,16 +13,14 @@ class ContentService {
     required Duration timeout,
   }) async {
     try {
-      return await collection.doc(docId).get().timeout(timeout);
-    } catch (_) {
-      try {
-        return await collection
-            .doc(docId)
-            .get(const GetOptions(source: Source.cache));
-      } catch (_) {
-        return null;
-      }
-    }
+      final doc = await collection.doc(docId).get().timeout(timeout);
+      if (doc.exists) return doc;
+    } catch (_) {}
+    try {
+      final doc = await collection.doc(docId).get(const GetOptions(source: Source.cache));
+      if (doc.exists) return doc;
+    } catch (_) {}
+    return null;
   }
 
   // --- Hierarchy Fetchers ---
