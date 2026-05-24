@@ -358,85 +358,121 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            if (finalPrice != null) ...[
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (basePrice != null && basePrice > finalPrice)
-                    Text(
-                      '${basePrice.toStringAsFixed(0)} ل.س',
-                      style: GoogleFonts.cairo(
-                        fontSize: 10, 
-                        color: Colors.grey,
-                        decoration: TextDecoration.lineThrough,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (finalPrice != null) ...[
+                      if (basePrice != null && basePrice > finalPrice)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Text(
+                            '${basePrice.toStringAsFixed(0)} ل.س',
+                            style: GoogleFonts.cairo(
+                              fontSize: 11, 
+                              color: Colors.grey,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${finalPrice.toStringAsFixed(0)} ل.س',
+                          style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                        ),
                       ),
+                    ],
+                    if (discount != null && discount > 0) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '-${discount.toStringAsFixed(0)}%',
+                          style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    if (_currentLevel == ManagementLevel.section) ...[
+                      IconButton(
+                        icon: const Icon(Icons.assignment_outlined, color: Colors.purple, size: 22),
+                        onPressed: () => _goToExams(
+                          _parentIds[ManagementLevel.subject]!,
+                          (key as ValueKey<String>).value,
+                          title,
+                        ),
+                        tooltip: 'إدارة الاختبارات',
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        padding: EdgeInsets.zero,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.account_tree_rounded, color: AppColors.primaryBlue, size: 22),
+                        onPressed: () => _goToTopics(
+                          _parentIds[ManagementLevel.subject]!,
+                          (key as ValueKey<String>).value,
+                          title,
+                        ),
+                        tooltip: 'إدارة المواضيع',
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                    IconButton(
+                      icon: const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 22),
+                      onPressed: onEdit,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      padding: EdgeInsets.zero,
                     ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22),
+                      onPressed: onDelete,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      padding: EdgeInsets.zero,
                     ),
-                    child: Text(
-                      '${finalPrice.toStringAsFixed(0)} ل.س',
-                      style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 2),
+                      child: Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
                     ),
+                  ],
+                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-            ],
-            if (discount != null && discount > 0) ...[
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '-${discount.toStringAsFixed(0)}%',
-                  style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-              ),
-            ],
-          ],
-        ),
-        subtitle: subtitle.isNotEmpty ? Text(subtitle, style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis) : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_currentLevel == ManagementLevel.section) ...[
-              IconButton(
-                icon: const Icon(Icons.assignment_outlined, color: Colors.purple, size: 22),
-                onPressed: () => _goToExams(
-                  _parentIds[ManagementLevel.subject]!,
-                  (key as ValueKey<String>).value,
-                  title,
-                ),
-                tooltip: 'إدارة الاختبارات',
-              ),
-              IconButton(
-                icon: const Icon(Icons.account_tree_rounded, color: AppColors.primaryBlue, size: 22),
-                onPressed: () => _goToTopics(
-                  _parentIds[ManagementLevel.subject]!,
-                  (key as ValueKey<String>).value,
-                  title,
-                ),
-                tooltip: 'إدارة المواضيع',
-              ),
-            ],
-            IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 22), onPressed: onEdit),
-            IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22), onPressed: onDelete),
-            const Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

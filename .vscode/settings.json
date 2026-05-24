@@ -2,5 +2,6 @@
     "java.configuration.updateBuildConfiguration": "interactive",
     "flutter.hotReloadOnSave": "all",
     "javascript.inlayHints.functionLikeReturnTypes.enabled": false,
-    "debug.terminal.clearBeforeReusing": true
+    "debug.terminal.clearBeforeReusing": true,
+    "editor.experimentalGpuAcceleration": "off"
 }
