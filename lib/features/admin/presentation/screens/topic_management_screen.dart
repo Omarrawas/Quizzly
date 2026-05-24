@@ -227,31 +227,29 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           );
         }
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+        return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final doc = docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final id = doc.id;
-            final name = data['name'] ?? '';
+          child: Column(
+            children: docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final id = doc.id;
+              final name = data['name'] ?? '';
 
-            return _buildListTile(
-              id: id,
-              title: name,
-              isSelected: false,
-              isDark: isDark,
-              showArrow: true,
-              onTap: () => _goToLessonQuestions(id, name),
-              onEdit: () => _showEditTopicDialog(id, data, 'درس'),
-              onEditContent: () => _showEditLessonContentDialog(id, data),
-              onPreview: () => _previewLesson(id, name, data),
-              onDelete: () => _confirmDelete(id, name),
-              data: data,
-            );
-          },
+              return _buildListTile(
+                id: id,
+                title: name,
+                isSelected: false,
+                isDark: isDark,
+                showArrow: true,
+                onTap: () => _goToLessonQuestions(id, name),
+                onEdit: () => _showEditTopicDialog(id, data, 'درس'),
+                onEditContent: () => _showEditLessonContentDialog(id, data),
+                onPreview: () => _previewLesson(id, name, data),
+                onDelete: () => _confirmDelete(id, name),
+                data: data,
+              );
+            }).toList(),
+          ),
         );
       },
     );
