@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanation.dart';
 
@@ -68,9 +69,10 @@ class QuestionReviewScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  question.text,
-                  style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold),
+                TexViewWidget(
+                  text: question.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                 ),
                 const SizedBox(height: 20),
                 // Options
@@ -99,13 +101,11 @@ class QuestionReviewScreen extends StatelessWidget {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            opt.text,
-                            style: GoogleFonts.cairo(
-                              fontSize: 13,
-                              color: isCorrectAnswer ? Colors.green : (isUserChoice ? Colors.red : null),
-                              fontWeight: (isUserChoice || isCorrectAnswer) ? FontWeight.bold : FontWeight.normal,
-                            ),
+                          child: TexViewWidget(
+                            text: opt.text,
+                            fontSize: 13,
+                            color: isCorrectAnswer ? Colors.green : (isUserChoice ? Colors.red : null),
+                            fontWeight: (isUserChoice || isCorrectAnswer) ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
                         if (isCorrectAnswer) const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
@@ -127,9 +127,10 @@ class QuestionReviewScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    question.explanation!,
-                    style: GoogleFonts.cairo(fontSize: 13, color: AppColors.textSecondary),
+                  TexViewWidget(
+                    text: question.explanation!,
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
                   ),
                   if (question.explanationImageUrl != null && question.explanationImageUrl!.isNotEmpty) ...[
                     const SizedBox(height: 12),

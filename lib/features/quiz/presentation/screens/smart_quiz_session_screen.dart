@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/smart_quiz_service.dart';
@@ -368,15 +369,11 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            q.text,
-            style: GoogleFonts.cairo(
-              fontSize: 16, 
-              fontWeight: FontWeight.w600, 
-              color: isDark ? Colors.white : AppColors.textPrimary, 
-              height: 1.6
-            ),
-            textDirection: TextDirection.rtl,
+          TexViewWidget(
+            text: q.text,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ],
       ),
@@ -425,11 +422,10 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    option.text, 
-                    style: GoogleFonts.cairo(color: textColor), 
-                    textDirection: TextDirection.rtl
-                  )
+                  child: TexViewWidget(
+                    text: option.text,
+                    color: textColor,
+                  ),
                 ),
               ],
             ),
@@ -448,12 +444,10 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
         borderRadius: BorderRadius.circular(14), 
         border: Border.all(color: isDark ? const Color(0xFF92400E) : const Color(0xFFFDE047))
       ),
-      child: Text(
-        _current!.explanation!, 
-        style: GoogleFonts.cairo(
-          fontSize: 13, 
-          color: isDark ? const Color(0xFFFDE047) : const Color(0xFF78350F)
-        )
+      child: TexViewWidget(
+        text: _current!.explanation!,
+        fontSize: 13,
+        color: isDark ? const Color(0xFFFDE047) : const Color(0xFF78350F),
       ),
     );
   }

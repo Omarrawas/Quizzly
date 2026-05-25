@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/exam_service.dart';
@@ -313,13 +314,87 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                   _buildQuestionCard(q, isDark),
                   const SizedBox(height: 24),
                   _buildOptions(q, isDark),
+                  const SizedBox(height: 32),
+                  _buildNavigationButtons(isDark),
+                  const SizedBox(height: 40), // Extra space at bottom
                 ],
               ),
             ),
           ),
-          _buildNavigationFooter(isDark),
         ],
       ),
+    );
+  }
+
+  Widget _buildNavigationButtons(bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (_currentIndex > 0)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: OutlinedButton.icon(
+                onPressed: _handlePrevious,
+                icon: Icon(
+                  Icons.arrow_back_ios_rounded,
+                  size: 14,
+                  color: isDark ? Colors.white70 : AppColors.primaryBlue,
+                ),
+                label: Text(
+                  'السابق',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white70 : AppColors.primaryBlue,
+                  side: BorderSide(
+                    color: isDark ? Colors.white10 : Colors.grey.shade300,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          const Spacer(),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _handleNext,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue,
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _currentIndex < _sessionQuestions.length - 1
+                      ? 'التالي'
+                      : 'تسليم الاختبار',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  _currentIndex < _sessionQuestions.length - 1
+                      ? Icons.arrow_forward_ios_rounded
+                      : Icons.check_circle_rounded,
+                  size: 14,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -421,16 +496,11 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                 ),
               ],
       ),
-      child: Text(
-        q.text,
-        style: GoogleFonts.cairo(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          height: 1.6,
-          color: isDark ? Colors.white : AppColors.textPrimary,
-        ),
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.rtl,
+      child: TexViewWidget(
+        text: q.text,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: isDark ? Colors.white : AppColors.textPrimary,
       ),
     );
   }
@@ -463,16 +533,10 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    opt.text,
-                    style: GoogleFonts.cairo(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isDark ? Colors.white : AppColors.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
+                  child: TexViewWidget(
+                    text: opt.text,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -483,103 +547,4 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     );
   }
 
-  Widget _buildNavigationFooter(bool isDark) {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0F172A) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.3)
-                  : Colors.black12,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-          border: Border(
-            top: BorderSide(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.grey.shade200,
-              width: 1,
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            if (_currentIndex > 0)
-              OutlinedButton.icon(
-                onPressed: _handlePrevious,
-                icon: Icon(
-                  Icons.arrow_back_ios_rounded,
-                  size: 14,
-                  color: isDark ? Colors.white70 : AppColors.primaryBlue,
-                ),
-                label: Text(
-                  'السابق',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark
-                      ? Colors.white70
-                      : AppColors.primaryBlue,
-                  side: BorderSide(
-                    color: isDark ? Colors.white10 : Colors.grey.shade300,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              )
-            else
-              const SizedBox(width: 110),
-
-            ElevatedButton(
-              onPressed: _handleNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark
-                    ? const Color(0xFF38BDF8)
-                    : AppColors.primaryBlue,
-                foregroundColor: isDark ? Colors.black : Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _currentIndex < _sessionQuestions.length - 1
-                        ? 'التالي'
-                        : 'تسليم الاختبار',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    _currentIndex < _sessionQuestions.length - 1
-                        ? Icons.arrow_forward_ios_rounded
-                        : Icons.check_circle_rounded,
-                    size: 14,
-                    color: isDark ? Colors.black : Colors.white,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

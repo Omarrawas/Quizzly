@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/battle_service.dart';
@@ -299,15 +300,11 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                       ),
                       child: Center(
                         child: SingleChildScrollView(
-                          child: Text(
-                            question.text,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.cairo(
-                              fontSize: 22, 
-                              fontWeight: FontWeight.bold, 
-                              color: isDark ? Colors.white : AppColors.textPrimary, 
-                              height: 1.6
-                            ),
+                          child: TexViewWidget(
+                            text: question.text,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -333,10 +330,10 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                                 elevation: isDark ? 0 : 2,
                                 shadowColor: Colors.black.withValues(alpha: 0.05),
                               ),
-                              child: Text(
-                                opt.text,
-                                style: GoogleFonts.cairo(fontSize: 16),
-                                textAlign: TextAlign.right,
+                              child: TexViewWidget(
+                                text: opt.text,
+                                fontSize: 16,
+                                color: isDark ? Colors.white : AppColors.textPrimary,
                               ),
                             ),
                           ),

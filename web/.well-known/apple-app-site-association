@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "YOUR_TEAM_ID.com.Quizzly.app",
+        "paths": [
+          "/question*"
+        ]
+      }
+    ]
+  }
+}

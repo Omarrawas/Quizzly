@@ -13,6 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/mnemonic_card.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'dart:async';
 
 class PracticeSessionScreen extends StatefulWidget {
@@ -728,15 +729,11 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            q.text,
-            style: GoogleFonts.cairo(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : AppColors.textPrimary,
-              height: 1.6,
-            ),
-            textDirection: TextDirection.rtl,
+          TexViewWidget(
+            text: q.text,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : AppColors.textPrimary,
           ),
         ],
       ),
@@ -818,10 +815,11 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    option.text,
-                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500, color: textColor),
-                    textDirection: TextDirection.rtl,
+                  child: TexViewWidget(
+                    text: option.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: textColor,
                   ),
                 ),
                 if (trailingIcon != null)
@@ -861,10 +859,10 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              _current!.explanation!,
-              style: GoogleFonts.cairo(fontSize: 13, color: isDark ? Colors.white70 : const Color(0xFF78350F), height: 1.6),
-              textDirection: TextDirection.rtl,
+            TexViewWidget(
+              text: _current!.explanation!,
+              fontSize: 13,
+              color: isDark ? Colors.white70 : const Color(0xFF78350F),
             ),
           ],
         ),

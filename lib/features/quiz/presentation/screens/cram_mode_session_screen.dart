@@ -5,6 +5,7 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class CramModeSessionScreen extends StatefulWidget {
   final List<QuizQuestion> questions;
@@ -165,15 +166,11 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            q.text,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              height: 1.6,
-            ),
+          TexViewWidget(
+            text: q.text,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
           if (_isAnswerVisible) ...[
             const SizedBox(height: 32),
@@ -183,14 +180,11 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
               color: Colors.amber.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 32),
-            Text(
-              q.options?.firstWhere((o) => q.correctOptionIds.contains(o.id)).text ?? '',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.amber,
-              ),
+            TexViewWidget(
+              text: q.options?.firstWhere((o) => q.correctOptionIds.contains(o.id)).text ?? '',
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
             ),
           ],
           const Spacer(),

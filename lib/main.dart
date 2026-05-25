@@ -17,6 +17,7 @@ import 'package:quizzly/features/quiz/domain/services/smart_notification_service
 import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 import 'package:quizzly/core/services/app_update_service.dart';
+import 'package:quizzly/core/services/deep_link_service.dart';
 import 'package:flutter/foundation.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -46,6 +47,9 @@ void main() async {
 
   // Initialize App Update Service in background
   AppUpdateService().initialize();
+
+  // Initialize Deep Link Service
+  DeepLinkService().initialize();
 
   runApp(
     MultiProvider(

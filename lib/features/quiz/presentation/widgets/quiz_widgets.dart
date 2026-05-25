@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
@@ -8,7 +9,6 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
-
 // ═══════════════════════════════════════════════════════
 //  1. شريط الحالة العلوي (HUD)
 // ═══════════════════════════════════════════════════════
@@ -848,16 +848,7 @@ class _QuestionMenuButton extends StatelessWidget {
         if (value == 'report') {
           showReportDialog(context, question);
         } else if (value == 'share') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'ميزة المشاركة ستكون متوفرة قريباً',
-                style: GoogleFonts.cairo(),
-                textAlign: TextAlign.right,
-              ),
-              backgroundColor: AppColors.primaryBlue,
-            ),
-          );
+          _shareQuestion(context);
         }
       },
       itemBuilder: (_) => [
@@ -893,6 +884,16 @@ class _QuestionMenuButton extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _shareQuestion(BuildContext context) {
+    if (question.id == null) return;
+    
+    // Using your Vercel domain for professional deep linking
+    final String url = 'https://quizzly-tau.vercel.app/question?id=${question.id}&subjectId=${question.primaryTopicId ?? ""}';
+    final String shareText = 'شاهد هذا السؤال على تطبيق كويزلي:\n\n${question.text}\n\nرابط السؤال:\n$url';
+    
+    Share.share(shareText, subject: 'مشاركة سؤال من كويزلي');
   }
 }
 

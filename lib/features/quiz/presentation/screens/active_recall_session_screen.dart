@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:quizzly/features/gamification/domain/services/subject_league_service.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class ActiveRecallSessionScreen extends StatefulWidget {
   final ExamConfig config;
@@ -441,15 +442,11 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
         ],
       ),
       child: Center(
-        child: Text(
-          text,
-          style: GoogleFonts.cairo(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            height: 1.6,
-            color: isDark ? Colors.white : Colors.black,
-          ),
-          textAlign: TextAlign.center,
+        child: TexViewWidget(
+          text: text,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white : Colors.black,
         ),
       ),
     );
@@ -506,14 +503,11 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
           size: 40,
         ),
         const SizedBox(height: 12),
-        Text(
-          correctOption?.text ?? 'غير محدد',
-          style: GoogleFonts.cairo(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
-          ),
-          textAlign: TextAlign.center,
+        TexViewWidget(
+          text: correctOption?.text ?? 'غير محدد',
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
         ),
         if (q.explanation != null && q.explanation!.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -525,13 +519,10 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
                   : Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              q.explanation!,
-              style: GoogleFonts.cairo(
-                fontSize: 13,
-                color: isDark ? Colors.white70 : AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
+            child: TexViewWidget(
+              text: q.explanation!,
+              fontSize: 13,
+              color: isDark ? Colors.white70 : AppColors.textPrimary,
             ),
           ),
         ],
