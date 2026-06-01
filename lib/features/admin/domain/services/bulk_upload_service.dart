@@ -67,6 +67,12 @@ class BulkUploadService {
     int colOptD = header.indexOf('opt_d');
     int colOptE = header.indexOf('opt_e');
     int colOptF = header.indexOf('opt_f');
+    int colOptG = header.indexOf('opt_g');
+    int colOptH = header.indexOf('opt_h');
+    int colOptI = header.indexOf('opt_i');
+    int colOptJ = header.indexOf('opt_j');
+    int colOptK = header.indexOf('opt_k');
+    int colOptL = header.indexOf('opt_l');
     int colCorrect = header.indexOf('correctans');
     int colDiff = header.indexOf('difficulty');
     int colCognitive = header.indexOf('cognitivelevel');
@@ -201,6 +207,12 @@ class BulkUploadService {
         if (colOptD != -1 && row.length > colOptD && row[colOptD].toString().trim().isNotEmpty) options.add(row[colOptD].toString().trim());
         if (colOptE != -1 && row.length > colOptE && row[colOptE].toString().trim().isNotEmpty) options.add(row[colOptE].toString().trim());
         if (colOptF != -1 && row.length > colOptF && row[colOptF].toString().trim().isNotEmpty) options.add(row[colOptF].toString().trim());
+        if (colOptG != -1 && row.length > colOptG && row[colOptG].toString().trim().isNotEmpty) options.add(row[colOptG].toString().trim());
+        if (colOptH != -1 && row.length > colOptH && row[colOptH].toString().trim().isNotEmpty) options.add(row[colOptH].toString().trim());
+        if (colOptI != -1 && row.length > colOptI && row[colOptI].toString().trim().isNotEmpty) options.add(row[colOptI].toString().trim());
+        if (colOptJ != -1 && row.length > colOptJ && row[colOptJ].toString().trim().isNotEmpty) options.add(row[colOptJ].toString().trim());
+        if (colOptK != -1 && row.length > colOptK && row[colOptK].toString().trim().isNotEmpty) options.add(row[colOptK].toString().trim());
+        if (colOptL != -1 && row.length > colOptL && row[colOptL].toString().trim().isNotEmpty) options.add(row[colOptL].toString().trim());
         
         if (type == QuestionType.mcq && options.length < 2) {
           errors.add(UploadError(row: i + 1, message: 'أسئلة الاختيارات يجب أن تحتوي على خيارين على الأقل.'));
@@ -211,7 +223,7 @@ class BulkUploadService {
       String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect].toString().trim() : '';
       dynamic correctAnswer;
       if (type == QuestionType.mcq) {
-        // Map a, b, c, d, e, f to index 0, 1, 2, 3, 4, 5
+        // Map a, b, c, d, e, f, g, h, i, j, k, l to index 0-11
         int ansIndex = -1;
         switch (correctAnsRaw.toLowerCase()) {
           case 'a': ansIndex = 0; break;
@@ -220,6 +232,12 @@ class BulkUploadService {
           case 'd': ansIndex = 3; break;
           case 'e': ansIndex = 4; break;
           case 'f': ansIndex = 5; break;
+          case 'g': ansIndex = 6; break;
+          case 'h': ansIndex = 7; break;
+          case 'i': ansIndex = 8; break;
+          case 'j': ansIndex = 9; break;
+          case 'k': ansIndex = 10; break;
+          case 'l': ansIndex = 11; break;
         }
         if (ansIndex != -1 && ansIndex < options.length) {
           correctAnswer = ansIndex;
@@ -324,6 +342,12 @@ class BulkUploadService {
     int colOptD = header.indexOf('opt_d');
     int colOptE = header.indexOf('opt_e');
     int colOptF = header.indexOf('opt_f');
+    int colOptG = header.indexOf('opt_g');
+    int colOptH = header.indexOf('opt_h');
+    int colOptI = header.indexOf('opt_i');
+    int colOptJ = header.indexOf('opt_j');
+    int colOptK = header.indexOf('opt_k');
+    int colOptL = header.indexOf('opt_l');
     int colCorrect = header.indexOf('correctans');
     int colDiff = header.indexOf('difficulty');
     int colCognitive = header.indexOf('cognitivelevel');
@@ -435,6 +459,12 @@ class BulkUploadService {
         if (colOptD != -1 && row.length > colOptD && row[colOptD]?.value != null && row[colOptD]!.value.toString().trim().isNotEmpty) options.add(row[colOptD]!.value.toString().trim());
         if (colOptE != -1 && row.length > colOptE && row[colOptE]?.value != null && row[colOptE]!.value.toString().trim().isNotEmpty) options.add(row[colOptE]!.value.toString().trim());
         if (colOptF != -1 && row.length > colOptF && row[colOptF]?.value != null && row[colOptF]!.value.toString().trim().isNotEmpty) options.add(row[colOptF]!.value.toString().trim());
+        if (colOptG != -1 && row.length > colOptG && row[colOptG]?.value != null && row[colOptG]!.value.toString().trim().isNotEmpty) options.add(row[colOptG]!.value.toString().trim());
+        if (colOptH != -1 && row.length > colOptH && row[colOptH]?.value != null && row[colOptH]!.value.toString().trim().isNotEmpty) options.add(row[colOptH]!.value.toString().trim());
+        if (colOptI != -1 && row.length > colOptI && row[colOptI]?.value != null && row[colOptI]!.value.toString().trim().isNotEmpty) options.add(row[colOptI]!.value.toString().trim());
+        if (colOptJ != -1 && row.length > colOptJ && row[colOptJ]?.value != null && row[colOptJ]!.value.toString().trim().isNotEmpty) options.add(row[colOptJ]!.value.toString().trim());
+        if (colOptK != -1 && row.length > colOptK && row[colOptK]?.value != null && row[colOptK]!.value.toString().trim().isNotEmpty) options.add(row[colOptK]!.value.toString().trim());
+        if (colOptL != -1 && row.length > colOptL && row[colOptL]?.value != null && row[colOptL]!.value.toString().trim().isNotEmpty) options.add(row[colOptL]!.value.toString().trim());
       }
 
       String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect]?.value?.toString().trim() ?? '' : '';
@@ -448,6 +478,12 @@ class BulkUploadService {
           case 'd': ansIndex = 3; break;
           case 'e': ansIndex = 4; break;
           case 'f': ansIndex = 5; break;
+          case 'g': ansIndex = 6; break;
+          case 'h': ansIndex = 7; break;
+          case 'i': ansIndex = 8; break;
+          case 'j': ansIndex = 9; break;
+          case 'k': ansIndex = 10; break;
+          case 'l': ansIndex = 11; break;
         }
         if (ansIndex != -1 && ansIndex < options.length) correctAnswer = ansIndex;
       } else if (type == QuestionType.trueFalse) {
@@ -559,6 +595,12 @@ class BulkUploadService {
       'Opt_D',
       'Opt_E',
       'Opt_F',
+      'Opt_G',
+      'Opt_H',
+      'Opt_I',
+      'Opt_J',
+      'Opt_K',
+      'Opt_L',
       'CorrectAns',
       'Difficulty',
       'CognitiveLevel',
@@ -619,6 +661,12 @@ class BulkUploadService {
         options.length > 3 ? options[3].text : '',
         options.length > 4 ? options[4].text : '',
         options.length > 5 ? options[5].text : '',
+        options.length > 6 ? options[6].text : '',
+        options.length > 7 ? options[7].text : '',
+        options.length > 8 ? options[8].text : '',
+        options.length > 9 ? options[9].text : '',
+        options.length > 10 ? options[10].text : '',
+        options.length > 11 ? options[11].text : '',
         correctAns,
         q.difficulty?.name ?? 'medium',
         q.cognitiveLevel?.name ?? 'understanding',

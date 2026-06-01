@@ -893,6 +893,7 @@ class _QuestionMenuButton extends StatelessWidget {
     final String url = 'https://quizzly-tau.vercel.app/question?id=${question.id}&subjectId=${question.primaryTopicId ?? ""}';
     final String shareText = 'شاهد هذا السؤال على تطبيق كويزلي:\n\n${question.text}\n\nرابط السؤال:\n$url';
     
+    // ignore: deprecated_member_use
     Share.share(shareText, subject: 'مشاركة سؤال من كويزلي');
   }
 }
