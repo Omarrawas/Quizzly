@@ -200,43 +200,63 @@ class QuizQuestion {
   }
 
   factory QuizQuestion.fromMap(Map<String, dynamic> data, [String? docId]) {
+    // Robustly handle list fields that might be null or wrong type
+    List<String> parseStringList(dynamic val) {
+      if (val is List) return val.map((e) => e.toString()).toList();
+      if (val is String) return [val];
+      return [];
+    }
+
+    // Safety for topicWeights which is often a source of crashes if it's an empty list [] instead of Map
+    Map<String, double>? parsedWeights;
+    if (data['topicWeights'] is Map) {
+      parsedWeights = (data['topicWeights'] as Map).map(
+        (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
+      );
+    }
+
+    final examTags = parseStringList(data['examTags']);
+
     return QuizQuestion(
       id: docId,
-      subjectId: data['subjectId'],
-      number: data['order'] ?? 0,
-      text: data['text'] ?? '',
-      translationText: data['translationText'],
-      type: _parseType(data['type']),
-      options: (data['options'] as List?)?.map((e) => QuizOption(id: e['id'].toString(), text: e['text'].toString())).toList(),
-      correctOptionIds: data['correctOptionIds'] != null 
-          ? List<String>.from(data['correctOptionIds']) 
+      subjectId: data['subjectId']?.toString(),
+      number: (data['order'] as num?)?.toInt() ?? 0,
+      text: data['text']?.toString() ?? '',
+      translationText: data['translationText']?.toString(),
+      type: _parseType(data['type']?.toString()),
+      options: (data['options'] as List?)
+          ?.map((e) => QuizOption(
+                id: e['id']?.toString() ?? '',
+                text: e['text']?.toString() ?? '',
+              ))
+          .toList(),
+      correctOptionIds: data['correctOptionIds'] != null
+          ? parseStringList(data['correctOptionIds'])
           : (data['correctOptionId'] != null ? [data['correctOptionId'].toString()] : []),
-      essayAnswer: data['essayAnswer'],
-      explanation: data['explanation'],
-      explanationImageUrl: data['explanationImageUrl'],
-      explanationVideoUrl: data['explanationVideoUrl'],
-      explanationAudioUrl: data['explanationAudioUrl'],
-      explanationPdfUrl: data['explanationPdfUrl'],
-      difficulty: _parseDifficulty(data['difficulty']),
-      cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']),
-      estimatedTime: data['estimatedTime'],
-      primaryTopicId: data['primaryTopicId'],
-      topicIds: data['topicIds'] is List 
-          ? List<String>.from(data['topicIds']) 
-          : (data['topicIds'] is String ? [data['topicIds'].toString()] : []),
-      topicNames: data['topicNames'] is List ? List<String>.from(data['topicNames']) : [],
-      topicWeights: (data['topicWeights'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, (v as num).toDouble())),
-      discriminationIndex: (data['discriminationIndex'] ?? 0.5).toDouble(),
-      isFrequentlyWrong: data['isFrequentlyWrong'] ?? false,
-      tagLabel: data['tagLabel'],
-      imageUrl: data['imageUrl'],
-      examTags: List<String>.from(data['examTags'] ?? []),
-      analytics: QuestionAnalytics.fromMap(data['analytics']),
-      status: _parseStatus(data['status']),
-      authorId: data['authorId'],
-      reviewerId: data['reviewerId'],
-      reviewFeedback: data['reviewFeedback'],
-      isRepeated: (data['examTags'] as List?) != null && (data['examTags'] as List).length > 1,
+      essayAnswer: data['essayAnswer']?.toString(),
+      explanation: data['explanation']?.toString(),
+      explanationImageUrl: data['explanationImageUrl']?.toString(),
+      explanationVideoUrl: data['explanationVideoUrl']?.toString(),
+      explanationAudioUrl: data['explanationAudioUrl']?.toString(),
+      explanationPdfUrl: data['explanationPdfUrl']?.toString(),
+      difficulty: _parseDifficulty(data['difficulty']?.toString()),
+      cognitiveLevel: _parseCognitiveLevel(data['cognitiveLevel']?.toString()),
+      estimatedTime: (data['estimatedTime'] as num?)?.toInt(),
+      primaryTopicId: data['primaryTopicId']?.toString(),
+      topicIds: parseStringList(data['topicIds']),
+      topicNames: parseStringList(data['topicNames']),
+      topicWeights: parsedWeights,
+      discriminationIndex: (data['discriminationIndex'] as num?)?.toDouble() ?? 0.5,
+      isFrequentlyWrong: data['isFrequentlyWrong'] == true,
+      tagLabel: data['tagLabel']?.toString(),
+      imageUrl: data['imageUrl']?.toString(),
+      examTags: examTags,
+      analytics: QuestionAnalytics.fromMap(data['analytics'] is Map ? data['analytics'] : null),
+      status: _parseStatus(data['status']?.toString()),
+      authorId: data['authorId']?.toString(),
+      reviewerId: data['reviewerId']?.toString(),
+      reviewFeedback: data['reviewFeedback']?.toString(),
+      isRepeated: examTags.length > 1,
     );
   }
 

@@ -521,6 +521,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     );
   }
 
+
   void _showEditDialog(String id, Map<String, dynamic> currentData) {
     if (_currentLevel == ManagementLevel.semester) {
       _showSemesterEditDialog(id, currentData);
@@ -536,190 +537,421 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('تعديل ${_getAddLabel()}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
-                const SizedBox(height: 16),
-                TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
-                if (_currentLevel == ManagementLevel.subject) ...[
-                  const SizedBox(height: 16),
-                  FutureBuilder<QuerySnapshot>(
-                    future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const CircularProgressIndicator();
-                      final allTeachers = snapshot.data!.docs;
-                      
-                      return StatefulBuilder(
-                        builder: (context, setDialogState) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('المعلمون المسؤولون:', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: teacherIds.map((tid) {
-                                  final tDoc = allTeachers.cast<QueryDocumentSnapshot?>().firstWhere((doc) => doc?.id == tid, orElse: () => null);
-                                  if (tDoc == null) return const SizedBox.shrink();
-                                  final tData = tDoc.data() as Map<String, dynamic>;
-                                  return InputChip(
-                                    label: Text(tData['defaults']?['fullName'] ?? tData['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 10)),
-                                    onDeleted: () {
-                                      setDialogState(() {
-                                        teacherIds.remove(tid);
-                                        currentData['teacherIds'] = teacherIds;
-                                      });
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                              if (teacherIds.isEmpty) 
-                                Text('لم يتم تعيين معلمين', style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey)),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
-                                  labelText: 'إضافة معلم',
-                                  labelStyle: GoogleFonts.cairo(fontSize: 12),
-                                  isDense: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                                items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  return DropdownMenuItem<String>(
-                                    value: doc.id,
-                                    child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 12)),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setDialogState(() {
-                                      teacherIds.add(val);
-                                      currentData['teacherIds'] = teacherIds;
-                                    });
-                                  }
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: TextEditingController(text: currentData['price']?.toString() ?? ''),
-                          onChanged: (v) => currentData['price'] = double.tryParse(v),
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
-                          controller: TextEditingController(text: currentData['discount']?.toString() ?? ''),
-                          onChanged: (v) => currentData['discount'] = double.tryParse(v),
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  FutureBuilder<QuerySnapshot>(
-                    future: FirebaseFirestore.instance.collection('subjects').get(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const SizedBox(
-                          height: 48,
-                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                        );
-                      }
-                      
-                      // Filter out:
-                      // 1. Current subject to prevent self-reference loops
-                      // 2. Subjects that are already aliases to avoid multi-level chains
-                      final masterSubjects = snapshot.data!.docs.where((doc) {
-                        if (doc.id == id) return false;
-                        final data = doc.data() as Map<String, dynamic>;
-                        return data['referenceSubjectId'] == null;
-                      }).toList();
-
-                      return DropdownButtonFormField<String?>(
-                        initialValue: referenceSubjectId,
-                        decoration: InputDecoration(
-                          labelText: 'ربط المحتوى بمادة أخرى (مستعارة)',
-                          labelStyle: GoogleFonts.cairo(fontSize: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('مادة رئيسية (لا يوجد ربط)', style: GoogleFonts.cairo(fontSize: 12)),
-                          ),
-                          ...masterSubjects.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return DropdownMenuItem<String?>(
-                              value: doc.id,
-                              child: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 12)),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          setDialogState(() {
-                            referenceSubjectId = val;
-                          });
-                        },
-                      );
-                    },
+      builder: (context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 500),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
-              ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with Gradient
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primaryBlue,
+                            AppColors.primaryBlue.withValues(alpha: 0.8),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(28),
+                          topRight: Radius.circular(28),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.edit_document, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'تعديل ${_getAddLabel()}',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  'تحديث معلومات العنصر في قاعدة البيانات',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 12,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildPremiumTextField(
+                            controller: nameController,
+                            label: 'الاسم',
+                            icon: Icons.title_rounded,
+                            isDark: isDark,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildPremiumTextField(
+                            controller: descController,
+                            label: 'الوصف',
+                            icon: Icons.description_outlined,
+                            isDark: isDark,
+                            maxLines: 2,
+                          ),
+                          
+                          if (_currentLevel == ManagementLevel.subject) ...[
+                            const SizedBox(height: 24),
+                            Text(
+                              'إدارة المعلمين',
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.blue[300] : AppColors.primaryBlue,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            FutureBuilder<QuerySnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .where('role', isEqualTo: 'teacher')
+                                  .get(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const Center(child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ));
+                                }
+                                final allTeachers = snapshot.data!.docs;
+                                
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (teacherIds.isNotEmpty)
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: teacherIds.map((tid) {
+                                          final tDoc = allTeachers
+                                              .cast<QueryDocumentSnapshot?>()
+                                              .firstWhere((doc) => doc?.id == tid, orElse: () => null);
+                                          if (tDoc == null) return const SizedBox.shrink();
+                                          final tData = tDoc.data() as Map<String, dynamic>;
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  tData['defaults']?['fullName'] ?? tData['email'] ?? 'معلم',
+                                                  style: GoogleFonts.cairo(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isDark ? Colors.blue[200] : AppColors.primaryBlue,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                InkWell(
+                                                  onTap: () {
+                                                    setDialogState(() {
+                                                      teacherIds.remove(tid);
+                                                      currentData['teacherIds'] = teacherIds;
+                                                    });
+                                                  },
+                                                  child: Icon(Icons.close_rounded, size: 16, color: isDark ? Colors.blue[200] : AppColors.primaryBlue),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    if (teacherIds.isEmpty)
+                                      Text(
+                                        'لم يتم تعيين معلمين بعد',
+                                        style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                                      ),
+                                    const SizedBox(height: 12),
+                                    DropdownButtonFormField<String>(
+                                      decoration: _premiumInputDecoration(
+                                        label: 'إضافة معلم',
+                                        icon: Icons.person_add_alt_1_rounded,
+                                        isDark: isDark,
+                                      ),
+                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
+                                        final data = doc.data() as Map<String, dynamic>;
+                                        return DropdownMenuItem<String>(
+                                          value: doc.id,
+                                          child: Text(
+                                            data['defaults']?['fullName'] ?? data['email'] ?? 'معلم',
+                                            style: GoogleFonts.cairo(fontSize: 13),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setDialogState(() {
+                                            teacherIds.add(val);
+                                            currentData['teacherIds'] = teacherIds;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildPremiumTextField(
+                                    controller: TextEditingController(text: currentData['price']?.toString() ?? ''),
+                                    label: 'السعر (ل.س)',
+                                    icon: Icons.payments_outlined,
+                                    isDark: isDark,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (v) => currentData['price'] = double.tryParse(v),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildPremiumTextField(
+                                    controller: TextEditingController(text: currentData['discount']?.toString() ?? ''),
+                                    label: 'الخصم (%)',
+                                    icon: Icons.percent_rounded,
+                                    isDark: isDark,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (v) => currentData['discount'] = double.tryParse(v),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            FutureBuilder<QuerySnapshot>(
+                              future: FirebaseFirestore.instance.collection('subjects').get(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return const SizedBox.shrink();
+                                
+                                final masterSubjects = snapshot.data!.docs.where((doc) {
+                                  if (doc.id == id) return false;
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  return data['referenceSubjectId'] == null;
+                                }).toList();
+
+                                return DropdownButtonFormField<String?>(
+                                  initialValue: referenceSubjectId,
+                                  decoration: _premiumInputDecoration(
+                                    label: 'ربط المحتوى بمادة أخرى',
+                                    icon: Icons.link_rounded,
+                                    isDark: isDark,
+                                  ),
+                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  items: [
+                                    DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text('مادة رئيسية (لا يوجد ربط)', style: GoogleFonts.cairo(fontSize: 13)),
+                                    ),
+                                    ...masterSubjects.map((doc) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      return DropdownMenuItem<String?>(
+                                        value: doc.id,
+                                        child: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 13)),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      referenceSubjectId = val;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                'إلغاء',
+                                style: GoogleFonts.cairo(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final updatedData = {
+                                    'name': nameController.text.trim(),
+                                    if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
+                                    else 'description': descController.text.trim(),
+                                    if (_currentLevel == ManagementLevel.subject || _currentLevel == ManagementLevel.semester) ...{
+                                      'price': currentData['price'],
+                                      'discount': currentData['discount'],
+                                      if (_currentLevel == ManagementLevel.semester) 'totalPrice': currentData['totalPrice'],
+                                    },
+                                    if (_currentLevel == ManagementLevel.subject) ...{
+                                      'referenceSubjectId': referenceSubjectId,
+                                      'teacherIds': teacherIds,
+                                      'teacherId': teacherIds.isNotEmpty ? teacherIds.first : null,
+                                    },
+                                  };
+                                  try {
+                                    await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                      _showStatusSnackBar('تم التعديل بنجاح', isError: false);
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: Text(
+                                  'حفظ التغييرات',
+                                  style: GoogleFonts.cairo(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-            ElevatedButton(
-              onPressed: () async {
-                final updatedData = {
-                  'name': nameController.text.trim(),
-                  if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
-                  else 'description': descController.text.trim(),
-                  if (_currentLevel == ManagementLevel.subject || _currentLevel == ManagementLevel.semester) ...{
-                    'price': currentData['price'],
-                    'discount': currentData['discount'],
-                    if (_currentLevel == ManagementLevel.semester) 'totalPrice': currentData['totalPrice'],
-                  },
-                  if (_currentLevel == ManagementLevel.subject) ...{
-                    'referenceSubjectId': referenceSubjectId,
-                    'teacherIds': teacherIds,
-                    'teacherId': teacherIds.isNotEmpty ? teacherIds.first : null, // Fallback for old code
-                  },
-                };
-                try {
-                  await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    _showStatusSnackBar('تم التعديل بنجاح', isError: false);
-                  }
-                } catch (e) {
-                  if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
-                }
-              },
-              child: Text('حفظ التغييرات'),
-            ),
-          ],
-        ),
+        );
+      },
+    );
+  }
+
+  InputDecoration _premiumInputDecoration({
+    required String label,
+    required IconData icon,
+    required bool isDark,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: GoogleFonts.cairo(
+        color: isDark ? Colors.white60 : Colors.black54,
+        fontSize: 14,
       ),
+      prefixIcon: Icon(icon, color: AppColors.primaryBlue, size: 20),
+      filled: true,
+      fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey[50],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[200]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+  }
+
+  Widget _buildPremiumTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required bool isDark,
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    Function(String)? onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      style: GoogleFonts.cairo(fontSize: 14),
+      decoration: _premiumInputDecoration(label: label, icon: icon, isDark: isDark),
     );
   }
 
@@ -727,7 +959,6 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     final nameController = TextEditingController(text: currentData['name']);
     final descController = TextEditingController(text: currentData['description'] ?? '');
     
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -743,133 +974,145 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final effectiveBasePrice = manualPrice ?? totalPrice;
-          final finalPrice = effectiveBasePrice * (1 - (discount / 100));
-          
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text('تعديل الفصل الدراسي', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
-                const SizedBox(height: 16),
-                TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.1)),
-                  ),
+      builder: (context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final effectiveBasePrice = manualPrice ?? totalPrice;
+            final finalPrice = effectiveBasePrice * (1 - (discount / 100));
+            
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(maxWidth: 500),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('مجموع أسعار المواد:', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
-                          Text('${totalPrice.toStringAsFixed(0)} ل.س', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [AppColors.primaryBlue, Color(0xFF7C3AED)]),
+                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 30),
+                            const SizedBox(width: 16),
+                            Text('تعديل الفصل الدراسي', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Text('سعر يدوي للفصل (اختياري):', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: TextField(
-                              controller: TextEditingController(text: manualPrice?.toStringAsFixed(0) ?? ''),
-                              onChanged: (v) => setDialogState(() => manualPrice = double.tryParse(v)),
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                hintText: 'تجاوز الحساب',
-                                hintStyle: GoogleFonts.cairo(fontSize: 10),
-                                isDense: true, 
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            _buildPremiumTextField(controller: nameController, label: 'الاسم', icon: Icons.title, isDark: isDark),
+                            const SizedBox(height: 16),
+                            _buildPremiumTextField(controller: descController, label: 'الوصف', icon: Icons.description, isDark: isDark),
+                            const SizedBox(height: 24),
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.1)),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('مجموع أسعار المواد:', style: GoogleFonts.cairo(fontSize: 13, color: Colors.grey)),
+                                      Text('${totalPrice.toStringAsFixed(0)} ل.س', style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildPremiumTextField(
+                                    controller: TextEditingController(text: manualPrice?.toStringAsFixed(0) ?? ''),
+                                    label: 'سعر يدوي للفصل (اختياري)',
+                                    icon: Icons.edit_attributes_rounded,
+                                    isDark: isDark,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (v) => setDialogState(() => manualPrice = double.tryParse(v)),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildPremiumTextField(
+                                    controller: TextEditingController(text: discount.toStringAsFixed(0)),
+                                    label: 'خصم الفصل (%)',
+                                    icon: Icons.percent_rounded,
+                                    isDark: isDark,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (v) => setDialogState(() => discount = double.tryParse(v) ?? 0),
+                                  ),
+                                  const Divider(height: 32),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('السعر النهائي:', style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                                      Text('${finalPrice.toStringAsFixed(0)} ل.س', style: GoogleFonts.cairo(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Text('خصم الفصل (%):', style: GoogleFonts.cairo(fontSize: 12)),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: TextField(
-                              controller: TextEditingController(text: discount.toStringAsFixed(0)),
-                              onChanged: (v) => setDialogState(() => discount = double.tryParse(v) ?? 0),
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                isDense: true, 
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Row(
+                          children: [
+                            Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء'))),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final updatedData = {
+                                    'name': nameController.text.trim(),
+                                    'description': descController.text.trim(),
+                                    'totalPrice': finalPrice, 
+                                    'basePrice': totalPrice,  
+                                    'manualPrice': manualPrice,
+                                    'discount': discount,
+                                  };
+                                  try {
+                                    await _dbService.updateDoc(DatabaseService.colSemesters, id, updatedData);
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                      _showStatusSnackBar('تم التعديل بنجاح', isError: false);
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryBlue,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: Text('حفظ التغييرات', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.white)),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('السعر النهائي للفصل:', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-                              if (manualPrice != null) 
-                                Text('(تم استخدام السعر اليدوي)', style: GoogleFonts.cairo(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Text('${finalPrice.toStringAsFixed(0)} ل.س', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-              ElevatedButton(
-                onPressed: () async {
-                  final updatedData = {
-                    'name': nameController.text.trim(),
-                    'description': descController.text.trim(),
-                    'totalPrice': finalPrice, 
-                    'basePrice': totalPrice,  
-                    'manualPrice': manualPrice,
-                    'discount': discount,
-                  };
-                  try {
-                    await _dbService.updateDoc(DatabaseService.colSemesters, id, updatedData);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      _showStatusSnackBar('تم التعديل بنجاح', isError: false);
-                    }
-                  } catch (e) {
-                    if (context.mounted) _showStatusSnackBar('فشل التعديل: $e', isError: true);
-                  }
-                },
-                child: Text('حفظ التغييرات'),
               ),
-            ],
-          );
-        }
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -951,6 +1194,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     );
   }
 
+
   void _showAddDialog(BuildContext context) {
     if (_currentLevel == ManagementLevel.semester) {
       _showSemesterSelectionDialog();
@@ -970,157 +1214,192 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('إضافة ${_getAddLabel()} جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nameController, decoration: InputDecoration(labelText: 'الاسم', labelStyle: GoogleFonts.cairo())),
-                const SizedBox(height: 16),
-                TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف (اختياري)', labelStyle: GoogleFonts.cairo())),
-                if (_currentLevel == ManagementLevel.subject) ...[
-                  const SizedBox(height: 16),
-                  FutureBuilder<QuerySnapshot>(
-                    future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const CircularProgressIndicator();
-                      final allTeachers = snapshot.data!.docs;
-                      
-                      return StatefulBuilder(
-                        builder: (context, setDialogState) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('المعلمون المسؤولون:', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: teacherIds.map((tid) {
-                                  final tDoc = allTeachers.cast<QueryDocumentSnapshot?>().firstWhere((doc) => doc?.id == tid, orElse: () => null);
-                                  if (tDoc == null) return const SizedBox.shrink();
-                                  final tData = tDoc.data() as Map<String, dynamic>;
-                                  return InputChip(
-                                    label: Text(tData['defaults']?['fullName'] ?? tData['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 10)),
-                                    onDeleted: () {
-                                      setDialogState(() => teacherIds.remove(tid));
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                              if (teacherIds.isEmpty) 
-                                Text('لم يتم تعيين معلمين', style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey)),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
-                                  labelText: 'إضافة معلم',
-                                  labelStyle: GoogleFonts.cairo(fontSize: 12),
-                                  isDense: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                                items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  return DropdownMenuItem<String>(
-                                    value: doc.id,
-                                    child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 12)),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setDialogState(() => teacherIds.add(val));
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          onChanged: (v) => price = double.tryParse(v),
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(labelText: 'السعر (ل.س)', labelStyle: GoogleFonts.cairo()),
-                        ),
+      builder: (context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 500),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF7C3AED)]),
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
-                          onChanged: (v) => discount = double.tryParse(v),
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(labelText: 'الخصم (%)', labelStyle: GoogleFonts.cairo()),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  FutureBuilder<QuerySnapshot>(
-                    future: FirebaseFirestore.instance.collection('subjects').get(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const SizedBox(
-                          height: 48,
-                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                        );
-                      }
-                      final masterSubjects = snapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        return data['referenceSubjectId'] == null;
-                      }).toList();
-
-                      return DropdownButtonFormField<String?>(
-                        initialValue: referenceSubjectId,
-                        decoration: InputDecoration(
-                          labelText: 'ربط المحتوى بمادة أخرى (مستعارة)',
-                          labelStyle: GoogleFonts.cairo(fontSize: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('مادة رئيسية (لا يوجد ربط)', style: GoogleFonts.cairo(fontSize: 12)),
-                          ),
-                          ...masterSubjects.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return DropdownMenuItem<String?>(
-                              value: doc.id,
-                              child: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 12)),
-                            );
-                          }),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.add_circle_rounded, color: Colors.white, size: 30),
+                          const SizedBox(width: 16),
+                          Text('إضافة ${_getAddLabel()} جديد', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
                         ],
-                        onChanged: (val) {
-                          setDialogState(() {
-                            referenceSubjectId = val;
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          _buildPremiumTextField(controller: nameController, label: 'الاسم', icon: Icons.title, isDark: isDark),
+                          const SizedBox(height: 16),
+                          _buildPremiumTextField(controller: descController, label: 'الوصف (اختياري)', icon: Icons.description, isDark: isDark),
+                          
+                          if (_currentLevel == ManagementLevel.subject) ...[
+                            const SizedBox(height: 24),
+                            FutureBuilder<QuerySnapshot>(
+                              future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return const CircularProgressIndicator();
+                                final allTeachers = snapshot.data!.docs;
+                                
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (teacherIds.isNotEmpty)
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: teacherIds.map((tid) {
+                                          final tDoc = allTeachers.cast<QueryDocumentSnapshot?>().firstWhere((doc) => doc?.id == tid, orElse: () => null);
+                                          if (tDoc == null) return const SizedBox.shrink();
+                                          final tData = tDoc.data() as Map<String, dynamic>;
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(tData['defaults']?['fullName'] ?? tData['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                const SizedBox(width: 8),
+                                                InkWell(
+                                                  onTap: () => setDialogState(() => teacherIds.remove(tid)),
+                                                  child: const Icon(Icons.close, size: 14),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    const SizedBox(height: 12),
+                                    DropdownButtonFormField<String>(
+                                      decoration: _premiumInputDecoration(label: 'إضافة معلم', icon: Icons.person_add, isDark: isDark),
+                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
+                                        final data = doc.data() as Map<String, dynamic>;
+                                        return DropdownMenuItem<String>(
+                                          value: doc.id,
+                                          child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 13)),
+                                        );
+                                      }).toList(),
+                                      onChanged: (val) {
+                                        if (val != null) setDialogState(() => teacherIds.add(val));
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildPremiumTextField(
+                                    controller: TextEditingController(),
+                                    label: 'السعر',
+                                    icon: Icons.payments,
+                                    isDark: isDark,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (v) => price = double.tryParse(v),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildPremiumTextField(
+                                    controller: TextEditingController(),
+                                    label: 'الخصم',
+                                    icon: Icons.percent,
+                                    isDark: isDark,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (v) => discount = double.tryParse(v),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            FutureBuilder<QuerySnapshot>(
+                              future: FirebaseFirestore.instance.collection('subjects').get(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return const SizedBox.shrink();
+                                final masterSubjects = snapshot.data!.docs.where((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  return data['referenceSubjectId'] == null;
+                                }).toList();
+
+                                return DropdownButtonFormField<String?>(
+                                  decoration: _premiumInputDecoration(label: 'ربط بمادة أخرى', icon: Icons.link, isDark: isDark),
+                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  items: [
+                                    DropdownMenuItem<String?>(value: null, child: Text('لا يوجد ربط', style: GoogleFonts.cairo(fontSize: 13))),
+                                    ...masterSubjects.map((doc) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      return DropdownMenuItem<String?>(value: doc.id, child: Text(data['name'] ?? '', style: GoogleFonts.cairo(fontSize: 13)));
+                                    }),
+                                  ],
+                                  onChanged: (val) => setDialogState(() => referenceSubjectId = val),
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Row(
+                        children: [
+                          Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء'))),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final name = nameController.text.trim();
+                                if (name.isNotEmpty) {
+                                  await _performAdd(name, descController.text.trim(), price: price, discount: discount, referenceSubjectId: referenceSubjectId, teacherIds: teacherIds);
+                                  if (context.mounted) Navigator.pop(context);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              child: Text('إضافة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.white)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final desc = descController.text.trim();
-                if (name.isNotEmpty) {
-                  await _performAdd(name, desc, price: price, discount: discount, referenceSubjectId: referenceSubjectId, teacherIds: teacherIds);
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-              child: Text('إضافة'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 

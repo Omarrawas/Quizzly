@@ -9,10 +9,26 @@ class PracticeService {
     final snap = await _db
         .collection('topics')
         .where('subjectId', isEqualTo: subjectId)
-        .orderBy('order')
-        .orderBy('createdAt', descending: false)
         .get();
-    return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+        
+    final List<Map<String, dynamic>> topics = snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+    
+    // Sort in memory to avoid Firestore multi-field index requirement
+    topics.sort((a, b) {
+      final int orderA = (a['order'] as num?)?.toInt() ?? 999999;
+      final int orderB = (b['order'] as num?)?.toInt() ?? 999999;
+      
+      if (orderA != orderB) {
+        return orderA.compareTo(orderB);
+      }
+      
+      final Timestamp? timeA = a['createdAt'] as Timestamp?;
+      final Timestamp? timeB = b['createdAt'] as Timestamp?;
+      if (timeA == null || timeB == null) return 0;
+      return timeA.compareTo(timeB);
+    });
+    
+    return topics;
   }
 
   /// Fetch approved questions for given topic IDs (or all topics in subject)
