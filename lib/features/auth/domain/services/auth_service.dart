@@ -25,7 +25,9 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get role => _role;
-  bool get isAdmin => _role == 'admin' || _role == 'super_admin';
+  bool get isAdmin => _role == 'admin' || _role == 'super_admin' || _role == 'superAdmin';
+  bool get isTeacher => _role == 'teacher';
+  bool get isAnyAdmin => isAdmin || isTeacher;
 
   AuthService() {
     _user = _auth.currentUser;

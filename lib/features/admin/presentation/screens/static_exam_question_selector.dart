@@ -422,6 +422,16 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
     }
   }
 
+  String _stripHtml(String html) {
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&amp;', '&')
+        .trim();
+  }
+
   // ── Questions List ──────────────────────────────────────────────────────────
   Widget _buildQuestionsList(bool isDark) {
     Query query = FirebaseFirestore.instance
@@ -447,8 +457,8 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
 
         if (_searchQuery.isNotEmpty) {
           docs = docs.where((doc) {
-            final text =
-                (doc.data() as Map<String, dynamic>)['text']?.toString().toLowerCase() ?? '';
+            final data = doc.data() as Map<String, dynamic>;
+            final text = _stripHtml(data['text']?.toString() ?? '').toLowerCase();
             return text.contains(_searchQuery);
           }).toList();
         }
@@ -474,6 +484,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
             final diffLabel = _translateDifficulty(data['difficulty']);
             final examTags = (data['examTags'] as List?) ?? [];
             final isRepeated = examTags.length > 1;
+            final questionText = _stripHtml(data['text'] ?? '');
 
             return GestureDetector(
               onTap: () => setState(() {
@@ -547,14 +558,14 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    data['text'] ?? '',
+                                    questionText,
                                     style: GoogleFonts.cairo(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                       color: isSelected ? AppColors.primaryBlue : null,
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+
+
                                   ),
                                 ),
                               ],

@@ -41,6 +41,13 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   String _searchQuery = '';
   String? _selectedChapterId;
   String? _selectedLessonId;
+  
+  // Selection Mode State
+  final Set<String> _selectedQuestionIds = {};
+  bool get _isSelectionMode => _selectedQuestionIds.isNotEmpty;
+  
+  // To keep track of visible question IDs for "Select All"
+  List<String> _currentVisibleQuestionIds = [];
 
   @override
   void initState() {
@@ -132,12 +139,37 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.lessonName != null 
-              ? 'أسئلة: ${widget.lessonName}' 
-              : (widget.sectionName ?? 'بنك الأسئلة'),
+          _isSelectionMode 
+              ? '${_selectedQuestionIds.length} مختار' 
+              : (widget.lessonName != null ? 'أسئلة: ${widget.lessonName}' : (widget.sectionName ?? 'بنك الأسئلة')),
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
-        actions: [
+        actions: _isSelectionMode ? [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                if (_selectedQuestionIds.length == _currentVisibleQuestionIds.length) {
+                  _selectedQuestionIds.clear();
+                } else {
+                  _selectedQuestionIds.addAll(_currentVisibleQuestionIds);
+                }
+              });
+            },
+            child: Text(
+              _selectedQuestionIds.length == _currentVisibleQuestionIds.length ? 'إلغاء الكل' : 'تحديد الكل',
+              style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.primaryBlue, fontWeight: FontWeight.bold),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
+            tooltip: 'حذف المحدد',
+            onPressed: _deleteSelectedQuestions,
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => setState(() => _selectedQuestionIds.clear()),
+          ),
+        ] : [
           IconButton(
             icon: const Icon(Icons.download_rounded),
             tooltip: 'تصدير الأسئلة',
@@ -423,6 +455,14 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           return _emptyState('لا توجد نتائج تطابق البحث أو الفلاتر', isDark);
         }
 
+        // Update current visible IDs for Select All logic
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final newIds = docs.map((d) => d.id).toList();
+          if (newIds.length != _currentVisibleQuestionIds.length || !newIds.every((id) => _currentVisibleQuestionIds.contains(id))) {
+             if (mounted) setState(() => _currentVisibleQuestionIds = newIds);
+          }
+        });
+
         // Group and sort questions by chapter and lesson order
         final Map<String, List<QueryDocumentSnapshot>> grouped = {};
         
@@ -440,7 +480,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           final bTopic = _topicsMap.values.firstWhere((t) => t['name'] == b && t['parentId'] == null, orElse: () => {});
           return (aTopic['order'] ?? 0).compareTo(bTopic['order'] ?? 0);
         });
-        
+
         final List<Widget> listItems = [];
         
         for (var chapter in sortedChapters) {
@@ -540,178 +580,217 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         ? _stripHtml(data['translationText'] as String)
         : null;
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
-      ),
-      child: ExpansionTile(
-        key: PageStorageKey(id),
-        backgroundColor: Colors.transparent,
-        collapsedBackgroundColor: Colors.transparent,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        title: Row(
+    final bool isSelected = _selectedQuestionIds.contains(id);
+    
+    return GestureDetector(
+      onLongPress: () {
+        setState(() {
+          if (_selectedQuestionIds.contains(id)) {
+            _selectedQuestionIds.remove(id);
+          } else {
+            _selectedQuestionIds.add(id);
+          }
+        });
+      },
+      onTap: _isSelectionMode ? () {
+        setState(() {
+          if (_selectedQuestionIds.contains(id)) {
+            _selectedQuestionIds.remove(id);
+          } else {
+            _selectedQuestionIds.add(id);
+          }
+        });
+      } : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.primaryBlue.withValues(alpha: 0.08)
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.primaryBlue 
+                : (isDark ? Colors.white10 : AppColors.borderLight),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: typeColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(typeStr, style: GoogleFonts.cairo(color: typeColor, fontSize: 10, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ExpansionTile(
+              key: PageStorageKey(id),
+              enabled: !_isSelectionMode, // Disable expansion when selecting
+              backgroundColor: Colors.transparent,
+              collapsedBackgroundColor: Colors.transparent,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              title: Row(
                 children: [
-                  Text(
-                    questionText,
-                    style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  if (_isSelectionMode)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Icon(
+                        isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        color: isSelected ? AppColors.primaryBlue : Colors.grey,
+                        size: 24,
+                      ),
+                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(typeStr, style: GoogleFonts.cairo(color: typeColor, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
-                  if (translationText != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        translationText,
-                        style: GoogleFonts.cairo(
-                          fontSize: 11,
-                          color: Colors.blueGrey,
-                          fontStyle: FontStyle.italic,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          questionText,
+                          style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  if (data['topicIds'] != null && (data['topicIds'] as List).isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        _getTopicLabel(data['topicIds']),
-                        style: GoogleFonts.cairo(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  if (data['examTags'] != null && (data['examTags'] as List).isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          // 1. "Mukarrar" Tag if applicable
-                          if ((data['examTags'] as List).length > 1)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        if (translationText != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              translationText,
+                              style: GoogleFonts.cairo(
+                                fontSize: 11,
+                                color: Colors.blueGrey,
+                                fontStyle: FontStyle.italic,
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.repeat_rounded, size: 10, color: Colors.red),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'مكرر',
-                                    style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.red[800]),
-                                  ),
-                                ],
-                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          // 2. Individual Dora Tags
-                          ...(data['examTags'] as List).map((tag) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                          ),
+                        if (data['topicIds'] != null && (data['topicIds'] as List).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              _getTopicLabel(data['topicIds']),
+                              style: GoogleFonts.cairo(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          ),
+                        if (data['examTags'] != null && (data['examTags'] as List).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
                               children: [
-                                const Icon(Icons.bookmark_rounded, size: 10, color: Colors.orange),
-                                const SizedBox(width: 4),
-                                Text(
-                                  tag.toString(),
-                                  style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
-                                ),
+                                if ((data['examTags'] as List).length > 1)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.repeat_rounded, size: 10, color: Colors.red),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'مكرر',
+                                          style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.red[800]),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ...(data['examTags'] as List).map((tag) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.bookmark_rounded, size: 10, color: Colors.orange),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        tag.toString(),
+                                        style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
+                                      ),
+                                    ],
+                                  ),
+                                )),
                               ],
                             ),
-                          )),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Divider(),
-                const SizedBox(height: 10),
-                if (data['options'] != null) ...[
-                  Text('الخيارات:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 12)),
-                  const SizedBox(height: 8),
-                  ...(data['options'] as List).map((opt) {
-                    final isCorrect = (data['correctOptionIds'] as List?)?.contains(opt['id']) ?? (opt['id'] == data['correctOptionId']);
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isCorrect ? Colors.green.withValues(alpha: 0.05) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isCorrect ? Colors.green.withValues(alpha: 0.3) : Colors.transparent),
-                      ),
-                      child: Row(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(),
+                      const SizedBox(height: 10),
+                      if (data['options'] != null) ...[
+                        Text('الخيارات:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        ...(data['options'] as List).map((opt) {
+                          final isCorrect = (data['correctOptionIds'] as List?)?.contains(opt['id']) ?? (opt['id'] == data['correctOptionId']);
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isCorrect ? Colors.green.withValues(alpha: 0.05) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: isCorrect ? Colors.green.withValues(alpha: 0.3) : Colors.transparent),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
+                                     size: 16, color: isCorrect ? Colors.green : Colors.grey),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(_stripHtml(opt['text'] ?? ''), style: GoogleFonts.cairo(fontSize: 12))),
+                              ],
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                      ],
+                      Row(
                         children: [
-                          Icon(isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
-                               size: 16, color: isCorrect ? Colors.green : Colors.grey),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(_stripHtml(opt['text'] ?? ''), style: GoogleFonts.cairo(fontSize: 12))),
+                          _buildMetaChip(Icons.bar_chart_rounded, _translateDifficulty(data['difficulty']), Colors.blue),
                         ],
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                ],
-                Row(
-                  children: [
-                    _buildMetaChip(Icons.bar_chart_rounded, _translateDifficulty(data['difficulty']), Colors.blue),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton.icon(
-                      icon: const Icon(Icons.edit_note_rounded, size: 20),
-                      label: Text('تعديل', style: GoogleFonts.cairo()),
-                      onPressed: () => _showEditQuestionDialog(id, data),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
-                      label: Text('حذف', style: GoogleFonts.cairo(color: Colors.red)),
-                      onPressed: () => _confirmDelete(id, questionText),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            icon: const Icon(Icons.edit_note_rounded, size: 20),
+                            label: Text('تعديل', style: GoogleFonts.cairo()),
+                            onPressed: () => _showEditQuestionDialog(id, data),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
+                            label: Text('حذف', style: GoogleFonts.cairo(color: Colors.red)),
+                            onPressed: () => _confirmDelete(id, questionText),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -872,7 +951,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       }
     }
   }
-  void _showStatusSnackBar(String message, {required bool isError}) {
+  void _showStatusSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
@@ -907,4 +986,42 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       ),
     );
   }
+
+  void _deleteSelectedQuestions() {
+    if (_selectedQuestionIds.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('تأكيد الحذف الجماعي', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text('هل أنت متأكد من حذف ${_selectedQuestionIds.length} سؤال ؟ لا يمكن التراجع عن هذه العملية.', style: GoogleFonts.cairo()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          TextButton(
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              try {
+                final batch = FirebaseFirestore.instance.batch();
+                for (var id in _selectedQuestionIds) {
+                  batch.delete(FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id));
+                }
+                await batch.commit();
+                
+                if (mounted) {
+                  setState(() => _selectedQuestionIds.clear());
+                  navigator.pop();
+                  _showStatusSnackBar('تم حذف الأسئلة بنجاح', isError: false);
+                }
+              } catch (e) {
+                if (mounted) _showStatusSnackBar('فشل الحذف الجماعي: $e', isError: true);
+              }
+            },
+            child: Text('حذف الكل', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

@@ -190,13 +190,7 @@ class BulkUploadService {
 
       // Parse Type
       String typeStr = colType != -1 && row.length > colType ? row[colType].toString().trim().toLowerCase() : 'mcq';
-      QuestionType type;
-      switch (typeStr) {
-        case 'tf': type = QuestionType.trueFalse; break;
-        case 'essay': type = QuestionType.essay; break;
-        case 'mcq':
-        default: type = QuestionType.mcq;
-      }
+      QuestionType type = (typeStr == 'checkbox') ? QuestionType.checkbox : (typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq));
 
       // Options
       List<String> options = [];
@@ -221,39 +215,35 @@ class BulkUploadService {
 
       // Correct Answer
       String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect].toString().trim() : '';
-      dynamic correctAnswer;
-      if (type == QuestionType.mcq) {
-        // Map a, b, c, d, e, f, g, h, i, j, k, l to index 0-11
-        int ansIndex = -1;
-        switch (correctAnsRaw.toLowerCase()) {
-          case 'a': ansIndex = 0; break;
-          case 'b': ansIndex = 1; break;
-          case 'c': ansIndex = 2; break;
-          case 'd': ansIndex = 3; break;
-          case 'e': ansIndex = 4; break;
-          case 'f': ansIndex = 5; break;
-          case 'g': ansIndex = 6; break;
-          case 'h': ansIndex = 7; break;
-          case 'i': ansIndex = 8; break;
-          case 'j': ansIndex = 9; break;
-          case 'k': ansIndex = 10; break;
-          case 'l': ansIndex = 11; break;
-        }
-        if (ansIndex != -1 && ansIndex < options.length) {
-          correctAnswer = ansIndex;
-        } else if (correctAnsRaw.isNotEmpty) {
-          errors.add(UploadError(row: i + 1, message: 'الإجابة الصحيحة غير مطابقة لأي خيار.'));
+      List<String> correctOptionIds = [];
+      if (type == QuestionType.mcq || type == QuestionType.checkbox) {
+        final List<String> codes = correctAnsRaw.split(',').map((e) => e.trim().toLowerCase()).toList();
+        for (var code in codes) {
+          int ansIndex = -1;
+          switch (code) {
+            case 'a': ansIndex = 0; break;
+            case 'b': ansIndex = 1; break;
+            case 'c': ansIndex = 2; break;
+            case 'd': ansIndex = 3; break;
+            case 'e': ansIndex = 4; break;
+            case 'f': ansIndex = 5; break;
+            case 'g': ansIndex = 6; break;
+            case 'h': ansIndex = 7; break;
+            case 'i': ansIndex = 8; break;
+            case 'j': ansIndex = 9; break;
+            case 'k': ansIndex = 10; break;
+            case 'l': ansIndex = 11; break;
+          }
+          if (ansIndex != -1 && ansIndex < options.length) {
+            correctOptionIds.add(ansIndex.toString());
+          }
         }
       } else if (type == QuestionType.trueFalse) {
         if (correctAnsRaw.toLowerCase() == 'true' || correctAnsRaw.toLowerCase() == 'صح') {
-          correctAnswer = true;
+          correctOptionIds.add('true');
         } else if (correctAnsRaw.toLowerCase() == 'false' || correctAnsRaw.toLowerCase() == 'خطأ') {
-          correctAnswer = false;
-        } else {
-          errors.add(UploadError(row: i + 1, message: 'إجابة الصح/خطأ غير صالحة.'));
+          correctOptionIds.add('false');
         }
-      } else {
-        correctAnswer = correctAnsRaw; // For essay
       }
 
       // Difficulty
@@ -293,8 +283,8 @@ class BulkUploadService {
         options: options.isNotEmpty 
             ? options.asMap().entries.map((e) => QuizOption(id: e.key.toString(), text: e.value)).toList() 
             : null,
-        correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? (correctAnswer != null ? [correctAnswer.toString()] : []) : [],
-        essayAnswer: type == QuestionType.essay ? correctAnswer?.toString() : null,
+        correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse || type == QuestionType.checkbox) ? correctOptionIds : [],
+        essayAnswer: type == QuestionType.essay ? correctAnsRaw : null,
         explanation: expl.isNotEmpty ? expl : null,
         explanationImageUrl: explImg.isNotEmpty ? explImg : null,
         explanationVideoUrl: explVid.isNotEmpty ? explVid : null,
@@ -455,7 +445,7 @@ class BulkUploadService {
       }
 
       String typeStr = colType != -1 && row.length > colType ? row[colType]?.value?.toString().trim().toLowerCase() ?? 'mcq' : 'mcq';
-      QuestionType type = typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq);
+      QuestionType type = (typeStr == 'checkbox') ? QuestionType.checkbox : (typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq));
 
       List<String> options = [];
       if (type == QuestionType.mcq || type == QuestionType.trueFalse) {
@@ -474,32 +464,35 @@ class BulkUploadService {
       }
 
       String correctAnsRaw = colCorrect != -1 && row.length > colCorrect ? row[colCorrect]?.value?.toString().trim() ?? '' : '';
-      dynamic correctAnswer;
-      if (type == QuestionType.mcq) {
-        int ansIndex = -1;
-        switch (correctAnsRaw.toLowerCase()) {
-          case 'a': ansIndex = 0; break;
-          case 'b': ansIndex = 1; break;
-          case 'c': ansIndex = 2; break;
-          case 'd': ansIndex = 3; break;
-          case 'e': ansIndex = 4; break;
-          case 'f': ansIndex = 5; break;
-          case 'g': ansIndex = 6; break;
-          case 'h': ansIndex = 7; break;
-          case 'i': ansIndex = 8; break;
-          case 'j': ansIndex = 9; break;
-          case 'k': ansIndex = 10; break;
-          case 'l': ansIndex = 11; break;
+      List<String> correctOptionIds = [];
+      if (type == QuestionType.mcq || type == QuestionType.checkbox) {
+        final List<String> codes = correctAnsRaw.split(',').map((e) => e.trim().toLowerCase()).toList();
+        for (var code in codes) {
+          int ansIndex = -1;
+          switch (code) {
+            case 'a': ansIndex = 0; break;
+            case 'b': ansIndex = 1; break;
+            case 'c': ansIndex = 2; break;
+            case 'd': ansIndex = 3; break;
+            case 'e': ansIndex = 4; break;
+            case 'f': ansIndex = 5; break;
+            case 'g': ansIndex = 6; break;
+            case 'h': ansIndex = 7; break;
+            case 'i': ansIndex = 8; break;
+            case 'j': ansIndex = 9; break;
+            case 'k': ansIndex = 10; break;
+            case 'l': ansIndex = 11; break;
+          }
+          if (ansIndex != -1 && ansIndex < options.length) {
+            correctOptionIds.add(ansIndex.toString());
+          }
         }
-        if (ansIndex != -1 && ansIndex < options.length) correctAnswer = ansIndex;
       } else if (type == QuestionType.trueFalse) {
         if (correctAnsRaw.toLowerCase() == 'true' || correctAnsRaw.toLowerCase() == 'صح') {
-          correctAnswer = true;
+          correctOptionIds.add('true');
         } else if (correctAnsRaw.toLowerCase() == 'false' || correctAnsRaw.toLowerCase() == 'خطأ') {
-          correctAnswer = false;
+          correctOptionIds.add('false');
         }
-      } else {
-        correctAnswer = correctAnsRaw;
       }
 
       Difficulty diff = Difficulty.values.firstWhere((e) => e.name == (colDiff != -1 && row.length > colDiff ? row[colDiff]?.value?.toString().trim().toLowerCase() : 'medium'), orElse: () => Difficulty.medium);
@@ -513,8 +506,8 @@ class BulkUploadService {
         translationText: translation.isNotEmpty ? translation : null,
         type: type,
         options: options.isNotEmpty ? options.asMap().entries.map((e) => QuizOption(id: e.key.toString(), text: e.value)).toList() : null,
-        correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse) ? (correctAnswer != null ? [correctAnswer.toString()] : []) : [],
-        essayAnswer: type == QuestionType.essay ? correctAnswer?.toString() : null,
+        correctOptionIds: (type == QuestionType.mcq || type == QuestionType.trueFalse || type == QuestionType.checkbox) ? correctOptionIds : [],
+        essayAnswer: type == QuestionType.essay ? correctAnsRaw : null,
         explanation: colExpl != -1 && row.length > colExpl ? row[colExpl]?.value?.toString().trim() : null,
         explanationImageUrl: explImg.isNotEmpty ? explImg : null,
         explanationVideoUrl: explVid.isNotEmpty ? explVid : null,
@@ -633,9 +626,13 @@ class BulkUploadService {
       final options = q.options ?? [];
       
       String correctAns = '';
-      if (q.type == QuestionType.mcq) {
-        int idx = options.indexWhere((o) => q.correctOptionIds.contains(o.id));
-        if (idx != -1) correctAns = String.fromCharCode(97 + idx);
+      if (q.type == QuestionType.mcq || q.type == QuestionType.checkbox) {
+        List<String> codes = [];
+        for (var oId in q.correctOptionIds) {
+          int idx = options.indexWhere((o) => o.id == oId);
+          if (idx != -1) codes.add(String.fromCharCode(97 + idx));
+        }
+        correctAns = codes.join(', ');
       } else if (q.type == QuestionType.trueFalse) {
         correctAns = q.correctOptionIds.contains('true') || q.correctOptionIds.contains('صح') ? 'صح' : 'خطأ';
       } else {

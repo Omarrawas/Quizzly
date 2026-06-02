@@ -250,6 +250,16 @@ class _ReportCard extends StatelessWidget {
     required this.onResolve,
   });
 
+  String _stripHtml(String html) {
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&amp;', '&')
+        .trim();
+  }
+
   Color _getTypeColor() {
     switch (type) {
       case 'خطأ في الإجابة': return Colors.red;
@@ -355,7 +365,7 @@ class _ReportCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    questionText,
+                    _stripHtml(questionText),
                     style: GoogleFonts.cairo(fontSize: 14, color: isDark ? Colors.white : AppColors.textPrimary),
                     textDirection: TextDirection.rtl,
                   ),

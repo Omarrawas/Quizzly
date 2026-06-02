@@ -8,6 +8,7 @@ import 'package:quizzly/features/settings/presentation/screens/user_profile_scre
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/teacher_dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/home/presentation/screens/notifications_screen.dart';
 import 'package:quizzly/features/settings/presentation/screens/wallet_screen.dart';
@@ -184,17 +185,17 @@ class AppDrawer extends StatelessWidget {
                         },
                       ),
 
-                      // Admin Dashboard (Conditional)
-                      if (context.watch<AuthService>().isAdmin)
+                      // Admin/Teacher Dashboard (Conditional)
+                      if (context.watch<AuthService>().isAnyAdmin)
                         _buildMenuItem(
                           context,
                           icon: Icons.admin_panel_settings_rounded,
-                          label: 'لوحة تحكم الأدمن',
+                          label: context.watch<AuthService>().isAdmin ? 'لوحة تحكم الأدمن' : 'لوحة تحكم المعلم',
                           onTap: () {
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+                              MaterialPageRoute(builder: (_) => context.read<AuthService>().isAdmin ? const AdminDashboardScreen() : const TeacherDashboardScreen()),
                             );
                           },
                         ),

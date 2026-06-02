@@ -529,6 +529,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     final nameController = TextEditingController(text: currentData['name']);
     final descController = TextEditingController(text: currentData['description'] ?? currentData['subtitle']);
     String? referenceSubjectId = currentData['referenceSubjectId'];
+    String? teacherId = currentData['teacherId'];
 
     showDialog(
       context: context,
@@ -544,6 +545,36 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 const SizedBox(height: 16),
                 TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف', labelStyle: GoogleFonts.cairo())),
                 if (_currentLevel == ManagementLevel.subject) ...[
+                  const SizedBox(height: 16),
+                  FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const SizedBox.shrink();
+                      final teachers = snapshot.data!.docs;
+                      return DropdownButtonFormField<String?>(
+                        initialValue: teacherId,
+                        decoration: InputDecoration(
+                          labelText: 'المعلم المسؤول',
+                          labelStyle: GoogleFonts.cairo(fontSize: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('بدون معلم', style: GoogleFonts.cairo(fontSize: 12)),
+                          ),
+                          ...teachers.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return DropdownMenuItem<String?>(
+                              value: doc.id,
+                              child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم مجهول', style: GoogleFonts.cairo(fontSize: 12)),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) => setDialogState(() => teacherId = val),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -631,7 +662,10 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                     'discount': currentData['discount'],
                     if (_currentLevel == ManagementLevel.semester) 'totalPrice': currentData['totalPrice'],
                   },
-                  if (_currentLevel == ManagementLevel.subject) 'referenceSubjectId': referenceSubjectId,
+                  if (_currentLevel == ManagementLevel.subject) ...{
+                    'referenceSubjectId': referenceSubjectId,
+                    'teacherId': teacherId,
+                  },
                 };
                 try {
                   await _dbService.updateDoc(_getCollectionName(_currentLevel), id, updatedData);
@@ -894,6 +928,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     double? price;
     double? discount;
     String? referenceSubjectId;
+    String? teacherId;
 
     showDialog(
       context: context,
@@ -909,6 +944,36 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 const SizedBox(height: 16),
                 TextField(controller: descController, decoration: InputDecoration(labelText: 'الوصف (اختياري)', labelStyle: GoogleFonts.cairo())),
                 if (_currentLevel == ManagementLevel.subject) ...[
+                  const SizedBox(height: 16),
+                  FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const SizedBox.shrink();
+                      final teachers = snapshot.data!.docs;
+                      return DropdownButtonFormField<String?>(
+                        initialValue: teacherId,
+                        decoration: InputDecoration(
+                          labelText: 'المعلم المسؤول',
+                          labelStyle: GoogleFonts.cairo(fontSize: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('بدون معلم', style: GoogleFonts.cairo(fontSize: 12)),
+                          ),
+                          ...teachers.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return DropdownMenuItem<String?>(
+                              value: doc.id,
+                              child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم مجهول', style: GoogleFonts.cairo(fontSize: 12)),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) => setDialogState(() => teacherId = val),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -983,7 +1048,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 final name = nameController.text.trim();
                 final desc = descController.text.trim();
                 if (name.isNotEmpty) {
-                  await _performAdd(name, desc, price: price, discount: discount, referenceSubjectId: referenceSubjectId);
+                  await _performAdd(name, desc, price: price, discount: discount, referenceSubjectId: referenceSubjectId, teacherId: teacherId);
                   if (context.mounted) Navigator.pop(context);
                 }
               },
@@ -1007,7 +1072,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
   }
 
-  Future<void> _performAdd(String name, String desc, {double? price, double? discount, String? referenceSubjectId}) async {
+  Future<void> _performAdd(String name, String desc, {double? price, double? discount, String? referenceSubjectId, String? teacherId}) async {
     final Map<String, dynamic> data = {
       'name': name,
       _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
@@ -1015,6 +1080,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         'price': price,
         'discount': discount,
         'referenceSubjectId': referenceSubjectId,
+        'teacherId': teacherId,
       },
     };
 

@@ -8,7 +8,7 @@ class QuizOption {
   const QuizOption({required this.id, required this.text});
 }
 
-enum QuestionType { mcq, essay, trueFalse }
+enum QuestionType { mcq, essay, trueFalse, checkbox }
 enum Difficulty { easy, medium, hard }
 enum CognitiveLevel { recall, understanding, application }
 enum QuestionStatus { draft, pendingReview, approved, rejected }
@@ -244,6 +244,7 @@ class QuizQuestion {
     switch (type) {
       case 'essay': return QuestionType.essay;
       case 'tf': return QuestionType.trueFalse;
+      case 'checkbox': return QuestionType.checkbox;
       default: return QuestionType.mcq;
     }
   }

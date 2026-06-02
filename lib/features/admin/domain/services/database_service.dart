@@ -24,6 +24,12 @@ class DatabaseService {
   Future<void> deleteDoc(String collection, String id) => 
       _db.collection(collection).doc(id).delete();
 
+  Future<bool> isSuperAdmin(String userId) async {
+    final doc = await _db.collection('users').doc(userId).get();
+    if (!doc.exists) return false;
+    return (doc.data()?['role'] == 'superAdmin');
+  }
+
   Future<void> updateOrder(String collection, List<String> ids) async {
     final batch = _db.batch();
     for (int i = 0; i < ids.length; i++) {
@@ -157,6 +163,52 @@ class DatabaseService {
       'ancestors': ancestors,
       'order': count.count,
     });
+  }
+
+  Future<void> deleteTopicCascade(String topicId, String type) async {
+    final batch = _db.batch();
+
+    if (type == 'lesson') {
+      // 1. Delete questions associated with this lesson
+      final questionsSnap = await _db.collection(colQuestions)
+          .where('topicIds', arrayContains: topicId)
+          .get();
+      for (var doc in questionsSnap.docs) {
+        batch.delete(doc.reference);
+      }
+      // 2. Delete the lesson itself
+      batch.delete(_db.collection(colTopics).doc(topicId));
+    } else if (type == 'chapter') {
+      // 1. Find all lessons in this chapter
+      final lessonsSnap = await _db.collection(colTopics)
+          .where('parentId', isEqualTo: topicId)
+          .get();
+      
+      for (var lessonDoc in lessonsSnap.docs) {
+        // For each lesson, find and delete its questions
+        final questionsSnap = await _db.collection(colQuestions)
+            .where('topicIds', arrayContains: lessonDoc.id)
+            .get();
+        for (var qDoc in questionsSnap.docs) {
+          batch.delete(qDoc.reference);
+        }
+        // Delete the lesson
+        batch.delete(lessonDoc.reference);
+      }
+      
+      // 2. Find and delete any questions that might be directly linked to the chapter (if any)
+      final chapterQuestionsSnap = await _db.collection(colQuestions)
+          .where('topicIds', arrayContains: topicId)
+          .get();
+      for (var doc in chapterQuestionsSnap.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 3. Delete the chapter itself
+      batch.delete(_db.collection(colTopics).doc(topicId));
+    }
+
+    await batch.commit();
   }
 
   // --- Specialized Getters ---

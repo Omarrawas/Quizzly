@@ -6,6 +6,7 @@ import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_detail_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TopicManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -55,8 +56,6 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         title: Text(
           'إدارة الفصول والدروس - ${widget.sectionName}',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -297,8 +296,6 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                       : (isDark ? Colors.white : Colors.black87),
                   fontSize: 13,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (data != null && data['isFree'] == true)
@@ -504,7 +501,6 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
               isIndexError
                   ? 'يتم حالياً إنشاء الفهارس المطلوبة (Indexes). قد يستغرق هذا بضع دقائق لأول مرة فقط.'
                   : error,
-              textAlign: TextAlign.center,
               style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13),
             ),
             if (isIndexError) ...[
@@ -696,11 +692,11 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                         ? const Color(0xFF1E293B)
                         : Colors.white,
                     items: [
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: null,
                         child: Text(
                           'اختر فصلاً...',
-                          style: TextStyle(color: Colors.grey),
+                          style: GoogleFonts.cairo(color: Colors.grey),
                         ),
                       ),
                       ...chapters.map(
@@ -777,38 +773,85 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     );
   }
 
-  void _confirmDelete(String id, String name) {
+  void _confirmDelete(String id, String name) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    
+    // Quick role check
+    final bool isSuper = await _dbService.isSuperAdmin(currentUserId);
+    
+    if (!isSuper) {
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('عذراً، حذف الفصول والدروس متاح فقط للـ Super Admin', style: GoogleFonts.cairo()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'تأكيد الحذف',
+          'تأكيد الحذف النهائي',
           style: GoogleFonts.cairo(
             fontWeight: FontWeight.bold,
             color: Colors.red,
           ),
         ),
         content: Text(
-          'هل أنت متأكد من حذف ($name)؟\nسيتم حذف جميع المحتويات المرتبطة.',
+          'تنبيه هام: هل أنت متأكد من حذف ($name)؟\n\nبصفتك سوبـر أدمن، سيؤدي هذا الإجراء إلى حذف كافة الأسئلة والمحتويات الموجودة داخل هذا القسم بشكل نهائي من قاعدة البيانات ولا يمكن التراجع عنها.',
           style: GoogleFonts.cairo(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء'),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await _dbService.deleteDoc(DatabaseService.colTopics, id);
-              if (context.mounted) Navigator.pop(context);
+              final navigator = Navigator.of(context);
+              try {
+                // Determine if it's a chapter or lesson based on context (here we simplified deleteTopicCascade logic)
+                // Actually, let's fetch the type to be sure
+                final doc = await FirebaseFirestore.instance.collection(DatabaseService.colTopics).doc(id).get();
+                final type = doc.data()?['type'] ?? 'lesson';
+                
+                await _dbService.deleteTopicCascade(id, type);
+                
+                if (mounted) {
+                  navigator.pop();
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('تم حذف القسم وكافة ملحقاته بنجاح', style: GoogleFonts.cairo()),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('فشل الحذف: $e', style: GoogleFonts.cairo()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
-            child: Text('حذف', style: const TextStyle(color: Colors.red)),
+            child: Text('حذف نهائي', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
-
   void _showEditLessonContentDialog(String id, Map<String, dynamic> data) {
     final descriptionController = TextEditingController(
       text: data['description'] ?? '',
@@ -1016,8 +1059,6 @@ class _ChapterCardState extends State<_ChapterCard> {
                 fontSize: 14,
                 color: widget.isDark ? Colors.white : Colors.black87,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,

@@ -225,7 +225,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
-                                      value: role == 'admin' || role == 'super_admin' ? 'admin' : 'user',
+                                      value: (role == 'admin' || role == 'teacher' || role == 'user') ? role : (role == 'super_admin' || role == 'superAdmin' ? 'admin' : 'user'),
                                       dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                                       style: GoogleFonts.cairo(
                                         color: isDark ? Colors.white : Colors.black87,
@@ -233,6 +233,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       ),
                                       items: const [
                                         DropdownMenuItem(value: 'user', child: Text('طالب')),
+                                        DropdownMenuItem(value: 'teacher', child: Text('معلم')),
                                         DropdownMenuItem(value: 'admin', child: Text('أدمن')),
                                       ],
                                       onChanged: (val) {

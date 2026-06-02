@@ -142,7 +142,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(child: Text('${index + 1}')),
-                        title: Text(q.text, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        title: Text(q.text),
                         subtitle: Text('النوع: ${q.type.name} | الصعوبة: ${q.difficulty?.name ?? "غير محدد"}'),
                       ),
                     );
