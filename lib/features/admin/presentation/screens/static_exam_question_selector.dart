@@ -478,8 +478,29 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
             final id = doc.id;
             final isSelected = _selectedIds.contains(id);
 
-            final typeStr = data['type'] == 'mcq' ? 'اختيار' : (data['type'] == 'tf' ? 'صح/خطأ' : 'مقالي');
-            final typeColor = data['type'] == 'mcq' ? Colors.blue : (data['type'] == 'tf' ? Colors.teal : Colors.orange);
+            final String typeStr;
+            final Color typeColor;
+            switch (data['type']) {
+              case 'mcq':
+                typeStr = 'اختيار';
+                typeColor = Colors.blue;
+                break;
+              case 'tf':
+                typeStr = 'صح/خطأ';
+                typeColor = Colors.teal;
+                break;
+              case 'checkbox':
+                typeStr = 'مربعات اختيار';
+                typeColor = Colors.purple;
+                break;
+              case 'essay':
+                typeStr = 'مقالي';
+                typeColor = Colors.orange;
+                break;
+              default:
+                typeStr = 'اختيار';
+                typeColor = Colors.blue;
+            }
             final topicLabel = _getTopicLabel(data['topicIds'] as List?);
             final diffLabel = _translateDifficulty(data['difficulty']);
             final examTags = (data['examTags'] as List?) ?? [];

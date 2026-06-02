@@ -163,18 +163,20 @@ class BulkUploadService {
 
         // Try to find the topic
         String? finalTopicId;
-        String? finalTopicName;
+        String? finalLessonName;
+        String? finalChapterName;
         
         if (chapterName.isNotEmpty) {
           // Find chapter first
           final chapterId = topicMap[chapterName];
           if (chapterId != null) {
+            finalChapterName = topicsRawMap[chapterId]?['name']?.toString();
             // Find lesson under this chapter
             for (var entry in topicsRawMap.entries) {
               if (entry.value['name'].toString().toLowerCase() == lessonName && 
                   entry.value['parentId'] == chapterId) {
                 finalTopicId = entry.key;
-                finalTopicName = entry.value['name']?.toString();
+                finalLessonName = entry.value['name']?.toString();
                 break;
               }
             }
@@ -185,13 +187,22 @@ class BulkUploadService {
         if (finalTopicId == null) {
           finalTopicId = topicMap[lessonName];
           if (finalTopicId != null) {
-            finalTopicName = topicsRawMap[finalTopicId]?['name']?.toString();
+            finalLessonName = topicsRawMap[finalTopicId]?['name']?.toString();
+            // Try to find parent chapter
+            final parentId = topicsRawMap[finalTopicId]?['parentId']?.toString();
+            if (parentId != null && topicsRawMap.containsKey(parentId)) {
+              finalChapterName = topicsRawMap[parentId]?['name']?.toString();
+            }
           }
         }
 
-        if (finalTopicId != null) {
+        if (finalTopicId != null && finalLessonName != null) {
           topicIds.add(finalTopicId);
-          if (finalTopicName != null) topicNames.add(finalTopicName);
+          // Build compound name "Chapter - Lesson" to match manual editor format
+          final compoundName = (finalChapterName != null && finalChapterName.isNotEmpty)
+              ? '$finalChapterName - $finalLessonName'
+              : finalLessonName;
+          topicNames.add(compoundName);
         } else {
           errors.add(UploadError(row: i + 1, message: 'الموضوع "$fullTopicPath" غير موجود في هذا المادة.'));
         }
@@ -435,14 +446,16 @@ class BulkUploadService {
         }
 
         String? finalTopicId;
-        String? finalTopicName;
+        String? finalLessonName;
+        String? finalChapterName;
         if (chapterName.isNotEmpty) {
           final chapterId = topicMap[chapterName];
           if (chapterId != null) {
+            finalChapterName = topicsRawMap[chapterId]?['name']?.toString();
             for (var entry in topicsRawMap.entries) {
               if (entry.value['name'].toString().toLowerCase() == lessonName && entry.value['parentId'] == chapterId) {
                 finalTopicId = entry.key;
-                finalTopicName = entry.value['name']?.toString();
+                finalLessonName = entry.value['name']?.toString();
                 break;
               }
             }
@@ -452,13 +465,20 @@ class BulkUploadService {
         if (finalTopicId == null) {
           finalTopicId = topicMap[lessonName];
           if (finalTopicId != null) {
-            finalTopicName = topicsRawMap[finalTopicId]?['name']?.toString();
+            finalLessonName = topicsRawMap[finalTopicId]?['name']?.toString();
+            final parentId = topicsRawMap[finalTopicId]?['parentId']?.toString();
+            if (parentId != null && topicsRawMap.containsKey(parentId)) {
+              finalChapterName = topicsRawMap[parentId]?['name']?.toString();
+            }
           }
         }
 
-        if (finalTopicId != null) {
+        if (finalTopicId != null && finalLessonName != null) {
           topicIds.add(finalTopicId);
-          if (finalTopicName != null) topicNames.add(finalTopicName);
+          final compoundName = (finalChapterName != null && finalChapterName.isNotEmpty)
+              ? '$finalChapterName - $finalLessonName'
+              : finalLessonName;
+          topicNames.add(compoundName);
         } else {
           errors.add(UploadError(row: i + 1, message: 'الموضوع "$fullTopicPath" غير موجود.'));
         }
