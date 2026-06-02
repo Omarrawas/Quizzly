@@ -41,6 +41,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   String _searchQuery = '';
   String? _selectedChapterId;
   String? _selectedLessonId;
+  String _statusFilter = 'all'; // 'all', 'active', 'inactive'
   
   // Selection Mode State
   final Set<String> _selectedQuestionIds = {};
@@ -159,6 +160,16 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               _selectedQuestionIds.length == _currentVisibleQuestionIds.length ? 'إلغاء الكل' : 'تحديد الكل',
               style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.primaryBlue, fontWeight: FontWeight.bold),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.green),
+            tooltip: 'تفعيل المحدد',
+            onPressed: () => _updateSelectedQuestionsStatus(true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.block_flipped, color: Colors.orange),
+            tooltip: 'إلغاء تفعيل المحدد',
+            onPressed: () => _updateSelectedQuestionsStatus(false),
           ),
           IconButton(
             icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
@@ -325,8 +336,50 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             ),
           ),
         
+        // Status Filter
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildStatusChip('الكل', 'all', isDark),
+                const SizedBox(width: 8),
+                _buildStatusChip('مفعل', 'active', isDark, activeColor: Colors.green),
+                const SizedBox(width: 8),
+                _buildStatusChip('غير مفعل', 'inactive', isDark, activeColor: Colors.red),
+              ],
+            ),
+          ),
+        ),
+        
         const Divider(height: 1),
       ],
+    );
+  }
+
+  Widget _buildStatusChip(String label, String value, bool isDark, {Color? activeColor}) {
+    bool isSelected = _statusFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _statusFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? (activeColor ?? AppColors.primaryBlue) 
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: 12,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 
@@ -446,6 +499,13 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               }
             }
             if (!belongsToChapter) return false;
+          }
+
+          // Status Filter
+          if (_statusFilter != 'all') {
+            final isEnabled = data['isEnabled'] ?? true;
+            if (_statusFilter == 'active' && !isEnabled) return false;
+            if (_statusFilter == 'inactive' && isEnabled) return false;
           }
 
           return true;
@@ -641,6 +701,36 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(typeStr, style: GoogleFonts.cairo(color: typeColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (data['isEnabled'] ?? true) 
+                          ? Colors.green.withValues(alpha: 0.1) 
+                          : Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          (data['isEnabled'] ?? true) ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                          size: 10,
+                          color: (data['isEnabled'] ?? true) ? Colors.green : Colors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          (data['isEnabled'] ?? true) ? 'مفعل' : 'معطل',
+                          style: GoogleFonts.cairo(
+                            color: (data['isEnabled'] ?? true) ? Colors.green : Colors.red,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1022,6 +1112,29 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         ],
       ),
     );
+  }
+
+  Future<void> _updateSelectedQuestionsStatus(bool active) async {
+    if (_selectedQuestionIds.isEmpty) return;
+
+    final count = _selectedQuestionIds.length;
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (var id in _selectedQuestionIds) {
+        batch.update(
+          FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id),
+          {'isEnabled': active},
+        );
+      }
+      await batch.commit();
+      
+      if (mounted) {
+        setState(() => _selectedQuestionIds.clear());
+        _showStatusSnackBar('تم ${active ? "تفعيل" : "إلغاء تفعيل"} $count سؤال بنجاح', isError: false);
+      }
+    } catch (e) {
+      if (mounted) _showStatusSnackBar('فشل التحديث: $e', isError: true);
+    }
   }
 
 }

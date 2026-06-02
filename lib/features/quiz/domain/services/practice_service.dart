@@ -10,6 +10,7 @@ class PracticeService {
         .collection('topics')
         .where('subjectId', isEqualTo: subjectId)
         .orderBy('order')
+        .orderBy('createdAt', descending: false)
         .get();
     return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
   }

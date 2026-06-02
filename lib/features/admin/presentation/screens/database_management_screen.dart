@@ -529,7 +529,10 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     final nameController = TextEditingController(text: currentData['name']);
     final descController = TextEditingController(text: currentData['description'] ?? currentData['subtitle']);
     String? referenceSubjectId = currentData['referenceSubjectId'];
-    String? teacherId = currentData['teacherId'];
+    List<String> teacherIds = List<String>.from(currentData['teacherIds'] ?? []);
+    if (teacherIds.isEmpty && currentData['teacherId'] != null) {
+      teacherIds.add(currentData['teacherId']);
+    }
 
     showDialog(
       context: context,
@@ -549,29 +552,63 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                   FutureBuilder<QuerySnapshot>(
                     future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox.shrink();
-                      final teachers = snapshot.data!.docs;
-                      return DropdownButtonFormField<String?>(
-                        initialValue: teacherId,
-                        decoration: InputDecoration(
-                          labelText: 'المعلم المسؤول',
-                          labelStyle: GoogleFonts.cairo(fontSize: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('بدون معلم', style: GoogleFonts.cairo(fontSize: 12)),
-                          ),
-                          ...teachers.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return DropdownMenuItem<String?>(
-                              value: doc.id,
-                              child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم مجهول', style: GoogleFonts.cairo(fontSize: 12)),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) => setDialogState(() => teacherId = val),
+                      if (!snapshot.hasData) return const CircularProgressIndicator();
+                      final allTeachers = snapshot.data!.docs;
+                      
+                      return StatefulBuilder(
+                        builder: (context, setDialogState) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('المعلمون المسؤولون:', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: teacherIds.map((tid) {
+                                  final tDoc = allTeachers.cast<QueryDocumentSnapshot?>().firstWhere((doc) => doc?.id == tid, orElse: () => null);
+                                  if (tDoc == null) return const SizedBox.shrink();
+                                  final tData = tDoc.data() as Map<String, dynamic>;
+                                  return InputChip(
+                                    label: Text(tData['defaults']?['fullName'] ?? tData['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 10)),
+                                    onDeleted: () {
+                                      setDialogState(() {
+                                        teacherIds.remove(tid);
+                                        currentData['teacherIds'] = teacherIds;
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              if (teacherIds.isEmpty) 
+                                Text('لم يتم تعيين معلمين', style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: 'إضافة معلم',
+                                  labelStyle: GoogleFonts.cairo(fontSize: 12),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  return DropdownMenuItem<String>(
+                                    value: doc.id,
+                                    child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 12)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setDialogState(() {
+                                      teacherIds.add(val);
+                                      currentData['teacherIds'] = teacherIds;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   ),
@@ -664,7 +701,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                   },
                   if (_currentLevel == ManagementLevel.subject) ...{
                     'referenceSubjectId': referenceSubjectId,
-                    'teacherId': teacherId,
+                    'teacherIds': teacherIds,
+                    'teacherId': teacherIds.isNotEmpty ? teacherIds.first : null, // Fallback for old code
                   },
                 };
                 try {
@@ -928,7 +966,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     double? price;
     double? discount;
     String? referenceSubjectId;
-    String? teacherId;
+    List<String> teacherIds = [];
 
     showDialog(
       context: context,
@@ -948,29 +986,55 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                   FutureBuilder<QuerySnapshot>(
                     future: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'teacher').get(),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox.shrink();
-                      final teachers = snapshot.data!.docs;
-                      return DropdownButtonFormField<String?>(
-                        initialValue: teacherId,
-                        decoration: InputDecoration(
-                          labelText: 'المعلم المسؤول',
-                          labelStyle: GoogleFonts.cairo(fontSize: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('بدون معلم', style: GoogleFonts.cairo(fontSize: 12)),
-                          ),
-                          ...teachers.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return DropdownMenuItem<String?>(
-                              value: doc.id,
-                              child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم مجهول', style: GoogleFonts.cairo(fontSize: 12)),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) => setDialogState(() => teacherId = val),
+                      if (!snapshot.hasData) return const CircularProgressIndicator();
+                      final allTeachers = snapshot.data!.docs;
+                      
+                      return StatefulBuilder(
+                        builder: (context, setDialogState) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('المعلمون المسؤولون:', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: teacherIds.map((tid) {
+                                  final tDoc = allTeachers.cast<QueryDocumentSnapshot?>().firstWhere((doc) => doc?.id == tid, orElse: () => null);
+                                  if (tDoc == null) return const SizedBox.shrink();
+                                  final tData = tDoc.data() as Map<String, dynamic>;
+                                  return InputChip(
+                                    label: Text(tData['defaults']?['fullName'] ?? tData['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 10)),
+                                    onDeleted: () {
+                                      setDialogState(() => teacherIds.remove(tid));
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              if (teacherIds.isEmpty) 
+                                Text('لم يتم تعيين معلمين', style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: 'إضافة معلم',
+                                  labelStyle: GoogleFonts.cairo(fontSize: 12),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  return DropdownMenuItem<String>(
+                                    value: doc.id,
+                                    child: Text(data['defaults']?['fullName'] ?? data['email'] ?? 'معلم', style: GoogleFonts.cairo(fontSize: 12)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setDialogState(() => teacherIds.add(val));
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   ),
@@ -1048,7 +1112,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 final name = nameController.text.trim();
                 final desc = descController.text.trim();
                 if (name.isNotEmpty) {
-                  await _performAdd(name, desc, price: price, discount: discount, referenceSubjectId: referenceSubjectId, teacherId: teacherId);
+                  await _performAdd(name, desc, price: price, discount: discount, referenceSubjectId: referenceSubjectId, teacherIds: teacherIds);
                   if (context.mounted) Navigator.pop(context);
                 }
               },
@@ -1072,7 +1136,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
   }
 
-  Future<void> _performAdd(String name, String desc, {double? price, double? discount, String? referenceSubjectId, String? teacherId}) async {
+  Future<void> _performAdd(String name, String desc, {double? price, double? discount, String? referenceSubjectId, List<String>? teacherIds}) async {
     final Map<String, dynamic> data = {
       'name': name,
       _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
@@ -1080,7 +1144,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
         'price': price,
         'discount': discount,
         'referenceSubjectId': referenceSubjectId,
-        'teacherId': teacherId,
+        'teacherIds': teacherIds,
+        'teacherId': (teacherIds != null && teacherIds.isNotEmpty) ? teacherIds.first : null,
       },
     };
 

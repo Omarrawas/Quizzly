@@ -29,7 +29,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('subjects')
-            .where('teacherId', isEqualTo: _currentUserId)
+            .where(
+              Filter.or(
+                Filter('teacherId', isEqualTo: _currentUserId),
+                Filter('teacherIds', arrayContains: _currentUserId),
+              ),
+            )
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

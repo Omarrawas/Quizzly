@@ -135,9 +135,18 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
 
         final docs = [...snapshot.data!.docs]
           ..sort((a, b) {
-            final aOrder = _readOrder(a.data() as Map<String, dynamic>);
-            final bOrder = _readOrder(b.data() as Map<String, dynamic>);
-            return aOrder.compareTo(bOrder);
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aOrder = _readOrder(aData);
+            final bOrder = _readOrder(bData);
+            
+            if (aOrder != bOrder) {
+              return aOrder.compareTo(bOrder);
+            }
+            
+            final aTime = (aData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            final bTime = (bData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            return aTime.compareTo(bTime);
           });
 
         if (docs.isEmpty) {
@@ -206,9 +215,18 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
 
         final docs = [...snapshot.data!.docs]
           ..sort((a, b) {
-            final aOrder = _readOrder(a.data() as Map<String, dynamic>);
-            final bOrder = _readOrder(b.data() as Map<String, dynamic>);
-            return aOrder.compareTo(bOrder);
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aOrder = _readOrder(aData);
+            final bOrder = _readOrder(bData);
+            
+            if (aOrder != bOrder) {
+              return aOrder.compareTo(bOrder);
+            }
+            
+            final aTime = (aData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            final bTime = (bData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            return aTime.compareTo(bTime);
           });
 
         if (docs.isEmpty) {

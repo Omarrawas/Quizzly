@@ -35,6 +35,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
   String _collegeName = '';
   String _departmentName = '';
   String _yearName = '';
+  String _selectedRole = 'user';
 
   bool _isLoading = false;
   String? _deviceId;
@@ -55,6 +56,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _collegeName = defaults['collegeName'] ?? '';
     _departmentName = defaults['departmentName'] ?? '';
     _yearName = defaults['yearName'] ?? '';
+    _selectedRole = widget.userData['role'] ?? 'user';
     _deviceId = widget.userData['deviceId'];
   }
 
@@ -81,6 +83,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
         'defaults.departmentName': _departmentName,
         'defaults.yearId': _selectedYearId,
         'defaults.yearName': _yearName,
+        'role': _selectedRole,
       };
 
       await FirebaseFirestore.instance.collection('users').doc(widget.uid).set(
@@ -111,7 +114,6 @@ class _EditUserScreenState extends State<EditUserScreen> {
     final contentService = context.read<ContentService>();
 
     final email = widget.userData['email'] as String? ?? 'بدون بريد إلكتروني';
-    final role = widget.userData['role'] as String? ?? 'user';
 
     final platform = widget.userData['platform'] as String? ?? widget.userData['deviceOS'] as String? ?? 'غير معروف';
     final deviceName = widget.userData['deviceName'] as String? ?? 'غير معروف';
@@ -335,11 +337,49 @@ class _EditUserScreenState extends State<EditUserScreen> {
                               : null,
                         ),
                         const Divider(height: 24, color: Colors.white10),
-                        _buildInfoRow(
-                          icon: Icons.admin_panel_settings_rounded,
-                          label: 'نوع الحساب / الصلاحية',
-                          value: role == 'admin' || role == 'super_admin' ? 'أدمن' : 'طالب',
-                          isDark: isDark,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.admin_panel_settings_rounded, size: 20, color: AppColors.primaryBlue),
+                              const SizedBox(width: 12),
+                              Text(
+                                'نوع الحساب / الصلاحية',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white60 : Colors.grey[700],
+                                ),
+                              ),
+                              const Spacer(),
+                              SizedBox(
+                                width: 120,
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButtonFormField<String>(
+                                    initialValue: _selectedRole == 'super_admin' || _selectedRole == 'superAdmin' ? 'admin' : _selectedRole,
+                                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                    style: GoogleFonts.cairo(
+                                      color: isDark ? Colors.white : Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      border: InputBorder.none,
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(value: 'user', child: Text('طالب')),
+                                      DropdownMenuItem(value: 'teacher', child: Text('معلم')),
+                                      DropdownMenuItem(value: 'admin', child: Text('أدمن')),
+                                    ],
+                                    onChanged: (val) {
+                                      if (val != null) setState(() => _selectedRole = val);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
