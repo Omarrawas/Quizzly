@@ -88,3 +88,9 @@ flutter_launcher_icons:
   image_path: "assets/images/logo.png"
   remove_alpha_ios: true
 
+# ── Local patch: fixes "custom numFmtId starts at 164" error ──────────────────
+# The upstream excel package throws when numFmtId < 164 (e.g. files from
+# LibreOffice / Google Sheets). Our local copy skips those entries instead.
+dependency_overrides:
+  excel:
+    path: packages/excel

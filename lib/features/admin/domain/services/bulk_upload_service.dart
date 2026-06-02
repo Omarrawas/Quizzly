@@ -319,7 +319,13 @@ class BulkUploadService {
     List<QuizQuestion> parsedQuestions = [];
     List<UploadError> errors = [];
 
-    final excel = Excel.decodeBytes(fileBytes);
+    late Excel excel;
+    try {
+      excel = Excel.decodeBytes(fileBytes);
+    } catch (e) {
+      return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'تعذّر قراءة ملف Excel: $e')]);
+    }
+
     if (excel.tables.isEmpty) {
       return ParsedQuestionResult(questions: [], errors: [UploadError(row: 0, message: 'الملف فارغ أو غير صالح.')]);
     }
