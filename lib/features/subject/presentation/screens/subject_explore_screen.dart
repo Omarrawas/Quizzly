@@ -22,8 +22,10 @@ class SubjectExploreScreen extends StatefulWidget {
   State<SubjectExploreScreen> createState() => _SubjectExploreScreenState();
 }
 
-class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
+class _SubjectExploreScreenState extends State<SubjectExploreScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = true;
+  bool _hasUpdate = false;
+  late AnimationController _syncAnimationController;
   List<Map<String, dynamic>> _tagsData = [];
   List<QuizQuestion> _allQuestions = [];
   List<QuizQuestion> _filteredQuestions = [];
@@ -34,15 +36,57 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
   @override
   void initState() {
     super.initState();
+    _syncAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
     _fetchData();
   }
 
-  Future<void> _fetchData() async {
+  @override
+  void dispose() {
+    _syncAnimationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchData({bool forceRefresh = false}) async {
     try {
+      if (forceRefresh) setState(() => _isLoading = true);
+      
+      final prefs = await SharedPreferences.getInstance();
+      
+      // 1. Fetch Subject doc to check for lastUpdated
+      final subjectDoc = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc(widget.subjectId)
+          .get();
+      
+      if (subjectDoc.exists) {
+        final serverLastUpdate = (subjectDoc.data()?['lastUpdated'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+        final localLastUpdate = prefs.getInt('subject_sync_${widget.subjectId}') ?? 0;
+
+        if (localLastUpdate == 0) {
+          // First time opening this subject — record current time as baseline
+          await prefs.setInt('subject_sync_${widget.subjectId}', DateTime.now().millisecondsSinceEpoch);
+        } else if (serverLastUpdate > localLastUpdate) {
+          if (mounted) setState(() => _hasUpdate = true);
+          _syncAnimationController.repeat(reverse: true);
+        } else {
+          if (mounted) setState(() => _hasUpdate = false);
+          _syncAnimationController.stop();
+        }
+
+        if (forceRefresh) {
+          await prefs.setInt('subject_sync_${widget.subjectId}', DateTime.now().millisecondsSinceEpoch);
+          if (mounted) setState(() => _hasUpdate = false);
+          _syncAnimationController.stop();
+        }
+      }
+
       final snap = await FirebaseFirestore.instance
           .collection('questions')
           .where('subjectId', isEqualTo: widget.subjectId)
-          .get();
+          .get(forceRefresh ? const GetOptions(source: Source.server) : null);
 
       final List<QuizQuestion> questions = [];
       for (var doc in snap.docs) {
@@ -205,6 +249,52 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           ),
         ),
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: AnimatedBuilder(
+            animation: _syncAnimationController,
+            builder: (context, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () => _fetchData(forceRefresh: true),
+                    icon: Icon(
+                      Icons.sync_rounded,
+                      color: _hasUpdate
+                          ? Colors.orangeAccent.withValues(
+                              alpha: 0.4 + (0.6 * _syncAnimationController.value))
+                          : Colors.white54,
+                    ),
+                    tooltip: _hasUpdate ? 'يوجد تحديث جديد! اضغط للتحديث' : 'تحديث البيانات',
+                  ),
+                  if (_hasUpdate)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: Colors.orangeAccent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.orangeAccent.withValues(alpha: 0.6),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

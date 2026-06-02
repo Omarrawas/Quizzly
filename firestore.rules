@@ -8,6 +8,21 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
     }
 
+    // Helper: Check if user is a teacher
+    function isTeacher() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    // Helper: Check if user is the teacher of a specific subject
+    function isTeacherOfSubject(subjectId) {
+      return request.auth != null && (
+        get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid ||
+        (get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherIds != null && 
+         request.auth.uid in get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherIds)
+      );
+    }
+
     // Helper: Check if user is the owner
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
@@ -63,13 +78,29 @@ service cloud.firestore {
     match /{path=**}/departments/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
     match /{path=**}/academic_years/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
     match /{path=**}/semesters/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /{path=**}/subjects/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /{path=**}/sections/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /{path=**}/topics/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /subjects/{id} { 
+      allow read: if request.auth != null; 
+      allow update: if isAdmin() || isTeacherOfSubject(id);
+      allow create, delete: if isAdmin();
+    }
+    match /sections/{id} { 
+      allow read: if request.auth != null; 
+      allow write: if isAdmin() || isTeacherOfSubject(resource.data.subjectId) || isTeacherOfSubject(request.resource.data.subjectId);
+    }
+    match /topics/{id} { 
+      allow read: if request.auth != null; 
+      allow write: if isAdmin() || isTeacherOfSubject(resource.data.subjectId) || isTeacherOfSubject(request.resource.data.subjectId);
+    }
     
     // 4. Questions and Exams
-    match /questions/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
-    match /exams/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /questions/{id} { 
+      allow read: if request.auth != null; 
+      allow write: if isAdmin() || isTeacherOfSubject(resource.data.subjectId) || isTeacherOfSubject(request.resource.data.subjectId);
+    }
+    match /exams/{id} { 
+      allow read: if request.auth != null; 
+      allow write: if isAdmin() || isTeacherOfSubject(resource.data.subjectId) || isTeacherOfSubject(request.resource.data.subjectId);
+    }
     match /exam_attempts/{id} {
       allow create: if request.auth != null;
       allow get: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();

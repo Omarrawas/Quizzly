@@ -633,8 +633,17 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   }
 
   Widget _buildQuestionCard(String id, Map<String, dynamic> data, bool isDark, {Key? key}) {
-    final String typeStr = data['type'] == 'mcq' ? 'أتمتة' : (data['type'] == 'tf' ? 'صح/خطأ' : 'مقالي');
-    final Color typeColor = data['type'] == 'mcq' ? Colors.blue : (data['type'] == 'tf' ? Colors.teal : Colors.orange);
+    final String typeStr = data['type'] == 'mcq' 
+        ? 'أتمتة' 
+        : (data['type'] == 'tf' 
+            ? 'صح/خطأ' 
+            : (data['type'] == 'checkbox' ? 'مربعات اختيار' : 'مقالي'));
+    
+    final Color typeColor = data['type'] == 'mcq' 
+        ? Colors.blue 
+        : (data['type'] == 'tf' 
+            ? Colors.teal 
+            : (data['type'] == 'checkbox' ? Colors.deepPurple : Colors.orange));
     final questionText = _stripHtml(data['text'] ?? '');
     final translationText = data['translationText'] != null && (data['translationText'] as String).isNotEmpty
         ? _stripHtml(data['translationText'] as String)

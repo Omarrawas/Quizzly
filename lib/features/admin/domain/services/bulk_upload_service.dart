@@ -147,6 +147,7 @@ class BulkUploadService {
       // Map Topic (Handle "Chapter - Lesson" format)
       String fullTopicPath = colTopic != -1 && row.length > colTopic ? row[colTopic].toString().trim() : '';
       List<String> topicIds = [];
+      List<String> topicNames = [];
       
       if (fullTopicPath.isNotEmpty) {
         String chapterName = '';
@@ -162,6 +163,7 @@ class BulkUploadService {
 
         // Try to find the topic
         String? finalTopicId;
+        String? finalTopicName;
         
         if (chapterName.isNotEmpty) {
           // Find chapter first
@@ -172,6 +174,7 @@ class BulkUploadService {
               if (entry.value['name'].toString().toLowerCase() == lessonName && 
                   entry.value['parentId'] == chapterId) {
                 finalTopicId = entry.key;
+                finalTopicName = entry.value['name']?.toString();
                 break;
               }
             }
@@ -179,10 +182,16 @@ class BulkUploadService {
         }
         
         // Fallback: search by lesson name directly if not found via path
-        finalTopicId ??= topicMap[lessonName];
+        if (finalTopicId == null) {
+          finalTopicId = topicMap[lessonName];
+          if (finalTopicId != null) {
+            finalTopicName = topicsRawMap[finalTopicId]?['name']?.toString();
+          }
+        }
 
         if (finalTopicId != null) {
           topicIds.add(finalTopicId);
+          if (finalTopicName != null) topicNames.add(finalTopicName);
         } else {
           errors.add(UploadError(row: i + 1, message: 'الموضوع "$fullTopicPath" غير موجود في هذا المادة.'));
         }
@@ -296,6 +305,7 @@ class BulkUploadService {
         difficulty: diff,
         cognitiveLevel: cog,
         topicIds: topicIds.isNotEmpty ? topicIds : null,
+        topicNames: topicNames.isNotEmpty ? topicNames : null,
         estimatedTime: timeSec,
       );
 
@@ -412,6 +422,7 @@ class BulkUploadService {
 
       String fullTopicPath = colTopic != -1 && row.length > colTopic ? row[colTopic]?.value?.toString().trim() ?? '' : '';
       List<String> topicIds = [];
+      List<String> topicNames = [];
       if (fullTopicPath.isNotEmpty) {
         String chapterName = '';
         String lessonName = fullTopicPath;
@@ -424,21 +435,30 @@ class BulkUploadService {
         }
 
         String? finalTopicId;
+        String? finalTopicName;
         if (chapterName.isNotEmpty) {
           final chapterId = topicMap[chapterName];
           if (chapterId != null) {
             for (var entry in topicsRawMap.entries) {
               if (entry.value['name'].toString().toLowerCase() == lessonName && entry.value['parentId'] == chapterId) {
                 finalTopicId = entry.key;
+                finalTopicName = entry.value['name']?.toString();
                 break;
               }
             }
           }
         }
-        finalTopicId ??= topicMap[lessonName];
+
+        if (finalTopicId == null) {
+          finalTopicId = topicMap[lessonName];
+          if (finalTopicId != null) {
+            finalTopicName = topicsRawMap[finalTopicId]?['name']?.toString();
+          }
+        }
 
         if (finalTopicId != null) {
           topicIds.add(finalTopicId);
+          if (finalTopicName != null) topicNames.add(finalTopicName);
         } else {
           errors.add(UploadError(row: i + 1, message: 'الموضوع "$fullTopicPath" غير موجود.'));
         }
@@ -519,6 +539,7 @@ class BulkUploadService {
         difficulty: diff,
         cognitiveLevel: cog,
         topicIds: topicIds.isNotEmpty ? topicIds : null,
+        topicNames: topicNames.isNotEmpty ? topicNames : null,
         estimatedTime: timeSec,
       ));
     }
@@ -562,6 +583,11 @@ class BulkUploadService {
       batch.set(docRef, data, SetOptions(merge: true));
     }
     await batch.commit();
+
+    // Update subject's lastUpdated timestamp
+    await _db.collection('subjects').doc(subjectId).update({
+      'lastUpdated': FieldValue.serverTimestamp(),
+    });
   }
 
   String _generateQuestionId(String text) {
