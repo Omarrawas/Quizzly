@@ -194,7 +194,7 @@ class BulkUploadService {
 
       // Options
       List<String> options = [];
-      if (type == QuestionType.mcq || type == QuestionType.trueFalse) {
+      if (type == QuestionType.mcq || type == QuestionType.trueFalse || type == QuestionType.checkbox) {
         if (colOptA != -1 && row.length > colOptA && row[colOptA].toString().trim().isNotEmpty) options.add(row[colOptA].toString().trim());
         if (colOptB != -1 && row.length > colOptB && row[colOptB].toString().trim().isNotEmpty) options.add(row[colOptB].toString().trim());
         if (colOptC != -1 && row.length > colOptC && row[colOptC].toString().trim().isNotEmpty) options.add(row[colOptC].toString().trim());
@@ -448,7 +448,7 @@ class BulkUploadService {
       QuestionType type = (typeStr == 'checkbox') ? QuestionType.checkbox : (typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq));
 
       List<String> options = [];
-      if (type == QuestionType.mcq || type == QuestionType.trueFalse) {
+      if (type == QuestionType.mcq || type == QuestionType.trueFalse || type == QuestionType.checkbox) {
         if (colOptA != -1 && row.length > colOptA && row[colOptA]?.value != null && row[colOptA]!.value.toString().trim().isNotEmpty) options.add(row[colOptA]!.value.toString().trim());
         if (colOptB != -1 && row.length > colOptB && row[colOptB]?.value != null && row[colOptB]!.value.toString().trim().isNotEmpty) options.add(row[colOptB]!.value.toString().trim());
         if (colOptC != -1 && row.length > colOptC && row[colOptC]?.value != null && row[colOptC]!.value.toString().trim().isNotEmpty) options.add(row[colOptC]!.value.toString().trim());
