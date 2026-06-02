@@ -44,18 +44,25 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> {
           .where('subjectId', isEqualTo: widget.subjectId)
           .get();
 
-      final List<QuizQuestion> questions = snap.docs
-          .map((doc) => QuizQuestion.fromFirestore(doc))
-          .toList();
+      final List<QuizQuestion> questions = [];
+      for (var doc in snap.docs) {
+        try {
+          questions.add(QuizQuestion.fromFirestore(doc));
+        } catch (e) {
+          debugPrint('Error parsing question ${doc.id}: $e');
+        }
+      }
 
       final Map<String, int> tagCounts = {};
       for (var q in questions) {
-        if (q.topicNames != null) {
-          for (var t in q.topicNames!) {
-            final tag = t.trim();
-            if (tag.isEmpty) continue;
-            tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
-          }
+        final List<String> tags = [];
+        if (q.topicNames != null) tags.addAll(q.topicNames!);
+        if (q.tagLabel != null && q.tagLabel!.isNotEmpty) tags.add(q.tagLabel!);
+
+        for (var t in tags) {
+          final tag = t.trim();
+          if (tag.isEmpty) continue;
+          tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
         }
       }
 
