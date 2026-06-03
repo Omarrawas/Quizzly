@@ -14,6 +14,9 @@ class MathUtils {
     // 1. Fix color hex codes (8-digit to 6-digit)
     var processed = _normalizeColors(raw);
 
+    // 2. EMERGENCY PATCH: Clean up garbled "$1 $2" from previous bug
+    processed = processed.replaceAll(RegExp(r'\$(\\)?1 \$(\\)?2'), ' ');
+
     // 2. Normalize legacy double-backslash delimiters \\( \\) → \( \)
     //    This fixes old data saved with r'\\(' instead of '\\('
     processed = _normalizeLegacyDelimiters(processed);
@@ -98,9 +101,12 @@ class MathUtils {
     final trimmed = text.trim();
     if (trimmed.length < 2) return false;
 
-    // IMPORTANT: If it contains Arabic characters, it is NOT "auto-math".
-    // This prevents Arabic words with symbols from being rendered as isolated LaTeX letters.
+    // If it's a number followed by a unit or symbol, it might be caught.
+    // But if it has Arabic, we definitely skip.
     if (RegExp(r'[\u0600-\u06FF]').hasMatch(trimmed)) return false;
+
+    // If it starts with a number but has no operators, don't treat as math (e.g. "22.4")
+    if (RegExp(r'^\d+\.?\d*$').hasMatch(trimmed)) return false;
 
     final mathPatterns = [
       r'[πλωσΔΩαβγθδσΦ]',

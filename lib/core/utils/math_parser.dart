@@ -160,8 +160,8 @@ class MathParser {
   }
 
   static String _handleImplicitMultiplication(String text) {
-    String result = text.replaceAll(RegExp(r'(\d)([\\a-zA-Z])'), r'$1 $2');
-    result = result.replaceAll(RegExp(r'([\\a-zA-Z])(\d)'), r'$1 $2');
+    String result = text.replaceAllMapped(RegExp(r'(\d)([\\a-zA-Z])'), (m) => '${m[1]} ${m[2]}');
+    result = result.replaceAllMapped(RegExp(r'([\\a-zA-Z])(\d)'), (m) => '${m[1]} ${m[2]}');
     return result;
   }
 }
