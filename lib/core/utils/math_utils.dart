@@ -1,6 +1,7 @@
 import 'math_parser.dart';
 
 class MathUtils {
+  // Matches single-backslash delimiters: \(...\)  \[...\]  $...$  $$...$$
   static final RegExp latexRegex = RegExp(
     r'(\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|\\\[.*?\\\])',
     dotAll: true,
@@ -12,11 +13,15 @@ class MathUtils {
 
     // 1. Fix color hex codes (8-digit to 6-digit)
     var processed = _normalizeColors(raw);
-    
-    // 2. Decode HTML entities for safe parsing
+
+    // 2. Normalize legacy double-backslash delimiters \\( \\) → \( \)
+    //    This fixes old data saved with r'\\(' instead of '\\('
+    processed = _normalizeLegacyDelimiters(processed);
+
+    // 3. Decode HTML entities for safe parsing
     final decodedRaw = decodeHtmlEntities(processed);
-    
-    // 3. Process segments (avoiding HTML tags)
+
+    // 4. Process segments (avoiding HTML tags)
     final combinedRegex = RegExp(r'(<[^>]+>|[^<]+)');
     final matches = combinedRegex.allMatches(decodedRaw);
 
@@ -33,6 +38,30 @@ class MathUtils {
     return buffer.toString();
   }
 
+  /// Converts \\( ... \\) and \\[ ... \\] (double backslash, legacy format)
+  /// into \( ... \) and \[ ... \] (single backslash, current format)
+  static String _normalizeLegacyDelimiters(String input) {
+    // Replace \\( ... \\) with \( ... \)
+    // In the actual string, legacy data has two backslashes before ( and )
+    var result = input;
+
+    // Pattern: two literal backslashes then ( or [
+    // We use replaceAll with explicit strings to avoid regex complexity
+    if (result.contains('\\\\(')) {
+      result = result.replaceAll('\\\\(', '\\(');
+    }
+    if (result.contains('\\\\)')) {
+      result = result.replaceAll('\\\\)', '\\)');
+    }
+    if (result.contains('\\\\[')) {
+      result = result.replaceAll('\\\\[', '\\[');
+    }
+    if (result.contains('\\\\]')) {
+      result = result.replaceAll('\\\\]', '\\]');
+    }
+    return result;
+  }
+
   static String _normalizeColors(String raw) {
     return raw.replaceAllMapped(
       RegExp(r'#([0-9a-fA-F]{2})([0-9a-fA-F]{6})\b'),
@@ -41,7 +70,7 @@ class MathUtils {
         final rgb = match.group(2)!;
         if (alpha == 'ff') return '#$rgb';
         return match.group(0)!;
-      }
+      },
     );
   }
 
@@ -66,8 +95,13 @@ class MathUtils {
 
   /// Detects if a string looks like a mathematical equation
   static bool isMathLike(String text) {
-    if (text.trim().length < 3) return false;
-    
+    final trimmed = text.trim();
+    if (trimmed.length < 2) return false;
+
+    // IMPORTANT: If it contains Arabic characters, it is NOT "auto-math".
+    // This prevents Arabic words with symbols from being rendered as isolated LaTeX letters.
+    if (RegExp(r'[\u0600-\u06FF]').hasMatch(trimmed)) return false;
+
     final mathPatterns = [
       r'[πλωσΔΩαβγθδσΦ]',
       r'\^',
@@ -84,7 +118,7 @@ class MathUtils {
     ];
 
     final combinedRegex = RegExp(mathPatterns.join('|'));
-    
+
     int hits = 0;
     if (text.contains('/')) hits++;
     if (text.contains('^')) hits++;
@@ -102,7 +136,7 @@ class MathUtils {
   static String decodeHtmlEntities(String input) {
     return input
         .replaceAll('&#47;', '/')
-        .replaceAll('&#92;', r'\')
+        .replaceAll('&#92;', String.fromCharCode(92)) // single backslash \
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>')
         .replaceAll('&amp;', '&')

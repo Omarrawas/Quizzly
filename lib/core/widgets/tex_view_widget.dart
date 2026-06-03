@@ -210,12 +210,15 @@ class TexViewWidget extends StatelessWidget {
       }
     }
 
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      alignment: isTitle ? WrapAlignment.center : WrapAlignment.start,
-      runSpacing: 4,
-      spacing: 4,
-      children: children,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: isTitle ? WrapAlignment.center : WrapAlignment.start,
+        runSpacing: 4,
+        spacing: 4,
+        children: children,
+      ),
     );
   }
 

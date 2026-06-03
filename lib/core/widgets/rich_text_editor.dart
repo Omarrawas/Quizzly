@@ -340,7 +340,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (insert is Map && insert.containsKey('math')) {
         final latex = insert['math'].toString();
         processedOps.add({
-          'insert': 'MATH_LATEX_START$latex MATH_LATEX_END',
+          'insert': 'MATH_LATEX_START${latex}MATH_LATEX_END',
           'attributes': op['attributes'],
         });
       } else {
@@ -358,8 +358,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
     );
 
     String html = converter.convert();
-    html = html.replaceAll('MATH_LATEX_START', r'\(');
-    html = html.replaceAll('MATH_LATEX_END', r'\)');
+    html = html.replaceAll('MATH_LATEX_START', '\\(');
+    html = html.replaceAll('MATH_LATEX_END', '\\)');
     
     widget.onContentChanged(html);
   }

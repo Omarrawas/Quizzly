@@ -283,7 +283,7 @@ class MathSymbolToolbar extends StatelessWidget {
                 ],
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -315,7 +315,7 @@ class MathSymbolToolbar extends StatelessWidget {
                     ),
                   ),
 
-                  Flexible(
+                  Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
                       child: Column(
