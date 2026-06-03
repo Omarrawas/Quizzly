@@ -29,7 +29,7 @@ class QuizScreen extends StatefulWidget {
 class _QuizScreenState extends State<QuizScreen> {
   // ── State ────────────────────────────────────────────
   int _currentIndex = 0;
-  final Map<int, String> _selectedAnswers = {};
+  final Map<int, Set<String>> _selectedAnswers = {};
   final Map<int, AnswerState> _answerStates = {};
   final Set<int> _revealed = {}; // which questions have been checked
   final Map<int, String> _notes = {};
@@ -232,7 +232,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   children: [
                     QuestionCard(
                       question: question,
-                      selectedOptionId: selected,
+                      selectedOptionIds: selected ?? {},
                       answerState: state,
                       showCorrect: showCorrect,
                       isInPrimaryList: question.id != null && _primaryListIds.contains(question.id),
@@ -245,16 +245,27 @@ class _QuizScreenState extends State<QuizScreen> {
                       listIcon: _getPrimaryListIcon(question.id != null && _primaryListIds.contains(question.id)),
                       listColor: _getPrimaryListColor(),
                       onCheckAnswer: () {
-                        final sel = _selectedAnswers[qIndex];
-                        if (sel == null) return;
-                        HapticFeedback.mediumImpact();
-                        setState(() {
-                          _revealed.add(qIndex);
-                          final isCorrect =
-                              question.correctOptionIds.contains(sel);
-                          _answerStates[qIndex] = isCorrect
-                              ? AnswerState.correct
-                              : AnswerState.wrong;
+                         final sel = _selectedAnswers[qIndex] ?? {};
+                         if (sel.isEmpty) return;
+                         HapticFeedback.mediumImpact();
+                         setState(() {
+                           _revealed.add(qIndex);
+                           
+                           // Validation for multi-select vs single
+                           bool isCorrect = false;
+                           if (question.type == QuestionType.checkbox) {
+                             // Must match exactly
+                             isCorrect = sel.length == question.correctOptionIds.length &&
+                                 sel.every((id) => question.correctOptionIds.contains(id));
+                           } else {
+                             // Single choice
+                             isCorrect = sel.length == 1 &&
+                                 question.correctOptionIds.contains(sel.first);
+                           }
+
+                           _answerStates[qIndex] = isCorrect
+                               ? AnswerState.correct
+                               : AnswerState.wrong;
 
                           // Sync with global history
                           final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -291,14 +302,28 @@ class _QuizScreenState extends State<QuizScreen> {
                           );
                         }
                       },
-                      onOptionSelected: (id) {
-                        setState(() {
-                          _currentIndex = qIndex;
-                          _selectedAnswers[qIndex] = id;
-                          _answerStates[qIndex] = AnswerState.unanswered;
-                          _revealed.remove(qIndex);
-                        });
-                      },
+                       onOptionSelected: (id) {
+                         setState(() {
+                           _currentIndex = qIndex;
+                           final currentSet = _selectedAnswers[qIndex] ?? {};
+                           
+                           if (question.type == QuestionType.checkbox) {
+                             // Toggle selection
+                             if (currentSet.contains(id)) {
+                               currentSet.remove(id);
+                             } else {
+                               currentSet.add(id);
+                             }
+                             _selectedAnswers[qIndex] = Set.from(currentSet);
+                           } else {
+                             // Replace selection
+                             _selectedAnswers[qIndex] = {id};
+                           }
+                           
+                           _answerStates[qIndex] = AnswerState.unanswered;
+                           _revealed.remove(qIndex);
+                         });
+                       },
                       isChecked: _revealed.contains(qIndex),
                       isSelected: _selectedAnswers.containsKey(qIndex),
                     ),

@@ -8,7 +8,7 @@ import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanati
 
 class QuestionReviewScreen extends StatelessWidget {
   final List<QuizQuestion> questions;
-  final Map<int, String> userAnswers;
+  final Map<int, dynamic> userAnswers;
 
   const QuestionReviewScreen({
     super.key,
@@ -31,8 +31,15 @@ class QuestionReviewScreen extends StatelessWidget {
         itemCount: questions.length,
         itemBuilder: (context, index) {
           final question = questions[index];
-          final userAnswerId = userAnswers[index];
-          final isCorrect = question.correctOptionIds.contains(userAnswerId);
+          final userAns = userAnswers[index];
+          
+          bool isCorrect = false;
+          if (userAns is Set<String>) {
+            isCorrect = userAns.length == question.correctOptionIds.length &&
+                userAns.every((id) => question.correctOptionIds.contains(id));
+          } else if (userAns is String) {
+            isCorrect = question.correctOptionIds.contains(userAns);
+          }
 
           return Container(
             margin: const EdgeInsets.only(bottom: 20),
@@ -77,7 +84,13 @@ class QuestionReviewScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 // Options
                 ... (question.options ?? []).map((opt) {
-                  final isUserChoice = userAnswerId == opt.id;
+                  bool isUserChoice = false;
+                  if (userAns is Set<String>) {
+                    isUserChoice = userAns.contains(opt.id);
+                  } else if (userAns is String) {
+                    isUserChoice = userAns == opt.id;
+                  }
+                  
                   final isCorrectAnswer = question.correctOptionIds.contains(opt.id);
                   
                   Color bgColor = Colors.transparent;

@@ -33,7 +33,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   final ExamService _examService = ExamService();
   final SpacedRepetitionService _srsService = SpacedRepetitionService();
   int _currentIndex = 0;
-  final Map<int, String> _userAnswers = {}; // index -> optionId
+  final Map<int, Set<String>> _userAnswers = {}; // index -> Set of optionIds
 
   late int _timeLeft; // Total time or Per-question time
   bool _isSpeedMode = false;
@@ -100,9 +100,24 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
   void _selectOption(String optionId) {
     if (_processedIndices.contains(_currentIndex)) return;
+    
+    final q = _sessionQuestions[_currentIndex];
 
     setState(() {
-      _userAnswers[_currentIndex] = optionId;
+      final currentSet = _userAnswers[_currentIndex] ?? {};
+      
+      if (q.type == QuestionType.checkbox) {
+        // Toggle
+        if (currentSet.contains(optionId)) {
+          currentSet.remove(optionId);
+        } else {
+          currentSet.add(optionId);
+        }
+        _userAnswers[_currentIndex] = Set.from(currentSet);
+      } else {
+        // Single choice
+        _userAnswers[_currentIndex] = {optionId};
+      }
     });
 
     HapticFeedback.selectionClick();
@@ -192,9 +207,17 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         if (countedIds.contains(qId)) continue;
         countedIds.add(qId);
 
-        final userAns = _userAnswers[i];
-        final isCorrect =
-            userAns != null && q.correctOptionIds.contains(userAns);
+        final userAns = _userAnswers[i] ?? {};
+        
+        bool isCorrect = false;
+        if (q.type == QuestionType.checkbox) {
+          isCorrect = userAns.length == q.correctOptionIds.length &&
+              userAns.every((id) => q.correctOptionIds.contains(id));
+        } else {
+          isCorrect = userAns.length == 1 &&
+              q.correctOptionIds.contains(userAns.first);
+        }
+
         if (isCorrect) correctCount++;
 
         results.add({
@@ -508,7 +531,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   Widget _buildOptions(QuizQuestion q, bool isDark) {
     return Column(
       children: (q.options ?? []).map((opt) {
-        final isSelected = _userAnswers[_currentIndex] == opt.id;
+        final selections = _userAnswers[_currentIndex] ?? {};
+        final isSelected = selections.contains(opt.id);
 
         Color borderColor = isDark ? Colors.white24 : AppColors.borderLight;
         Color bgColor = isDark
@@ -519,6 +543,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
           borderColor = isDark ? Colors.blueAccent : AppColors.primaryBlue;
           bgColor = isSelected ? (borderColor.withValues(alpha: 0.1)) : bgColor;
         }
+
+        final bool isCheckbox = q.type == QuestionType.checkbox;
 
         return GestureDetector(
           onTap: () => _selectOption(opt.id),
@@ -538,6 +564,24 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: isCheckbox ? BoxShape.rectangle : BoxShape.circle,
+                    borderRadius: isCheckbox ? BorderRadius.circular(6) : null,
+                    border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 2),
+                    color: isSelected ? borderColor : Colors.transparent,
+                  ),
+                  child: isSelected
+                      ? Icon(
+                          isCheckbox ? Icons.check_rounded : Icons.circle,
+                          size: isCheckbox ? 14 : 8,
+                          color: isDark ? Colors.black : Colors.white,
+                        )
+                      : null,
                 ),
               ],
             ),

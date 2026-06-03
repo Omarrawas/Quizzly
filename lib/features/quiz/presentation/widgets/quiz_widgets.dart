@@ -336,6 +336,7 @@ class _IconActionChip extends StatelessWidget {
 class QuestionCard extends StatelessWidget {
   final QuizQuestion question;
   final String? selectedOptionId;
+  final Set<String> selectedOptionIds;
   final AnswerState answerState;
   final bool showCorrect;
   final Function(String) onOptionSelected;
@@ -356,6 +357,7 @@ class QuestionCard extends StatelessWidget {
     super.key,
     required this.question,
     this.selectedOptionId,
+    this.selectedOptionIds = const {},
     this.answerState = AnswerState.unanswered,
     this.showCorrect = false,
     required this.onOptionSelected,
@@ -604,18 +606,22 @@ class QuestionCard extends StatelessWidget {
           // Options List
           if (question.options != null)
             ...question.options!.map(
-              (option) => _OptionTile(
-                option: option,
-                isSelected: selectedOptionId == option.id || (showCorrect && question.correctOptionIds.contains(option.id)),
-                isCorrect: question.correctOptionIds.contains(option.id),
-                answerState: answerState,
-                showCorrect: showCorrect,
-                onTap: () {
-                  if (answerState == AnswerState.unanswered) {
-                     onOptionSelected(option.id);
-                  }
-                },
-              ),
+              (option) {
+                final bool isSelectedLocally = selectedOptionIds.contains(option.id) || selectedOptionId == option.id;
+                return _OptionTile(
+                  option: option,
+                  isSelected: isSelectedLocally || (showCorrect && question.correctOptionIds.contains(option.id)),
+                  isCorrect: question.correctOptionIds.contains(option.id),
+                  answerState: answerState,
+                  showCorrect: showCorrect,
+                  isCheckbox: question.type == QuestionType.checkbox,
+                  onTap: () {
+                    if (answerState == AnswerState.unanswered) {
+                       onOptionSelected(option.id);
+                    }
+                  },
+                );
+              },
             ),
 
           const SizedBox(height: 12),
@@ -731,6 +737,7 @@ class _OptionTile extends StatelessWidget {
   final bool isCorrect;
   final AnswerState answerState;
   final bool showCorrect;
+  final bool isCheckbox;
   final VoidCallback onTap;
 
   const _OptionTile({
@@ -739,6 +746,7 @@ class _OptionTile extends StatelessWidget {
     required this.isCorrect,
     required this.answerState,
     required this.showCorrect,
+    this.isCheckbox = false,
     required this.onTap,
   });
 
@@ -807,17 +815,22 @@ class _OptionTile extends StatelessWidget {
               SizedBox(width: isRtl ? 8 : 0),
             ],
             const SizedBox(width: 12),
-            // Radio circle
+            // Radio circle or Checkbox square
             Container(
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
+                shape: isCheckbox ? BoxShape.rectangle : BoxShape.circle,
+                borderRadius: isCheckbox ? BorderRadius.circular(6) : null,
                 border: Border.all(color: _radioColor, width: 2),
                 color: isSelected ? _radioColor : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.circle, size: 8, color: Colors.white)
+                  ? Icon(
+                      isCheckbox ? Icons.check_rounded : Icons.circle,
+                      size: isCheckbox ? 14 : 8,
+                      color: Colors.white,
+                    )
                   : null,
             ),
           ],

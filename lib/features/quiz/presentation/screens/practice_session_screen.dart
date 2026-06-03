@@ -46,7 +46,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
-  String? _selectedOptionId;
+  Set<String> _selectedOptionIds = {};
   AnswerState _answerState = AnswerState.unanswered;
   bool _showExplanation = false;
   bool _loading = true;
@@ -225,27 +225,56 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     if (_answerState != AnswerState.unanswered) return;
     HapticFeedback.selectionClick();
 
-    final isCorrect = _current!.correctOptionIds.contains(optionId);
     setState(() {
-      _selectedOptionId = optionId;
+      if (_current!.type == QuestionType.checkbox) {
+        // Toggle
+        if (_selectedOptionIds.contains(optionId)) {
+          _selectedOptionIds.remove(optionId);
+        } else {
+          _selectedOptionIds.add(optionId);
+        }
+        _selectedOptionIds = Set.from(_selectedOptionIds);
+      } else {
+        // Single choice - immediate reveal
+        _selectedOptionIds = {optionId};
+        _checkAnswer();
+      }
+    });
+  }
+
+  void _checkAnswer() {
+    if (_selectedOptionIds.isEmpty) return;
+    
+    final q = _current!;
+    bool isCorrect = false;
+    
+    if (q.type == QuestionType.checkbox) {
+      isCorrect = _selectedOptionIds.length == q.correctOptionIds.length &&
+          _selectedOptionIds.every((id) => q.correctOptionIds.contains(id));
+    } else {
+      isCorrect = _selectedOptionIds.length == 1 &&
+          q.correctOptionIds.contains(_selectedOptionIds.first);
+    }
+
+    setState(() {
       _answerState = isCorrect ? AnswerState.correct : AnswerState.wrong;
       if (isCorrect) {
         _correct++;
       } else {
         _wrong++;
-        _showExplanation = true; // Auto-show explanation on wrong
+        _showExplanation = true;
       }
     });
 
     // Add to answer list for final update
     _userAnswers.add({
-      'questionId': _current!.id,
+      'questionId': q.id,
       'isCorrect': isCorrect,
     });
 
-    if (_current?.id != null) {
+    if (q.id != null) {
       _service.recordAnswer(
-        questionId: _current!.id!,
+        questionId: q.id!,
         isCorrect: isCorrect,
         timeSpentSeconds: 0,
       );
@@ -257,7 +286,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       _slideController.forward(from: 0);
       setState(() {
         _currentIndex++;
-        _selectedOptionId = null;
+        _selectedOptionIds = {};
         _answerState = AnswerState.unanswered;
         _showExplanation = false;
       });
@@ -466,14 +495,14 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      setState(() {
-                        _currentIndex = 0;
-                        _selectedOptionId = null;
-                        _answerState = AnswerState.unanswered;
-                        _showExplanation = false;
-                        _correct = 0;
-                        _wrong = 0;
-                      });
+                        setState(() {
+                          _currentIndex = 0;
+                          _selectedOptionIds = {};
+                          _answerState = AnswerState.unanswered;
+                          _showExplanation = false;
+                          _correct = 0;
+                          _wrong = 0;
+                        });
                       _loadQuestions();
                     },
                     style: ElevatedButton.styleFrom(
@@ -748,7 +777,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       children: q.options!.asMap().entries.map((entry) {
         final index = entry.key;
         final option = entry.value;
-        final isSelected = _selectedOptionId == option.id;
+        final isSelected = _selectedOptionIds.contains(option.id);
         final isCorrect = q.correctOptionIds.contains(option.id);
         final revealed = _answerState != AnswerState.unanswered;
 
@@ -792,7 +821,8 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    shape: q.type == QuestionType.checkbox ? BoxShape.rectangle : BoxShape.circle,
+                    borderRadius: q.type == QuestionType.checkbox ? BorderRadius.circular(6) : null,
                     color: revealed && isCorrect
                         ? const Color(0xFF16A34A)
                         : revealed && isSelected
@@ -826,6 +856,12 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                   Icon(
                     trailingIcon,
                     color: isCorrect ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                    size: 20,
+                  ),
+                if (!revealed && q.type == QuestionType.checkbox)
+                  Icon(
+                    isSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                    color: isSelected ? AppColors.primaryBlue : Colors.grey.withValues(alpha: 0.3),
                     size: 20,
                   ),
               ],
@@ -871,8 +907,10 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   }
 
   Widget _buildActionBar(bool isDark) {
+    final q = _current;
+    if (q == null) return const SizedBox();
     final answered = _answerState != AnswerState.unanswered;
-    final hasExplanation = _current?.explanation != null;
+    final hasExplanation = q.explanation != null;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -919,25 +957,35 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             ),
           if (answered && hasExplanation) const SizedBox(width: 8),
 
-          // Next button
+          // Check Answer button (for checkboxes) or Next button
           Expanded(
             flex: 3,
             child: ElevatedButton.icon(
-              onPressed: answered ? _nextQuestion : null,
+              onPressed: answered 
+                  ? _nextQuestion 
+                  : (q.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty ? _checkAnswer : null),
               icon: Icon(
-                _currentIndex == _questions.length - 1 ? Icons.flag_rounded : Icons.arrow_back_ios_new_rounded,
+                answered
+                    ? (_currentIndex == _questions.length - 1 ? Icons.flag_rounded : Icons.arrow_back_ios_new_rounded)
+                    : Icons.check_circle_outline_rounded,
                 size: 16,
               ),
               label: Text(
-                _currentIndex == _questions.length - 1 ? 'إنهاء الجلسة' : 'السؤال التالي',
+                answered
+                    ? (_currentIndex == _questions.length - 1 ? 'إنهاء الجلسة' : 'السؤال التالي')
+                    : 'تحقق من الإجابة',
                 style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: answered ? AppColors.primaryBlue : Colors.grey[300],
-                foregroundColor: answered ? Colors.white : Colors.grey[600],
+                backgroundColor: (answered || (!answered && q.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty)) 
+                    ? AppColors.primaryBlue 
+                    : Colors.grey[300],
+                foregroundColor: (answered || (!answered && q.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty)) 
+                    ? Colors.white 
+                    : Colors.grey[600],
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: answered ? 2 : 0,
+                elevation: (answered || (!answered && q.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty)) ? 2 : 0,
               ),
             ),
           ),

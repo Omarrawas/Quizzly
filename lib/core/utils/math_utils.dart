@@ -38,7 +38,23 @@ class MathUtils {
       }
     }
 
-    return buffer.toString();
+    var result = buffer.toString();
+    
+    // 5. Merge adjacent math blocks: \(seg1\) \(seg2\) → \(seg1 seg2\)
+    // This ensures equations with spaces are rendered as a single unit on one line.
+    result = result.replaceAllMapped(
+      RegExp(r'\\\)([\s\t]*)\\\('), 
+      (m) => '${m[1]}'
+    );
+
+    // 6. Merge trailing punctuation/brackets into the math block
+    // e.g., \(x = y\) )  → \(x = y )\)
+    result = result.replaceAllMapped(
+      RegExp(r'\\\)\s*([\)\],.;!]+)'), 
+      (m) => '${m[1]}\\)'
+    );
+
+    return result;
   }
 
   /// Converts \\( ... \\) and \\[ ... \\] (double backslash, legacy format)
@@ -99,11 +115,16 @@ class MathUtils {
   /// Detects if a string looks like a mathematical equation
   static bool isMathLike(String text) {
     final trimmed = text.trim();
-    if (trimmed.length < 2) return false;
-
-    // If it's a number followed by a unit or symbol, it might be caught.
-    // But if it has Arabic, we definitely skip.
+    if (trimmed.isEmpty) return false;
+    
+    // Arabic characters are never math in this context
     if (RegExp(r'[\u0600-\u06FF]').hasMatch(trimmed)) return false;
+
+    // Single character detection
+    if (trimmed.length == 1) {
+      // Allow operators, common math symbols, and single variables even if single character
+      return RegExp(r'[a-zA-ZπλωσΔΩαβγθδσΦ\^/_=<>≤≥≠≈×÷±√∞²³〖〗【】()\[\]{}λπαβγ+*-]').hasMatch(trimmed);
+    }
 
     // If it starts with a number but has no operators, don't treat as math (e.g. "22.4")
     if (RegExp(r'^\d+\.?\d*$').hasMatch(trimmed)) return false;

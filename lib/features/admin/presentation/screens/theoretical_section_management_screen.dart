@@ -646,9 +646,6 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             ? Colors.teal 
             : (data['type'] == 'checkbox' ? Colors.deepPurple : Colors.orange));
     final questionText = _stripHtml(data['text'] ?? '');
-    final translationText = data['translationText'] != null && (data['translationText'] as String).isNotEmpty
-        ? _stripHtml(data['translationText'] as String)
-        : null;
     
     final bool isSelected = _selectedQuestionIds.contains(id);
     

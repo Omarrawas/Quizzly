@@ -229,18 +229,19 @@ class TexViewWidget extends StatelessWidget {
   }
 
   static String _stripMathDelimiters(String token) {
-    if (token.startsWith(r'\[') && token.endsWith(r'\]')) {
-      return token.substring(2, token.length - 2);
+    String t = token.trim();
+    if (t.startsWith(r'\[') && t.endsWith(r'\]')) {
+      return t.substring(2, t.length - 2).trim();
     }
-    if (token.startsWith(r'\(') && token.endsWith(r'\)')) {
-      return token.substring(2, token.length - 2);
+    if (t.startsWith(r'\(') && t.endsWith(r'\)')) {
+      return t.substring(2, t.length - 2).trim();
     }
-    if (token.startsWith('\$\$') && token.endsWith('\$\$')) {
-      return token.substring(2, token.length - 2);
+    if (t.startsWith('\$\$') && t.endsWith('\$\$')) {
+      return t.substring(2, t.length - 2).trim();
     }
-    if (token.startsWith('\$') && token.endsWith('\$')) {
-      return token.substring(1, token.length - 1);
+    if (t.startsWith('\$') && t.endsWith('\$')) {
+      return t.substring(1, t.length - 1).trim();
     }
-    return token;
+    return t;
   }
 }

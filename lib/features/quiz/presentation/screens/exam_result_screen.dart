@@ -11,7 +11,7 @@ class ExamResultScreen extends StatelessWidget {
   final int totalCount;
   final int timeSpentSeconds;
   final List<QuizQuestion> questions;
-  final Map<int, String> userAnswers;
+  final Map<int, dynamic> userAnswers; // Accepts String or Set<String>
 
   const ExamResultScreen({
     super.key,
@@ -152,7 +152,16 @@ class ExamResultScreen extends StatelessWidget {
     Map<String, List<bool>> topicPerformance = {};
     for (int i = 0; i < questions.length; i++) {
       final q = questions[i];
-      final isCorrect = q.correctOptionIds.contains(userAnswers[i]);
+      final userAns = userAnswers[i];
+      
+      bool isCorrect = false;
+      if (userAns is Set<String>) {
+        isCorrect = userAns.length == q.correctOptionIds.length &&
+            userAns.every((id) => q.correctOptionIds.contains(id));
+      } else if (userAns is String) {
+        isCorrect = q.correctOptionIds.contains(userAns);
+      }
+      
       for (var tid in (q.topicIds ?? [])) {
         topicPerformance.putIfAbsent(tid, () => []).add(isCorrect);
       }

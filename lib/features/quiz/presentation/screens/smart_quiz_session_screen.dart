@@ -33,7 +33,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
-  String? _selectedOptionId;
+  Set<String> _selectedOptionIds = {};
   AnswerState _answerState = AnswerState.unanswered;
   bool _loading = true;
   
@@ -99,16 +99,44 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     if (_answerState != AnswerState.unanswered) return;
     HapticFeedback.selectionClick();
 
-    final isCorrect = _current!.correctOptionIds.contains(optionId);
+    setState(() {
+      if (_current!.type == QuestionType.checkbox) {
+        // Toggle selection
+        if (_selectedOptionIds.contains(optionId)) {
+          _selectedOptionIds.remove(optionId);
+        } else {
+          _selectedOptionIds.add(optionId);
+        }
+        _selectedOptionIds = Set.from(_selectedOptionIds);
+      } else {
+        // Single choice - immediate reveal
+        _selectedOptionIds = {optionId};
+        _checkAnswer();
+      }
+    });
+  }
+
+  void _checkAnswer() {
+    if (_selectedOptionIds.isEmpty) return;
+    
+    final q = _current!;
+    bool isCorrect = false;
+    
+    if (q.type == QuestionType.checkbox) {
+      isCorrect = _selectedOptionIds.length == q.correctOptionIds.length &&
+          _selectedOptionIds.every((id) => q.correctOptionIds.contains(id));
+    } else {
+      isCorrect = _selectedOptionIds.length == 1 &&
+          q.correctOptionIds.contains(_selectedOptionIds.first);
+    }
     
     // Add to answer list for final update
     _userAnswers.add({
-      'questionId': _current!.id,
+      'questionId': q.id,
       'isCorrect': isCorrect,
     });
 
     setState(() {
-      _selectedOptionId = optionId;
       _answerState = isCorrect ? AnswerState.correct : AnswerState.wrong;
       if (isCorrect) {
         _correct++;
@@ -118,9 +146,9 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     });
 
     // Still record individual question analytics
-    if (_current?.id != null) {
+    if (q.id != null) {
       _practiceService.recordAnswer(
-        questionId: _current!.id!,
+        questionId: q.id!,
         isCorrect: isCorrect,
         timeSpentSeconds: 0,
       );
@@ -131,7 +159,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     if (_currentIndex < _questions.length - 1) {
       setState(() {
         _currentIndex++;
-        _selectedOptionId = null;
+        _selectedOptionIds = {};
         _answerState = AnswerState.unanswered;
       });
       _slideController.forward(from: 0);
@@ -384,7 +412,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     final q = _current!;
     return Column(
       children: q.options!.map((option) {
-        final isSelected = _selectedOptionId == option.id;
+        final isSelected = _selectedOptionIds.contains(option.id);
         final isCorrect = q.correctOptionIds.contains(option.id);
         final revealed = _answerState != AnswerState.unanswered;
 
@@ -425,8 +453,25 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
                   child: TexViewWidget(
                     text: option.text,
                     color: textColor,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
+                if (q.type == QuestionType.checkbox) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.rectangle,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 2),
+                      color: isSelected ? borderColor : Colors.transparent,
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                        : null,
+                  ),
+                ],
               ],
             ),
           ),
@@ -463,15 +508,23 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: answered ? _nextQuestion : null,
+          onPressed: answered 
+              ? _nextQuestion 
+              : (_current?.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty ? _checkAnswer : null),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
+            backgroundColor: (answered || (!answered && _current?.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty)) 
+                ? AppColors.primaryBlue 
+                : Colors.grey[300],
+            foregroundColor: (answered || (!answered && _current?.type == QuestionType.checkbox && _selectedOptionIds.isNotEmpty)) 
+                ? Colors.white 
+                : Colors.grey[600],
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: Text(
-            _currentIndex == _questions.length - 1 ? 'عرض النتائج' : 'السؤال التالي',
+            answered
+                ? (_currentIndex == _questions.length - 1 ? 'عرض النتائج' : 'السؤال التالي')
+                : 'تحقق من الإجابة',
             style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
           ),
         ),

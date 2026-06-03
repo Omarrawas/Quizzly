@@ -8,7 +8,47 @@ class MathParser {
     // 1. Normalize Unicode and Greek letters
     String normalized = MathNormalizer.normalize(input);
     
-    // 2. Recursively parse structures
+    // 2. Handle isotope pattern: (_2^4)He or (^4_2)He -> {}_{2}^{4}\mathrm{He}
+    // Also handle simple ions: (H^+) or H^+
+    normalized = normalized.replaceAllMapped(
+      RegExp(r'\(\s*(?:([_^])([\w\d+-]+))\s*(?:([_^])([\w\d+-]+))?\s*\)\s*([a-zA-Z]{1,3})'),
+      (match) {
+        String type1 = match.group(1) ?? ""; // _ or ^
+        String val1 = match.group(2) ?? "";
+        String type2 = match.group(3) ?? ""; // ^ or _ (optional)
+        String val2 = match.group(4) ?? "";
+        String element = match.group(5) ?? "";
+        
+        String sub = "";
+        String sup = "";
+        
+        if (type1 == '_') sub = val1;
+        if (type1 == '^') sup = val1;
+        if (type2 == '_') sub = val2;
+        if (type2 == '^') sup = val2;
+        
+        return "{}_{$sub}^{$sup}\\mathrm{$element}";
+      }
+    );
+
+    // Handle simple ions with parentheses like (H^+) or (OH^-)
+    normalized = normalized.replaceAllMapped(
+      RegExp(r'\(([a-zA-Z]{1,3})\^?\(?([\+\-])\)?\)'),
+      (match) => "${match.group(1)}^{${match.group(2)}}"
+    );
+
+    // Handle standalone ions like H^+ or H+ at the end of word units
+    normalized = normalized.replaceAllMapped(
+      RegExp(r'\b([a-zA-Z]{1,3})(\^?[\+\-])\b'),
+      (match) {
+        String element = match.group(1)!;
+        String charge = match.group(2)!;
+        if (charge.startsWith('^')) charge = charge.substring(1);
+        return "$element^{$charge}";
+      }
+    );
+
+    // 3. Recursively parse structures
     return _parse(normalized);
   }
 

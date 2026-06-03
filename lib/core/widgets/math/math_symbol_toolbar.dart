@@ -306,6 +306,34 @@ class MathSymbolToolbar extends StatelessWidget {
                             ),
                           ),
                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: ElevatedButton.icon(
+                            onPressed: previewLatex.isEmpty
+                                ? null
+                                : () {
+                                    final result = '\\(${controller.text}\\)';
+                                    Navigator.pop(ctx);
+                                    onSymbolSelected(result);
+                                  },
+                            icon: const Icon(Icons.check, size: 18),
+                            label: const Text('حفظ'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accentColor,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor:
+                                  accentColor.withValues(alpha: 0.1),
+                              disabledForegroundColor:
+                                  textColor.withValues(alpha: 0.3),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                        ),
                         IconButton(
                           icon: Icon(Icons.close,
                               color: textColor.withValues(alpha: 0.6)),
@@ -601,43 +629,6 @@ class MathSymbolToolbar extends StatelessWidget {
                     ),
                   ),
 
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border(
-                          top: BorderSide(
-                              color: borderColor.withValues(alpha: 0.3))),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text('إلغاء',
-                              style: TextStyle(color: accentColor)),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: previewLatex.isEmpty
-                              ? null
-                              : () {
-                                  final result = '\\(${controller.text}\\)';
-                                  Navigator.pop(ctx);
-                                  onSymbolSelected(result);
-                                },
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('إدراج المعادلة'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
