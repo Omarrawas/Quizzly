@@ -8,6 +8,7 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/admin/presentation/screens/bulk_upload_screen.dart';
 import 'package:quizzly/features/admin/domain/services/bulk_upload_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/question_management_screen.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 
 class TheoreticalSectionManagementScreen extends StatefulWidget {
@@ -746,22 +747,18 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          questionText,
-                          style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
+                        TexViewWidget(
+                          text: data['text'] ?? '',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
-                        if (translationText != null)
+                        if (data['translationText'] != null && (data['translationText'] as String).isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              translationText,
-                              style: GoogleFonts.cairo(
-                                fontSize: 11,
-                                color: Colors.blueGrey,
-                                fontStyle: FontStyle.italic,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: TexViewWidget(
+                              text: data['translationText'] as String,
+                              fontSize: 11,
+                              color: Colors.blueGrey,
                             ),
                           ),
                         if (data['topicIds'] != null && (data['topicIds'] as List).isNotEmpty)
@@ -854,7 +851,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                 Icon(isCorrect ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, 
                                      size: 16, color: isCorrect ? Colors.green : Colors.grey),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(_stripHtml(opt['text'] ?? ''), style: GoogleFonts.cairo(fontSize: 12))),
+                                Expanded(child: TexViewWidget(text: opt['text'] ?? '', fontSize: 12)),
                               ],
                             ),
                           );

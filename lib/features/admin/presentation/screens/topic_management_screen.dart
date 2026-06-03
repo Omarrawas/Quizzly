@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/rich_text_editor.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_detail_screen.dart';
@@ -168,6 +169,11 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             return _ChapterCard(
               chapterId: id,
               chapterName: name,
+              chapterTitleWidget: TexViewWidget(
+                text: name,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
               chapterData: data,
               isDark: isDark,
               onAddLesson: () => _showAddTopicDialog(context, id, 'lesson'),
@@ -305,15 +311,13 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         title: Row(
           children: [
             Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.cairo(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? AppColors.primaryBlue
-                      : (isDark ? Colors.white : Colors.black87),
-                  fontSize: 13,
-                ),
+              child: TexViewWidget(
+                text: title,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? AppColors.primaryBlue
+                    : (isDark ? Colors.white : Colors.black87),
               ),
             ),
             if (data != null && data['isFree'] == true)
@@ -1023,6 +1027,7 @@ class _ChapterCard extends StatefulWidget {
   final VoidCallback onEditChapter;
   final VoidCallback onDeleteChapter;
   final Widget lessonsList;
+  final Widget chapterTitleWidget;
 
   const _ChapterCard({
     required this.chapterId,
@@ -1033,6 +1038,7 @@ class _ChapterCard extends StatefulWidget {
     required this.onEditChapter,
     required this.onDeleteChapter,
     required this.lessonsList,
+    required this.chapterTitleWidget,
   });
 
   @override
@@ -1070,14 +1076,7 @@ class _ChapterCardState extends State<_ChapterCard> {
               color: AppColors.primaryBlue,
               size: 24,
             ),
-            title: Text(
-              widget.chapterName,
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: widget.isDark ? Colors.white : Colors.black87,
-              ),
-            ),
+            title: widget.chapterTitleWidget,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
