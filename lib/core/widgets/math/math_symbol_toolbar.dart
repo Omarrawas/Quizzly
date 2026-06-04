@@ -55,7 +55,7 @@ class MathSymbolToolbar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             children: [
               _buildEquationButton(context),
-              _buildCategoryMenu(
+              _buildSimpleCategoryMenu(
                 context,
                 'الرموز',
                 'αΩ',
@@ -64,134 +64,25 @@ class MathSymbolToolbar extends StatelessWidget {
                   _MathItem('β', 'بيتا', 'β'),
                   _MathItem('γ', 'غاما', 'γ'),
                   _MathItem('δ', 'دلتا', 'δ'),
-                  _MathItem('ε', 'إبسيلون', 'ε'),
-                  _MathItem('ζ', 'زيتا', 'ζ'),
-                  _MathItem('η', 'إيتا', 'η'),
-                  _MathItem('θ', 'ثيتا', 'θ'),
-                  _MathItem('ι', 'أيوتا', 'ι'),
-                  _MathItem('κ', 'كابا', 'κ'),
-                  _MathItem('λ', 'لامدا', 'λ'),
-                  _MathItem('μ', 'ميو', 'μ'),
-                  _MathItem('ν', 'نيو', 'ν'),
-                  _MathItem('ξ', 'كسي', 'ξ'),
                   _MathItem('π', 'باي', 'π'),
-                  _MathItem('ρ', 'رو', 'ρ'),
-                  _MathItem('σ', 'سيغما', 'σ'),
-                  _MathItem('τ', 'تاو', 'τ'),
-                  _MathItem('φ', 'فاي', 'φ'),
-                  _MathItem('χ', 'كاي', 'χ'),
-                  _MathItem('ψ', 'بساي', 'ψ'),
-                  _MathItem('ω', 'أوميغا', 'ω'),
-                  _MathItem('Δ', 'دلتا كبيرة', 'Δ'),
-                  _MathItem('Ω', 'أوميغا كبيرة', 'Ω'),
-                  _MathItem('Σ', 'سيغما كبيرة', 'Σ'),
-                  _MathItem('Φ', 'فاي كبيرة', 'Φ'),
                   _MathItem('∞', 'لانهاية', '∞'),
-                  _MathItem('∂', 'اشتقاق جزئي', '∂'),
-                  _MathItem('∇', 'نابلا', '∇'),
-                  _MathItem('ℏ', 'ثابت بلانك', 'ℏ'),
+                  _MathItem('≠', 'لا يساوي', '≠'),
+                  _MathItem('≈', 'تقريبا', '≈'),
                 ],
               ),
-              _buildCategoryMenu(
+              _buildSimpleCategoryMenu(
                 context,
                 'كيمياء',
                 '⇌',
                 [
                   _MathItem('→', 'سهم تفاعل', '→'),
                   _MathItem('⇌', 'تفاعل عكوس', '⇌'),
-                  _MathItem('⇀', 'سهم أمامي', '⇀'),
-                  _MathItem('↽', 'سهم عكسي', '↽'),
                   _MathItem('↑', 'غاز متصاعد', '↑'),
                   _MathItem('↓', 'راسب', '↓'),
-                  _MathItem('(s)', 'حالة صلبة', '(s)'),
-                  _MathItem('(l)', 'حالة سائلة', '(l)'),
-                  _MathItem('(g)', 'حالة غازية', '(g)'),
-                  _MathItem('(aq)', 'محلول مائي', '(aq)'),
-                  _MathItem('₀', 'رقم سفلي 0', '₀'),
-                  _MathItem('₁', 'رقم سفلي 1', '₁'),
                   _MathItem('₂', 'رقم سفلي 2', '₂'),
                   _MathItem('₃', 'رقم سفلي 3', '₃'),
-                  _MathItem('₄', 'رقم سفلي 4', '₄'),
-                  _MathItem('₅', 'رقم سفلي 5', '₅'),
-                  _MathItem('₆', 'رقم سفلي 6', '₆'),
-                  _MathItem('₇', 'رقم سفلي 7', '₇'),
-                  _MathItem('₈', 'رقم سفلي 8', '₈'),
-                  _MathItem('₉', 'رقم سفلي 9', '₉'),
-                  _MathItem('⁰', 'رقم علوي 0', '⁰'),
-                  _MathItem('¹', 'رقم علوي 1', '¹'),
-                  _MathItem('²', 'رقم علوي 2', '²'),
-                  _MathItem('³', 'رقم علوي 3', '³'),
-                  _MathItem('⁴', 'رقم علوي 4', '⁴'),
-                  _MathItem('⁺', 'شحنة موجبة', '⁺'),
-                  _MathItem('⁻', 'شحنة سالبة', '⁻'),
-                  _MathItem('²⁺', 'شحنة 2+', '²⁺'),
-                  _MathItem('²⁻', 'شحنة 2-', '²⁻'),
-                  _MathItem('³⁺', 'شحنة 3+', '³⁺'),
-                  _MathItem('³⁻', 'شحنة 3-', '³⁻'),
-                ],
-              ),
-              _buildCategoryMenu(
-                context,
-                'عمليات',
-                '±÷',
-                [
-                  _MathItem('±', 'زائد أو ناقص', '±'),
-                  _MathItem('∓', 'ناقص أو زائد', '∓'),
-                  _MathItem('×', 'ضرب', '×'),
-                  _MathItem('÷', 'قسمة', '÷'),
-                  _MathItem('·', 'ضرب (نقطة)', '·'),
-                  _MathItem('≠', 'لا يساوي', '≠'),
-                  _MathItem('≈', 'تقريبا', '≈'),
-                  _MathItem('≡', 'مطابق', '≡'),
-                  _MathItem('≤', 'أقل أو يساوي', '≤'),
-                  _MathItem('≥', 'أكبر أو يساوي', '≥'),
-                  _MathItem('≪', 'أصغر بكثير', '≪'),
-                  _MathItem('≫', 'أكبر بكثير', '≫'),
-                  _MathItem('∝', 'تتناسب مع', '∝'),
-                  _MathItem('∈', 'ينتمي إلى', '∈'),
-                  _MathItem('∉', 'لا ينتمي إلى', '∉'),
-                  _MathItem('⊂', 'مجموعة جزئية', '⊂'),
-                  _MathItem('⊃', 'مجموعة شاملة', '⊃'),
-                  _MathItem('∪', 'اتحاد', '∪'),
-                  _MathItem('∩', 'تقاطع', '∩'),
-                  _MathItem('∅', 'مجموعة فارغة', '∅'),
-                  _MathItem('∀', 'لكل', '∀'),
-                  _MathItem('∃', 'يوجد', '∃'),
-                  _MathItem('∴', 'إذن', '∴'),
-                  _MathItem('∵', 'لأن', '∵'),
-                  _MathItem('⊥', 'عمودي على', '⊥'),
-                  _MathItem('∥', 'يوازي', '∥'),
-                  _MathItem('∠', 'زاوية', '∠'),
-                  _MathItem('°', 'درجة', '°'),
-                ],
-              ),
-              _buildCategoryMenu(
-                context,
-                'أسهم',
-                '→',
-                [
-                  _MathItem('→', 'سهم لليمين', '→'),
-                  _MathItem('←', 'سهم لليسار', '←'),
-                  _MathItem('↔', 'سهم مزدوج', '↔'),
-                  _MathItem('⇒', 'يؤدي إلى', '⇒'),
-                  _MathItem('⇐', 'ينتج من', '⇐'),
-                  _MathItem('⇔', 'إذا وفقط إذا', '⇔'),
-                  _MathItem('↑', 'سهم للأعلى', '↑'),
-                  _MathItem('↓', 'سهم للأسفل', '↓'),
-                  _MathItem('⇌', 'توازن', '⇌'),
-                ],
-              ),
-              _buildCategoryMenu(
-                context,
-                'دوال',
-                'sin',
-                [
-                  _MathItem('sin', 'جا', 'sin'),
-                  _MathItem('cos', 'جتا', 'cos'),
-                  _MathItem('tan', 'ظا', 'tan'),
-                  _MathItem('log', 'لوغاريتم', 'log'),
-                  _MathItem('ln', 'لوغاريتم طبيعي', 'ln'),
-                  _MathItem('lim', 'نهاية', 'lim'),
+                  _MathItem('⁺', 'شحنة موجب', '⁺'),
+                  _MathItem('⁻', 'شحنة سالب', '⁻'),
                 ],
               ),
             ],
@@ -201,444 +92,7 @@ class MathSymbolToolbar extends StatelessWidget {
     );
   }
 
-  Widget _buildEquationButton(BuildContext context) {
-    final accent = AppColors.primaryBlue;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: InkWell(
-        onTap: () => _showEquationDialog(context),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 84,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                accent.withValues(alpha: 0.15),
-                accent.withValues(alpha: 0.05)
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: accent.withValues(alpha: 0.4)),
-          ),
-          child: const Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.functions, color: AppColors.primaryBlue, size: 24),
-                  SizedBox(height: 2),
-                  Text(
-                    'معادلة',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.primaryBlue,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEquationDialog(BuildContext context) {
-    final controller = TextEditingController();
-    String previewLatex = '';
-    String selectedCategoryId = _equationCategories.first.id;
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : AppColors.textPrimary;
-    final mutedTextColor = isDark ? Colors.white70 : AppColors.textSecondary;
-    final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
-    final accentColor = AppColors.primaryBlue;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(16),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 860, maxHeight: 720),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    blurRadius: 32,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.1),
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.functions, color: accentColor, size: 24),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'إدراج معادلة رياضية',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: ElevatedButton.icon(
-                            onPressed: previewLatex.isEmpty
-                                ? null
-                                : () {
-                                    final result = '\\(${controller.text}\\)';
-                                    Navigator.pop(ctx);
-                                    onSymbolSelected(result);
-                                  },
-                            icon: const Icon(Icons.check, size: 18),
-                            label: const Text('حفظ'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor:
-                                  accentColor.withValues(alpha: 0.1),
-                              disabledForegroundColor:
-                                  textColor.withValues(alpha: 0.3),
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.close,
-                              color: textColor.withValues(alpha: 0.6)),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(
-                            height: 52,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _equationCategories.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(width: 8),
-                              itemBuilder: (context, index) {
-                                final category = _equationCategories[index];
-                                final selected =
-                                    category.id == selectedCategoryId;
-                                return InkWell(
-                                  onTap: () {
-                                    setDialogState(() {
-                                      selectedCategoryId = category.id;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? accentColor.withValues(alpha: 0.14)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: selected
-                                            ? accentColor
-                                            : borderColor,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          category.icon,
-                                          size: 18,
-                                          color: selected
-                                              ? accentColor
-                                              : textColor,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          category.label,
-                                          style: TextStyle(
-                                            color: selected
-                                                ? accentColor
-                                                : textColor,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ..._equationCategories
-                              .firstWhere((c) => c.id == selectedCategoryId)
-                              .groups
-                              .map((group) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 18),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    group.title,
-                                    style: TextStyle(
-                                      color: textColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      final width = constraints.maxWidth;
-                                      final crossAxisCount = width > 760
-                                          ? 4
-                                          : width > 520
-                                              ? 3
-                                              : 2;
-                                      return GridView.builder(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemCount: group.templates.length,
-                                        gridDelegate:
-                                            SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
-                                          crossAxisSpacing: 10,
-                                          mainAxisSpacing: 10,
-                                          childAspectRatio:
-                                              width > 760 ? 1.45 : 1.15,
-                                        ),
-                                        itemBuilder: (context, index) {
-                                          final template =
-                                              group.templates[index];
-                                          return InkWell(
-                                            onTap: () {
-                                              controller.text = template.latex;
-                                              setDialogState(() {
-                                                previewLatex = template.latex;
-                                              });
-                                            },
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: Colors.transparent,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: borderColor,
-                                                ),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.stretch,
-                                                children: [
-                                                  Expanded(
-                                                    child: Center(
-                                                      child: _SafeMathPreview(
-                                                        latex: template.preview,
-                                                        textColor: textColor,
-                                                        mathSize: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    template.label,
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: textColor,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-
-                          Text('قوالب سريعة:',
-                              style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14)),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _equationTemplates.take(8).map((t) {
-                              return ActionChip(
-                                onPressed: () {
-                                  controller.text = t.latex;
-                                  setDialogState(() => previewLatex = t.latex);
-                                },
-                                backgroundColor: Colors.transparent,
-                                side: BorderSide(color: borderColor),
-                                label: Text(
-                                  t.label,
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 16),
-
-                          Text('اكتب المعادلة بصيغة LaTeX:',
-                              style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14)),
-                          const SizedBox(height: 8),
-                          Directionality(
-                            textDirection: TextDirection.ltr,
-                            child: TextField(
-                              controller: controller,
-                              maxLines: 3,
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 14,
-                                color: textColor,
-                              ),
-                              decoration: InputDecoration(
-                                hintText:
-                                    r'مثال: \frac{-b \pm \sqrt{b^2-4ac}}{2a}',
-                                hintStyle: TextStyle(
-                                    color:
-                                        mutedTextColor.withValues(alpha: 0.5),
-                                    fontSize: 12),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: borderColor),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: borderColor),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                      color: accentColor, width: 1.5),
-                                ),
-                                filled: true,
-                                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                              ),
-                              onChanged: (val) {
-                                setDialogState(() => previewLatex = val);
-                              },
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          Text('المعاينة:',
-                              style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14)),
-                          const SizedBox(height: 8),
-                          Container(
-                            constraints: const BoxConstraints(minHeight: 120),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: accentColor.withValues(alpha: 0.3)),
-                            ),
-                            child: previewLatex.isEmpty
-                                ? Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(20),
-                                      child: Text(
-                                        'ابدأ بالكتابة لرؤية المعاينة',
-                                        style: TextStyle(
-                                            color: mutedTextColor,
-                                            fontSize: 13),
-                                      ),
-                                    ),
-                                  )
-                                : Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Center(
-                                      child: _SafeMathPreview(
-                                        latex: previewLatex,
-                                        textColor: textColor,
-                                        mathSize: 22,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildCategoryMenu(
+  Widget _buildSimpleCategoryMenu(
     BuildContext context,
     String label,
     String iconLabel,
@@ -659,12 +113,11 @@ class MathSymbolToolbar extends StatelessWidget {
         offset: const Offset(0, -8),
         elevation: 10,
         color: surface,
-        constraints: const BoxConstraints(maxHeight: 420, minWidth: 280),
+        constraints: const BoxConstraints(maxHeight: 420, minWidth: 200),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: borderColor),
         ),
-        tooltip: label,
         child: Container(
           width: 84,
           decoration: BoxDecoration(
@@ -672,76 +125,22 @@ class MathSymbolToolbar extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: borderColor),
           ),
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Directionality(
-                    textDirection: TextDirection.ltr,
-                    child: Text(
-                      iconLabel,
-                      style: TextStyle(
-                        color: textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(iconLabel, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(label, style: TextStyle(color: textSecondary, fontSize: 12)),
+            ],
           ),
         ),
         itemBuilder: (context) => items.map((item) {
           return PopupMenuItem<String>(
             value: item.value,
-            height: 44,
             child: Row(
               children: [
-                Container(
-                  width: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: accent.withValues(alpha: 0.25)),
-                  ),
-                  child: Directionality(
-                    textDirection: TextDirection.ltr,
-                    child: Text(
-                      item.preview,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: accent,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
+                Text(item.preview, style: TextStyle(fontSize: 14, color: accent, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: textPrimary,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
+                Expanded(child: Text(item.label, textAlign: TextAlign.right)),
               ],
             ),
           );
@@ -750,103 +149,340 @@ class MathSymbolToolbar extends StatelessWidget {
     );
   }
 
-  static final List<_EquationTemplate> _equationTemplates = [
-    const _EquationTemplate(r'\frac{a}{b}', 'كسر', preview: r'\frac{\Box}{\Box}'),
-    const _EquationTemplate(
-      r'\frac{-b \pm \sqrt{b^2-4ac}}{2a}',
-      'صيغة تربيعية',
-      preview: r'\frac{-b \pm \sqrt{b^2-4ac}}{2a}',
-    ),
-    const _EquationTemplate(r'\sqrt{x}', 'جذر تربيعي', preview: r'\sqrt{\Box}'),
-    const _EquationTemplate(r'x^{n}', 'أس', preview: r'x^{\Box}'),
-    const _EquationTemplate(r'x_{n}', 'دليل سفلي', preview: r'x_{\Box}'),
-    const _EquationTemplate(
-      r'\sum_{i=1}^{n} x_i',
-      'مجموع',
-      preview: r'\sum_{i=1}^{n} x_i',
-    ),
-    const _EquationTemplate(
-      r'\int_{a}^{b} f(x) \, dx',
-      'تكامل محدد',
-      preview: r'\int_{a}^{b} f(x)\,dx',
-    ),
-    const _EquationTemplate(
-      r'\lim_{x \to \infty} f(x)',
-      'نهاية',
-      preview: r'\lim_{x\to\infty} f(x)',
-    ),
-  ];
+  Widget _buildEquationButton(BuildContext context) {
+    final accent = AppColors.primaryBlue;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: InkWell(
+        onTap: () => _showEquationDialog(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 84,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [accent.withValues(alpha: 0.15), accent.withValues(alpha: 0.05)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: accent.withValues(alpha: 0.4)),
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.functions, color: AppColors.primaryBlue, size: 24),
+              Text('معادلة', style: TextStyle(color: AppColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEquationDialog(BuildContext context) {
+    final controller = TextEditingController();
+    String previewLatex = '';
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+    final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
+    final accentColor = AppColors.primaryBlue;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(16),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 900, maxHeight: 750),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 32, spreadRadius: 2),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.1),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.functions, color: accentColor, size: 24),
+                        const SizedBox(width: 8),
+                        const Expanded(child: Text('إدراج معادلة رياضية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                        ElevatedButton.icon(
+                          onPressed: previewLatex.isEmpty ? null : () {
+                            onSymbolSelected('\\(${controller.text}\\)');
+                            Navigator.pop(ctx);
+                          },
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('حفظ'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                  ),
+
+                  // Ribbon
+                  Container(
+                    height: 95,
+                    color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: _equationCategories.length,
+                      itemBuilder: (context, index) {
+                        final cat = _equationCategories[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: PopupMenuButton<String>(
+                            onSelected: (template) {
+                              final text = controller.text;
+                              final selection = controller.selection;
+                              final start = selection.start == -1 ? text.length : selection.start;
+                              final end = selection.end == -1 ? text.length : selection.end;
+                              final newText = text.replaceRange(start, end, template);
+                              controller.value = TextEditingValue(
+                                text: newText,
+                                selection: TextSelection.collapsed(offset: start + template.length),
+                              );
+                              setDialogState(() => previewLatex = newText);
+                            },
+                            offset: const Offset(0, 85),
+                            constraints: const BoxConstraints(maxWidth: 350, maxHeight: 450),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: SizedBox(
+                              width: 85,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _SafeMathPreview(latex: cat.ribbonPreview, textColor: textColor, mathSize: 22),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Flexible(child: Text(cat.label, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis)),
+                                      const Icon(Icons.arrow_drop_down, size: 14),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            itemBuilder: (ctx) {
+                              List<PopupMenuEntry<String>> entries = [];
+                              for (var group in cat.groups) {
+                                entries.add(PopupMenuItem(enabled: false, child: Text(group.title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: accentColor))));
+                                entries.add(PopupMenuItem<String>(
+                                  padding: EdgeInsets.zero,
+                                  child: Container(
+                                    width: 350,
+                                    padding: const EdgeInsets.all(12),
+                                    child: Wrap(
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      children: group.templates.map((t) {
+                                        return InkWell(
+                                          onTap: () => Navigator.pop(ctx, t.latex),
+                                          child: Container(
+                                            width: 70, height: 70,
+                                            decoration: BoxDecoration(border: Border.all(color: borderColor.withValues(alpha: 0.3)), borderRadius: BorderRadius.circular(8)),
+                                            child: Center(child: _SafeMathPreview(latex: t.preview, textColor: textColor, mathSize: 18)),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ));
+                              }
+                              return entries;
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('المعاينة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const SizedBox(height: 12),
+                          Container(
+                            constraints: const BoxConstraints(minHeight: 200),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1.5),
+                            ),
+                            child: previewLatex.isEmpty
+                                ? const Center(child: Text('استخدم الشريط في الأعلى لإضافة الرموز'))
+                                : Padding(padding: const EdgeInsets.all(24), child: Center(child: _SafeMathPreview(latex: previewLatex, textColor: textColor, mathSize: 32))),
+                          ),
+                          const SizedBox(height: 24),
+                          const Text('تعديل القيم:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const SizedBox(height: 12),
+                          Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: TextField(
+                              controller: controller,
+                              maxLines: 4,
+                              style: TextStyle(fontFamily: 'monospace', fontSize: 18, color: textColor),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onChanged: (val) => setDialogState(() => previewLatex = val),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('تلميح: المربعات الفارغة تمثل الأماكن التي يجب تعبئتها.', textAlign: TextAlign.center, style: TextStyle(color: accentColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   static final List<_EquationCategory> _equationCategories = [
     _EquationCategory(
-      id: 'fractions',
-      label: 'كسور',
-      icon: Icons.horizontal_split,
+      id: 'fractions', label: 'كسر', ribbonPreview: r'\frac{x}{y}',
       groups: [
-        const _EquationGroup(
-          title: 'كسور شائعة',
-          templates: [
-            _EquationTemplate(r'\frac{a}{b}', 'كسر بسيط',
-                preview: r'\frac{\Box}{\Box}'),
-            _EquationTemplate(r'\frac{dy}{dx}', 'مشتقة',
-                preview: r'\frac{dy}{dx}'),
-            _EquationTemplate(r'\frac{\Delta y}{\Delta x}', 'فرق محدود',
-                preview: r'\frac{\Delta y}{\Delta x}'),
-          ],
-        ),
+        const _EquationGroup(title: 'كسور', templates: [
+          _EquationTemplate(r'\frac{\Box}{\Box}', 'كسر عمودي', preview: r'\frac{\Box}{\Box}'),
+          _EquationTemplate(r'{\Box}/{\Box}', 'كسر مائل', preview: r'{\Box}/{\Box}'),
+          _EquationTemplate(r'\frac{dy}{dx}', 'مشتقة', preview: r'\frac{dy}{dx}'),
+          _EquationTemplate(r'\frac{\Delta y}{\Delta x}', 'فرق', preview: r'\frac{\Delta y}{\Delta x}'),
+          _EquationTemplate(r'\frac{\partial y}{\partial x}', 'معدل تغير', preview: r'\frac{\partial y}{\partial x}'),
+          _EquationTemplate(r'\frac{\pi}{2}', 'باي على 2', preview: r'\frac{\pi}{2}'),
+        ]),
       ],
     ),
     _EquationCategory(
-      id: 'scripts',
-      label: 'علوي/سفلي',
-      icon: Icons.keyboard_arrow_up,
+      id: 'scripts', label: 'أس', ribbonPreview: r'e^x',
       groups: [
-        const _EquationGroup(
-          title: 'أحرف منخفضة ومرتفعة',
-          templates: [
-            _EquationTemplate(r'x^{2}', 'أس عادي', preview: r'x^2'),
-            _EquationTemplate(r'x_{1}', 'دليل سفلي', preview: r'x_1'),
-            _EquationTemplate(r'x_{1}^{2}', 'سفلي وعلوي', preview: r'x_1^2'),
-          ],
-        ),
+        const _EquationGroup(title: 'نص علوي وسفلي', templates: [
+          _EquationTemplate(r'{\Box}^{\Box}', 'أس', preview: r'{\Box}^{\Box}'),
+          _EquationTemplate(r'{\Box}_{\Box}', 'دليل سفلي', preview: r'{\Box}_{\Box}'),
+          _EquationTemplate(r'{\Box}_{\Box}^{\Box}', 'سفلي وعلوي', preview: r'{\Box}_{\Box}^{\Box}'),
+          _EquationTemplate(r'{}^{\Box}_{\Box}{\Box}', 'يسار علوي وسفلي', preview: r'{}^{\Box}_{\Box}{\Box}'),
+        ]),
       ],
     ),
     _EquationCategory(
-      id: 'radicals',
-      label: 'جذور',
-      icon: Icons.square_foot,
+      id: 'radicals', label: 'جذري', ribbonPreview: r'\sqrt[n]{x}',
       groups: [
-        const _EquationGroup(
-          title: 'جذور',
-          templates: [
-            _EquationTemplate(r'\sqrt{x}', 'جذر تربيعي',
-                preview: r'\sqrt{\Box}'),
-            _EquationTemplate(r'\sqrt[3]{x}', 'جذر تكعيبي',
-                preview: r'\sqrt[3]{\Box}'),
-            _EquationTemplate(r'\sqrt[n]{x}', 'جذر نوني',
-                preview: r'\sqrt[n]{\Box}'),
-          ],
-        ),
+        const _EquationGroup(title: 'جذور', templates: [
+          _EquationTemplate(r'\sqrt{\Box}', 'جذر تربيعي', preview: r'\sqrt{\Box}'),
+          _EquationTemplate(r'\sqrt[3]{\Box}', 'جذر تكعيبي', preview: r'\sqrt[3]{\Box}'),
+          _EquationTemplate(r'\sqrt[{\Box}]{\Box}', 'جذر نوني', preview: r'\sqrt[{\Box}]{\Box}'),
+          _EquationTemplate(r'\frac{-b \pm \sqrt{b^2-4ac}}{2a}', 'قانون عام', preview: r'\frac{-b \pm \sqrt{b^2-4ac}}{2a}'),
+        ]),
       ],
     ),
     _EquationCategory(
-      id: 'integrals',
-      label: 'تكامل',
-      icon: Icons.functions,
+      id: 'integrals', label: 'تكامل', ribbonPreview: r'\int',
       groups: [
-        const _EquationGroup(
-          title: 'تكاملات ونهايات',
-          templates: [
-            _EquationTemplate(r'\int f(x)\,dx', 'تكامل بسيط',
-                preview: r'\int f(x)\,dx'),
-            _EquationTemplate(r'\int_{a}^{b} f(x)\,dx', 'تكامل محدد',
-                preview: r'\int_{a}^{b} f(x)\,dx'),
-            _EquationTemplate(r'\sum_{i=1}^{n} x_i', 'مجموع كبير',
-                preview: r'\sum_{i=1}^{n} x_i'),
-            _EquationTemplate(r'\lim_{x\to\infty} f(x)', 'نهاية',
-                preview: r'\lim_{x\to\infty} f(x)'),
-          ],
-        ),
+        const _EquationGroup(title: 'تكاملات', templates: [
+          _EquationTemplate(r'\int {\Box} \, dx', 'تكامل', preview: r'\int {\Box}\,dx'),
+          _EquationTemplate(r'\int_{\Box}^{\Box} {\Box} \, dx', 'تكامل محدد', preview: r'\int_{\Box}^{\Box} {\Box}\,dx'),
+          _EquationTemplate(r'\iint {\Box} \, dA', 'تكامل ثنائي', preview: r'\iint {\Box} \, dA'),
+          _EquationTemplate(r'\oint {\Box} \, ds', 'تكامل مسار', preview: r'\oint {\Box} \, ds'),
+        ]),
+      ],
+    ),
+    _EquationCategory(
+      id: 'large_op', label: 'عامل كبير', ribbonPreview: r'\sum',
+      groups: [
+        const _EquationGroup(title: 'مجموع ومنتجات', templates: [
+          _EquationTemplate(r'\sum_{i=1}^{n} {\Box}', 'مجموع', preview: r'\sum_{i=0}^{n} {\Box}'),
+          _EquationTemplate(r'\prod_{i=1}^{n} {\Box}', 'جداء', preview: r'\prod_{i=0}^{n} {\Box}'),
+          _EquationTemplate(r'\coprod_{i=1}^{n} {\Box}', 'مرافق جداء', preview: r'\coprod_{i=0}^{n} {\Box}'),
+          _EquationTemplate(r'\bigcap_{\Box}^{\Box}', 'تقاطع', preview: r'\bigcap_{\Box}^{\Box}'),
+          _EquationTemplate(r'\bigcup_{\Box}^{\Box}', 'اتحاد', preview: r'\bigcup_{\Box}^{\Box}'),
+        ]),
+      ],
+    ),
+    _EquationCategory(
+      id: 'brackets', label: 'أقواس', ribbonPreview: r'\{()\}',
+      groups: [
+        const _EquationGroup(title: 'أقواس وأسوار', templates: [
+          _EquationTemplate(r'( {\Box} )', 'قوس دائري', preview: r'( {\Box} )'),
+          _EquationTemplate(r'[ {\Box} ]', 'قوس مربع', preview: r'[ {\Box} ]'),
+          _EquationTemplate(r'\{ {\Box} \}', 'مجموعة', preview: r'\{ {\Box} \}'),
+          _EquationTemplate(r'| {\Box} |', 'قيمة مطلقة', preview: r'| {\Box} |'),
+          _EquationTemplate(r'\| {\Box} \|', 'نظيم', preview: r'\| {\Box} \|'),
+          _EquationTemplate(r'\langle {\Box} \rangle', 'قوس زاوية', preview: r'\langle {\Box} \rangle'),
+        ]),
+      ],
+    ),
+    _EquationCategory(
+      id: 'functions', label: 'دالة', ribbonPreview: r'\sin \theta',
+      groups: [
+        const _EquationGroup(title: 'تطبيقات مثلثية', templates: [
+          _EquationTemplate(r'\sin({\Box})', 'جا', preview: r'\sin'),
+          _EquationTemplate(r'\cos({\Box})', 'جتا', preview: r'\cos'),
+          _EquationTemplate(r'\tan({\Box})', 'ظا', preview: r'\tan'),
+          _EquationTemplate(r'\sin^{-1}({\Box})', 'جا عكسي', preview: r'\sin^{-1}'),
+          _EquationTemplate(r'\sinh({\Box})', 'جا زائدية', preview: r'\sinh'),
+        ]),
+      ],
+    ),
+    _EquationCategory(
+      id: 'accents', label: 'حركة', ribbonPreview: r'\ddot{a}',
+      groups: [
+        const _EquationGroup(title: 'رموز فوقية', templates: [
+          _EquationTemplate(r'\hat{\Box}', 'هات', preview: r'\hat{\Box}'),
+          _EquationTemplate(r'\bar{\Box}', 'بار', preview: r'\bar{\Box}'),
+          _EquationTemplate(r'\dot{\Box}', 'نقطة', preview: r'\dot{\Box}'),
+          _EquationTemplate(r'\ddot{\Box}', 'نقطتين', preview: r'\ddot{\Box}'),
+          _EquationTemplate(r'\vec{\Box}', 'متجه', preview: r'\vec{\Box}'),
+          _EquationTemplate(r'\tilde{\Box}', 'موجة', preview: r'\tilde{\Box}'),
+        ]),
+      ],
+    ),
+    _EquationCategory(
+      id: 'limits', label: 'حد وسجل', ribbonPreview: r'\lim_{n \to \infty}',
+      groups: [
+        const _EquationGroup(title: 'نهايات ولوغاريتمات', templates: [
+          _EquationTemplate(r'\lim_{x \to {\Box}} {\Box}', 'نهاية', preview: r'\lim_{x\to\infty}'),
+          _EquationTemplate(r'\log_{\Box}({\Box})', 'لوغاريتم', preview: r'\log_{\Box}'),
+          _EquationTemplate(r'\ln({\Box})', 'لوغاريتم طبيعي', preview: r'\ln'),
+          _EquationTemplate(r'\min_{\Box} {\Box}', 'قيمة صغرى', preview: r'\min_{\Box}'),
+          _EquationTemplate(r'\max_{\Box} {\Box}', 'قيمة عظمى', preview: r'\max_{\Box}'),
+        ]),
+      ],
+    ),
+    _EquationCategory(
+      id: 'matrix', label: 'مصفوفة', ribbonPreview: r'[ \begin{smallmatrix} 1 & 0 \\ 0 & 1 \end{smallmatrix} ]',
+      groups: [
+        const _EquationGroup(title: 'مصفوفات', templates: [
+          _EquationTemplate(r'\begin{pmatrix} \Box & \Box \\ \Box & \Box \end{pmatrix}', '2x2 دائرية', preview: r'\begin{pmatrix} \cdot & \cdot \\ \cdot & \cdot \end{pmatrix}'),
+          _EquationTemplate(r'\begin{bmatrix} \Box & \Box \\ \Box & \Box \end{bmatrix}', '2x2 مربعة', preview: r'\begin{bmatrix} \cdot & \cdot \\ \cdot & \cdot \end{bmatrix}'),
+          _EquationTemplate(r'\begin{matrix} \Box & \Box & \Box \\ \Box & \Box & \Box \end{matrix}', '2x3 مستطيلة', preview: r'\begin{matrix} \cdot & \cdot & \cdot \\ \cdot & \cdot & \cdot \end{matrix}'),
+          _EquationTemplate(r'\begin{vmatrix} \Box & \Box \\ \Box & \Box \end{vmatrix}', 'محدد', preview: r'\begin{vmatrix} \cdot & \cdot \\ \cdot & \cdot \end{vmatrix}'),
+        ]),
       ],
     ),
   ];
@@ -856,7 +492,6 @@ class _MathItem {
   final String value;
   final String label;
   final String preview;
-
   _MathItem(this.value, this.label, this.preview);
 }
 
@@ -864,94 +499,36 @@ class _EquationTemplate {
   final String latex;
   final String label;
   final String preview;
-
-  const _EquationTemplate(
-    this.latex,
-    this.label, {
-    String? preview,
-  }) : preview = preview ?? latex;
+  const _EquationTemplate(this.latex, this.label, {String? preview}) : preview = preview ?? latex;
 }
 
 class _EquationCategory {
   final String id;
   final String label;
-  final IconData icon;
+  final String ribbonPreview;
   final List<_EquationGroup> groups;
-
-  const _EquationCategory({
-    required this.id,
-    required this.label,
-    required this.icon,
-    required this.groups,
-  });
+  const _EquationCategory({required this.id, required this.label, required this.ribbonPreview, required this.groups});
 }
 
 class _EquationGroup {
   final String title;
   final List<_EquationTemplate> templates;
-
-  const _EquationGroup({
-    required this.title,
-    required this.templates,
-  });
+  const _EquationGroup({required this.title, required this.templates});
 }
 
 class _SafeMathPreview extends StatelessWidget {
   final String latex;
   final Color textColor;
   final double mathSize;
-
-  const _SafeMathPreview({
-    required this.latex,
-    required this.textColor,
-    this.mathSize = 16,
-  });
+  const _SafeMathPreview({required this.latex, required this.textColor, this.mathSize = 16});
 
   @override
   Widget build(BuildContext context) {
-    if (latex.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (latex.trim().isEmpty) return const SizedBox.shrink();
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Math.tex(
-        latex,
-        textStyle: TextStyle(
-          fontSize: mathSize,
-          color: textColor,
-        ),
-        onErrorFallback: (err) => _LatexFallbackText(
-          latex: latex,
-          textColor: textColor,
-          fontSize: mathSize * 0.75,
-        ),
-      ),
-    );
-  }
-}
-
-class _LatexFallbackText extends StatelessWidget {
-  final String latex;
-  final Color textColor;
-  final double fontSize;
-
-  const _LatexFallbackText({
-    required this.latex,
-    required this.textColor,
-    required this.fontSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      latex,
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontFamily: 'monospace',
-        fontSize: fontSize.clamp(9.0, 14.0),
-        color: textColor.withValues(alpha: 0.7),
-        height: 1.3,
-      ),
+      child: Math.tex(latex, textStyle: TextStyle(fontSize: mathSize, color: textColor),
+        onErrorFallback: (err) => Text(latex, style: TextStyle(color: textColor, fontSize: mathSize * 0.75))),
     );
   }
 }
