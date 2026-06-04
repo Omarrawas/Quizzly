@@ -317,36 +317,55 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     final accentColor = AppColors.primaryBlue;
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 950, maxHeight: 600),
+      width: 950,
+      height: 600,
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 30,
+            spreadRadius: 5,
+          ),
+        ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           // 1. Header (Top Bar)
           _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark),
 
-          // 2. Ribbon (Tools) - Immediately under the header
-          _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor),
-
-          // 3. Main Writing Area (Canvas)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-            ),
-            child: Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+          // 2. Main Writing Area (Canvas) - NOW EXPANDED
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey[50],
+                image: isDark ? null : DecorationImage(
+                  image: const NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), // Subtle pattern
+                  opacity: 0.05,
+                  repeat: ImageRepeat.repeat,
+                ),
+              ),
+              child: Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: rootNodes.isEmpty 
+                      ? [Text(isDark ? 'بداية المعادلة...' : 'اكتب المعادلة هنا...', style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 24, fontStyle: FontStyle.italic))]
+                      : rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+                  ),
                 ),
               ),
             ),
           ),
+
+          // 3. Ribbon (Tools) - Moved to BOTTOM just like the screenshot
+          _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor),
 
           // Footer
           _buildFooter(isDark: isDark, textColor: textColor, accentColor: accentColor),
@@ -458,11 +477,19 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         child: TextFormField(
           initialValue: node.text,
           onChanged: (val) => node.text = val,
-          style: TextStyle(fontSize: 24, color: textColor, fontFamily: 'serif'),
-          decoration: const InputDecoration(
+          style: TextStyle(
+            fontSize: 28, 
+            color: textColor, 
+            fontFamily: 'serif',
+            fontWeight: FontWeight.w400,
+          ),
+          cursorColor: AppColors.primaryBlue,
+          decoration: InputDecoration(
             border: InputBorder.none,
             isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 4),
+            hintText: rootNodes.indexOf(node) == 0 && node.text.isEmpty ? 'اكتب هنا...' : '',
+            hintStyle: TextStyle(color: textColor.withValues(alpha: 0.2)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           ),
         ),
       );
