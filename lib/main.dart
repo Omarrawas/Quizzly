@@ -20,15 +20,13 @@ import 'package:quizzly/core/services/app_update_service.dart';
 import 'package:quizzly/core/services/deep_link_service.dart';
 import 'package:flutter/foundation.dart';
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final prefs = await SharedPreferences.getInstance();
 
@@ -83,9 +81,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeService.themeMode,
           // Proper Arabic RTL Support
           locale: const Locale('ar'),
-          supportedLocales: const [
-            Locale('ar'),
-          ],
+          supportedLocales: const [Locale('ar')],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

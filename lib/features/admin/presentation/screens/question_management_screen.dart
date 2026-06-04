@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:quizzly/core/services/github_storage_service.dart';
+import 'package:quizzly/core/services/firebase_storage_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
@@ -42,6 +42,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   late TextEditingController explanationImageUrlController;
   late TextEditingController explanationAudioUrlController;
   late TextEditingController explanationPdfUrlController;
+  late TextEditingController explanationVideoUrlController;
   late TextEditingController timeController;
   late bool isEnabled;
   late Difficulty selectedDifficulty;
@@ -75,6 +76,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     explanationImageUrlController = TextEditingController(text: currentData?['explanationImageUrl']);
     explanationAudioUrlController = TextEditingController(text: currentData?['explanationAudioUrl'] ?? '');
     explanationPdfUrlController = TextEditingController(text: currentData?['explanationPdfUrl'] ?? '');
+    explanationVideoUrlController = TextEditingController(text: currentData?['explanationVideoUrl'] ?? '');
     timeController = TextEditingController(text: currentData?['estimatedTime']?.toString() ?? '60');
     isEnabled = currentData?['isEnabled'] ?? true;
     
@@ -180,6 +182,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     explanationImageUrlController.dispose();
     explanationAudioUrlController.dispose();
     explanationPdfUrlController.dispose();
+    explanationVideoUrlController.dispose();
     timeController.dispose();
     for (var c in optionControllers) {
       c.dispose();
@@ -324,6 +327,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'explanationImageUrl': explanationImageUrlController.text.trim(),
       'explanationAudioUrl': explanationAudioUrlController.text.trim(),
       'explanationPdfUrl': explanationPdfUrlController.text.trim(),
+      'explanationVideoUrl': explanationVideoUrlController.text.trim(),
       'difficulty': selectedDifficulty.name,
       'primaryTopicId': selectedTopicIds.isNotEmpty ? selectedTopicIds.first : (widget.lessonId ?? 'global'),
       'topicIds': selectedTopicIds,
@@ -379,6 +383,9 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
         pickerType = FileType.custom;
         allowedExtensions = ['pdf'];
         folderName = 'explanation_pdfs';
+      } else if (fileType == 'video') {
+        pickerType = FileType.video;
+        folderName = 'explanation_videos';
       } else {
         return;
       }
@@ -402,8 +409,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           _uploadingFileType = fileType;
         });
 
-        final githubService = GithubStorageService();
-        final url = await githubService.uploadFile(
+        final storageService = FirebaseStorageService();
+        final url = await storageService.uploadFile(
           fileBytes: file.bytes!,
           fileExtension: file.extension ?? (fileType == 'pdf' ? 'pdf' : (fileType == 'audio' ? 'mp3' : 'png')),
           folderName: folderName,
@@ -422,6 +429,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
               explanationAudioUrlController.text = url;
             } else if (fileType == 'pdf') {
               explanationPdfUrlController.text = url;
+            } else if (fileType == 'video') {
+              explanationVideoUrlController.text = url;
             }
           });
           _showStatusSnackBar('تم رفع الملف بنجاح!', isError: false);
@@ -554,6 +563,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     explanationAudioUrlController.clear();
                   } else if (fileType == 'pdf') {
                     explanationPdfUrlController.clear();
+                  } else if (fileType == 'video') {
+                    explanationVideoUrlController.clear();
                   }
                 });
                 _showStatusSnackBar('تم حذف المرفق بنجاح', isError: false);
@@ -798,41 +809,54 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Text('مرفقات الشرح (صورة، صوت، أو PDF)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildAttachmentCard(
-                          title: 'صورة توضيحية',
-                          icon: Icons.image_rounded,
-                          url: explanationImageUrlController.text,
-                          fileType: 'image',
-                          color: const Color(0xFF10B981),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildAttachmentCard(
-                          title: 'مقطع صوتي',
-                          icon: Icons.audiotrack_rounded,
-                          url: explanationAudioUrlController.text,
-                          fileType: 'audio',
-                          color: const Color(0xFF6366F1),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildAttachmentCard(
-                          title: 'ملف PDF',
-                          icon: Icons.picture_as_pdf_rounded,
-                          url: explanationPdfUrlController.text,
-                          fileType: 'pdf',
-                          color: const Color(0xFFEF4444),
-                        ),
-                      ),
-                    ],
-                  ),
+                   Text('مرفقات الشرح (صورة، صوت، فيديو أو PDF)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                   const SizedBox(height: 12),
+                   Wrap(
+                     spacing: 12,
+                     runSpacing: 12,
+                     children: [
+                       SizedBox(
+                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
+                         child: _buildAttachmentCard(
+                           title: 'صورة توضيحية',
+                           icon: Icons.image_rounded,
+                           url: explanationImageUrlController.text,
+                           fileType: 'image',
+                           color: const Color(0xFF10B981),
+                         ),
+                       ),
+                       SizedBox(
+                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
+                         child: _buildAttachmentCard(
+                           title: 'مقطع صوتي',
+                           icon: Icons.audiotrack_rounded,
+                           url: explanationAudioUrlController.text,
+                           fileType: 'audio',
+                           color: const Color(0xFF6366F1),
+                         ),
+                       ),
+                       SizedBox(
+                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
+                         child: _buildAttachmentCard(
+                           title: 'مقطع فيديو',
+                           icon: Icons.videocam_rounded,
+                           url: explanationVideoUrlController.text,
+                           fileType: 'video',
+                           color: const Color(0xFFF59E0B),
+                         ),
+                       ),
+                       SizedBox(
+                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
+                         child: _buildAttachmentCard(
+                           title: 'ملف PDF',
+                           icon: Icons.picture_as_pdf_rounded,
+                           url: explanationPdfUrlController.text,
+                           fileType: 'pdf',
+                           color: const Color(0xFFEF4444),
+                         ),
+                       ),
+                     ],
+                   ),
                   
                   const SizedBox(height: 24),
                   Row(

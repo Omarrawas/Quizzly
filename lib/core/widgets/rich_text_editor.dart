@@ -6,7 +6,7 @@ import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:quizzly/core/services/github_storage_service.dart';
+import 'package:quizzly/core/services/firebase_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
 import '../utils/math_parser.dart';
@@ -371,8 +371,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
           builder: (_) => const Center(child: CircularProgressIndicator()),
         );
 
-        final githubService = GithubStorageService();
-        final url = await githubService.uploadFile(
+        final storageService = FirebaseStorageService();
+        final url = await storageService.uploadFile(
           fileBytes: file.bytes!,
           fileExtension: file.extension ?? 'png',
           folderName: 'question_images',

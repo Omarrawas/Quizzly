@@ -18,7 +18,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:quizzly/core/services/github_storage_service.dart';
+import 'package:quizzly/core/services/firebase_storage_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -670,7 +670,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: Text('تحميل صورة', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
                 onTap: () async {
                   Navigator.pop(context);
-                  await _uploadImageToGithub(context, userId);
+                  await _uploadImageToFirebase(context, userId);
                 },
               ),
               ListTile(
@@ -689,7 +689,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _uploadImageToGithub(BuildContext context, String userId) async {
+  Future<void> _uploadImageToFirebase(BuildContext context, String userId) async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -710,8 +710,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           builder: (_) => const Center(child: CircularProgressIndicator()),
         );
 
-        final githubService = GithubStorageService();
-        final url = await githubService.uploadProfilePicture(
+        final storageService = FirebaseStorageService();
+        final url = await storageService.uploadProfilePicture(
           file.bytes!, 
           file.extension ?? 'png'
         );
