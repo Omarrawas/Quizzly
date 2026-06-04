@@ -82,16 +82,24 @@ class ContentService {
       'isActivated': activationCode != null,
     });
 
+    // 1.5 Fetch teacher info from subject
+    final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
+    final subjectData = subjectDoc.data() ?? {};
+    final teacherId = subjectData['teacherId'] as String?;
+    final teacherIds = subjectData['teacherIds'] as List?;
+
     // 2. Global record for admin
     final globalRef = _db.collection('user_subjects').doc('${userId}_$subjectId'); 
     await globalRef.set({
       'activationId': globalRef.id,
       'userId': userId,
       'subjectId': subjectId,
+      'teacherId': teacherId,        // Denormalized
+      'teacherIds': teacherIds,      // Denormalized
       'activatedAt': FieldValue.serverTimestamp(),
       'activationType': activationCode != null ? 'code' : 'free',
       'activationCode': activationCode, 
-      'price': 0, // Add price field to satisfy firestore rules (price >= 0)
+      'price': 0, 
     });
   }
 
@@ -117,11 +125,17 @@ class ContentService {
       });
 
       // 2. Global records
+      final subjectData = doc.data();
+      final teacherId = subjectData['teacherId'] as String?;
+      final teacherIds = subjectData['teacherIds'] as List?;
+
       final globalRef = _db.collection('user_subjects').doc('${userId}_${doc.id}');
       await globalRef.set({
         'activationId': globalRef.id,
         'userId': userId,
         'subjectId': doc.id,
+        'teacherId': teacherId,        // Denormalized
+        'teacherIds': teacherIds,      // Denormalized
         'activatedAt': FieldValue.serverTimestamp(),
         'activationType': activationCode != null ? 'code' : 'free',
         'activationCode': activationCode,
@@ -341,6 +355,11 @@ class ContentService {
 
     // 2. Add each subject to user
     for (String subjectId in subjectIds) {
+      final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
+      final subjectData = subjectDoc.data() ?? {};
+      final teacherId = subjectData['teacherId'] as String?;
+      final teacherIds = subjectData['teacherIds'] as List?;
+
       // Per-user record
       final userSubRef = _db.collection('users').doc(userId).collection('active_subjects').doc(subjectId);
       batch.set(userSubRef, {
@@ -358,6 +377,8 @@ class ContentService {
         'activationId': globalRef.id,
         'userId': userId,
         'subjectId': subjectId,
+        'teacherId': teacherId,        // Denormalized
+        'teacherIds': teacherIds,      // Denormalized
         'activatedAt': FieldValue.serverTimestamp(),
         'activationType': 'code',
         'activationCode': code,
