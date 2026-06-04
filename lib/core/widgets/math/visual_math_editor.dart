@@ -316,6 +316,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Header
           _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark),
@@ -348,7 +349,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
 
   Widget _buildHeader({required BuildContext ctx, required Color textColor, required Color borderColor, required Color accentColor, required bool isDark}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
@@ -389,7 +390,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
 
   Widget _buildRibbon({required bool isDark, required Color borderColor, required Color textColor}) {
     return Container(
-      height: 90,
+      height: 80,
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.withValues(alpha: 0.05),
         border: Border(bottom: BorderSide(color: borderColor)),

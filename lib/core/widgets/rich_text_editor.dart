@@ -66,7 +66,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 13,
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                   ),
                 ),
               ),
