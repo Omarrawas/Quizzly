@@ -185,11 +185,15 @@ class MathSymbolToolbar extends StatelessWidget {
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(16),
-        child: VisualMathEditor(
-          onSave: (latex) {
-            onSymbolSelected('\\($latex\\)');
-            Navigator.pop(ctx);
-          },
+        child: SizedBox(
+          width: 950,
+          height: 650,
+          child: VisualMathEditor(
+            onSave: (latex) {
+              onSymbolSelected('\\($latex\\)');
+              Navigator.pop(ctx);
+            },
+          ),
         ),
       ),
     );

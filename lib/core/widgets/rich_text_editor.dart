@@ -33,9 +33,13 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
               builder: (ctx) => Dialog(
                 backgroundColor: Colors.transparent,
                 insetPadding: const EdgeInsets.all(16),
-                child: VisualMathEditor(
-                  initialLatex: latex,
-                  onSave: (val) => Navigator.pop(ctx, val),
+                child: SizedBox(
+                  width: 950,
+                  height: 650,
+                  child: VisualMathEditor(
+                    initialLatex: latex,
+                    onSave: (val) => Navigator.pop(ctx, val),
+                  ),
                 ),
               ),
             );
