@@ -325,18 +325,17 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
+          // 1. Header (Top Bar)
           _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark),
 
-          // Ribbon (Toolbar)
+          // 2. Ribbon (Tools) - Immediately under the header
           _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor),
 
-          // Main Canvas (No Expanded to avoid huge empty space)
+          // 3. Main Writing Area (Canvas) - With a distinct background to avoid 'empty black screen' feel
           Container(
-            constraints: const BoxConstraints(minHeight: 200, maxHeight: 400),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
             decoration: BoxDecoration(
-              color: isDark ? Colors.black.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.01),
+              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
             ),
             child: Center(
               child: SingleChildScrollView(
