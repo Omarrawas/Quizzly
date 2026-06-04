@@ -323,7 +323,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
           // 1. Header (Top Bar)
           _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark),
@@ -331,18 +331,20 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           // 2. Ribbon (Tools) - Immediately under the header
           _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor),
 
-          // 3. Main Writing Area (Canvas) - With a distinct background to avoid 'empty black screen' feel
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-            ),
-            child: Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+          // 3. Main Writing Area (Canvas) - Now using Expanded to fill the space
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
+              ),
+              child: Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+                  ),
                 ),
               ),
             ),
