@@ -238,9 +238,8 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         j++;
       }
     }
-    // We want the content between \left( and \right)
-    // j points to where \right started
-    return s.substring(start, j - 6); // -6 for \right
+    // j points to where \right starts
+    return s.substring(start, j);
   }
 
   String _extractBracedContent(String s, int start) {
@@ -293,6 +292,14 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     }
     if (type == 'bracket' || type == 'square_bracket' || type == 'curly_bracket') {
       slots = {'content': [TextNode('')]};
+    }
+    if (type == 'matrix') {
+      slots = {
+        '0,0': [TextNode('')],
+        '0,1': [TextNode('')],
+        '1,0': [TextNode('')],
+        '1,1': [TextNode('')]
+      };
     }
     
     setState(() {
