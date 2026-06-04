@@ -328,20 +328,22 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           // Header
           _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark),
 
-          // Ribbon
+          // Ribbon (Toolbar)
           _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor),
 
-          // Main Canvas
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Center(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
-                  ),
+          // Main Canvas (No Expanded to avoid huge empty space)
+          Container(
+            constraints: const BoxConstraints(minHeight: 200, maxHeight: 400),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.black.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.01),
+            ),
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
                 ),
               ),
             ),
@@ -387,8 +389,11 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           ),
           const SizedBox(width: 12),
           IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 20),
             onPressed: () => Navigator.pop(ctx),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
