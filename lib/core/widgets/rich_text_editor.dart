@@ -11,6 +11,7 @@ import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
 import '../utils/math_parser.dart';
 import 'math/math_symbol_toolbar.dart';
+import 'math/visual_math_editor.dart';
 
 class MathEmbedBuilder extends quill.EmbedBuilder {
   @override
@@ -27,32 +28,15 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
       child: SelectionArea(
         child: InkWell(
           onTap: () async {
-            final TextEditingController editController = TextEditingController(text: latex);
             final newLatex = await showDialog<String>(
               context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('تعديل المعادلة'),
-                content: Directionality(
-                  textDirection: TextDirection.ltr,
-                  child: TextField(
-                    controller: editController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      hintText: 'LaTeX...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+              builder: (ctx) => Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(16),
+                child: VisualMathEditor(
+                  initialLatex: latex,
+                  onSave: (val) => Navigator.pop(ctx, val),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('إلغاء'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx, editController.text.trim()),
-                    child: const Text('حفظ'),
-                  ),
-                ],
               ),
             );
 
@@ -82,7 +66,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 13,
-                    color: textColor.withValues(alpha: 0.7),
+                    color: textColor.withOpacity(0.7),
                   ),
                 ),
               ),

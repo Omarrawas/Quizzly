@@ -33,7 +33,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   bool _showAnswers = false;
   bool _isFabExpanded = false;
 
-  final Map<String, String?> _selectedOptions = {};
+  final Map<String, Set<String>> _selectedOptions = {};
   final Map<String, AnswerState> _answerStates = {};
   final Set<String> _checkedQuestions = {};
   final Map<String, String> _notes = {};
@@ -96,11 +96,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         final qId = data['questionId'] as String;
         final questionMap = data['questionData'] as Map<String, dynamic>;
         final question = QuizQuestion.fromMap(questionMap, qId);
+        final sel = _selectedOptions[qId] ?? {};
 
-        if (_selectedOptions[qId] != null) {
+        if (sel.isNotEmpty) {
           _checkedQuestions.add(qId);
-          final selectedId = _selectedOptions[qId];
-          final isCorrect = question.correctOptionIds.contains(selectedId);
+          
+          bool isCorrect = false;
+          if (question.type == QuestionType.checkbox) {
+            isCorrect = sel.length == question.correctOptionIds.length &&
+                sel.every((id) => question.correctOptionIds.contains(id));
+          } else {
+            isCorrect = sel.length == 1 &&
+                question.correctOptionIds.contains(sel.first);
+          }
+
           _answerStates[qId] = isCorrect ? AnswerState.correct : AnswerState.wrong;
 
           final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -128,19 +137,39 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     });
   }
 
-  void _onOptionSelected(String qId, String optionId) {
+  void _onOptionSelected(String qId, String optionId, QuestionType type) {
     setState(() {
-      _selectedOptions[qId] = optionId;
+      final currentSet = _selectedOptions[qId] ?? {};
+      
+      if (type == QuestionType.checkbox) {
+        if (currentSet.contains(optionId)) {
+          currentSet.remove(optionId);
+        } else {
+          currentSet.add(optionId);
+        }
+        _selectedOptions[qId] = Set.from(currentSet);
+      } else {
+        _selectedOptions[qId] = {optionId};
+      }
     });
   }
 
   void _onCheckAnswer(String qId, QuizQuestion question) {
-    final sel = _selectedOptions[qId];
-    if (sel == null) return;
+    final sel = _selectedOptions[qId] ?? {};
+    if (sel.isEmpty) return;
     
     setState(() {
       _checkedQuestions.add(qId);
-      final isCorrect = question.correctOptionIds.contains(sel);
+      
+      bool isCorrect = false;
+      if (question.type == QuestionType.checkbox) {
+        isCorrect = sel.length == question.correctOptionIds.length &&
+            sel.every((id) => question.correctOptionIds.contains(id));
+      } else {
+        isCorrect = sel.length == 1 &&
+            question.correctOptionIds.contains(sel.first);
+      }
+
       _answerStates[qId] = isCorrect ? AnswerState.correct : AnswerState.wrong;
 
       final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -541,8 +570,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 child: QuestionCard(
                                   question: question,
                                   displayIndex: index + 1,
-                                  isSelected: _selectedOptions[qId] != null,
-                                  selectedOptionId: _selectedOptions[qId],
+                                  isSelected: _selectedOptions.containsKey(qId),
+                                  selectedOptionIds: _selectedOptions[qId] ?? {},
                                   answerState: _answerStates[qId] ?? AnswerState.unanswered,
                                   showCorrect: _showAnswers || _checkedQuestions.contains(qId),
                                   isInPrimaryList: true,
@@ -552,7 +581,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   onListLongPress: () {},
                                   listIcon: listId == 'favorites' ? Icons.favorite_rounded : (listId == 'important' ? Icons.star_rounded : Icons.list_rounded),
                                   listColor: listId == 'favorites' ? Colors.red : (listId == 'important' ? Colors.amber : AppColors.primaryBlue),
-                                  onOptionSelected: (optId) => _onOptionSelected(qId, optId),
+                                  onOptionSelected: (optId) => _onOptionSelected(qId, optId, question.type),
                                   note: _notes[qId],
                                   onNoteChanged: (note) {
                                     setState(() {

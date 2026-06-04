@@ -53,7 +53,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   bool _filterWrongOnly = false;
 
   // State tracking
-  final Map<int, String?> _selectedOptions = {};
+  final Map<int, Set<String>> _selectedOptions = {};
   final Map<int, AnswerState> _answerStates = {};
   final Set<String> _favoriteIds = {};
   final Set<String> _importantIds = {};
@@ -219,23 +219,43 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     });
   }
 
-  void _onOptionSelected(int questionIndex, String optionId) {
+  void _onOptionSelected(int questionIndex, String optionId, QuestionType type) {
     setState(() {
-      _selectedOptions[questionIndex] = optionId;
+      final currentSet = _selectedOptions[questionIndex] ?? {};
+      
+      if (type == QuestionType.checkbox) {
+        if (currentSet.contains(optionId)) {
+          currentSet.remove(optionId);
+        } else {
+          currentSet.add(optionId);
+        }
+        _selectedOptions[questionIndex] = Set.from(currentSet);
+      } else {
+        _selectedOptions[questionIndex] = {optionId};
+      }
     });
     _saveState();
   }
 
   void _onCheckAnswer(int questionIndex) {
-    if (_selectedOptions[questionIndex] == null) return;
+    final sel = _selectedOptions[questionIndex] ?? {};
+    if (sel.isEmpty) return;
     
     setState(() {
       _checkedQuestions.add(questionIndex);
       
       final question = widget.questions[questionIndex];
-      final selectedId = _selectedOptions[questionIndex];
       
-      if (question.correctOptionIds.contains(selectedId)) {
+      bool isCorrect = false;
+      if (question.type == QuestionType.checkbox) {
+        isCorrect = sel.length == question.correctOptionIds.length &&
+            sel.every((id) => question.correctOptionIds.contains(id));
+      } else {
+        isCorrect = sel.length == 1 &&
+            question.correctOptionIds.contains(sel.first);
+      }
+      
+      if (isCorrect) {
         _answerStates[questionIndex] = AnswerState.correct;
         // Remove from wrong answers if it was corrected
         if (widget.config.subjectId.isNotEmpty) {
@@ -371,7 +391,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   Future<void> _saveState() async {
     final prefs = await SharedPreferences.getInstance();
     final state = {
-      'selectedOptions': _selectedOptions.map((k, v) => MapEntry(k.toString(), v)),
+      'selectedOptions': _selectedOptions.map((k, v) => MapEntry(k.toString(), v.toList())),
       'answerStates': _answerStates.map((k, v) => MapEntry(k.toString(), v.name)),
       'favorites': _favoriteIds.toList(),
       'checkedQuestions': _checkedQuestions.toList(),
@@ -389,7 +409,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
       setState(() {
         if (state['selectedOptions'] != null) {
           (state['selectedOptions'] as Map).forEach((k, v) {
-            _selectedOptions[int.parse(k)] = v;
+            if (v is List) {
+              _selectedOptions[int.parse(k)] = Set<String>.from(v.cast<String>());
+            } else if (v is String) {
+              _selectedOptions[int.parse(k)] = {v};
+            }
           });
         }
         if (state['answerStates'] != null) {
@@ -436,16 +460,23 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   void _checkAll() {
     setState(() {
       for (int i = 0; i < widget.questions.length; i++) {
-        if (_selectedOptions[i] != null) {
-          _checkedQuestions.add(i);
           final question = widget.questions[i];
-          final selectedId = _selectedOptions[i];
-          if (question.correctOptionIds.contains(selectedId)) {
+          final sel = _selectedOptions[i] ?? {};
+          
+          bool isCorrect = false;
+          if (question.type == QuestionType.checkbox) {
+            isCorrect = sel.length == question.correctOptionIds.length &&
+                sel.every((id) => question.correctOptionIds.contains(id));
+          } else {
+            isCorrect = sel.length == 1 &&
+                question.correctOptionIds.contains(sel.first);
+          }
+          
+          if (isCorrect) {
             _answerStates[i] = AnswerState.correct;
           } else {
             _answerStates[i] = AnswerState.wrong;
           }
-        }
       }
       _isFabExpanded = false;
     });
@@ -811,11 +842,11 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                     child: QuestionCard(
                       question: q,
                       displayIndex: index + 1,
-                      isSelected: _selectedOptions[realIndex] != null,
-                      selectedOptionId: _selectedOptions[realIndex],
+                      isSelected: _selectedOptions.containsKey(realIndex),
+                      selectedOptionIds: _selectedOptions[realIndex] ?? {},
                       answerState: _answerStates[realIndex] ?? AnswerState.unanswered,
                       showCorrect: _showAnswers || _checkedQuestions.contains(realIndex),
-                      onOptionSelected: (optId) => _onOptionSelected(realIndex, optId),
+                      onOptionSelected: (optId) => _onOptionSelected(realIndex, optId, q.type),
                       isInPrimaryList: q.id != null && _primaryListIds.contains(q.id),
                       onListToggle: () {
                         if (q.id != null) {

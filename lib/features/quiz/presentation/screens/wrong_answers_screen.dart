@@ -37,7 +37,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
   bool _isTimerRunning = false;
 
   // Answers state
-  final Map<String, String?> _selectedOptions = {};
+  final Map<String, Set<String>> _selectedOptions = {};
   final Map<String, AnswerState> _answerStates = {};
   final Set<String> _checkedQuestions = {};
   final Map<String, String> _notes = {};
@@ -303,14 +303,20 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     setState(() {
       for (var q in _wrongQuestions) {
         final qId = q.id ?? q.number.toString();
-        if (_selectedOptions[qId] != null) {
+        final sel = _selectedOptions[qId] ?? {};
+        if (sel.isNotEmpty) {
           _checkedQuestions.add(qId);
-          final selectedId = _selectedOptions[qId];
-          if (q.correctOptionIds.contains(selectedId)) {
-            _answerStates[qId] = AnswerState.correct;
+          
+          bool isCorrect = false;
+          if (q.type == QuestionType.checkbox) {
+            isCorrect = sel.length == q.correctOptionIds.length &&
+                sel.every((id) => q.correctOptionIds.contains(id));
           } else {
-            _answerStates[qId] = AnswerState.wrong;
+            isCorrect = sel.length == 1 &&
+                q.correctOptionIds.contains(sel.first);
           }
+          
+          _answerStates[qId] = isCorrect ? AnswerState.correct : AnswerState.wrong;
         }
       }
       _isFabExpanded = false;
@@ -327,23 +333,40 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     });
   }
 
-  void _onOptionSelected(String qId, String optionId) {
+  void _onOptionSelected(String qId, String optionId, QuestionType type) {
     setState(() {
-      _selectedOptions[qId] = optionId;
+      final currentSet = _selectedOptions[qId] ?? {};
+      
+      if (type == QuestionType.checkbox) {
+        if (currentSet.contains(optionId)) {
+          currentSet.remove(optionId);
+        } else {
+          currentSet.add(optionId);
+        }
+        _selectedOptions[qId] = Set.from(currentSet);
+      } else {
+        _selectedOptions[qId] = {optionId};
+      }
     });
   }
 
   void _onCheckAnswer(String qId, QuizQuestion question) {
-    if (_selectedOptions[qId] == null) return;
+    final sel = _selectedOptions[qId] ?? {};
+    if (sel.isEmpty) return;
     
     setState(() {
       _checkedQuestions.add(qId);
-      final selectedId = _selectedOptions[qId];
-      if (question.correctOptionIds.contains(selectedId)) {
-        _answerStates[qId] = AnswerState.correct;
+      
+      bool isCorrect = false;
+      if (question.type == QuestionType.checkbox) {
+        isCorrect = sel.length == question.correctOptionIds.length &&
+            sel.every((id) => question.correctOptionIds.contains(id));
       } else {
-        _answerStates[qId] = AnswerState.wrong;
+        isCorrect = sel.length == 1 &&
+            question.correctOptionIds.contains(sel.first);
       }
+      
+      _answerStates[qId] = isCorrect ? AnswerState.correct : AnswerState.wrong;
     });
   }
 
@@ -696,8 +719,8 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                                       child: QuestionCard(
                                         question: question,
-                                        isSelected: _selectedOptions[qId] != null,
-                                        selectedOptionId: _selectedOptions[qId],
+                                        isSelected: _selectedOptions.containsKey(qId),
+                                        selectedOptionIds: _selectedOptions[qId] ?? {},
                                         answerState: _answerStates[qId] ?? AnswerState.unanswered,
                                         showCorrect: _showAnswers || _checkedQuestions.contains(qId),
                                         isInPrimaryList: question.id != null && _primaryListIds.contains(question.id),
@@ -709,7 +732,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
                                         onListLongPress: () => _showListSelectionDialog(),
                                         listIcon: _getPrimaryListIcon(question.id != null && _primaryListIds.contains(question.id)),
                                         listColor: _getPrimaryListColor(),
-                                        onOptionSelected: (optId) => _onOptionSelected(qId, optId),
+                                        onOptionSelected: (optId) => _onOptionSelected(qId, optId, question.type),
                                         note: _notes[qId],
                                         onNoteChanged: (note) {
                                           setState(() {
