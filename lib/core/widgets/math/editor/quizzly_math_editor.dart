@@ -13,7 +13,6 @@ import 'math_expression/math_field_widget.dart';
 import 'math_expression/rendered_expression.dart';
 import 'math_expression/services/settings_service.dart';
 import 'math_expression/symbol_selector.dart';
-import 'math_expression/toolbar.dart';
 
 class QuizzlyMathEditor extends StatefulWidget {
   final String initialLatex;
@@ -84,10 +83,8 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
 
   void _saveAndExit() {
     final state = context.read<MathExpressionBloc>().state;
-    String latex = '';
-    if (state is MathExpressionUpdated) {
-      latex = state.expression;
-    } else {
+    String latex = state.currentExpression;
+    if (latex.isEmpty) {
       latex = _controller.currentEditingValue();
     }
     Navigator.of(context).pop(latex);

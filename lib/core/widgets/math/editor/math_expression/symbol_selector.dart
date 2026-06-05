@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_math_fork/flutter_math.dart' as math_fork;
 
-import '../bloc/math_expression/math_expression_bloc.dart';
 import 'utils/constants.dart';
 
 class SymbolSelector extends StatefulWidget {

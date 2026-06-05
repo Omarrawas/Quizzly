@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
-import '../../data/models/settings_model.dart';
-import '../utils/custom_text_decoration.dart';
 
 class SettingsDialog extends StatefulWidget {
   const SettingsDialog({super.key});

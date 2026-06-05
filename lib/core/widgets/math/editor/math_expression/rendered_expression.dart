@@ -163,10 +163,6 @@ class RenderedExpression extends StatelessWidget {
     return Latex(
       expression,
       fontSize: fontSize,
-      color: expressionColor,
-      wrapMode: LatexWrapMode.smart,
-      customFont: LatexFont('Latin Modern Math', isSansSerif: true),
-      backgroundColor: Colors.transparent,
     );
   }
 
@@ -182,8 +178,6 @@ class RenderedExpression extends StatelessWidget {
         return TextDecoration.overline;
       case CustomTextDecoration.lineThrough:
         return TextDecoration.lineThrough;
-      default:
-        return TextDecoration.none;
     }
   }
 }

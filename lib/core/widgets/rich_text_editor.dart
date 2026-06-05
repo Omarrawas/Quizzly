@@ -55,7 +55,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
         decoration: BoxDecoration(
           color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3), width: 0.5),
+          border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3), width: 0.5),
         ),
         child: SafeMathPreview(latex: latex, textColor: textColor, mathSize: 18),
       ),
@@ -571,8 +571,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         builder: (context) => const QuizzlyMathEditorProvider(),
                       );
                       if (resultLatex != null && resultLatex.isNotEmpty) {
-                        final index = _controller.selection.baseOffset;
-                        _controller.replaceText(index, 0, quill.Embeddable('math', resultLatex), null);
+                        _insertMathLatex(resultLatex);
                       }
                     },
                     tooltip: 'إدراج معادلة',
@@ -586,51 +585,54 @@ class _RichTextEditorState extends State<RichTextEditor> {
           Stack(
             children: [
               Shortcuts(
-          shortcuts: <LogicalKeySet, Intent>{
-            LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyV): const PasteIntent(),
-          },
-          child: Actions(
-            actions: <Type, Action<Intent>>{
-              PasteIntent: CallbackAction<PasteIntent>(
-                onInvoke: (intent) async {
-                  await _handlePaste();
-                  return null;
+                shortcuts: <LogicalKeySet, Intent>{
+                  LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyV): const PasteIntent(),
                 },
-              ),
-            },
-            child: SizedBox(
-              height: widget.height,
-              child: DefaultTextStyle(
-                style: TextStyle(
-                  color: widget.textColor ?? (isDark ? Colors.white : AppColors.textPrimary),
-                  fontSize: 16,
-                ),
-                child: quill.QuillEditor.basic(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  scrollController: _scrollController,
-                  config: quill.QuillEditorConfig(
-                    padding: const EdgeInsets.all(12),
-                    autoFocus: false,
-                    expands: false,
-                    embedBuilders: [
-                      ImageBlockEmbedBuilder(
-                        onDeleteImage: (url) {
-                          _deletedImageUrls.add(url);
-                          widget.onImageDeleted?.call(url);
-                        },
+                child: Actions(
+                  actions: <Type, Action<Intent>>{
+                    PasteIntent: CallbackAction<PasteIntent>(
+                      onInvoke: (intent) async {
+                        await _handlePaste();
+                        return null;
+                      },
+                    ),
+                  },
+                  child: SizedBox(
+                    height: widget.height,
+                    child: DefaultTextStyle(
+                      style: TextStyle(
+                        color: widget.textColor ?? (isDark ? Colors.white : AppColors.textPrimary),
+                        fontSize: 16,
                       ),
-                      MathEmbedBuilder(),
-                    ],
+                      child: quill.QuillEditor.basic(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        scrollController: _scrollController,
+                        config: quill.QuillEditorConfig(
+                          padding: const EdgeInsets.all(12),
+                          autoFocus: false,
+                          expands: false,
+                          embedBuilders: [
+                            ImageBlockEmbedBuilder(
+                              onDeleteImage: (url) {
+                                _deletedImageUrls.add(url);
+                                widget.onImageDeleted?.call(url);
+                              },
+                            ),
+                            MathEmbedBuilder(),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
             ],
           ),
-
+        ],
+      ),
+    );
+  }
 
   void _insertMathLatex(String latex) {
     final index = _controller.selection.baseOffset;

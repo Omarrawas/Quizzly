@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_math_fork/flutter_math.dart' as math_fork;
-
 import '../../bloc/settings/settings_bloc.dart';
-import '../../data/models/settings_model.dart';
 import '../../widgets/custom_color_picker.dart';
 import '../rendered_expression.dart';
-import '../types/latex_renderer.dart';
-import '../utils/custom_text_decoration.dart';
 
 class RenderedExpressionDialog extends StatelessWidget {
   const RenderedExpressionDialog({super.key});
@@ -55,10 +50,10 @@ class RenderedExpressionDialog extends StatelessWidget {
                     height: 150,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.grey.withOpacity(0.2),
+                        color: Colors.grey.withValues(alpha: 0.2),
                         width: 1,
                       ),
                     ),

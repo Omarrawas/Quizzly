@@ -19,7 +19,7 @@ class SafeMathPreview extends StatelessWidget {
       return Text(
         'اكتب معادلة رياضية...',
         style: TextStyle(
-          color: textColor.withOpacity(0.4),
+          color: textColor.withValues(alpha: 0.4),
           fontSize: 14,
           fontStyle: FontStyle.italic,
         ),
@@ -27,9 +27,9 @@ class SafeMathPreview extends StatelessWidget {
     }
 
     try {
-      return EasyLatex(
+      return Latex(
         latex,
-        mathStyle: const TextStyle(fontSize: 18), // We'll keep it consistent
+        fontSize: 18,
       );
     } catch (e) {
       return Text(

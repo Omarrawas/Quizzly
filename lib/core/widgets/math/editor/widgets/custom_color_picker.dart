@@ -46,14 +46,14 @@ class CustomColorPickerState extends State<CustomColorPicker> {
   }
 
   void _initializeColorValues(Color color) {
-    _alpha = color.alpha.toDouble();
-    _red = color.red.toDouble();
-    _green = color.green.toDouble();
-    _blue = color.blue.toDouble();
+    _alpha = (color.a * 255.0).round().toDouble();
+    _red = (color.r * 255.0).round().toDouble();
+    _green = (color.g * 255.0).round().toDouble();
+    _blue = (color.b * 255.0).round().toDouble();
   }
 
   String _colorToHexString(Color color) =>
-      '#${color.value.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+      '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
 
   @override
   void dispose() {
@@ -218,7 +218,7 @@ class CustomColorPickerState extends State<CustomColorPicker> {
           max: max,
           divisions: divisions,
           activeColor: activeColor,
-          inactiveColor: activeColor.withOpacity(0.3),
+          inactiveColor: activeColor.withValues(alpha: 0.3),
           label: value.round().toString(),
           onChanged: onChanged,
         ),

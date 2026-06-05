@@ -145,6 +145,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.13"
+  bloc:
+    dependency: "direct main"
+    description:
+      name: bloc
+      sha256: "106842ad6569f0b60297619e9e0b1885c2fb9bf84812935490e6c5275777804e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "8.1.4"
   boolean_selector:
     dependency: transitive
     description:
@@ -361,8 +369,16 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  easy_latex:
+    dependency: "direct main"
+    description:
+      name: easy_latex
+      sha256: "5ab539cea3a6257a85bb00c826d7556df2f32fdaa8392436da4eab57038af14e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   equatable:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: equatable
       sha256: "3e0141505477fd8ad55d6eb4e7776d3fe8430be8e497ccb1521370c3f21a3e2b"
@@ -557,6 +573,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_bloc:
+    dependency: "direct main"
+    description:
+      name: flutter_bloc
+      sha256: b594505eac31a0518bdcb4b5b79573b8d9117b193cc80cc12e17d639b10aa27a
+      url: "https://pub.dev"
+    source: hosted
+    version: "8.1.6"
   flutter_cache_manager:
     dependency: "direct main"
     description:
@@ -972,6 +996,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  holding_gesture:
+    dependency: transitive
+    description:
+      name: holding_gesture
+      sha256: beb26bb731d7d67595c4895b42fa7962c209cecee8def42b665c495648d4620f
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   hooks:
     dependency: transitive
     description:
@@ -1088,10 +1120,10 @@ packages:
     dependency: "direct main"
     description:
       name: intl
-      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
       url: "https://pub.dev"
     source: hosted
-    version: "0.20.2"
+    version: "0.19.0"
   jni:
     dependency: transitive
     description:
@@ -1204,6 +1236,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  math_expressions:
+    dependency: transitive
+    description:
+      name: math_expressions
+      sha256: "218dc65bed4726562bb31c53d8daa3cc824664b26fb72d77bc592757edf74ba0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.7.0"
+  math_keyboard:
+    dependency: "direct main"
+    description:
+      name: math_keyboard
+      sha256: "162a095235e04ed2c5e5cba8a55c054c6305a1d26c9c4e36b5e6bac107ed4a9d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.3"
   meta:
     dependency: transitive
     description:
@@ -1376,10 +1424,10 @@ packages:
     dependency: transitive
     description:
       name: petitparser
-      sha256: "91bd59303e9f769f108f8df05e371341b15d59e995e6806aefab827b58336675"
+      sha256: "07c8f0b1913bcde1ff0d26e57ace2f3012ccbf2b204e070290dad3bb22797646"
       url: "https://pub.dev"
     source: hosted
-    version: "7.0.2"
+    version: "6.1.0"
   photo_view:
     dependency: transitive
     description:
@@ -2037,10 +2085,10 @@ packages:
     dependency: transitive
     description:
       name: xml
-      sha256: "971043b3a0d3da28727e40ed3e0b5d18b742fa5a68665cca88e74b7876d5e025"
+      sha256: b015a8ad1c488f66851d762d3090a21c600e479dc75e68328c52774040cf9226
       url: "https://pub.dev"
     source: hosted
-    version: "6.6.1"
+    version: "6.5.0"
   yaml:
     dependency: transitive
     description:
