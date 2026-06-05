@@ -70,13 +70,12 @@ class _SymbolSelectorState extends State<SymbolSelector>
             width: buttonSize.width,
             height: buttonSize.height,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
               borderRadius: BorderRadius.circular(6.0),
             ),
-            child: FittedBox(
-              fit: BoxFit.contain,
+            child: Center(
               child: Padding(
-                padding: const EdgeInsets.all(4.0),
+                padding: const EdgeInsets.all(2.0),
                 child: math_fork.Math.tex(
                   symbol,
                   textStyle: TextStyle(fontSize: fontSize),
@@ -93,28 +92,30 @@ class _SymbolSelectorState extends State<SymbolSelector>
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = _calculateCrossAxisCount(screenWidth);
-    final childAspectRatio = _calculateChildAspectRatio(screenWidth);
-    final fontSize = _calculateFontSize(screenWidth);
-    final buttonSize = _calculateButtonSize(screenWidth);
+    const childAspectRatio = 1.0;
+    const fontSize = 14.0;
+    const buttonSize = Size(40, 40);
 
     return Column(
       children: [
         TabBar(
           controller: _tabController,
           isScrollable: true,
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 13),
           tabs: Constants.symbolCategories
               .map((category) => Tab(text: category))
               .toList(),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           child: TextField(
             decoration: const InputDecoration(
               hintText: 'Search symbols...',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: Icon(Icons.search, size: 20),
               border: OutlineInputBorder(),
               isDense: true,
-              contentPadding: EdgeInsets.all(8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
             onChanged: widget.updateSearchQuery,
           ),
@@ -128,12 +129,12 @@ class _SymbolSelectorState extends State<SymbolSelector>
                   _filterSymbols(symbols, widget.searchQuery);
 
               return GridView.builder(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(12.0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
                   childAspectRatio: childAspectRatio,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
+                  crossAxisSpacing: 10.0,
+                  mainAxisSpacing: 10.0,
                 ),
                 itemCount: filteredSymbols.length,
                 itemBuilder: (context, index) => _buildSymbolButton(
@@ -150,20 +151,10 @@ class _SymbolSelectorState extends State<SymbolSelector>
   }
 
   int _calculateCrossAxisCount(double width) {
-    if (width > 600) return 4;
-    return 6;
-  }
-
-  double _calculateChildAspectRatio(double width) {
-    return 1.0;
-  }
-
-  double _calculateFontSize(double width) {
-    return 18;
-  }
-
-  Size _calculateButtonSize(double width) {
-    return const Size(50, 50);
+    if (width > 1200) return 14;
+    if (width > 900) return 12;
+    if (width > 600) return 10;
+    return 8;
   }
 
   @override

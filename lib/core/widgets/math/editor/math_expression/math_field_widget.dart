@@ -29,33 +29,62 @@ class MathFieldWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'منطقة الكتابة',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).hintColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_hide_outlined, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        FocusScope.of(context).unfocus();
+                      },
+                      tooltip: 'إخفاء لوحة المفاتيح',
+                    ),
+                  ],
+                ),
+              ),
+              Container(
                 constraints: const BoxConstraints(
-                  minHeight: 80,
-                  maxHeight: 200,
+                  minHeight: 60,
+                  maxHeight: 180,
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
                   ),
-                  child: MathField(
-                    controller: controller,
-                    variables: const [
-                      'x',
-                      'y',
-                      'z',
-                      'r',
-                      r'\theta',
-                      r'\alpha',
-                      'a',
-                      'b',
-                      'c',
-                    ],
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(8),
+                  child: Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: MathField(
+                      controller: controller,
+                      variables: const [
+                        'x', 'y', 'z', 'r', 'n', 'k', 'i', 'j',
+                        r'\theta', r'\alpha', r'\beta', r'\gamma', r'\delta',
+                        'a', 'b', 'c', 't', 'v', 'f', 'E', 'm',
+                      ],
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(8),
+                      ),
+                      onChanged: (value) {},
                     ),
-                    onChanged: (value) {},
                   ),
                 ),
               ),

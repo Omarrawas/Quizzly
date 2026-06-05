@@ -34,7 +34,8 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
 
   @override
   Widget build(BuildContext context, quill.EmbedContext embedContext) {
-    final latex = embedContext.node.value.data as String;
+    final rawData = embedContext.node.value.data;
+    final latex = rawData is String ? rawData : '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
 
