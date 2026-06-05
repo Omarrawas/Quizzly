@@ -67,6 +67,13 @@ dependencies:
   flutter_image_compress: ^2.4.0
   pasteboard: ^0.5.0
 
+  # ── Math Equation Editor ────────────────────────────────
+  math_keyboard: ^0.3.1
+  flutter_bloc: ^8.1.6
+  easy_latex: ^1.0.2
+  equatable: ^2.0.5
+  bloc: ^8.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
