@@ -310,72 +310,80 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
     final accentColor = AppColors.primaryBlue;
 
-    return Container(
-      width: 950,
-      height: 600,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // 1. Header (Top Bar)
-          _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark),
+    // Use a safe width that works on all screens
+    final double editorWidth = size.width > 950 ? 950 : size.width * 0.95;
+    final double editorHeight = size.height > 600 ? 600 : size.height * 0.8;
 
-          // 2. Main Writing Area (Canvas) - NOW EXPANDED
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey[50],
-                image: isDark ? null : DecorationImage(
-                  image: const NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), // Subtle pattern
-                  opacity: 0.05,
-                  repeat: ImageRepeat.repeat,
+    return Center(
+      child: Container(
+        width: editorWidth,
+        height: editorHeight,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 30,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // 1. Header (Top Bar)
+            _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark, width: editorWidth),
+
+            // 2. Main Writing Area (Canvas) - NOW EXPANDED
+            Expanded(
+              child: Container(
+                width: editorWidth,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey[50],
+                  image: isDark ? null : DecorationImage(
+                    image: const NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), // Subtle pattern
+                    opacity: 0.05,
+                    repeat: ImageRepeat.repeat,
+                  ),
                 ),
-              ),
-              child: Center(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: rootNodes.isEmpty 
-                      ? [Text(isDark ? 'بداية المعادلة...' : 'اكتب المعادلة هنا...', style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 24, fontStyle: FontStyle.italic))]
-                      : rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+                child: Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: rootNodes.isEmpty 
+                        ? [Text(isDark ? 'بداية المعادلة...' : 'اكتب المعادلة هنا...', style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 24, fontStyle: FontStyle.italic))]
+                        : rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // 3. Ribbon (Tools) - Moved to BOTTOM just like the screenshot
-          _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor),
+            // 3. Ribbon (Tools) - Moved to BOTTOM just like the screenshot
+            _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor, width: editorWidth),
 
-          // Footer
-          _buildFooter(isDark: isDark, textColor: textColor, accentColor: accentColor),
-        ],
+            // Footer
+            _buildFooter(isDark: isDark, textColor: textColor, accentColor: accentColor, width: editorWidth),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader({required BuildContext ctx, required Color textColor, required Color borderColor, required Color accentColor, required bool isDark}) {
+  Widget _buildHeader({required BuildContext ctx, required Color textColor, required Color borderColor, required Color accentColor, required bool isDark, required double width}) {
     return Container(
+      width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white,
@@ -418,8 +426,9 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     );
   }
 
-  Widget _buildRibbon({required bool isDark, required Color borderColor, required Color textColor}) {
+  Widget _buildRibbon({required bool isDark, required Color borderColor, required Color textColor, required double width}) {
     return Container(
+      width: width,
       height: 80,
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.withValues(alpha: 0.05),
@@ -659,9 +668,10 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     );
   }
 
-  Widget _buildFooter({required bool isDark, required Color textColor, required Color accentColor}) {
+  Widget _buildFooter({required bool isDark, required Color textColor, required Color accentColor, required double width}) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.02),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
