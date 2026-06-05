@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/quill_delta.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
@@ -10,7 +11,6 @@ import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:pasteboard/pasteboard.dart';
-import 'dart:typed_data';
 import 'math/visual_math_editor.dart';
 
 
@@ -545,7 +545,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
             }
             
             String mathContent = match.group(0)!;
-            if (mathContent.startsWith(r'\(') && mathContent.endsWith(r'\)')) {
+            // Handle various delimiters and strip them
+            if (mathContent.startsWith(r'\\(') && mathContent.endsWith(r'\\)')) {
+              mathContent = mathContent.substring(3, mathContent.length - 3);
+            } else if (mathContent.startsWith(r'\\[') && mathContent.endsWith(r'\\]')) {
+              mathContent = mathContent.substring(3, mathContent.length - 3);
+            } else if (mathContent.startsWith(r'\(') && mathContent.endsWith(r'\)')) {
               mathContent = mathContent.substring(2, mathContent.length - 2);
             } else if (mathContent.startsWith(r'\[') && mathContent.endsWith(r'\]')) {
               mathContent = mathContent.substring(2, mathContent.length - 2);
@@ -679,7 +684,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       }
 
       // 2. Fallback to text if no image (so we don't break default behavior)
-      final data = await quill.Clipboard.getData(quill.Clipboard.kTextPlain);
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
       if (data != null && data.text != null) {
         final index = _controller.selection.baseOffset;
         final length = _controller.selection.extentOffset - index;
@@ -859,7 +864,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                 },
               ),
             },
-            child: Container(
+            child: SizedBox(
               height: widget.height,
               child: DefaultTextStyle(
                 style: TextStyle(

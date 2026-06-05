@@ -1,9 +1,9 @@
 import 'math_parser.dart';
 
 class MathUtils {
-  // Matches single-backslash delimiters: \(...\)  \[...\]  $...$  $$...$$
+  // Matches single or double backslash delimiters: \(...\)  \[...\]  \\(...\\)  \\[...\\] $...$  $$...$$
   static final RegExp latexRegex = RegExp(
-    r'(\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|\\\[.*?\\\])',
+    r'(\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|\\\[.*?\\\]|\\\\\(.*?\\\\\)|\\\\\[.*?\\\\\])',
     dotAll: true,
   );
 

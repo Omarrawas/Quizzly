@@ -1060,12 +1060,27 @@ class SafeMathPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (latex.trim().isEmpty) return const SizedBox.shrink();
+    
+    // Safety catch: strip delimiters if they accidentally slipped in
+    String cleanLatex = latex.trim();
+    if (cleanLatex.startsWith(r'\(') && cleanLatex.endsWith(r'\)')) {
+      cleanLatex = cleanLatex.substring(2, cleanLatex.length - 2);
+    } else if (cleanLatex.startsWith(r'\\(') && cleanLatex.endsWith(r'\\)')) {
+      cleanLatex = cleanLatex.substring(3, cleanLatex.length - 3);
+    } else if (cleanLatex.startsWith(r'\[') && cleanLatex.endsWith(r'\]')) {
+      cleanLatex = cleanLatex.substring(2, cleanLatex.length - 2);
+    } else if (cleanLatex.startsWith(r'$') && cleanLatex.endsWith(r'$')) {
+      cleanLatex = cleanLatex.startsWith(r'$$') 
+          ? cleanLatex.substring(2, cleanLatex.length - 2)
+          : cleanLatex.substring(1, cleanLatex.length - 1);
+    }
+
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Math.tex(
-        latex,
+        cleanLatex,
         textStyle: TextStyle(fontSize: mathSize, color: textColor),
-        onErrorFallback: (err) => Text(latex, style: TextStyle(color: textColor, fontSize: mathSize * 0.8)),
+        onErrorFallback: (err) => Text(cleanLatex, style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: mathSize * 0.8)),
       ),
     );
   }
