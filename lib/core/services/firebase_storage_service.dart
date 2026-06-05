@@ -88,4 +88,17 @@ class FirebaseStorageService {
       folderName: 'question_$type',
     );
   }
+
+  /// Deletes a file from Firebase Storage using its download URL
+  Future<bool> deleteFileByUrl(String url) async {
+    try {
+      final ref = _storage.refFromURL(url);
+      await ref.delete();
+      debugPrint('Deleted file from storage: ${ref.fullPath}');
+      return true;
+    } catch (e) {
+      debugPrint('Error deleting file from Firebase Storage: $e');
+      return false;
+    }
+  }
 }

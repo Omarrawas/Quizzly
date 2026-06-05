@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
 import 'package:quizzly/features/subject/presentation/screens/practical_lesson_detail_screen.dart';
-import 'package:quizzly/core/widgets/rich_text_editor.dart';
+import 'package:quizzly/features/admin/presentation/widgets/unified_lesson_editor.dart';
 
 class PracticalManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -175,9 +175,10 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddLessonSheet(
+      builder: (_) => UnifiedLessonEditorSheet(
         subjectId: widget.subjectId,
         sectionId: widget.sectionId,
+        type: 'practical',
       ),
     );
   }
@@ -187,9 +188,10 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddLessonSheet(
+      builder: (_) => UnifiedLessonEditorSheet(
         subjectId: widget.subjectId,
         sectionId: widget.sectionId,
+        type: 'practical',
         docId: docId,
         initialData: data,
       ),
@@ -339,230 +341,4 @@ class _LessonAdminCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AddLessonSheet extends StatefulWidget {
-  final String subjectId;
-  final String sectionId;
-  final String? docId;
-  final Map<String, dynamic>? initialData;
-
-  const _AddLessonSheet({
-    required this.subjectId,
-    required this.sectionId,
-    this.docId,
-    this.initialData,
-  });
-
-  @override
-  State<_AddLessonSheet> createState() => _AddLessonSheetState();
-}
-
-class _AddLessonSheetState extends State<_AddLessonSheet> {
-  final _titleCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _videoUrlCtrl = TextEditingController();
-  final _imageUrlCtrl = TextEditingController();
-  bool _saving = false;
-  bool _isFree = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialData != null) {
-      _titleCtrl.text = widget.initialData!['title'] ?? widget.initialData!['name'] ?? '';
-      _descCtrl.text = widget.initialData!['description'] ?? '';
-      _videoUrlCtrl.text = widget.initialData!['videoUrl'] ?? '';
-      _imageUrlCtrl.text = (widget.initialData!['imageUrls'] as List<dynamic>?)?.join('\n') ?? '';
-      _isFree = widget.initialData!['isFree'] == true;
-    }
-  }
-
-  Future<void> _save() async {
-    final title = _titleCtrl.text.trim();
-    if (title.isEmpty) return;
-
-    setState(() => _saving = true);
-
-    final imageUrlsList = _imageUrlCtrl.text
-        .split('\n')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-
-    // Determine media type automatically
-    String mediaType = 'none';
-    if (_videoUrlCtrl.text.trim().isNotEmpty) {
-      mediaType = 'video';
-    } else if (imageUrlsList.isNotEmpty) {
-      mediaType = 'images';
-    }
-
-    final lessonData = {
-      'title': title,
-      'description': _descCtrl.text.trim(),
-      'subjectId': widget.subjectId,
-      'sectionId': widget.sectionId,
-      'type': 'practical',
-      'subType': 'lesson',
-      'mediaType': mediaType,
-      'videoUrl': _videoUrlCtrl.text.trim().isEmpty ? null : _videoUrlCtrl.text.trim(),
-      'imageUrls': imageUrlsList,
-      'isFree': _isFree,
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-
-    if (widget.docId != null) {
-      await FirebaseFirestore.instance.collection('topics').doc(widget.docId).update(lessonData);
-    } else {
-      lessonData['createdAt'] = FieldValue.serverTimestamp();
-      await FirebaseFirestore.instance.collection('topics').add(lessonData);
-    }
-
-    if (mounted) Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              widget.docId != null ? 'تعديل الدرس العملي' : 'إضافة درس عملي جديد',
-              style: GoogleFonts.cairo(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _field(_titleCtrl, 'عنوان الدرس (مطلوب)', Icons.title_rounded, isDark),
-            const SizedBox(height: 16),
-            
-            // Free / Paid Toggle
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  'درس مجاني',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                subtitle: Text(
-                  'يمكن للطلاب مشاهدة هذا الدرس بدون اشتراك',
-                  style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
-                ),
-                value: _isFree,
-                activeThumbColor: Colors.green,
-                onChanged: (val) => setState(() => _isFree = val),
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Video Section (Optional)
-            Text(
-              'رابط الفيديو (اختياري)',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            _field(_videoUrlCtrl, 'أدخل رابط الفيديو (يوتيوب أو غيره)', Icons.play_circle_fill_rounded, isDark),
-            const SizedBox(height: 20),
-
-            // Images Section (Optional)
-            TextField(
-              controller: _imageUrlCtrl,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'روابط الصور (رابط في كل سطر)',
-                prefixIcon: const Icon(Icons.image_rounded),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Description Section
-            Text(
-              'الشرح النصي للدرس',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            RichTextEditor(
-              initialHtml: _descCtrl.text,
-              placeholder: 'اكتب تفاصيل الدرس وشرح الخطوات هنا...',
-              height: 250,
-              onContentChanged: (html) {
-                _descCtrl.text = html;
-              },
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: _saving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        widget.docId != null ? 'تعديل الدرس' : 'حفظ الدرس',
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _field(
-    TextEditingController ctrl,
-    String label,
-    IconData icon,
-    bool isDark,
-  ) => TextField(
-    controller: ctrl,
-    decoration: InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  );
 }

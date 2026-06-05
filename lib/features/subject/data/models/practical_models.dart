@@ -22,6 +22,8 @@ class PracticalItem {
   final String mediaType; // 'none', 'video', 'images'
   final String? videoUrl;
   final List<String> imageUrls;
+  final List<Map<String, dynamic>> attachments;
+  final Map<String, dynamic> rawData;
   
   final bool isNew;
   final bool isFree;
@@ -40,6 +42,8 @@ class PracticalItem {
     this.mediaType = 'none',
     this.videoUrl,
     this.imageUrls = const [],
+    this.attachments = const [],
+    this.rawData = const {},
     this.isNew = false,
     this.isFree = false,
     required this.lastUpdated,
@@ -82,6 +86,8 @@ class PracticalItem {
       mediaType: data['mediaType'] ?? 'none',
       videoUrl: data['videoUrl'],
       imageUrls: data['imageUrls'] != null ? List<String>.from(data['imageUrls']) : [],
+      attachments: data['attachments'] != null ? List<Map<String, dynamic>>.from(data['attachments']) : [],
+      rawData: data,
       isNew: data['isNew'] ?? false,
       isFree: data['isFree'] ?? false,
       lastUpdated: (data['createdAt'] as Timestamp?)?.toDate().toString().split(' ')[0] ?? 'غير معروف',
@@ -97,7 +103,9 @@ class PracticalItem {
       'mediaType': mediaType,
       'videoUrl': videoUrl,
       'imageUrls': imageUrls,
+      'attachments': attachments,
       'isNew': isNew,
+      'isFree': isFree,
       'practicalDetails': {
         if (content != null) 'content': content,
         if (imageUrl != null) 'imageUrl': imageUrl,

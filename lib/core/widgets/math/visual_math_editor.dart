@@ -71,29 +71,7 @@ class VisualMathEditor extends StatefulWidget {
     required this.onSave,
   });
 
-  @override
-  State<VisualMathEditor> createState() => _VisualMathEditorState();
-}
-
-class _VisualMathEditorState extends State<VisualMathEditor> {
-  late List<MathNode> rootNodes;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeNodes();
-  }
-
-  void _initializeNodes() {
-    if (widget.initialLatex != null && widget.initialLatex!.isNotEmpty) {
-      // Try to parse initial latex
-      rootNodes = _parseLatex(widget.initialLatex!);
-    } else {
-      rootNodes = [TextNode('')];
-    }
-  }
-
-  List<MathNode> _parseLatex(String latex) {
+  static List<MathNode> parseLatex(String latex) {
     if (latex.isEmpty) {
       return [TextNode('')];
     }
@@ -109,8 +87,8 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         final denSlot = _extractBracedContent(latex, i);
         i += denSlot.length + 2;
         nodes.add(TemplateNode('fraction', {
-          'num': _parseLatex(numSlot),
-          'den': _parseLatex(denSlot),
+          'num': parseLatex(numSlot),
+          'den': parseLatex(denSlot),
         }));
       } else if (latex.startsWith(r'\sqrt', i)) {
         i += 5;
@@ -120,14 +98,14 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           final contentSlot = _extractBracedContent(latex, i);
           i += contentSlot.length + 2;
           nodes.add(TemplateNode('nroot', {
-            'n': _parseLatex(nSlot),
-            'content': _parseLatex(contentSlot),
+            'n': parseLatex(nSlot),
+            'content': parseLatex(contentSlot),
           }));
         } else {
           final contentSlot = _extractBracedContent(latex, i);
           i += contentSlot.length + 2;
           nodes.add(TemplateNode('root', {
-            'content': _parseLatex(contentSlot),
+            'content': parseLatex(contentSlot),
           }));
         }
       } else if (latex.startsWith(r'\int', i)) {
@@ -144,8 +122,8 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           i += upper.length + 2;
         }
         nodes.add(TemplateNode('integral', {
-          'lower': _parseLatex(lower),
-          'upper': _parseLatex(upper),
+          'lower': parseLatex(lower),
+          'upper': parseLatex(upper),
           'body': [TextNode('')],
         }));
       } else if (latex.startsWith(r'\sum', i)) {
@@ -162,8 +140,8 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           i += upper.length + 2;
         }
         nodes.add(TemplateNode('sum', {
-          'lower': _parseLatex(lower),
-          'upper': _parseLatex(upper),
+          'lower': parseLatex(lower),
+          'upper': parseLatex(upper),
           'body': [TextNode('')],
         }));
       } else if (latex[i] == '^' && nodes.isNotEmpty) {
@@ -173,7 +151,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         final last = nodes.removeLast();
         nodes.add(TemplateNode('power', {
           'base': [last],
-          'exp': _parseLatex(expSlot),
+          'exp': parseLatex(expSlot),
         }));
       } else if (latex[i] == '_' && nodes.isNotEmpty) {
         i++;
@@ -182,23 +160,23 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         final last = nodes.removeLast();
         nodes.add(TemplateNode('subscript', {
           'base': [last],
-          'sub': _parseLatex(subSlot),
+          'sub': parseLatex(subSlot),
         }));
       } else if (latex.startsWith(r'\left(', i)) {
         i += 6;
         final content = _extractLeftRightContent(latex, i, r'\right)');
         i += content.length + 7;
-        nodes.add(TemplateNode('bracket', {'content': _parseLatex(content)}));
+        nodes.add(TemplateNode('bracket', {'content': parseLatex(content)}));
       } else if (latex.startsWith(r'\left[', i)) {
         i += 6;
         final content = _extractLeftRightContent(latex, i, r'\right]');
         i += content.length + 7;
-        nodes.add(TemplateNode('square_bracket', {'content': _parseLatex(content)}));
+        nodes.add(TemplateNode('square_bracket', {'content': parseLatex(content)}));
       } else if (latex.startsWith(r'\left\{', i)) {
         i += 7;
         final content = _extractLeftRightContent(latex, i, r'\right\}');
         i += content.length + 8;
-        nodes.add(TemplateNode('curly_bracket', {'content': _parseLatex(content)}));
+        nodes.add(TemplateNode('curly_bracket', {'content': parseLatex(content)}));
       } else {
         String currentText = '';
         while (i < latex.length && 
@@ -225,7 +203,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     return nodes;
   }
 
-  String _extractLeftRightContent(String s, int start, String closeTag) {
+  static String _extractLeftRightContent(String s, int start, String closeTag) {
     int j = start;
     int depth = 1;
     while (j < s.length && depth > 0) {
@@ -238,11 +216,10 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         j++;
       }
     }
-    // j points to where \right starts
     return s.substring(start, j);
   }
 
-  String _extractBracedContent(String s, int start) {
+  static String _extractBracedContent(String s, int start) {
     if (start >= s.length || s[start] != '{') {
       return "";
     }
@@ -261,7 +238,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     return s.substring(start + 1, j);
   }
 
-  String _extractBracketedContent(String s, int start) {
+  static String _extractBracketedContent(String s, int start) {
     if (start >= s.length || s[start] != '[') {
       return "";
     }
@@ -279,6 +256,28 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     }
     return s.substring(start + 1, j);
   }
+
+  @override
+  State<VisualMathEditor> createState() => _VisualMathEditorState();
+}
+
+class _VisualMathEditorState extends State<VisualMathEditor> {
+  late List<MathNode> rootNodes;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeNodes();
+  }
+
+  void _initializeNodes() {
+    if (widget.initialLatex != null && widget.initialLatex!.isNotEmpty) {
+      rootNodes = VisualMathEditor.parseLatex(widget.initialLatex!);
+    } else {
+      rootNodes = [TextNode('')];
+    }
+  }
+
 
   void _addTemplate(String type) {
     Map<String, List<MathNode>> slots = {};
@@ -470,7 +469,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _SafeMathPreview(latex: latex, textColor: textColor, mathSize: 14),
+              SafeMathPreview(latex: latex, textColor: textColor, mathSize: 14),
               const SizedBox(height: 4),
               Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
             ],
@@ -688,11 +687,178 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
   }
 }
 
-class _SafeMathPreview extends StatelessWidget {
+class VisualMathField extends StatefulWidget {
+  final List<MathNode> nodes;
+  final Function(String) onChanged;
+  final bool isDark;
+  final Color textColor;
+
+  const VisualMathField({
+    super.key,
+    required this.nodes,
+    required this.onChanged,
+    required this.isDark,
+    required this.textColor,
+  });
+
+  @override
+  State<VisualMathField> createState() => _VisualMathFieldState();
+}
+
+class _VisualMathFieldState extends State<VisualMathField> {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: widget.nodes.map((node) => _InlineNodeBuilder(
+          node: node,
+          isDark: widget.isDark,
+          textColor: widget.textColor,
+          onChanged: () {
+            widget.onChanged(widget.nodes.map((n) => n.toLatex()).join(''));
+          },
+        )).toList(),
+      ),
+    );
+  }
+}
+
+class _InlineNodeBuilder extends StatelessWidget {
+  final MathNode node;
+  final bool isDark;
+  final Color textColor;
+  final VoidCallback onChanged;
+
+  const _InlineNodeBuilder({
+    required this.node,
+    required this.isDark,
+    required this.textColor,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (node is TextNode) {
+      final tNode = node as TextNode;
+      return IntrinsicWidth(
+        child: TextFormField(
+          initialValue: tNode.text,
+          onChanged: (val) {
+            tNode.text = val;
+            onChanged();
+          },
+          style: TextStyle(fontSize: 22, color: textColor, fontFamily: 'serif'),
+          cursorColor: AppColors.primaryBlue,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          ),
+        ),
+      );
+    } else if (node is TemplateNode) {
+      final temp = node as TemplateNode;
+      return _buildTemplateWidget(temp, isDark, textColor, onChanged);
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildTemplateWidget(TemplateNode node, bool isDark, Color textColor, VoidCallback onChanged) {
+    switch (node.type) {
+      case 'fraction':
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildInlineSlot(node.slots['num']!, isDark, textColor, onChanged),
+              Container(width: 30, height: 1.5, color: textColor, margin: const EdgeInsets.symmetric(vertical: 2)),
+              _buildInlineSlot(node.slots['den']!, isDark, textColor, onChanged),
+            ],
+          ),
+        );
+      case 'power':
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildInlineSlot(node.slots['base']!, isDark, textColor, onChanged),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildInlineSlot(node.slots['exp']!, isDark, textColor, onChanged, small: true),
+            ),
+          ],
+        );
+      case 'subscript':
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInlineSlot(node.slots['base']!, isDark, textColor, onChanged),
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _buildInlineSlot(node.slots['sub']!, isDark, textColor, onChanged, small: true),
+            ),
+          ],
+        );
+      case 'root':
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('√', style: TextStyle(fontSize: 32, color: textColor, fontFamily: 'serif')),
+            _buildInlineSlot(node.slots['content']!, isDark, textColor, onChanged),
+          ],
+        );
+      case 'nroot':
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2, right: -6),
+              child: _buildInlineSlot(node.slots['n']!, isDark, textColor, onChanged, small: true),
+            ),
+            Text('√', style: TextStyle(fontSize: 32, color: textColor, fontFamily: 'serif')),
+            _buildInlineSlot(node.slots['content']!, isDark, textColor, onChanged),
+          ],
+        );
+      default:
+        // Basic versions for others
+        return Text(node.toLatex(), style: TextStyle(color: textColor, fontSize: 18));
+    }
+  }
+
+  Widget _buildInlineSlot(List<MathNode> nodes, bool isDark, Color textColor, VoidCallback onChanged, {bool small = false}) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      constraints: BoxConstraints(minWidth: small ? 15 : 24, minHeight: small ? 15 : 24),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: nodes.map((n) => _InlineNodeBuilder(node: n, isDark: isDark, textColor: textColor, onChanged: onChanged)).toList(),
+      ),
+    );
+  }
+}
+
+class SafeMathPreview extends StatelessWidget {
   final String latex;
   final Color textColor;
   final double mathSize;
-  const _SafeMathPreview({required this.latex, required this.textColor, this.mathSize = 16});
+
+  const SafeMathPreview({
+    super.key,
+    required this.latex,
+    required this.textColor,
+    this.mathSize = 16,
+  });
 
   @override
   Widget build(BuildContext context) {

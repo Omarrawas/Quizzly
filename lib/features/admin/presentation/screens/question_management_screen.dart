@@ -312,6 +312,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     );
   }
 
+  final List<String> _pendingImageDeletions = [];
+
   Future<void> _saveQuestion(bool isEdit) async {
     if (textController.text.trim().isEmpty) {
       _showStatusSnackBar('يرجى كتابة نص السؤال', isError: true);
@@ -356,6 +358,15 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       } else {
         await _dbService.addQuestion(widget.sectionId ?? 'global', questionData);
       }
+
+      // After successful save, delete images that were removed in the editor
+      if (_pendingImageDeletions.isNotEmpty) {
+        final storageService = FirebaseStorageService();
+        for (final url in _pendingImageDeletions) {
+          await storageService.deleteFileByUrl(url);
+        }
+      }
+
       if (mounted) {
         navigator.pop();
       }
@@ -666,6 +677,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     onContentChanged: (html) {
                       textController.text = html;
                     },
+                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
                   ),
                   const SizedBox(height: 16),
                   Text('ترجمة السؤال (اختياري)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
@@ -677,6 +689,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     onContentChanged: (html) {
                       translationTextController.text = html;
                     },
+                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
                   ),
                 ],
               ),
@@ -740,6 +753,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                     onContentChanged: (html) {
                                       opt['text'] = html;
                                     },
+                                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
                                   ),
                                 ),
                               ),
@@ -807,6 +821,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                     onContentChanged: (html) {
                       explanationController.text = html;
                     },
+                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
                   ),
                   const SizedBox(height: 16),
                    Text('مرفقات الشرح (صورة، صوت، فيديو أو PDF)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),

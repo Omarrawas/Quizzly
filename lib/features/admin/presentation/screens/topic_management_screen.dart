@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
-import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
 import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_detail_screen.dart';
+import 'package:quizzly/features/admin/presentation/widgets/unified_lesson_editor.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class TopicManagementScreen extends StatefulWidget {
@@ -567,6 +567,21 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     String? parentId,
     String type,
   ) {
+    if (type == 'lesson' && parentId != null) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => UnifiedLessonEditorSheet(
+          subjectId: _resolvedSubjectId,
+          sectionId: widget.sectionId,
+          type: 'lesson',
+          parentId: parentId,
+        ),
+      );
+      return;
+    }
+
     final nameController = TextEditingController();
     final label = type == 'chapter' ? 'فصل' : 'درس';
 
@@ -875,144 +890,17 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     );
   }
   void _showEditLessonContentDialog(String id, Map<String, dynamic> data) {
-    final descriptionController = TextEditingController(
-      text: data['description'] ?? '',
-    );
-    final videoUrlController = TextEditingController(
-      text: data['videoUrl'] ?? '',
-    );
-    final imageUrlsController = TextEditingController(
-      text: (data['imageUrls'] as List<dynamic>?)?.join('\n') ?? '',
-    );
-    bool isFree = data['isFree'] == true;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            'تعديل المحتوى النظري للدرس',
-            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF0F172A)
-                        : Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'درس مجاني',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'يمكن للطلاب مشاهدة هذا الدرس بدون اشتراك',
-                      style: GoogleFonts.cairo(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    value: isFree,
-                    activeThumbColor: Colors.green,
-                    onChanged: (val) => setDialogState(() => isFree = val),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'الشرح النظري',
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                RichTextEditor(
-                  initialHtml: descriptionController.text,
-                  placeholder: 'اكتب الشرح النظري هنا...',
-                  height: 250,
-                  onContentChanged: (html) {
-                    descriptionController.text = html;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: videoUrlController,
-                  decoration: InputDecoration(
-                    labelText: 'رابط الفيديو (YouTube/Direct)',
-                    prefixIcon: const Icon(Icons.link_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: imageUrlsController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'روابط الصور (رابط في كل سطر)',
-                    prefixIcon: const Icon(Icons.image_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء', style: GoogleFonts.cairo()),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () async {
-                final imageUrls = imageUrlsController.text
-                    .split('\n')
-                    .map((e) => e.trim())
-                    .where((e) => e.isNotEmpty)
-                    .toList();
-
-                await _dbService.updateDoc(DatabaseService.colTopics, id, {
-                  'description': descriptionController.text.trim(),
-                  'videoUrl': videoUrlController.text.trim(),
-                  'imageUrls': imageUrls,
-                  'mediaType': videoUrlController.text.isNotEmpty
-                      ? 'video'
-                      : (imageUrls.isNotEmpty ? 'images' : 'text'),
-                  'isFree': isFree,
-                  'lastUpdated': DateTime.now().toString().split(' ')[0],
-                });
-
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: Text('حفظ المحتوى', style: GoogleFonts.cairo()),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => UnifiedLessonEditorSheet(
+        subjectId: _resolvedSubjectId,
+        sectionId: widget.sectionId,
+        type: 'lesson',
+        docId: id,
+        initialData: data,
+        parentId: data['parentId'],
       ),
     );
   }

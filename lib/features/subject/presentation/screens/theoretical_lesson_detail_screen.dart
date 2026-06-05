@@ -7,6 +7,8 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen.dart';
 import 'package:quizzly/core/widgets/video/video_download_button.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TheoreticalLessonDetailScreen extends StatefulWidget {
   final String lessonId;
@@ -42,6 +44,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
     final imageUrls = List<String>.from(data['imageUrls'] ?? []);
     final mediaType = data['mediaType'] ?? 'text';
     final lastUpdated = data['lastUpdated'] ?? 'غير محدد';
+    final attachments = data['attachments'] != null ? List<Map<String, dynamic>>.from(data['attachments']) : [];
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
@@ -132,6 +135,34 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
                         color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
                         fontWeight: FontWeight.w500,
                       ),
+
+                      // -- NEW: Attachments Section --
+                      if (attachments.isNotEmpty) ...[
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.attach_file_rounded, color: Color(0xFF0D9488), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'المرفقات الإضافية',
+                              style: GoogleFonts.cairo(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        ...attachments.map((att) => _buildAttachmentTile(att, isDark)),
+                      ],
                     ],
                   ),
                 ),
@@ -143,6 +174,56 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _buildTestButton(isDark),
+    );
+  }
+
+  Widget _buildAttachmentTile(Map<String, dynamic> att, bool isDark) {
+    final type = att['type'] as String? ?? 'other';
+    final url = att['url'] as String? ?? '';
+    final title = att['title'] as String? ?? 'ملف مرفق';
+
+    Widget viewer;
+    if (type == 'pdf') {
+      viewer = PdfExplanationViewer(pdfUrl: url);
+    } else if (type == 'audio') {
+      viewer = AudioExplanationPlayer(audioUrl: url);
+    } else if (type == 'video') {
+      viewer = QuickExplanationVideo(videoUrl: url);
+    } else {
+      viewer = InkWell(
+        onTap: () => launchUrl(Uri.parse(url)),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blue.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.blue.withValues(alpha: 0.1)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.insert_drive_file_rounded, color: Colors.blue),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.blue),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (type != 'pdf' && type != 'audio')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, right: 4),
+              child: Text(title, style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          viewer,
+        ],
+      ),
     );
   }
 
@@ -279,7 +360,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
       
       if (!mounted) return;
       Navigator.pop(context); // Close loader
-
+ 
       final questions = snap.docs.map((doc) => QuizQuestion.fromFirestore(doc)).toList();
       
       if (questions.isEmpty) {

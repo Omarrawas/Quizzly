@@ -4,6 +4,8 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/subject/data/models/practical_models.dart';
 import 'package:quizzly/core/widgets/video/video_download_button.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PracticalLessonDetailScreen extends StatefulWidget {
   final PracticalItem item;
@@ -32,7 +34,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Media Section (Integrated into top) ──────────────────────────────
+                // ── Media Section ──────────────────────────────────
                 if (item.mediaType == 'video' && item.videoUrl != null)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -106,28 +108,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                       ),
                       const SizedBox(height: 24),
                       
-                      // Explanation Header
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0D9488),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'الشرح والتفاصيل',
-                            style: GoogleFonts.cairo(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
+                      _buildSectionTitle('الشرح والتفاصيل', Icons.description_rounded, isDark),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(20),
@@ -143,26 +124,16 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      
-                      // Support legacy content if present
-                      if (item.content != null && item.content!.isNotEmpty) ...[
+
+                      // -- Attachments --
+                      // Need to access raw data for attachments since they aren't in the PracticalItem model yet
+                      // -- Attachments Section --
+                      if (item.attachments.isNotEmpty) ...[
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('المرفقات الإضافية', Icons.attach_file_rounded, isDark),
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: isDark ? Colors.white10 : Colors.grey[100]!),
-                          ),
-                          child: TexViewWidget(
-                            text: item.content!,
-                            fontSize: 15,
-                            color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        ...item.attachments.map((att) => _buildAttachmentTile(att, isDark)),
                       ],
-                      
                       // Detailed Sections (Legacy Support)
                       if (item.microscopicLabels.isNotEmpty) ...[
                         const SizedBox(height: 32),
@@ -243,6 +214,56 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
               fontWeight: FontWeight.w500,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentTile(Map<String, dynamic> att, bool isDark) {
+    final type = att['type'] as String? ?? 'other';
+    final url = att['url'] as String? ?? '';
+    final title = att['title'] as String? ?? 'ملف مرفق';
+
+    Widget viewer;
+    if (type == 'pdf') {
+      viewer = PdfExplanationViewer(pdfUrl: url);
+    } else if (type == 'audio') {
+      viewer = AudioExplanationPlayer(audioUrl: url);
+    } else if (type == 'video') {
+      viewer = QuickExplanationVideo(videoUrl: url);
+    } else {
+      viewer = InkWell(
+        onTap: () => launchUrl(Uri.parse(url)),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blue.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.blue.withValues(alpha: 0.1)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.insert_drive_file_rounded, color: Colors.blue),
+              const SizedBox(width: 12),
+              Expanded(child: Text(title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold))),
+              const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.blue),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (type != 'pdf' && type != 'audio') // PDF and Audio have titles inside
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, right: 4),
+              child: Text(title, style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          viewer,
         ],
       ),
     );
