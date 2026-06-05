@@ -6,23 +6,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'bloc/math_expression/math_expression_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
-import 'math_expression/action_buttons.dart';
-import 'math_expression/dialogs/rendered_expression_dialog.dart';
-import 'math_expression/dialogs/settings_dialog.dart';
 import 'math_expression/math_field_widget.dart';
-import 'math_expression/rendered_expression.dart';
+
 import 'math_expression/services/settings_service.dart';
 import 'math_expression/symbol_selector.dart';
 
 class QuizzlyMathEditor extends StatefulWidget {
   final String initialLatex;
 
-  const QuizzlyMathEditor({
-    super.key,
-    this.initialLatex = '',
-  });
+  const QuizzlyMathEditor({super.key, this.initialLatex = ''});
 
-  static Future<String?> show(BuildContext context, {String initialLatex = ''}) {
+  static Future<String?> show(
+    BuildContext context, {
+    String initialLatex = '',
+  }) {
     return showDialog<String>(
       context: context,
       builder: (context) => QuizzlyMathEditor(initialLatex: initialLatex),
@@ -40,7 +37,7 @@ class PasteIntent extends Intent {
 class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
   late MathFieldEditingController _controller;
   String _searchQuery = '';
-  final GlobalKey _expressionKey = GlobalKey();
+  bool _isSearchVisible = false;
 
   @override
   void initState() {
@@ -79,16 +76,6 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
     context.read<MathExpressionBloc>().add(const UpdateExpression(''));
   }
 
-  void _copyLatexToClipboard() {
-    final state = context.read<MathExpressionBloc>().state;
-    if (state is MathExpressionUpdated) {
-      Clipboard.setData(ClipboardData(text: state.expression));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم نسخ LaTeX إلى الحافظة')),
-      );
-    }
-  }
-
   Future<void> _handlePaste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data != null && data.text != null) {
@@ -115,7 +102,8 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
     return Dialog.fullscreen(
       child: Shortcuts(
         shortcuts: <LogicalKeySet, Intent>{
-          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyV): const PasteIntent(),
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyV):
+              const PasteIntent(),
         },
         child: Actions(
           actions: <Type, Action<Intent>>{
@@ -135,40 +123,58 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
             child: Scaffold(
               backgroundColor: Colors.transparent,
               appBar: AppBar(
-                toolbarHeight: 50,
-                backgroundColor: Theme.of(context).appBarTheme.backgroundColor?.withValues(alpha: 0.9),
-                title: const Text('محرر الرياضيات', style: TextStyle(fontSize: 16)),
+                toolbarHeight: 40,
+                backgroundColor: Theme.of(
+                  context,
+                ).appBarTheme.backgroundColor?.withValues(alpha: 0.9),
+                title: const Text(
+                  'محرر الرياضيات',
+                  style: TextStyle(fontSize: 16),
+                ),
                 leading: IconButton(
-                  icon: const Icon(Icons.close, size: 22),
+                  icon: const Icon(Icons.close, size: 18),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 22),
+                    icon: Icon(
+                      _isSearchVisible ? Icons.search_off : Icons.search,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isSearchVisible = !_isSearchVisible;
+                        if (!_isSearchVisible) _searchQuery = '';
+                      });
+                    },
+                    tooltip: 'البحث عن رموز',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18),
                     onPressed: _clearExpression,
                     tooltip: 'مسح',
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, size: 22),
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (context) => const SettingsDialog(),
-                    ),
-                    tooltip: 'الإعدادات',
-                  ),
                   TextButton(
                     onPressed: _saveAndExit,
-                    child: const Text('حفظ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: const Text(
+                      'حفظ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 4),
                 ],
               ),
               body: Column(
                 children: [
+                  // Symbol selector takes all available space
                   Expanded(
                     child: SymbolSelector(
                       searchQuery: _searchQuery,
                       updateSearchQuery: _updateSearchQuery,
+                      isSearchVisible: _isSearchVisible,
                       showSuggestions: false,
                       suggestions: const [],
                       onSymbolSelected: (symbol) {
@@ -176,51 +182,17 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
                       },
                     ),
                   ),
+                  // Fixed bottom panel: writing area + preview
                   const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  Container(
+                    color: Theme.of(context).cardColor,
+                    padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
                     child: MathFieldWidget(
                       controller: _controller,
                       onClear: _clearExpression,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: ActionButtons(
-                      copyAsImage: () {}, // Not implemented
-                      copyLatexToClipboard: _copyLatexToClipboard,
-                      copyAsFormula: () {}, // Not implemented
-                      exportAsImage: () {}, // Not implemented
-                      showRenderedExpressionSettings: () => showDialog(
-                        context: context,
-                        builder: (context) => const RenderedExpressionDialog(),
-                      ),
-                      exportAsSVG: () {}, // Not implemented
-                      saveExpression: _saveAndExit,
-                      useMobileLayout: true,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    constraints: const BoxConstraints(
-                      minHeight: 60,
-                      maxHeight: 180,
-                    ),
-                    width: double.infinity,
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey.shade50,
-                    ),
-                    child: Center(
-                      child: RepaintBoundary(
-                        key: _expressionKey,
-                        child: const RenderedExpression(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -235,10 +207,7 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
 class QuizzlyMathEditorProvider extends StatelessWidget {
   final String initialLatex;
 
-  const QuizzlyMathEditorProvider({
-    super.key,
-    this.initialLatex = '',
-  });
+  const QuizzlyMathEditorProvider({super.key, this.initialLatex = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -254,12 +223,13 @@ class QuizzlyMathEditorProvider extends StatelessWidget {
         return MultiBlocProvider(
           providers: [
             BlocProvider(
-              create: (context) => MathExpressionBloc()
-                ..add(SetExpression(initialLatex)),
+              create: (context) =>
+                  MathExpressionBloc()..add(SetExpression(initialLatex)),
             ),
             BlocProvider(
-              create: (context) => SettingsBloc(settingsService: settingsService)
-                ..add(LoadSettings()),
+              create: (context) =>
+                  SettingsBloc(settingsService: settingsService)
+                    ..add(LoadSettings()),
             ),
           ],
           child: QuizzlyMathEditor(initialLatex: initialLatex),

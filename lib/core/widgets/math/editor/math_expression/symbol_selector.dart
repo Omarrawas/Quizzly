@@ -7,6 +7,7 @@ class SymbolSelector extends StatefulWidget {
   final String searchQuery;
   final ValueChanged<String> updateSearchQuery;
   final bool showSuggestions;
+  final bool isSearchVisible;
   final List<String> suggestions;
   final ValueChanged<String> onSymbolSelected;
 
@@ -15,6 +16,7 @@ class SymbolSelector extends StatefulWidget {
     required this.searchQuery,
     required this.updateSearchQuery,
     required this.showSuggestions,
+    this.isSearchVisible = false,
     required this.suggestions,
     required this.onSymbolSelected,
   });
@@ -110,19 +112,27 @@ class _SymbolSelectorState extends State<SymbolSelector>
               .map((category) => Tab(text: category))
               .toList(),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-          child: TextField(
-            decoration: const InputDecoration(
-              hintText: 'Search symbols...',
-              prefixIcon: Icon(Icons.search, size: 20),
-              border: OutlineInputBorder(),
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        if (widget.isSearchVisible)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+            child: TextField(
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'ابحث عن رمز...',
+                prefixIcon: const Icon(Icons.search, size: 18),
+                border: const OutlineInputBorder(),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                suffixIcon: widget.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () => widget.updateSearchQuery(''),
+                      )
+                    : null,
+              ),
+              onChanged: widget.updateSearchQuery,
             ),
-            onChanged: widget.updateSearchQuery,
           ),
-        ),
         Expanded(
           child: TabBarView(
             controller: _tabController,
