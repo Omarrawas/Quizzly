@@ -708,19 +708,61 @@ class VisualMathField extends StatefulWidget {
 class _VisualMathFieldState extends State<VisualMathField> {
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: widget.nodes.map((node) => _InlineNodeBuilder(
-          node: node,
-          isDark: widget.isDark,
-          textColor: widget.textColor,
-          onChanged: () {
-            widget.onChanged(widget.nodes.map((n) => n.toLatex()).join(''));
-          },
-        )).toList(),
+    // Check if the entire field is essentially empty
+    bool isEmpty = widget.nodes.every((n) {
+      if (n is TextNode) return n.text.trim().isEmpty;
+      return false;
+    });
+
+    return Directionality(
+      textDirection: TextDirection.ltr, // FORCE LTR for math editing
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: widget.isDark ? const Color(0xFF1E293B) : const Color(0xFFF0F7FF),
+          border: Border.all(
+            color: const Color(0xFF3B82F6).withValues(alpha: 0.5), 
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withValues(alpha: 0.08),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: widget.nodes.map((node) => _InlineNodeBuilder(
+                    node: node,
+                    isDark: widget.isDark,
+                    textColor: widget.textColor,
+                    placeholder: isEmpty ? 'اكتب المعادلة هنا' : null,
+                    onChanged: () {
+                      widget.onChanged(widget.nodes.map((n) => n.toLatex()).join(''));
+                    },
+                  )).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.more_vert, 
+              size: 16, 
+              color: Colors.blue.withValues(alpha: 0.4),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -731,12 +773,14 @@ class _InlineNodeBuilder extends StatelessWidget {
   final bool isDark;
   final Color textColor;
   final VoidCallback onChanged;
+  final String? placeholder;
 
   const _InlineNodeBuilder({
     required this.node,
     required this.isDark,
     required this.textColor,
     required this.onChanged,
+    this.placeholder,
   });
 
   @override
@@ -750,12 +794,19 @@ class _InlineNodeBuilder extends StatelessWidget {
             tNode.text = val;
             onChanged();
           },
+          textAlign: TextAlign.left,
           style: TextStyle(fontSize: 22, color: textColor, fontFamily: 'serif'),
           cursorColor: AppColors.primaryBlue,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             border: InputBorder.none,
             isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            hintText: placeholder,
+            hintStyle: TextStyle(
+              color: isDark ? Colors.white24 : Colors.blue.withValues(alpha: 0.3),
+              fontSize: 18,
+              fontStyle: FontStyle.italic,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           ),
         ),
       );

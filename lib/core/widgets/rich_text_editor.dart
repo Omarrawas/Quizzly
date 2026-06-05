@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_quill/quill_delta.dart';
 import 'package:vsc_quill_delta_to_html/vsc_quill_delta_to_html.dart';
 import 'package:flutter_quill_delta_from_html/flutter_quill_delta_from_html.dart';
 import 'package:file_picker/file_picker.dart';
@@ -496,6 +497,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (widget.initialHtml != null && widget.initialHtml!.isNotEmpty) {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
+        
+        // Convert plain text delimiters into interactive math embeds
+        delta = _convertTextDelimitersToMathEmbeds(delta);
+        
         _controller = quill.QuillController(
           document: quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
@@ -507,6 +512,49 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _controller = quill.QuillController.basic();
     }
     _controller.addListener(_onContentChanged);
+  }
+
+  Delta _convertTextDelimitersToMathEmbeds(Delta delta) {
+    final newDelta = Delta();
+    for (final op in delta.toList()) {
+      if (op.isInsert && op.data is String) {
+        final text = op.data as String;
+        final matches = MathUtils.latexRegex.allMatches(text);
+        
+        if (matches.isEmpty) {
+          newDelta.insert(text, op.attributes);
+        } else {
+          int lastMatchEnd = 0;
+          for (final match in matches) {
+            final beforeText = text.substring(lastMatchEnd, match.start);
+            if (beforeText.isNotEmpty) {
+              newDelta.insert(beforeText, op.attributes);
+            }
+            
+            String mathContent = match.group(0)!;
+            if (mathContent.startsWith(r'\(') && mathContent.endsWith(r'\)')) {
+              mathContent = mathContent.substring(2, mathContent.length - 2);
+            } else if (mathContent.startsWith(r'\[') && mathContent.endsWith(r'\]')) {
+              mathContent = mathContent.substring(2, mathContent.length - 2);
+            } else if (mathContent.startsWith(r'$$') && mathContent.endsWith(r'$$')) {
+              mathContent = mathContent.substring(2, mathContent.length - 2);
+            } else if (mathContent.startsWith(r'$') && mathContent.endsWith(r'$')) {
+              mathContent = mathContent.substring(1, mathContent.length - 1);
+            }
+            
+            newDelta.insert(quill.BlockEmbed('math', mathContent), op.attributes);
+            lastMatchEnd = match.end;
+          }
+          final remainingText = text.substring(lastMatchEnd);
+          if (remainingText.isNotEmpty) {
+            newDelta.insert(remainingText, op.attributes);
+          }
+        }
+      } else {
+        newDelta.push(op);
+      }
+    }
+    return newDelta;
   }
 
   void _onContentChanged() {
@@ -674,6 +722,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
                     onPressed: () => _controller.formatSelection(quill.Attribute.leftAlignment),
                     tooltip: 'محاذاة يسار',
                   ),
+                  const VerticalDivider(width: 8),
+                  _buildToolbarButton(
+                    icon: Icons.format_textdirection_l_to_r,
+                    isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] == null,
+                    onPressed: () => _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null)),
+                    tooltip: 'من اليسار لليمين (LTR)',
+                  ),
+                  _buildToolbarButton(
+                    icon: Icons.format_textdirection_r_to_l,
+                    isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] != null,
+                    onPressed: () => _controller.formatSelection(quill.Attribute.rtl),
+                    tooltip: 'من اليمين لليسار (RTL)',
+                  ),
                   const VerticalDivider(width: 12),
                   _buildToolbarButton(
                     icon: Icons.image_rounded,
@@ -681,12 +742,17 @@ class _RichTextEditorState extends State<RichTextEditor> {
                     onPressed: _uploadAndInsertImage,
                     tooltip: 'إضافة صورة',
                   ),
-                  // ★ MATH TOGGLE BUTTON
+                  _buildToolbarButton(
+                    icon: Icons.add_box_outlined,
+                    isSelected: false,
+                    onPressed: () => _insertMathLatex(''),
+                    tooltip: 'إضافة معادلة جديدة',
+                  ),
                   _buildToolbarButton(
                     icon: Icons.functions_rounded,
                     isSelected: _showMathToolbar,
                     onPressed: () => setState(() => _showMathToolbar = !_showMathToolbar),
-                    tooltip: 'إدراج معادلة رياضية',
+                    tooltip: 'قوالب المعادلات',
                   ),
                 ],
               ),
