@@ -13,6 +13,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_remote_config
   firebase_storage
   flutter_inappwebview_windows
+  pasteboard
   printing
   share_plus
   url_launcher_windows

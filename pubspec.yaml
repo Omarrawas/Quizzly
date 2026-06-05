@@ -64,6 +64,8 @@ dependencies:
   device_info_plus: ^12.4.0
   app_links: ^6.3.2
   firebase_storage: ^13.4.2
+  flutter_image_compress: ^2.4.0
+  pasteboard: ^0.5.0
 
 dev_dependencies:
   flutter_test:

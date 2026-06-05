@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/quill_delta.dart';
@@ -7,8 +8,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:quizzly/core/services/firebase_storage_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:pasteboard/pasteboard.dart';
+import 'dart:typed_data';
 import 'math/visual_math_editor.dart';
 
+
+class PasteIntent extends Intent {
+  const PasteIntent();
+}
 
 // ═══════════════════════════════════════════════════════════════
 // DATA: All math categories & items (Word-like)
@@ -254,10 +262,11 @@ final List<_MathCategoryData> _allMathCategories = [
 // ═══════════════════════════════════════════════════════════════
 
 class MathEmbedBuilder extends quill.EmbedBuilder {
-  final Function(String latex)? onFocusMath;
-  final String? activeLatex;
+  final Function(int offset)? onFocusMath;
+  final int? activeOffset;
+  final Stream<String>? mathAdditionStream;
 
-  MathEmbedBuilder({this.onFocusMath, this.activeLatex});
+  MathEmbedBuilder({this.onFocusMath, this.activeOffset, this.mathAdditionStream});
 
   @override
   String get key => 'math';
@@ -265,10 +274,11 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
   @override
   Widget build(BuildContext context, quill.EmbedContext embedContext) {
     final latex = embedContext.node.value.data as String;
+    final offset = embedContext.node.offset;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    if (activeLatex == latex) {
+    if (activeOffset == offset) {
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(8),
@@ -281,6 +291,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
           nodes: VisualMathEditor.parseLatex(latex),
           isDark: isDark,
           textColor: textColor,
+          mathAdditionStream: mathAdditionStream,
           onChanged: (newLatex) {
             if (newLatex != latex) {
               final offset = embedContext.node.offset;
@@ -292,7 +303,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
     }
 
     return InkWell(
-      onTap: () => onFocusMath?.call(latex),
+      onTap: () => onFocusMath?.call(offset),
       borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -463,7 +474,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
   bool _isFocused = false;
   bool _showMathToolbar = false;
   int _selectedMathCategory = 0;
-  String? _activeMathLatex;
+  int? _activeMathOffset;
+  final StreamController<String> _mathAdditionController = StreamController<String>.broadcast();
   final List<String> _deletedImageUrls = [];
 
   /// List of image URLs that were deleted from this editor
@@ -485,6 +497,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _controller.removeListener(_onContentChanged);
     _controller.dispose();
     _scrollController.dispose();
+    _mathAdditionController.close();
     super.dispose();
   }
 
@@ -591,23 +604,90 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _controller.formatSelection(isActive ? quill.Attribute.clone(attribute, null) : attribute);
   }
 
-  Future<void> _uploadAndInsertImage() async {
+  Future<Uint8List> _compressImage(Uint8List bytes) async {
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false, withData: true);
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-        if (file.bytes == null) return;
-        if (!mounted) return;
-        showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-        final storageService = FirebaseStorageService();
-        final url = await storageService.uploadFile(fileBytes: file.bytes!, fileExtension: file.extension ?? 'png', folderName: 'question_images');
-        if (mounted) Navigator.pop(context);
-        if (url != null) {
-          final index = _controller.selection.baseOffset;
-          _controller.replaceText(index, 0, quill.BlockEmbed.image(url), null);
+      // Compress to around 70% quality, max 1200px width/height
+      final compressed = await FlutterImageCompress.compressWithList(
+        bytes,
+        minWidth: 1200,
+        minHeight: 1200,
+        quality: 70,
+      );
+      return compressed;
+    } catch (e) {
+      debugPrint('Compression error: $e');
+      return bytes; // Fallback to original
+    }
+  }
+
+  Future<void> _uploadAndInsertImage({Uint8List? rawBytes, String? extension}) async {
+    try {
+      Uint8List? bytes = rawBytes;
+      String? ext = extension;
+
+      if (bytes == null) {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image, 
+          allowMultiple: false, 
+          withData: true
+        );
+        if (result != null && result.files.isNotEmpty) {
+          bytes = result.files.first.bytes;
+          ext = result.files.first.extension;
         }
       }
-    } catch (_) {}
+
+      if (bytes == null) return;
+      if (!mounted) return;
+
+      showDialog(
+        context: context, 
+        barrierDismissible: false, 
+        builder: (_) => const Center(child: CircularProgressIndicator())
+      );
+
+      // 1. Compress
+      final compressedBytes = await _compressImage(bytes);
+
+      // 2. Upload
+      final storageService = FirebaseStorageService();
+      final url = await storageService.uploadFile(
+        fileBytes: compressedBytes, 
+        fileExtension: ext ?? 'png', 
+        folderName: 'question_images'
+      );
+
+      if (mounted) Navigator.pop(context);
+
+      if (url != null) {
+        final index = _controller.selection.baseOffset;
+        _controller.replaceText(index, 0, quill.BlockEmbed.image(url), null);
+      }
+    } catch (e) {
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      debugPrint('Upload error: $e');
+    }
+  }
+
+  Future<void> _handlePaste() async {
+    try {
+      // 1. Check for image
+      final imageBytes = await Pasteboard.image;
+      if (imageBytes != null) {
+        await _uploadAndInsertImage(rawBytes: imageBytes, extension: 'png');
+        return;
+      }
+
+      // 2. Fallback to text if no image (so we don't break default behavior)
+      final data = await quill.Clipboard.getData(quill.Clipboard.kTextPlain);
+      if (data != null && data.text != null) {
+        final index = _controller.selection.baseOffset;
+        final length = _controller.selection.extentOffset - index;
+        _controller.replaceText(index, length >= 0 ? length : 0, data.text!, null);
+      }
+    } catch (e) {
+      debugPrint('Paste error: $e');
+    }
   }
 
   Widget _buildToolbarButton({
@@ -743,16 +823,20 @@ class _RichTextEditorState extends State<RichTextEditor> {
                     tooltip: 'إضافة صورة',
                   ),
                   _buildToolbarButton(
-                    icon: Icons.add_box_outlined,
-                    isSelected: false,
-                    onPressed: () => _insertMathLatex(''),
-                    tooltip: 'إضافة معادلة جديدة',
-                  ),
-                  _buildToolbarButton(
                     icon: Icons.functions_rounded,
                     isSelected: _showMathToolbar,
-                    onPressed: () => setState(() => _showMathToolbar = !_showMathToolbar),
-                    tooltip: 'قوالب المعادلات',
+                    onPressed: () {
+                      if (!_showMathToolbar) {
+                        _insertMathLatex(''); 
+                        setState(() => _showMathToolbar = true);
+                      } else {
+                        setState(() {
+                           _showMathToolbar = false;
+                           _activeMathOffset = null;
+                        });
+                      }
+                    },
+                    tooltip: 'إدراج/قوالب المعادلات',
                   ),
                 ],
               ),
@@ -762,38 +846,54 @@ class _RichTextEditorState extends State<RichTextEditor> {
           // ═══ EDITOR AREA ═══
           Stack(
             children: [
-              SizedBox(
-                height: widget.height,
-                child: DefaultTextStyle(
-                  style: TextStyle(
-                    color: widget.textColor ?? (isDark ? Colors.white : AppColors.textPrimary),
-                    fontSize: 16,
-                  ),
-                  child: quill.QuillEditor.basic(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    scrollController: _scrollController,
-                    config: quill.QuillEditorConfig(
-                      padding: const EdgeInsets.all(12),
-                      autoFocus: false,
-                      expands: false,
-                      embedBuilders: [
-                        ImageBlockEmbedBuilder(
-                          onDeleteImage: (url) {
-                            _deletedImageUrls.add(url);
-                            widget.onImageDeleted?.call(url);
-                          },
-                        ),
-                        MathEmbedBuilder(
-                          activeLatex: _activeMathLatex,
-                          onFocusMath: (latex) => setState(() => _activeMathLatex = latex),
-                        ),
-                      ],
-                    ),
+              Shortcuts(
+          shortcuts: <LogicalKeySet, Intent>{
+            LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyV): const PasteIntent(),
+          },
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              PasteIntent: CallbackAction<PasteIntent>(
+                onInvoke: (intent) async {
+                  await _handlePaste();
+                  return null;
+                },
+              ),
+            },
+            child: Container(
+              height: widget.height,
+              child: DefaultTextStyle(
+                style: TextStyle(
+                  color: widget.textColor ?? (isDark ? Colors.white : AppColors.textPrimary),
+                  fontSize: 16,
+                ),
+                child: quill.QuillEditor.basic(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  scrollController: _scrollController,
+                  config: quill.QuillEditorConfig(
+                    padding: const EdgeInsets.all(12),
+                    autoFocus: false,
+                    expands: false,
+                    embedBuilders: [
+                      ImageBlockEmbedBuilder(
+                        onDeleteImage: (url) {
+                          _deletedImageUrls.add(url);
+                          widget.onImageDeleted?.call(url);
+                        },
+                      ),
+                      MathEmbedBuilder(
+                        activeOffset: _activeMathOffset,
+                        onFocusMath: (offset) => setState(() => _activeMathOffset = offset),
+                        mathAdditionStream: _mathAdditionController.stream,
+                      ),
+                    ],
                   ),
                 ),
               ),
-              if (_activeMathLatex != null)
+            ),
+          ),
+        ),
+              if (_activeMathOffset != null)
                 Positioned(
                   top: 5,
                   right: 5,
@@ -804,7 +904,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                       foregroundColor: Colors.white,
                       minimumSize: const Size(28, 28),
                     ),
-                    onPressed: () => setState(() => _activeMathLatex = null),
+                    onPressed: () => setState(() => _activeMathOffset = null),
                   ),
                 ),
             ],
@@ -946,8 +1046,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _insertMathLatex(String latex) {
+    if (_activeMathOffset != null && latex.isNotEmpty) {
+      // Append to the active equation block via the stream
+      _mathAdditionController.add(latex);
+      return;
+    }
+
     final index = _controller.selection.baseOffset;
     _controller.replaceText(index, 0, quill.Embeddable('math', latex), null);
-    setState(() => _activeMathLatex = latex);
+    
+    // Selection offset of the inserted embed
+    setState(() {
+      _activeMathOffset = index;
+      _showMathToolbar = true;
+    });
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import '../../theme/app_colors.dart';
@@ -263,11 +264,19 @@ class VisualMathEditor extends StatefulWidget {
 
 class _VisualMathEditorState extends State<VisualMathEditor> {
   late List<MathNode> rootNodes;
+  
+  // Focus tracking for Word-like experience
+  List<MathNode>? _focusedSlot;
+  int? _focusedIndex;
+  TextEditingController? _focusedController;
+  final FocusNode _editorFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _initializeNodes();
+    _focusedSlot = rootNodes;
+    _focusedIndex = rootNodes.length - 1;
   }
 
   void _initializeNodes() {
@@ -278,6 +287,13 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     }
   }
 
+  void _updateFocus(List<MathNode> slot, int index, TextEditingController controller) {
+    setState(() {
+      _focusedSlot = slot;
+      _focusedIndex = index;
+      _focusedController = controller;
+    });
+  }
 
   void _addTemplate(String type) {
     Map<String, List<MathNode>> slots = {};
@@ -294,17 +310,58 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     }
     if (type == 'matrix') {
       slots = {
-        '0,0': [TextNode('')],
-        '0,1': [TextNode('')],
-        '1,0': [TextNode('')],
-        '1,1': [TextNode('')]
+        '0,0': [TextNode('')], '0,1': [TextNode('')],
+        '1,0': [TextNode('')], '1,1': [TextNode('')]
       };
+    }
+    if (slots.isEmpty) {
+       // Handle generic text templates if any
+       _addSymbol('\\$type ');
+       return;
     }
     
     setState(() {
-      rootNodes.add(TemplateNode(type, slots));
-      rootNodes.add(TextNode(''));
+      if (_focusedSlot != null && _focusedIndex != null) {
+        final node = _focusedSlot![_focusedIndex!];
+        if (node is TextNode) {
+          final cursor = _focusedController?.selection.baseOffset ?? node.text.length;
+          final textBefore = node.text.substring(0, cursor >= 0 ? cursor : 0);
+          final textAfter = node.text.substring(cursor >= 0 ? cursor : 0);
+          
+          node.text = textBefore;
+          _focusedSlot!.insert(_focusedIndex! + 1, TemplateNode(type, slots));
+          _focusedSlot!.insert(_focusedIndex! + 2, TextNode(textAfter));
+          
+          // Set focus to new template
+          _focusedSlot = slots.values.first;
+          _focusedIndex = 0;
+        } else {
+          _focusedSlot!.insert(_focusedIndex! + 1, TemplateNode(type, slots));
+          _focusedSlot!.insert(_focusedIndex! + 2, TextNode(''));
+          _focusedIndex = _focusedIndex! + 1;
+        }
+      } else {
+        rootNodes.add(TemplateNode(type, slots));
+        rootNodes.add(TextNode(''));
+      }
     });
+  }
+
+  void _addSymbol(String symbol) {
+    if (_focusedSlot != null && _focusedIndex != null) {
+      final node = _focusedSlot![_focusedIndex!];
+      if (node is TextNode) {
+        final cursor = _focusedController?.selection.baseOffset ?? node.text.length;
+        final textBefore = node.text.substring(0, cursor >= 0 ? cursor : 0);
+        final textAfter = node.text.substring(cursor >= 0 ? cursor : 0);
+        
+        setState(() {
+          node.text = textBefore + symbol + textAfter;
+          _focusedController?.text = node.text;
+          _focusedController?.selection = TextSelection.collapsed(offset: cursor + symbol.length);
+        });
+      }
+    }
   }
 
   @override
@@ -316,9 +373,8 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
     final accentColor = AppColors.primaryBlue;
 
-    // Use a safe width that works on all screens
     final double editorWidth = size.width > 950 ? 950 : size.width * 0.95;
-    final double editorHeight = size.height > 600 ? 600 : size.height * 0.8;
+    final double editorHeight = size.height > 650 ? 650 : size.height * 0.85;
 
     return Center(
       child: Container(
@@ -337,40 +393,36 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
         ),
         child: Column(
           children: [
-            // 1. Header (Top Bar)
+            // Header
             _buildHeader(ctx: context, textColor: textColor, borderColor: borderColor, accentColor: accentColor, isDark: isDark, width: editorWidth),
 
-            // 2. Main Writing Area (Canvas) - NOW EXPANDED
+            // Top Ribbon (Word Style)
+            _buildWordRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor, width: editorWidth),
+
+            // Main Canvas
             Expanded(
-              child: Container(
-                width: editorWidth,
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey[50],
-                  image: isDark ? null : DecorationImage(
-                    image: const NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), // Subtle pattern
-                    opacity: 0.05,
-                    repeat: ImageRepeat.repeat,
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).requestFocus(_editorFocusNode),
+                child: Container(
+                  width: editorWidth,
+                  padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 30),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFFF8FAFC),
                   ),
-                ),
-                child: Center(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: rootNodes.isEmpty 
-                        ? [Text(isDark ? 'بداية المعادلة...' : 'اكتب المعادلة هنا...', style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 24, fontStyle: FontStyle.italic))]
-                        : rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor)).toList(),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: rootNodes.map((node) => _buildNodeWidget(node, isDark, textColor, rootNodes)).toList(),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-
-            // 3. Ribbon (Tools) - Moved to BOTTOM just like the screenshot
-            _buildRibbon(isDark: isDark, borderColor: borderColor, textColor: textColor, width: editorWidth),
 
             // Footer
             _buildFooter(isDark: isDark, textColor: textColor, accentColor: accentColor, width: editorWidth),
@@ -380,98 +432,127 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     );
   }
 
-  Widget _buildHeader({required BuildContext ctx, required Color textColor, required Color borderColor, required Color accentColor, required bool isDark, required double width}) {
+  Widget _buildWordRibbon({required bool isDark, required Color borderColor, required Color textColor, required double width}) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
         border: Border(bottom: BorderSide(color: borderColor)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.functions, color: accentColor, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'محرر المعادلات المرئي',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+          // Symbols Quick Bar
+          Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5)))),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                '±', '∞', '≠', '≈', '×', '÷', 'π', 'α', 'β', 'θ', 'λ', '∑', '∫', '√', '→', '⇒', '⇔', '∀', '∃', '∈', '∉', '⊂', '⊃', '⊆', '⊇', '∠', '△'
+              ].map((s) => _buildQuickSymbol(s)).toList(),
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              final latex = rootNodes.map((n) => n.toLatex()).join('');
-              widget.onSave(latex);
-            },
-            icon: const Icon(Icons.check, size: 18),
-            label: const Text('حفظ المعادلة'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: accentColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          // Categories Ribbon
+          SizedBox(
+            height: 80,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              children: [
+                _buildCategoryMenu('كسور', Icons.view_headline, [
+                  _TemplateItem(r'\frac{\Box}{\Box}', 'fraction', 'كسر عادي'),
+                  _TemplateItem(r'\tfrac{\Box}{\Box}', 'fraction', 'كسر صغير'),
+                  _TemplateItem(r'\dfrac{\Box}{\Box}', 'fraction', 'كسر كبير'),
+                ], isDark, textColor),
+                _buildCategoryMenu('أُسس', Icons.superscript, [
+                  _TemplateItem(r'\Box^{\Box}', 'power', 'أُس علوي'),
+                  _TemplateItem(r'\Box_{\Box}', 'subscript', 'حد سفلي'),
+                ], isDark, textColor),
+                _buildCategoryMenu('جذور', Icons.square_foot, [
+                  _TemplateItem(r'\sqrt{\Box}', 'root', 'جذر تربيعي'),
+                  _TemplateItem(r'\sqrt[n]{\Box}', 'nroot', 'جذر نوني'),
+                ], isDark, textColor),
+                _buildCategoryMenu('تكامل', Icons.show_chart, [
+                  _TemplateItem(r'\int', 'integral', 'تكامل'),
+                  _TemplateItem(r'\int_{\Box}^{\Box}', 'integral', 'تكامل محدود'),
+                  _TemplateItem(r'\iint', 'integral', 'تكامل ثنائي'),
+                ], isDark, textColor),
+                _buildCategoryMenu('مجموع', Icons.functions, [
+                   _TemplateItem(r'\sum', 'sum', 'مجموع'),
+                  _TemplateItem(r'\sum_{\Box}^{\Box}', 'sum', 'مجموع محدود'),
+                  _TemplateItem(r'\prod', 'sum', 'جداء'),
+                ], isDark, textColor),
+                _buildCategoryMenu('أقواس', Icons.data_array, [
+                  _TemplateItem(r'(\Box)', 'bracket', 'أقواس دائرية'),
+                  _TemplateItem(r'[\Box]', 'square_bracket', 'أقواس مربعة'),
+                  _TemplateItem(r'\{\Box\}', 'curly_bracket', 'أقواس مجموعة'),
+                ], isDark, textColor),
+                _buildCategoryMenu('مصفوفة', Icons.grid_on, [
+                  _TemplateItem(r'\begin{matrix} \Box & \Box \\ \Box & \Box \end{matrix}', 'matrix', '2x2'),
+                ], isDark, textColor),
+                _buildCategoryMenu('دوال', Icons.auto_graph, [
+                  _TemplateItem(r'\sin', 'sin', 'sin'),
+                  _TemplateItem(r'\cos', 'cos', 'cos'),
+                  _TemplateItem(r'\tan', 'tan', 'tan'),
+                  _TemplateItem(r'\lim_{x \to 0}', 'lim', 'limit'),
+                ], isDark, textColor),
+              ],
             ),
-          ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.close, size: 20),
-            onPressed: () => Navigator.pop(ctx),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRibbon({required bool isDark, required Color borderColor, required Color textColor, required double width}) {
-    return Container(
-      width: width,
-      height: 80,
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.withValues(alpha: 0.05),
-        border: Border(bottom: BorderSide(color: borderColor)),
-      ),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
-          _buildRibbonItem(r'\frac{\Box}{\Box}', 'كسر', () => _addTemplate('fraction'), isDark, textColor),
-          _buildRibbonItem(r'\Box^{\Box}', 'أس', () => _addTemplate('power'), isDark, textColor),
-          _buildRibbonItem(r'\Box_{\Box}', 'سفلي', () => _addTemplate('subscript'), isDark, textColor),
-          _buildRibbonItem(r'\sqrt{\Box}', 'جذر', () => _addTemplate('root'), isDark, textColor),
-          _buildRibbonItem(r'\sqrt[n]{\Box}', 'جذر نوني', () => _addTemplate('nroot'), isDark, textColor),
-          _buildRibbonItem(r'\int_{\Box}^{\Box}', 'تكامل', () => _addTemplate('integral'), isDark, textColor),
-          _buildRibbonItem(r'\sum_{\Box}^{\Box}', 'مجموع', () => _addTemplate('sum'), isDark, textColor),
-          _buildRibbonItem(r'(\Box)', 'أقواس', () => _addTemplate('bracket'), isDark, textColor),
-          _buildRibbonItem(r'[\Box]', 'مربعة', () => _addTemplate('square_bracket'), isDark, textColor),
-          _buildRibbonItem(r'\{\Box\}', 'مجموعة', () => _addTemplate('curly_bracket'), isDark, textColor),
-          _buildRibbonItem(r'\begin{matrix} \Box & \Box \\ \Box & \Box \end{matrix}', 'مصفوفة', () => _addTemplate('matrix'), isDark, textColor),
-        ],
+  Widget _buildQuickSymbol(String symbol) {
+    return InkWell(
+      onTap: () => _addSymbol(symbol),
+      child: Container(
+        width: 38,
+        alignment: Alignment.center,
+        child: Text(symbol, style: const TextStyle(fontSize: 18)),
       ),
     );
   }
 
-  Widget _buildRibbonItem(String latex, String label, VoidCallback onTap, bool isDark, Color textColor) {
+  Widget _buildCategoryMenu(String label, IconData icon, List<_TemplateItem> items, bool isDark, Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+      child: PopupMenuButton<_TemplateItem>(
+        onSelected: (item) => _addTemplate(item.type),
+        offset: const Offset(0, 75),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        itemBuilder: (context) => items.map((item) {
+          return PopupMenuItem<_TemplateItem>(
+            value: item,
+            child: Row(
+              children: [
+                Container(
+                  width: 35,
+                  height: 35,
+                  alignment: Alignment.center,
+                  child: SafeMathPreview(latex: item.preview, textColor: textColor, mathSize: 13),
+                ),
+                const SizedBox(width: 12),
+                Text(item.label, style: const TextStyle(fontSize: 13)),
+              ],
+            ),
+          );
+        }).toList(),
         child: Container(
-          width: 75,
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          width: 85,
           decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
             border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-            borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SafeMathPreview(latex: latex, textColor: textColor, mathSize: 14),
+              Icon(icon, size: 22, color: AppColors.primaryBlue),
               const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
+              Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textColor.withValues(alpha: 0.7))),
             ],
           ),
         ),
@@ -479,76 +560,68 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     );
   }
 
-  Widget _buildNodeWidget(MathNode node, bool isDark, Color textColor) {
+  Widget _buildNodeWidget(MathNode node, bool isDark, Color textColor, List<MathNode> parentSlot) {
     if (node is TextNode) {
-      return IntrinsicWidth(
-        child: TextFormField(
-          initialValue: node.text,
-          onChanged: (val) => node.text = val,
-          style: TextStyle(
-            fontSize: 28, 
-            color: textColor, 
-            fontFamily: 'serif',
-            fontWeight: FontWeight.w400,
-          ),
-          cursorColor: AppColors.primaryBlue,
-          decoration: InputDecoration(
-            border: InputBorder.none,
-            isDense: true,
-            hintText: rootNodes.indexOf(node) == 0 && node.text.isEmpty ? 'اكتب هنا...' : '',
-            hintStyle: TextStyle(color: textColor.withValues(alpha: 0.2)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-          ),
-        ),
+      return _MathTextField(
+        node: node,
+        isDark: isDark,
+        textColor: textColor,
+        onFocused: (controller) => _updateFocus(parentSlot, parentSlot.indexOf(node), controller),
+        isRoot: parentSlot == rootNodes,
       );
     } else if (node is TemplateNode) {
+      Widget content;
       switch (node.type) {
         case 'fraction':
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildSlot(node.slots['num']!, isDark, textColor),
-                Container(width: 40, height: 2, color: textColor, margin: const EdgeInsets.symmetric(vertical: 4)),
-                _buildSlot(node.slots['den']!, isDark, textColor),
-              ],
-            ),
+          content = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSlot(node.slots['num']!, isDark, textColor),
+              Container(width: 40, height: 1.5, color: textColor, margin: const EdgeInsets.symmetric(vertical: 4)),
+              _buildSlot(node.slots['den']!, isDark, textColor),
+            ],
           );
+          break;
         case 'power':
-          return Row(
+          content = Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _buildSlot(node.slots['base']!, isDark, textColor),
               Padding(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding: const EdgeInsets.only(bottom: 20),
                 child: _buildSlot(node.slots['exp']!, isDark, textColor, small: true),
               ),
             ],
           );
+          break;
         case 'subscript':
-          return Row(
+          content = Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSlot(node.slots['base']!, isDark, textColor),
               Padding(
-                padding: const EdgeInsets.only(top: 18),
+                padding: const EdgeInsets.only(top: 20),
                 child: _buildSlot(node.slots['sub']!, isDark, textColor, small: true),
               ),
             ],
           );
+          break;
         case 'root':
-          return Row(
+          content = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('√', style: TextStyle(fontSize: 40, color: textColor, fontFamily: 'serif')),
-              _buildSlot(node.slots['content']!, isDark, textColor),
+              Container(
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: textColor, width: 1.5))),
+                child: _buildSlot(node.slots['content']!, isDark, textColor),
+              ),
             ],
           );
+          break;
         case 'nroot':
-          return Row(
+          content = Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -557,13 +630,17 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
                 child: _buildSlot(node.slots['n']!, isDark, textColor, small: true),
               ),
               Text('√', style: TextStyle(fontSize: 40, color: textColor, fontFamily: 'serif')),
-              _buildSlot(node.slots['content']!, isDark, textColor),
+              Container(
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: textColor, width: 1.5))),
+                child: _buildSlot(node.slots['content']!, isDark, textColor),
+              ),
             ],
           );
+          break;
         case 'integral':
         case 'sum':
           final symbol = node.type == 'integral' ? '∫' : '∑';
-          return Row(
+          content = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Column(
@@ -578,13 +655,14 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
               _buildSlot(node.slots['body']!, isDark, textColor),
             ],
           );
+          break;
         case 'bracket':
         case 'square_bracket':
         case 'curly_bracket':
           String open = '(', close = ')';
           if (node.type == 'square_bracket') { open = '['; close = ']'; }
           if (node.type == 'curly_bracket') { open = '{'; close = '}'; }
-          return Row(
+          content = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(open, style: TextStyle(fontSize: 40, color: textColor, fontWeight: FontWeight.w100)),
@@ -592,77 +670,101 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
               Text(close, style: TextStyle(fontSize: 40, color: textColor, fontWeight: FontWeight.w100)),
             ],
           );
+          break;
         case 'matrix':
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('[', style: TextStyle(fontSize: 50, color: textColor, fontWeight: FontWeight.w100)),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildSlot(node.slots['0,0']!, isDark, textColor),
-                        const SizedBox(width: 8),
-                        _buildSlot(node.slots['0,1']!, isDark, textColor),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildSlot(node.slots['1,0']!, isDark, textColor),
-                        const SizedBox(width: 8),
-                        _buildSlot(node.slots['1,1']!, isDark, textColor),
-                      ],
-                    ),
-                  ],
-                ),
-                Text(']', style: TextStyle(fontSize: 50, color: textColor, fontWeight: FontWeight.w100)),
-              ],
-            ),
+          content = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('[', style: TextStyle(fontSize: 50, color: textColor, fontWeight: FontWeight.w100)),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    _buildSlot(node.slots['0,0']!, isDark, textColor),
+                    const SizedBox(width: 8),
+                    _buildSlot(node.slots['0,1']!, isDark, textColor),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    _buildSlot(node.slots['1,0']!, isDark, textColor),
+                    const SizedBox(width: 8),
+                    _buildSlot(node.slots['1,1']!, isDark, textColor),
+                  ]),
+                ],
+              ),
+              Text(']', style: TextStyle(fontSize: 50, color: textColor, fontWeight: FontWeight.w100)),
+            ],
           );
+          break;
+        default: content = const SizedBox.shrink();
       }
+      return content;
     }
     return const SizedBox.shrink();
   }
 
   Widget _buildSlot(List<MathNode> nodes, bool isDark, Color textColor, {bool small = false}) {
+    final isFocused = _focusedSlot == nodes;
+    
     return Container(
       padding: const EdgeInsets.all(4),
-      constraints: BoxConstraints(minWidth: small ? 20 : 30, minHeight: small ? 20 : 30),
+      constraints: BoxConstraints(minWidth: small ? 25 : 35, minHeight: small ? 25 : 35),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.3),
-          width: 1,
+          color: isFocused ? AppColors.primaryBlue : (isDark ? Colors.white10 : Colors.black12),
+          width: isFocused ? 1.5 : 1,
+          style: nodes.every((n) => n.isEmpty) ? BorderStyle.solid : BorderStyle.none,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: nodes.map((n) {
-          if (n is TextNode) {
-            return IntrinsicWidth(
-              child: TextFormField(
-                initialValue: n.text,
-                onChanged: (val) => n.text = val,
-                style: TextStyle(fontSize: small ? 16 : 20, color: textColor, fontFamily: 'serif'),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  hintText: '?',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-              ),
-            );
-          }
-          return _buildNodeWidget(n, isDark, textColor);
-        }).toList(),
+        children: nodes.isEmpty 
+          ? [const SizedBox(width: 10)] 
+          : nodes.map((n) => _buildNodeWidget(n, isDark, textColor, nodes)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildHeader({required BuildContext ctx, required Color textColor, required Color borderColor, required Color accentColor, required bool isDark, required double width}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border(bottom: BorderSide(color: borderColor)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.functions, color: accentColor, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'محرر معادلات وورد (Visual Equation Editor)',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              final latex = rootNodes.map((n) => n.toLatex()).join('');
+              widget.onSave(latex);
+            },
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('إدراج'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+        ],
       ),
     );
   }
@@ -670,18 +772,104 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
   Widget _buildFooter({required bool isDark, required Color textColor, required Color accentColor, required double width}) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.02),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      color: isDark ? const Color(0xFF0F172A) : Colors.white,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.info_outline, size: 16, color: accentColor),
           const SizedBox(width: 8),
           Text(
-            'اضغط داخل المربعات المنقطة لكتابة الأرقام أو الرموز',
-            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.7)),
+            'اضغط في المربعات المنقطة للكتابة. استخدم الأيقونات لإدراج قوالب.',
+            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.6)),
+          ),
+          const Spacer(),
+          Text(
+            'Latex Result: ${rootNodes.map((n) => n.toLatex()).join('')}',
+            style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.3)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TemplateItem {
+  final String preview;
+  final String type;
+  final String label;
+  _TemplateItem(this.preview, this.type, this.label);
+}
+
+class _MathTextField extends StatefulWidget {
+  final TextNode node;
+  final bool isDark;
+  final Color textColor;
+  final Function(TextEditingController) onFocused;
+  final bool isRoot;
+
+  const _MathTextField({
+    required this.node,
+    required this.isDark,
+    required this.textColor,
+    required this.onFocused,
+    this.isRoot = false,
+  });
+
+  @override
+  State<_MathTextField> createState() => _MathTextFieldState();
+}
+
+class _MathTextFieldState extends State<_MathTextField> {
+  late TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.node.text);
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        widget.onFocused(_controller);
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_MathTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.node.text != _controller.text) {
+      _controller.text = widget.node.text;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicWidth(
+      child: TextFormField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onChanged: (val) => widget.node.text = val,
+        style: TextStyle(
+          fontSize: widget.isRoot ? 32 : 22, 
+          color: widget.textColor, 
+          fontFamily: 'serif',
+          fontWeight: FontWeight.w400,
+        ),
+        cursorColor: AppColors.primaryBlue,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          isDense: true,
+          hintText: widget.isRoot && widget.node.text.isEmpty ? '...' : '',
+          hintStyle: TextStyle(color: widget.textColor.withValues(alpha: 0.1)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        ),
       ),
     );
   }
@@ -692,6 +880,7 @@ class VisualMathField extends StatefulWidget {
   final Function(String) onChanged;
   final bool isDark;
   final Color textColor;
+  final Stream<String>? mathAdditionStream;
 
   const VisualMathField({
     super.key,
@@ -699,6 +888,7 @@ class VisualMathField extends StatefulWidget {
     required this.onChanged,
     required this.isDark,
     required this.textColor,
+    this.mathAdditionStream,
   });
 
   @override
@@ -706,16 +896,36 @@ class VisualMathField extends StatefulWidget {
 }
 
 class _VisualMathFieldState extends State<VisualMathField> {
+  StreamSubscription? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = widget.mathAdditionStream?.listen((latex) {
+      if (mounted) {
+        setState(() {
+          widget.nodes.addAll(VisualMathEditor.parseLatex(latex));
+          widget.onChanged(widget.nodes.map((n) => n.toLatex()).join(''));
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Check if the entire field is essentially empty
     bool isEmpty = widget.nodes.every((n) {
       if (n is TextNode) return n.text.trim().isEmpty;
       return false;
     });
 
     return Directionality(
-      textDirection: TextDirection.ltr, // FORCE LTR for math editing
+      textDirection: TextDirection.ltr,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -725,43 +935,22 @@ class _VisualMathFieldState extends State<VisualMathField> {
             width: 1.5,
           ),
           borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withValues(alpha: 0.08),
-              blurRadius: 4,
-              spreadRadius: 1,
-            ),
-          ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Flexible(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: widget.nodes.map((node) => _InlineNodeBuilder(
-                    node: node,
-                    isDark: widget.isDark,
-                    textColor: widget.textColor,
-                    placeholder: isEmpty ? 'اكتب المعادلة هنا' : null,
-                    onChanged: () {
-                      widget.onChanged(widget.nodes.map((n) => n.toLatex()).join(''));
-                    },
-                  )).toList(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.more_vert, 
-              size: 16, 
-              color: Colors.blue.withValues(alpha: 0.4),
-            ),
-          ],
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: widget.nodes.map((node) => _InlineNodeBuilder(
+              node: node,
+              isDark: widget.isDark,
+              textColor: widget.textColor,
+              placeholder: isEmpty ? 'اكتب هنا' : null,
+              onChanged: () {
+                widget.onChanged(widget.nodes.map((n) => n.toLatex()).join(''));
+              },
+            )).toList(),
+          ),
         ),
       ),
     );
@@ -794,25 +983,19 @@ class _InlineNodeBuilder extends StatelessWidget {
             tNode.text = val;
             onChanged();
           },
-          textAlign: TextAlign.left,
           style: TextStyle(fontSize: 22, color: textColor, fontFamily: 'serif'),
           cursorColor: AppColors.primaryBlue,
           decoration: InputDecoration(
             border: InputBorder.none,
             isDense: true,
             hintText: placeholder,
-            hintStyle: TextStyle(
-              color: isDark ? Colors.white24 : Colors.blue.withValues(alpha: 0.3),
-              fontSize: 18,
-              fontStyle: FontStyle.italic,
-            ),
+            hintStyle: TextStyle(color: textColor.withValues(alpha: 0.2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           ),
         ),
       );
     } else if (node is TemplateNode) {
-      final temp = node as TemplateNode;
-      return _buildTemplateWidget(temp, isDark, textColor, onChanged);
+      return _buildTemplateWidget(node as TemplateNode, isDark, textColor, onChanged);
     }
     return const SizedBox.shrink();
   }
@@ -820,16 +1003,13 @@ class _InlineNodeBuilder extends StatelessWidget {
   Widget _buildTemplateWidget(TemplateNode node, bool isDark, Color textColor, VoidCallback onChanged) {
     switch (node.type) {
       case 'fraction':
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildInlineSlot(node.slots['num']!, isDark, textColor, onChanged),
-              Container(width: 30, height: 1.5, color: textColor, margin: const EdgeInsets.symmetric(vertical: 2)),
-              _buildInlineSlot(node.slots['den']!, isDark, textColor, onChanged),
-            ],
-          ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildInlineSlot(node.slots['num']!, isDark, textColor, onChanged),
+            Container(width: 25, height: 1.5, color: textColor, margin: const EdgeInsets.symmetric(vertical: 2)),
+            _buildInlineSlot(node.slots['den']!, isDark, textColor, onChanged),
+          ],
         );
       case 'power':
         return Row(
@@ -843,53 +1023,19 @@ class _InlineNodeBuilder extends StatelessWidget {
             ),
           ],
         );
-      case 'subscript':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInlineSlot(node.slots['base']!, isDark, textColor, onChanged),
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: _buildInlineSlot(node.slots['sub']!, isDark, textColor, onChanged, small: true),
-            ),
-          ],
-        );
-      case 'root':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('√', style: TextStyle(fontSize: 32, color: textColor, fontFamily: 'serif')),
-            _buildInlineSlot(node.slots['content']!, isDark, textColor, onChanged),
-          ],
-        );
-      case 'nroot':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2, right: -6),
-              child: _buildInlineSlot(node.slots['n']!, isDark, textColor, onChanged, small: true),
-            ),
-            Text('√', style: TextStyle(fontSize: 32, color: textColor, fontFamily: 'serif')),
-            _buildInlineSlot(node.slots['content']!, isDark, textColor, onChanged),
-          ],
-        );
       default:
-        // Basic versions for others
-        return Text(node.toLatex(), style: TextStyle(color: textColor, fontSize: 18));
+        return Text(node.toLatex(), style: TextStyle(color: textColor));
     }
   }
 
   Widget _buildInlineSlot(List<MathNode> nodes, bool isDark, Color textColor, VoidCallback onChanged, {bool small = false}) {
     return Container(
       padding: const EdgeInsets.all(2),
-      constraints: BoxConstraints(minWidth: small ? 15 : 24, minHeight: small ? 15 : 24),
+      constraints: BoxConstraints(minWidth: small ? 15 : 24),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -913,18 +1059,13 @@ class SafeMathPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (latex.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (latex.trim().isEmpty) return const SizedBox.shrink();
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Math.tex(
         latex,
         textStyle: TextStyle(fontSize: mathSize, color: textColor),
-        onErrorFallback: (err) => Text(
-          latex,
-          style: TextStyle(color: textColor, fontSize: mathSize * 0.75),
-        ),
+        onErrorFallback: (err) => Text(latex, style: TextStyle(color: textColor, fontSize: mathSize * 0.8)),
       ),
     );
   }
