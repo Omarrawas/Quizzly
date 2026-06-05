@@ -1,28 +1,86 @@
 // lib/core/widgets/math/editor/math_expression/utils/constants.dart
 class Constants {
   static const List<String> symbolCategories = [
+    'أرقام',
     'أساسيات',
+    'كسور',
+    'أسس وجذور',
+    'تكاملات',
+    'تجميعات',
+    'أقواس مخصصة',
+    'حالات ومصفوفات',
+    'تمييز',
+    'تفاضلات',
+    'دوال',
     'حروف',
+    'يوناني',
     'علاقات',
     'منطق ومجموعات',
     'عمليات',
-    'يوناني',
-    'دوال',
     'احتمالات',
     'كيمياء',
     'مركبات',
-    'قوالب',
   ];
 
   static const Map<String, List<String>> symbols = {
+    'أرقام': [
+      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+      '.', ',', '%', r'\pi', r'e', r'i',
+    ],
     'أساسيات': [
-      '+', '-', '=', r'\neq',
+      '+', '-', r'\times', r'\div', '=', r'\ne',
       '(', ')', '[', ']', r'\{', r'\}',
-      r'\langle', r'\rangle',
-      r'\space', r'\quad',
-      ',', '.', ':', r'\%',
-      r'\cdot', r'\cdots', r'\vdots', r'\ddots',
-      r'\ldots', r'| |', r'\|',
+      r'\pm', r'\mp', r'<', '>', r'\leq', r'\geq',
+      r'\infty', r'\approx', r'\sim',
+    ],
+    'كسور': [
+      r'\frac{a}{b}', r'a/b', r'\tfrac{a}{b}',
+      r'\frac{dy}{dx}', r'\frac{\Delta y}{\Delta x}', r'\frac{\partial y}{\partial x}', r'\frac{\delta y}{\delta x}',
+      r'\frac{\pi}{2}',
+    ],
+    'أسس وجذور': [
+      r'a^{b}', r'a_{n}', r'a_{n}^{b}', r'{}^{b}_{n}a',
+      r'\sqrt{a}', r'\sqrt[n]{a}', r'\sqrt[2]{a}', r'\sqrt[3]{a}',
+    ],
+    'تكاملات': [
+      r'\int a dx', r'\int_{a}^{b} x dx', r'\iint a dA', r'\iint_{D} a dA',
+      r'\iiint a dV', r'\oint L dl', r'\oiint S dS', r'\oiiint V dV',
+    ],
+    'تجميعات': [
+      r'\sum_{i=n}^{m} a', r'\sum a', r'\prod_{i=n}^{m} a', r'\prod a',
+      r'\coprod_{n}^{m}', r'\bigcap_{n}^{m}', r'\bigcup_{n}^{m}', r'\biguplus_{n}^{m}',
+      r'\bigvee_{n}^{m}', r'\bigwedge_{n}^{m}',
+    ],
+    'أقواس مخصصة': [
+      r'(a)', r'[a]', r'\{a\}', r'\langle a \rangle', r'|a|', r'\|a\|',
+      r'\lfloor a \rfloor', r'\lceil a \rceil', r']a[', r'[a[', r'(a|b)',
+      r'\langle a|b \rangle', r'a]', r'[a', r'a\}', r'\{a',
+    ],
+    'حالات ومصفوفات': [
+      r'\binom{n}{k}', r'\begin{cases} a \\ b \end{cases}',
+      r'\begin{pmatrix} a & b \\ c & d \end{pmatrix}',
+      r'\begin{matrix} a & b & c \\ d & e & f \\ g & h & i \end{matrix}',
+      r'\begin{vmatrix} a & b \\ c & d \end{vmatrix}',
+      r'I_2 = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}',
+      r'I_3 = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix}',
+      r'\cdots', r'\vdots', r'\ddots', r'\dots',
+    ],
+    'تمييز': [
+      r'\dot{a}', r'\ddot{a}', r'\dddot{a}', r'\hat{a}', r'\vec{a}',
+      r'\bar{a}', r'\tilde{a}', r'\overline{abc}', r'\underline{a}',
+      r'\boxed{a}', r'\boxed{a^2+b^2=c^2}',
+      r'\overleftrightarrow{ab}', r'\underleftrightarrow{ab}',
+      r'\xrightarrow[b]{a}', r'\xleftarrow[b]{a}',
+    ],
+    'تفاضلات': [
+      r'dx', r'dy', r'dz', r'dt', r'd\theta', r'd\phi',
+      r'\partial x', r'\nabla', r'\Delta',
+    ],
+    'دوال': [
+      r'\sin a', r'\cos a', r'\tan a', r'\sin^{-1} a', r'\cos^{-1} a', r'\tan^{-1} a',
+      r'\ln a', r'\log_{a} b', r'\exp a', r'\lim_{x \to a}',
+      r'\max_{x} f(x)', r'\min_{x} f(x)',
+      r'\lim_{n \to \infty} (1+\frac{1}{n})^n',
     ],
     'حروف': [
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
@@ -40,7 +98,7 @@ class Constants {
       r'\propto', r'\asymp',
     ],
     'منطق ومجموعات': [
-      r'\in', r'\notin', r'\ni',
+      r'\in', r'\not\in', r'\ni',
       r'\subset', r'\supset', r'\subseteq', r'\supseteq',
       r'\emptyset', r'\complement',
       r'\forall', r'\exists', r'\nexists',
@@ -64,12 +122,6 @@ class Constants {
       r'\Gamma', r'\Delta', r'\Theta', r'\Lambda', r'\Xi',
       r'\Pi', r'\Sigma', r'\Upsilon', r'\Phi', r'\Psi', r'\Omega',
     ],
-    'دوال': [
-      r'\sin', r'\cos', r'\tan', r'\cot', r'\sec', r'\csc',
-      r'\arcsin', r'\arccos', r'\arctan',
-      r'\sinh', r'\cosh', r'\tanh',
-      r'\ln', r'\log', r'\exp', r'\lim', r'\max', r'\min',
-    ],
     'احتمالات': [
       r'P(A)', r'P(B)', r'P(A \cap B)', r'P(A \cup B)',
       r'P(A|B)', r'E(X)', r'Var(X)', r'\sigma', r'\mu',
@@ -86,13 +138,6 @@ class Constants {
       r'H_2O', r'CO_2', r'NaCl', r'HCl', r'H_2SO_4', r'NaOH',
       r'CH_4', r'C_6H_{12}O_6', r'NH_3', r'CaCO_3', r'KMnO_4',
       r'O_2', r'H_2', r'N_2', r'Cl_2', r'SO_2', r'NO_2',
-    ],
-    'قوالب': [
-      r'\frac{a}{b}', r'\sqrt{x}', r'\sqrt[n]{x}', r'x^n', r'x_n',
-      r'\int_{a}^{b} x dx', r'\sum_{i=1}^{n} i',
-      r'\lim_{x \to a} f(x)', r'\binom{n}{k}',
-      r'x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}',
-      r'E = mc^2', r'A = \pi r^2', r'a^2 + b^2 = c^2',
     ],
   };
 
@@ -117,5 +162,7 @@ class Constants {
     r'NaCl': 'ملح الطعام',
     r'HCl': 'حمض الهيدروكلوريك',
     r'NaOH': 'هيدروكسيد الصوديوم',
+    r'\in': 'ينتمي إلى',
+    r'\not\in': 'لا ينتمي إلى',
   };
 }

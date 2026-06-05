@@ -101,10 +101,13 @@ class RenderedExpression extends StatelessWidget {
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: mathContent,
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: mathContent,
+                  ),
                 ),
               ),
             );

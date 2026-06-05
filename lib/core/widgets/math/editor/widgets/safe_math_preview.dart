@@ -27,9 +27,12 @@ class SafeMathPreview extends StatelessWidget {
     }
 
     try {
-      return Latex(
-        latex,
-        fontSize: 18,
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Latex(
+          latex,
+          fontSize: 18,
+        ),
       );
     } catch (e) {
       return Text(

@@ -126,94 +126,103 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
               },
             ),
           },
-          child: Scaffold(
-            appBar: AppBar(
-              toolbarHeight: 50,
-              title: const Text('محرر الرياضيات', style: TextStyle(fontSize: 16)),
-              leading: IconButton(
-                icon: const Icon(Icons.close, size: 22),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 22),
-                  onPressed: _clearExpression,
-                  tooltip: 'مسح',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, size: 22),
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (context) => const SettingsDialog(),
-                  ),
-                  tooltip: 'الإعدادات',
-                ),
-                TextButton(
-                  onPressed: _saveAndExit,
-                  child: const Text('حفظ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ),
-                const SizedBox(width: 4),
-              ],
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              canvasColor: Colors.black.withValues(alpha: 0.7),
+              scaffoldBackgroundColor: Colors.transparent,
+              cardColor: Colors.black.withValues(alpha: 0.5),
             ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: SymbolSelector(
-                    searchQuery: _searchQuery,
-                    updateSearchQuery: _updateSearchQuery,
-                    showSuggestions: false,
-                    suggestions: const [],
-                    onSymbolSelected: (symbol) {
-                      _controller.addLeaf(symbol);
-                    },
-                  ),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(
+                toolbarHeight: 50,
+                backgroundColor: Theme.of(context).appBarTheme.backgroundColor?.withValues(alpha: 0.9),
+                title: const Text('محرر الرياضيات', style: TextStyle(fontSize: 16)),
+                leading: IconButton(
+                  icon: const Icon(Icons.close, size: 22),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: MathFieldWidget(
-                    controller: _controller,
-                    onClear: _clearExpression,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 22),
+                    onPressed: _clearExpression,
+                    tooltip: 'مسح',
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: ActionButtons(
-                    copyAsImage: () {}, // Not implemented
-                    copyLatexToClipboard: _copyLatexToClipboard,
-                    copyAsFormula: () {}, // Not implemented
-                    exportAsImage: () {}, // Not implemented
-                    showRenderedExpressionSettings: () => showDialog(
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, size: 22),
+                    onPressed: () => showDialog(
                       context: context,
-                      builder: (context) => const RenderedExpressionDialog(),
+                      builder: (context) => const SettingsDialog(),
                     ),
-                    exportAsSVG: () {}, // Not implemented
-                    saveExpression: _saveAndExit,
-                    useMobileLayout: true,
+                    tooltip: 'الإعدادات',
                   ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 60,
-                    maxHeight: 180,
+                  TextButton(
+                    onPressed: _saveAndExit,
+                    child: const Text('حفظ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
-                  width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey.shade50,
-                  ),
-                  child: Center(
-                    child: RepaintBoundary(
-                      key: _expressionKey,
-                      child: const RenderedExpression(),
+                  const SizedBox(width: 4),
+                ],
+              ),
+              body: Column(
+                children: [
+                  Expanded(
+                    child: SymbolSelector(
+                      searchQuery: _searchQuery,
+                      updateSearchQuery: _updateSearchQuery,
+                      showSuggestions: false,
+                      suggestions: const [],
+                      onSymbolSelected: (symbol) {
+                        _controller.addLeaf(symbol);
+                      },
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: MathFieldWidget(
+                      controller: _controller,
+                      onClear: _clearExpression,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ActionButtons(
+                      copyAsImage: () {}, // Not implemented
+                      copyLatexToClipboard: _copyLatexToClipboard,
+                      copyAsFormula: () {}, // Not implemented
+                      exportAsImage: () {}, // Not implemented
+                      showRenderedExpressionSettings: () => showDialog(
+                        context: context,
+                        builder: (context) => const RenderedExpressionDialog(),
+                      ),
+                      exportAsSVG: () {}, // Not implemented
+                      saveExpression: _saveAndExit,
+                      useMobileLayout: true,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    constraints: const BoxConstraints(
+                      minHeight: 60,
+                      maxHeight: 180,
+                    ),
+                    width: double.infinity,
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Center(
+                      child: RepaintBoundary(
+                        key: _expressionKey,
+                        child: const RenderedExpression(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         ),

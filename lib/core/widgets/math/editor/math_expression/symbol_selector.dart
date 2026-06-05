@@ -74,11 +74,14 @@ class _SymbolSelectorState extends State<SymbolSelector>
               borderRadius: BorderRadius.circular(6.0),
             ),
             child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(2.0),
-                child: math_fork.Math.tex(
-                  symbol,
-                  textStyle: TextStyle(fontSize: fontSize),
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Padding(
+                  padding: const EdgeInsets.all(2.0),
+                  child: math_fork.Math.tex(
+                    symbol,
+                    textStyle: TextStyle(fontSize: fontSize),
+                  ),
                 ),
               ),
             ),
