@@ -28,6 +28,7 @@ class AIGradingService {
   String _geminiKey = '';
   String _groqKey = '';
   String _openRouterKey = '';
+  String _openRouterModel = 'google/gemini-flash-1.5';
   String _cloudflareProxyUrl = 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
   bool _isInitialized = false;
@@ -42,6 +43,7 @@ class AIGradingService {
         _geminiKey = data['geminiKey'] ?? '';
         _groqKey = data['groqKey'] ?? '';
         _openRouterKey = data['openRouterKey'] ?? '';
+        _openRouterModel = data['openRouterModel'] ?? 'google/gemini-flash-1.5';
         _cloudflareProxyUrl = data['cloudflareProxyUrl'] ?? _cloudflareProxyUrl;
       }
       _isInitialized = true;
@@ -106,7 +108,7 @@ class AIGradingService {
         responseText = await _callOpenAICompatible(
           url: 'https://openrouter.ai/api/v1/chat/completions',
           key: _openRouterKey,
-          model: 'google/gemini-flash-1.5',
+          model: _openRouterModel,
           question: question,
           studentAnswer: studentAnswer,
           modelAnswer: modelAnswer,
@@ -177,6 +179,53 @@ class AIGradingService {
 الدرجة: [الرقم]/10
 التعليق: [نص التعليق بالعربية]
 ''';
+  }
+
+  /// اختبار اتصال مزود محدد
+  Future<String?> testProvider({
+    required AIProvider provider,
+    String? model,
+  }) async {
+    await _initialize();
+
+    try {
+      if (provider == AIProvider.gemini) {
+        if (_geminiKey.isEmpty) return 'Gemini API Key غير مُعيّن';
+        final url = '$_cloudflareProxyUrl/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiKey';
+        final response = await _dio.post(url, data: {
+          "contents": [{"parts": [{"text": "قل 'مرحبا'"}]}]
+        });
+        return response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.groq) {
+        if (_groqKey.isEmpty) return 'Groq API Key غير مُعيّن';
+        final response = await _dio.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          options: dio_client.Options(headers: {'Authorization': 'Bearer $_groqKey'}),
+          data: {
+            "model": model ?? 'llama3-8b-8192',
+            "messages": [{"role": "user", "content": "قل 'مرحبا'"}]
+          },
+        );
+        return response.data['choices'][0]['message']['content'];
+      } else if (provider == AIProvider.openRouter) {
+        if (_openRouterKey.isEmpty) return 'OpenRouter API Key غير مُعيّن';
+        final response = await _dio.post(
+          'https://openrouter.ai/api/v1/chat/completions',
+          options: dio_client.Options(headers: {'Authorization': 'Bearer $_openRouterKey'}),
+          data: {
+            "model": model ?? _openRouterModel,
+            "messages": [{"role": "user", "content": "قل 'مرحبا'"}]
+          },
+        );
+        return response.data['choices'][0]['message']['content'];
+      }
+    } on dio_client.DioException catch (e) {
+      final msg = e.response?.data?['error']?['message'] ?? e.message;
+      return 'خطأ: $msg';
+    } catch (e) {
+      return 'خطأ: $e';
+    }
+    return null;
   }
 
   AIGradingResult _parseResponse(String text) {

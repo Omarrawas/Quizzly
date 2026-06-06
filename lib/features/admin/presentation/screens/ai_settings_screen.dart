@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
+import 'package:quizzly/features/quiz/domain/services/ai_grading_service.dart';
 
 class AISettingsScreen extends StatefulWidget {
   const AISettingsScreen({super.key});
@@ -19,8 +20,25 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _openRouterController = TextEditingController();
   final _proxyController = TextEditingController();
 
+  String _selectedOpenRouterModel = 'google/gemini-flash-1.5';
   bool _loading = true;
   bool _saving = false;
+  bool _testing = false;
+
+  final AIGradingService _aiService = AIGradingService();
+
+  static const List<Map<String, String>> _openRouterModels = [
+    {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5'},
+    {'id': 'google/gemini-2.0-flash-001', 'name': 'Gemini 2.0 Flash'},
+    {'id': 'anthropic/claude-3-haiku', 'name': 'Claude 3 Haiku'},
+    {'id': 'anthropic/claude-3-sonnet', 'name': 'Claude 3 Sonnet'},
+    {'id': 'openai/gpt-4o-mini', 'name': 'GPT-4o Mini'},
+    {'id': 'openai/gpt-4o', 'name': 'GPT-4o'},
+    {'id': 'meta-llama/llama-3.1-8b-instruct', 'name': 'Llama 3.1 8B'},
+    {'id': 'meta-llama/llama-3.1-70b-instruct', 'name': 'Llama 3.1 70B'},
+    {'id': 'mistralai/mistral-7b-instruct', 'name': 'Mistral 7B'},
+    {'id': 'qwen/qwen-2-72b-instruct', 'name': 'Qwen 2 72B'},
+  ];
 
   @override
   void initState() {
@@ -36,6 +54,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _geminiController.text = data['geminiKey'] ?? '';
         _groqController.text = data['groqKey'] ?? '';
         _openRouterController.text = data['openRouterKey'] ?? '';
+        _selectedOpenRouterModel = data['openRouterModel'] ?? 'google/gemini-flash-1.5';
         _proxyController.text = data['cloudflareProxyUrl'] ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
       }
     } catch (e) {
@@ -58,6 +77,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         'geminiKey': _geminiController.text.trim(),
         'groqKey': _groqController.text.trim(),
         'openRouterKey': _openRouterController.text.trim(),
+        'openRouterModel': _selectedOpenRouterModel,
         'cloudflareProxyUrl': _proxyController.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -74,6 +94,40 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _testOpenRouter() async {
+    if (_openRouterController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل OpenRouter API Key أولاً')),
+      );
+      return;
+    }
+
+    setState(() => _testing = true);
+    try {
+      final result = await _aiService.testProvider(
+        provider: AIProvider.openRouter,
+        model: _selectedOpenRouterModel,
+      );
+      if (mounted) {
+        final isError = result != null && result.startsWith('خطأ');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isError ? result : 'الاتصال ناجح! الرد: $result'),
+            backgroundColor: isError ? Colors.red : Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في الاختبار: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _testing = false);
     }
   }
 
@@ -121,6 +175,10 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       hint: 'sk-or-...',
                       icon: Icons.hub_rounded,
                     ),
+                    const SizedBox(height: 12),
+                    _buildOpenRouterModelDropdown(),
+                    const SizedBox(height: 8),
+                    _buildTestButton(),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _proxyController,
@@ -201,6 +259,70 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
           style: GoogleFonts.inter(fontSize: 14),
         ),
       ],
+    );
+  }
+
+  Widget _buildOpenRouterModelDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('موديل OpenRouter', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedOpenRouterModel,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              items: _openRouterModels.map((model) {
+                return DropdownMenuItem<String>(
+                  value: model['id'],
+                  child: Text(
+                    '${model['name']}  (${model['id']})',
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedOpenRouterModel = value);
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTestButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: OutlinedButton.icon(
+        onPressed: _testing ? null : _testOpenRouter,
+        icon: _testing
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.play_arrow_rounded, size: 20),
+        label: Text(
+          _testing ? 'جاري الاختبار...' : 'اختبار الموديل',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primaryBlue,
+          side: const BorderSide(color: AppColors.primaryBlue),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
     );
   }
 }
