@@ -305,16 +305,17 @@ class _QuizScreenState extends State<QuizScreen> {
                        onOptionSelected: (id) {
                          setState(() {
                            _currentIndex = qIndex;
-                           final currentSet = _selectedAnswers[qIndex] ?? {};
+                           final currentSet = _selectedAnswers[qIndex] ?? <String>{};
                            
                            if (question.type == QuestionType.checkbox) {
                              // Toggle selection
-                             if (currentSet.contains(id)) {
-                               currentSet.remove(id);
+                             final newSet = Set<String>.from(currentSet);
+                             if (newSet.contains(id)) {
+                               newSet.remove(id);
                              } else {
-                               currentSet.add(id);
+                               newSet.add(id);
                              }
-                             _selectedAnswers[qIndex] = Set.from(currentSet);
+                             _selectedAnswers[qIndex] = newSet;
                            } else {
                              // Replace selection
                              _selectedAnswers[qIndex] = {id};

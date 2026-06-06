@@ -261,10 +261,13 @@ class QuizQuestion {
   }
 
   static QuestionType _parseType(String? type) {
-    switch (type) {
+    final t = type?.trim().toLowerCase();
+    switch (t) {
       case 'essay': return QuestionType.essay;
-      case 'tf': return QuestionType.trueFalse;
-      case 'checkbox': return QuestionType.checkbox;
+      case 'tf': 
+      case 'truefalse': return QuestionType.trueFalse;
+      case 'checkbox': 
+      case 'multiple': return QuestionType.checkbox;
       default: return QuestionType.mcq;
     }
   }

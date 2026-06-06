@@ -139,15 +139,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   void _onOptionSelected(String qId, String optionId, QuestionType type) {
     setState(() {
-      final currentSet = _selectedOptions[qId] ?? {};
+      final currentSet = _selectedOptions[qId] ?? <String>{};
       
       if (type == QuestionType.checkbox) {
-        if (currentSet.contains(optionId)) {
-          currentSet.remove(optionId);
+        final newSet = Set<String>.from(currentSet);
+        if (newSet.contains(optionId)) {
+          newSet.remove(optionId);
         } else {
-          currentSet.add(optionId);
+          newSet.add(optionId);
         }
-        _selectedOptions[qId] = Set.from(currentSet);
+        _selectedOptions[qId] = newSet;
       } else {
         _selectedOptions[qId] = {optionId};
       }

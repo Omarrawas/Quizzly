@@ -100,14 +100,14 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     HapticFeedback.selectionClick();
 
     setState(() {
-      if (_current!.type == QuestionType.checkbox) {
-        // Toggle selection
-        if (_selectedOptionIds.contains(optionId)) {
-          _selectedOptionIds.remove(optionId);
+      if (_current?.type == QuestionType.checkbox) {
+        final newSelection = Set<String>.from(_selectedOptionIds);
+        if (newSelection.contains(optionId)) {
+          newSelection.remove(optionId);
         } else {
-          _selectedOptionIds.add(optionId);
+          newSelection.add(optionId);
         }
-        _selectedOptionIds = Set.from(_selectedOptionIds);
+        _selectedOptionIds = newSelection;
       } else {
         // Single choice - immediate reveal
         _selectedOptionIds = {optionId};
@@ -449,15 +449,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: TexViewWidget(
-                    text: option.text,
-                    color: textColor,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
                 if (q.type == QuestionType.checkbox) ...[
-                  const SizedBox(width: 8),
                   Container(
                     width: 22,
                     height: 22,
@@ -470,6 +462,26 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
                     child: isSelected
                         ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
                         : null,
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: TexViewWidget(
+                    text: option.text,
+                    color: textColor,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                if (q.type != QuestionType.checkbox) ...[
+                  // For MCQ, we show a subtle indicator or nothing if we want consistency
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 1.5),
+                    ),
+                    child: isSelected ? Center(child: Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: borderColor))) : null,
                   ),
                 ],
               ],

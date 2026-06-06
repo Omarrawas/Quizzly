@@ -221,15 +221,16 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
 
   void _onOptionSelected(int questionIndex, String optionId, QuestionType type) {
     setState(() {
-      final currentSet = _selectedOptions[questionIndex] ?? {};
+      final currentSet = _selectedOptions[questionIndex] ?? <String>{};
       
       if (type == QuestionType.checkbox) {
-        if (currentSet.contains(optionId)) {
-          currentSet.remove(optionId);
+        final newSet = Set<String>.from(currentSet);
+        if (newSet.contains(optionId)) {
+          newSet.remove(optionId);
         } else {
-          currentSet.add(optionId);
+          newSet.add(optionId);
         }
-        _selectedOptions[questionIndex] = Set.from(currentSet);
+        _selectedOptions[questionIndex] = newSet;
       } else {
         _selectedOptions[questionIndex] = {optionId};
       }

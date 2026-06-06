@@ -226,14 +226,15 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     HapticFeedback.selectionClick();
 
     setState(() {
-      if (_current!.type == QuestionType.checkbox) {
-        // Toggle
-        if (_selectedOptionIds.contains(optionId)) {
-          _selectedOptionIds.remove(optionId);
+      if (_current?.type == QuestionType.checkbox) {
+        // Create a new set to ensure state change is detected
+        final newSelection = Set<String>.from(_selectedOptionIds);
+        if (newSelection.contains(optionId)) {
+          newSelection.remove(optionId);
         } else {
-          _selectedOptionIds.add(optionId);
+          newSelection.add(optionId);
         }
-        _selectedOptionIds = Set.from(_selectedOptionIds);
+        _selectedOptionIds = newSelection;
       } else {
         // Single choice - immediate reveal
         _selectedOptionIds = {optionId};

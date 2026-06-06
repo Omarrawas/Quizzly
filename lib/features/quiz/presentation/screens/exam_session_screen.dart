@@ -105,16 +105,17 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     final q = _sessionQuestions[_currentIndex];
 
     setState(() {
-      final currentSet = _userAnswers[_currentIndex] ?? {};
+      final currentSet = _userAnswers[_currentIndex] ?? <String>{};
       
       if (q.type == QuestionType.checkbox) {
         // Toggle
-        if (currentSet.contains(optionId)) {
-          currentSet.remove(optionId);
+        final newSet = Set<String>.from(currentSet);
+        if (newSet.contains(optionId)) {
+          newSet.remove(optionId);
         } else {
-          currentSet.add(optionId);
+          newSet.add(optionId);
         }
-        _userAnswers[_currentIndex] = Set.from(currentSet);
+        _userAnswers[_currentIndex] = newSet;
       } else {
         // Single choice
         _userAnswers[_currentIndex] = {optionId};
