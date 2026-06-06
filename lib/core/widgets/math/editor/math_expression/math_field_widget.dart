@@ -120,6 +120,32 @@ class MathFieldWidget extends StatelessWidget {
                   keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.done,
                   enableInteractiveSelection: true,
+                  contextMenuBuilder: (context, editableTextState) {
+                    final List<ContextMenuButtonItem> buttonItems = 
+                        editableTextState.contextMenuButtonItems;
+                    
+                    // Find the paste button
+                    final int pasteIndex = buttonItems.indexWhere(
+                      (item) => item.type == ContextMenuButtonType.paste,
+                    );
+                    
+                    if (pasteIndex != -1 && onPaste != null) {
+                      final originalItem = buttonItems[pasteIndex];
+                      buttonItems[pasteIndex] = ContextMenuButtonItem(
+                        onPressed: () async {
+                          editableTextState.hideToolbar();
+                          await onPaste!();
+                        },
+                        label: originalItem.label,
+                        type: originalItem.type,
+                      );
+                    }
+                    
+                    return AdaptiveTextSelectionToolbar.buttonItems(
+                      anchors: editableTextState.contextMenuAnchors,
+                      buttonItems: buttonItems,
+                    );
+                  },
                 ),
               ),
               // Control bar: cursor nav + backspace

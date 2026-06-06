@@ -246,16 +246,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (widget.initialHtml != null && widget.initialHtml!.isNotEmpty) {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
-        
-        // Convert plain text delimiters into interactive math embeds
         delta = _convertTextDelimitersToMathEmbeds(delta);
-        
         _controller = quill.QuillController(
           document: quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
         );
       } else {
         _controller = quill.QuillController.basic();
+        // Apply RTL to the first paragraph by default
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _controller.formatSelection(quill.Attribute.rtl);
+          }
+        });
       }
     } catch (_) {
       _controller = quill.QuillController.basic();
@@ -265,7 +268,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   Delta _convertTextDelimitersToMathEmbeds(Delta delta) {
     final newDelta = Delta();
-    for (final op in delta.toList()) {
+    final ops = delta.toList();
+    
+    for (final op in ops) {
       if (op.isInsert && op.data is String) {
         final text = op.data as String;
         final matches = MathUtils.latexRegex.allMatches(text);
@@ -419,12 +424,29 @@ class _RichTextEditorState extends State<RichTextEditor> {
         return;
       }
 
-      // 2. Fallback to text if no image (so we don't break default behavior)
+      // 2. Wrap plain text paste with math detection
       final data = await Clipboard.getData(Clipboard.kTextPlain);
-      if (data != null && data.text != null) {
+      if (data?.text != null) {
+        final text = data!.text!;
         final index = _controller.selection.baseOffset;
         final length = _controller.selection.extentOffset - index;
-        _controller.replaceText(index, length >= 0 ? length : 0, data.text!, null);
+        
+        // Convert the text being pasted if it contains math delimiters
+        final tempDelta = Delta()..insert(text);
+        final convertedDelta = _convertTextDelimitersToMathEmbeds(tempDelta);
+        
+        if (convertedDelta.length > 1 || (convertedDelta.first.data is! String)) {
+          // It contains embeds now
+          _controller.replaceText(
+            index, 
+            length >= 0 ? length : 0, 
+            convertedDelta, 
+            null
+          );
+        } else {
+          // Regular text
+          _controller.replaceText(index, length >= 0 ? length : 0, text, null);
+        }
       }
     } catch (e) {
       debugPrint('Paste error: $e');
@@ -545,16 +567,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   ),
                   const VerticalDivider(width: 8),
                   _buildToolbarButton(
-                    icon: Icons.format_textdirection_l_to_r,
-                    isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] == null,
-                    onPressed: () => _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null)),
-                    tooltip: 'من اليسار لليمين (LTR)',
-                  ),
-                  _buildToolbarButton(
                     icon: Icons.format_textdirection_r_to_l,
                     isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] != null,
                     onPressed: () => _controller.formatSelection(quill.Attribute.rtl),
                     tooltip: 'من اليمين لليسار (RTL)',
+                  ),
+                  _buildToolbarButton(
+                    icon: Icons.format_textdirection_l_to_r,
+                    isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] == null,
+                    onPressed: () => _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null)),
+                    tooltip: 'من اليسار لليمين (LTR)',
                   ),
                   const VerticalDivider(width: 12),
                   _buildToolbarButton(
@@ -605,23 +627,26 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         color: widget.textColor ?? (isDark ? Colors.white : AppColors.textPrimary),
                         fontSize: 16,
                       ),
-                      child: quill.QuillEditor.basic(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        scrollController: _scrollController,
-                        config: quill.QuillEditorConfig(
-                          padding: const EdgeInsets.all(12),
-                          autoFocus: false,
-                          expands: false,
-                          embedBuilders: [
-                            ImageBlockEmbedBuilder(
-                              onDeleteImage: (url) {
-                                _deletedImageUrls.add(url);
-                                widget.onImageDeleted?.call(url);
-                              },
-                            ),
-                            MathEmbedBuilder(),
-                          ],
+                      child: Directionality(
+                        textDirection: TextDirection.rtl,
+                        child: quill.QuillEditor.basic(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          scrollController: _scrollController,
+                          config: quill.QuillEditorConfig(
+                            padding: const EdgeInsets.all(12),
+                            autoFocus: false,
+                            expands: false,
+                            embedBuilders: [
+                              ImageBlockEmbedBuilder(
+                                onDeleteImage: (url) {
+                                  _deletedImageUrls.add(url);
+                                  widget.onImageDeleted?.call(url);
+                                },
+                              ),
+                              MathEmbedBuilder(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
