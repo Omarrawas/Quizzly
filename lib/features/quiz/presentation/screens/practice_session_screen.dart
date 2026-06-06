@@ -771,11 +771,27 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             ],
           ),
           const SizedBox(height: 14),
-          TexViewWidget(
-            text: q.text,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : AppColors.textPrimary,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            textDirection: TextDirection.rtl,
+            children: [
+              Text(
+                '${_currentIndex + 1} - ',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+              Expanded(
+                child: TexViewWidget(
+                  text: q.text,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
