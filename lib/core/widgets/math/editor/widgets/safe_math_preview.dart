@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:easy_latex/easy_latex.dart';
+import 'package:flutter_math_fork/flutter_math.dart' as math_fork;
 
+/// Inline math preview widget used inside the RichTextEditor embed.
+/// Uses flutter_math_fork (same renderer as the QuizzlyMathEditor)
+/// to guarantee consistent rendering between editing and display.
 class SafeMathPreview extends StatelessWidget {
   final String latex;
   final Color textColor;
@@ -17,7 +20,7 @@ class SafeMathPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     if (latex.isEmpty) {
       return Text(
-        'اكتب معادلة رياضية...',
+        'معادلة...',
         style: TextStyle(
           color: textColor.withValues(alpha: 0.4),
           fontSize: 14,
@@ -26,19 +29,20 @@ class SafeMathPreview extends StatelessWidget {
       );
     }
 
-    try {
-      return Directionality(
-        textDirection: TextDirection.ltr,
-        child: Latex(
-          latex,
-          fontSize: 18,
-        ),
-      );
-    } catch (e) {
-      return Text(
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: math_fork.Math.tex(
         latex,
-        style: TextStyle(color: textColor, fontSize: mathSize),
-      );
-    }
+        textStyle: TextStyle(fontSize: mathSize, color: textColor),
+        onErrorFallback: (err) => Text(
+          latex,
+          style: TextStyle(
+            color: textColor.withValues(alpha: 0.7),
+            fontSize: mathSize * 0.8,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ),
+    );
   }
 }

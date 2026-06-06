@@ -83,11 +83,46 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
     context.read<MathExpressionBloc>().add(const UpdateExpression(''));
   }
 
+  /// Converts pasted text (e.g. from Word) to valid LaTeX.
+  String _processWordPaste(String text) {
+    var result = text;
+
+    // 1. Strip Word OLE/bracket junk: sequences of standalone [ or ] with spaces
+    //    e.g. "[ [ [ [ [Ag..." → "[Ag..."
+    result = result.replaceAllMapped(
+      RegExp(r'^(\[\s*)+'),
+      (m) => '[',
+    );
+
+    // 2. Wrap multi-character superscripts without braces: ^12 → ^{12}, ^10 → ^{10}
+    //    Only if not already wrapped in {}
+    result = result.replaceAllMapped(
+      RegExp(r'\^(-?\d{2,}|\w{2,})(?!\})'),
+      (m) => '^{${m[1]}}',
+    );
+
+    // 3. Wrap multi-character subscripts without braces: _12 → _{12}
+    result = result.replaceAllMapped(
+      RegExp(r'_(-?\d{2,}|\w{2,})(?!\})'),
+      (m) => '_{${m[1]}}',
+    );
+
+    // 4. Fix ^2 2s → ^2\,2s (preserve spacing, don't merge)
+    //    Actually we just need to ensure single-digit ^n is valid as-is.
+
+    // 5. Normalize multiple spaces
+    result = result.replaceAll(RegExp(r'  +'), ' ').trim();
+
+    return result;
+  }
+
   Future<void> _handlePaste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text != null) {
-      _insertAtCursor(data!.text!);
+      final processed = _processWordPaste(data!.text!);
+      _insertAtCursor(processed);
     }
+
   }
 
   void _saveAndExit() {
@@ -187,6 +222,7 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
                     child: MathFieldWidget(
                       controller: _controller,
                       onClear: _clearExpression,
+                      onPaste: _handlePaste,
                     ),
                   ),
                   // Rendered preview area

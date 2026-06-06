@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class MathFieldWidget extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onClear;
+  /// Called when user pastes via the system keyboard toolbar.
+  /// Parent should run Word-cleanup then insert the text.
+  final Future<void> Function()? onPaste;
 
   const MathFieldWidget({
     super.key,
     required this.controller,
     required this.onClear,
+    this.onPaste,
   });
 
   void _moveCursorLeft() {
