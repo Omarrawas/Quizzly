@@ -194,6 +194,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               Navigator.push(context, MaterialPageRoute(builder: (_) => BulkUploadScreen(
                 subjectId: widget.subjectId,
                 sectionId: widget.sectionId,
+                lessonId: widget.lessonId,
+                lessonName: widget.lessonName,
               )));
             },
           ),

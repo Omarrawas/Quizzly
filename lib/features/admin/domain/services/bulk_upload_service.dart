@@ -22,7 +22,13 @@ class ParsedQuestionResult {
 class BulkUploadService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<ParsedQuestionResult> parseAndValidateCsv(Uint8List fileBytes, String subjectId, {String? sectionId}) async {
+  Future<ParsedQuestionResult> parseAndValidateCsv(
+    Uint8List fileBytes, 
+    String subjectId, {
+    String? sectionId,
+    String? defaultTopicId,
+    String? defaultTopicName,
+  }) async {
     List<QuizQuestion> parsedQuestions = [];
     List<UploadError> errors = [];
 
@@ -208,6 +214,24 @@ class BulkUploadService {
         }
       }
 
+      // Fallback to default topic if none provided in file
+      if (topicIds.isEmpty && defaultTopicId != null) {
+        topicIds.add(defaultTopicId);
+        final topicData = topicsRawMap[defaultTopicId];
+        if (topicData != null) {
+          final parentId = topicData['parentId'];
+          final name = topicData['name'] ?? '';
+          if (parentId != null && topicsRawMap.containsKey(parentId)) {
+            final parentName = topicsRawMap[parentId]?['name'] ?? '';
+            topicNames.add('$parentName - $name');
+          } else {
+            topicNames.add(name);
+          }
+        } else if (defaultTopicName != null) {
+          topicNames.add(defaultTopicName);
+        }
+      }
+
       // Parse Type
       String typeStr = colType != -1 && row.length > colType ? row[colType].toString().trim().toLowerCase() : 'mcq';
       QuestionType type = (typeStr == 'checkbox') ? QuestionType.checkbox : (typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq));
@@ -326,7 +350,13 @@ class BulkUploadService {
     return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
   }
 
-  Future<ParsedQuestionResult> parseAndValidateExcel(Uint8List fileBytes, String subjectId, {String? sectionId}) async {
+  Future<ParsedQuestionResult> parseAndValidateExcel(
+    Uint8List fileBytes, 
+    String subjectId, {
+    String? sectionId,
+    String? defaultTopicId,
+    String? defaultTopicName,
+  }) async {
     List<QuizQuestion> parsedQuestions = [];
     List<UploadError> errors = [];
 
@@ -484,6 +514,24 @@ class BulkUploadService {
         }
       }
 
+      // Fallback to default topic if none provided in file
+      if (topicIds.isEmpty && defaultTopicId != null) {
+        topicIds.add(defaultTopicId);
+        final topicData = topicsRawMap[defaultTopicId];
+        if (topicData != null) {
+          final parentId = topicData['parentId'];
+          final name = topicData['name'] ?? '';
+          if (parentId != null && topicsRawMap.containsKey(parentId)) {
+            final parentName = topicsRawMap[parentId]?['name'] ?? '';
+            topicNames.add('$parentName - $name');
+          } else {
+            topicNames.add(name);
+          }
+        } else if (defaultTopicName != null) {
+          topicNames.add(defaultTopicName);
+        }
+      }
+
       String typeStr = colType != -1 && row.length > colType ? row[colType]?.value?.toString().trim().toLowerCase() ?? 'mcq' : 'mcq';
       QuestionType type = (typeStr == 'checkbox') ? QuestionType.checkbox : (typeStr == 'tf' ? QuestionType.trueFalse : (typeStr == 'essay' ? QuestionType.essay : QuestionType.mcq));
 
@@ -567,7 +615,11 @@ class BulkUploadService {
     return ParsedQuestionResult(questions: parsedQuestions, errors: errors);
   }
 
-  Future<ParsedQuestionResult> parseAndValidateJSON(Uint8List fileBytes) async {
+  Future<ParsedQuestionResult> parseAndValidateJSON(
+    Uint8List fileBytes, {
+    String? defaultTopicId,
+    String? defaultTopicName,
+  }) async {
     try {
       final jsonString = utf8.decode(fileBytes);
       final List<dynamic> data = json.decode(jsonString);
@@ -578,7 +630,16 @@ class BulkUploadService {
         try {
           final q = QuizQuestion.fromMap(data[i] as Map<String, dynamic>);
           // Regenerate ID to ensure consistency and avoid collisions if imported from a different source
-          final finalQ = q.copyWith(id: _generateQuestionId(q.text));
+          QuizQuestion finalQ = q.copyWith(id: _generateQuestionId(q.text));
+          
+          // Apply fallback if topics are missing
+          if ((finalQ.topicIds == null || finalQ.topicIds!.isEmpty) && defaultTopicId != null) {
+            finalQ = finalQ.copyWith(
+              topicIds: [defaultTopicId],
+              topicNames: defaultTopicName != null ? [defaultTopicName] : null,
+            );
+          }
+          
           parsedQuestions.add(finalQ);
         } catch (e) {
           errors.add(UploadError(row: i + 1, message: 'بيانات غير صالحة: $e'));

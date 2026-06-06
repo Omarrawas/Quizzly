@@ -323,7 +323,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     final Map<String, dynamic> questionData = {
       'text': textController.text.trim(),
       'translationText': translationTextController.text.trim(),
-      'type': selectedTypeId == 'checkbox' ? 'mcq' : selectedTypeId,
+      'type': selectedTypeId,
       'subjectId': widget.subjectId,
       'explanation': explanationController.text.trim(),
       'explanationImageUrl': explanationImageUrlController.text.trim(),
@@ -698,101 +698,22 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
             if (selectedTypeId != 'essay')
               _buildSection(
                 title: 'الخيارات والإجابة',
-                child: RadioGroup<String>(
-                  groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
-                  onChanged: (v) {
-                    if (v != null) setState(() => correctOptionIds = [v]);
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ...options.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final opt = entry.value;
-                        final isCorrect = correctOptionIds.contains(opt['id']);
-                        
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: isCorrect ? Colors.green.withValues(alpha: 0.1) : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isCorrect ? Colors.green : (isDark ? Colors.white10 : Colors.grey.shade300),
-                              width: isCorrect ? 2 : 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              if (selectedTypeId == 'checkbox')
-                                Checkbox(
-                                  value: isCorrect,
-                                  activeColor: Colors.green,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      if (v ?? false) {
-                                        if (!correctOptionIds.contains(opt['id'])) correctOptionIds.add(opt['id'] ?? '');
-                                      } else {
-                                        correctOptionIds.remove(opt['id'] ?? '');
-                                      }
-                                    });
-                                  },
-                                )
-                              else
-                                Radio<String>(
-                                  value: opt['id'] ?? '',
-                                  activeColor: Colors.green,
-                                ),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                  child: RichTextEditor(
-                                    initialHtml: opt['text'],
-                                    placeholder: 'الخيار ${index + 1}',
-                                    height: 100,
-                                    isCompact: true,
-                                    onContentChanged: (html) {
-                                      opt['text'] = html;
-                                    },
-                                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
-                                  ),
-                                ),
-                              ),
-                              if (options.length > 1 && selectedTypeId != 'tf')
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () => setState(() {
-                                  options.removeAt(index);
-                                  optionControllers.removeAt(index).dispose();
-                                  correctOptionIds.remove(opt['id']);
-                                }),
-                              ),
-                          ],
-                        ),
-                      );
-                    }),
-                    if (selectedTypeId != 'tf')
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.add, size: 20),
-                          label: Text('إضافة خيار جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryBlue,
-                            side: const BorderSide(color: AppColors.primaryBlue),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
-                          onPressed: () => setState(() {
-                            final newId = DateTime.now().millisecondsSinceEpoch.toString();
-                            options.add({'id': newId, 'text': ''});
-                            optionControllers.add(TextEditingController());
-                          }),
+                child: selectedTypeId == 'checkbox'
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildOptionsList(isDark),
+                      )
+                    : RadioGroup<String>(
+                        groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
+                        onChanged: (v) {
+                          if (v != null) setState(() => correctOptionIds = [v]);
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: _buildOptionsList(isDark),
                         ),
                       ),
-                  ],
-                ),
-              ),
-            )
+              )
             else
               _buildSection(
                 title: 'الإجابة النموذجية',
@@ -1024,5 +945,97 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       case Difficulty.medium: return 'متوسط';
       case Difficulty.hard: return 'صعب';
     }
+  }
+
+  List<Widget> _buildOptionsList(bool isDark) {
+    return [
+      ...options.asMap().entries.map((entry) {
+        final index = entry.key;
+        final opt = entry.value;
+        final isCorrect = correctOptionIds.contains(opt['id']);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: isCorrect
+                ? Colors.green.withValues(alpha: 0.1)
+                : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isCorrect ? Colors.green : (isDark ? Colors.white10 : Colors.grey.shade300),
+              width: isCorrect ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              if (selectedTypeId == 'checkbox')
+                Checkbox(
+                  value: isCorrect,
+                  activeColor: Colors.green,
+                  onChanged: (v) {
+                    setState(() {
+                      if (v ?? false) {
+                        if (!correctOptionIds.contains(opt['id'])) {
+                          correctOptionIds.add(opt['id'] ?? '');
+                        }
+                      } else {
+                        correctOptionIds.remove(opt['id'] ?? '');
+                      }
+                    });
+                  },
+                )
+              else
+                Radio<String>(
+                  value: opt['id'] ?? '',
+                  activeColor: Colors.green,
+                ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: RichTextEditor(
+                    initialHtml: opt['text'],
+                    placeholder: 'الخيار ${index + 1}',
+                    height: 100,
+                    isCompact: true,
+                    onContentChanged: (html) {
+                      opt['text'] = html;
+                    },
+                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
+                  ),
+                ),
+              ),
+              if (options.length > 1 && selectedTypeId != 'tf')
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => setState(() {
+                    options.removeAt(index);
+                    optionControllers.removeAt(index).dispose();
+                    correctOptionIds.remove(opt['id']);
+                  }),
+                ),
+            ],
+          ),
+        );
+      }),
+      if (selectedTypeId != 'tf')
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.add, size: 20),
+            label: Text('إضافة خيار جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryBlue,
+              side: const BorderSide(color: AppColors.primaryBlue),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => setState(() {
+              final newId = DateTime.now().millisecondsSinceEpoch.toString();
+              options.add({'id': newId, 'text': ''});
+              optionControllers.add(TextEditingController());
+            }),
+          ),
+        ),
+    ];
   }
 }

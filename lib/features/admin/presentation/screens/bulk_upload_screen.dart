@@ -7,7 +7,16 @@ import 'package:quizzly/features/admin/domain/services/bulk_upload_service.dart'
 class BulkUploadScreen extends StatefulWidget {
   final String subjectId;
   final String? sectionId;
-  const BulkUploadScreen({super.key, required this.subjectId, this.sectionId});
+  final String? lessonId;
+  final String? lessonName;
+
+  const BulkUploadScreen({
+    super.key, 
+    required this.subjectId, 
+    this.sectionId,
+    this.lessonId,
+    this.lessonName,
+  });
 
   @override
   State<BulkUploadScreen> createState() => _BulkUploadScreenState();
@@ -37,10 +46,26 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         final extension = result.files.single.extension?.toLowerCase();
         
         final parsedResult = (extension == 'xlsx' || extension == 'xls')
-            ? await _uploadService.parseAndValidateExcel(bytes, widget.subjectId, sectionId: widget.sectionId)
+            ? await _uploadService.parseAndValidateExcel(
+                bytes, 
+                widget.subjectId, 
+                sectionId: widget.sectionId,
+                defaultTopicId: widget.lessonId,
+                defaultTopicName: widget.lessonName,
+              )
             : (extension == 'json' 
-                ? await _uploadService.parseAndValidateJSON(bytes)
-                : await _uploadService.parseAndValidateCsv(bytes, widget.subjectId, sectionId: widget.sectionId));
+                ? await _uploadService.parseAndValidateJSON(
+                    bytes,
+                    defaultTopicId: widget.lessonId,
+                    defaultTopicName: widget.lessonName,
+                  )
+                : await _uploadService.parseAndValidateCsv(
+                    bytes, 
+                    widget.subjectId, 
+                    sectionId: widget.sectionId,
+                    defaultTopicId: widget.lessonId,
+                    defaultTopicName: widget.lessonName,
+                  ));
 
         setState(() {
           _result = parsedResult;
@@ -60,7 +85,11 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
     setState(() => _isProcessing = true);
     
     try {
-      await _uploadService.saveQuestions(_result!.questions, widget.subjectId, sectionId: widget.sectionId);
+      await _uploadService.saveQuestions(
+        _result!.questions, 
+        widget.subjectId, 
+        sectionId: widget.sectionId,
+      );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ الأسئلة بنجاح!')));
