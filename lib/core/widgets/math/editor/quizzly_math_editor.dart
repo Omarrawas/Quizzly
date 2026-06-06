@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:math_keyboard/math_keyboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'bloc/math_expression/math_expression_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
 import 'math_expression/math_field_widget.dart';
-
+import 'math_expression/rendered_expression.dart';
 import 'math_expression/services/settings_service.dart';
 import 'math_expression/symbol_selector.dart';
 
@@ -35,40 +34,48 @@ class PasteIntent extends Intent {
 }
 
 class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
-  late MathFieldEditingController _controller;
+  late TextEditingController _controller;
   String _searchQuery = '';
   bool _isSearchVisible = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = MathFieldEditingController();
+    _controller = TextEditingController(text: widget.initialLatex);
+    _controller.addListener(_onTextChanged);
+    // Fire initial state
     if (widget.initialLatex.isNotEmpty) {
-      try {
-        _controller.updateValue(TeXParser(widget.initialLatex).parse());
-      } catch (e) {
-        debugPrint('Error parsing initial LaTeX: $e');
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<MathExpressionBloc>().add(UpdateExpression(widget.initialLatex));
+      });
     }
-    _controller.addListener(_onExpressionChanged);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onExpressionChanged);
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     super.dispose();
   }
 
-  void _onExpressionChanged() {
-    final expression = _controller.currentEditingValue();
-    context.read<MathExpressionBloc>().add(UpdateExpression(expression));
+  void _onTextChanged() {
+    context.read<MathExpressionBloc>().add(UpdateExpression(_controller.text));
+  }
+
+  void _insertAtCursor(String symbol) {
+    final sel = _controller.selection;
+    final text = _controller.text;
+    final start = sel.isValid ? sel.start : text.length;
+    final end = sel.isValid ? sel.end : text.length;
+    final newText = text.replaceRange(start, end, symbol);
+    _controller.value = _controller.value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + symbol.length),
+    );
   }
 
   void _updateSearchQuery(String query) {
-    setState(() {
-      _searchQuery = query;
-    });
+    setState(() => _searchQuery = query);
   }
 
   void _clearExpression() {
@@ -78,23 +85,13 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
 
   Future<void> _handlePaste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data != null && data.text != null) {
-      final text = data.text!;
-      try {
-        _controller.updateValue(TeXParser(text).parse());
-      } catch (e) {
-        // Fallback or ignore if not valid LaTeX
-      }
+    if (data?.text != null) {
+      _insertAtCursor(data!.text!);
     }
   }
 
   void _saveAndExit() {
-    final state = context.read<MathExpressionBloc>().state;
-    String latex = state.currentExpression;
-    if (latex.isEmpty) {
-      latex = _controller.currentEditingValue();
-    }
-    Navigator.of(context).pop(latex);
+    Navigator.of(context).pop(_controller.text);
   }
 
   @override
@@ -178,7 +175,7 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
                       showSuggestions: false,
                       suggestions: const [],
                       onSymbolSelected: (symbol) {
-                        _controller.addLeaf(symbol);
+                        _insertAtCursor(symbol);
                       },
                     ),
                   ),
@@ -192,7 +189,27 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
                       onClear: _clearExpression,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  // Rendered preview area
+                  Container(
+                    constraints: const BoxConstraints(minHeight: 55, maxHeight: 120),
+                    width: double.infinity,
+                    margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: const Center(
+                      child: Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: RenderedExpression(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                 ],
               ),
             ),
