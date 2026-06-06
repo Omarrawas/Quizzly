@@ -66,8 +66,21 @@ class SubjectStatsService {
         .collection('mastery')
         .where('subjectId', isEqualTo: subjectId)
         .where('nextReview', isLessThanOrEqualTo: now)
+        .where('isArchived', isNotEqualTo: true) // Filter out archived
         .snapshots()
         .map((snap) => snap.size);
+  }
+
+  /// Stream of archived question IDs for a user and subject
+  Stream<Set<String>> streamArchivedQuestionIds(String userId, String subjectId) {
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('isArchived', isEqualTo: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) => doc.id).toSet());
   }
 
   /// Stream of total questions count for a subject (Search counter)
@@ -126,12 +139,14 @@ class SubjectStatsService {
         });
 
     // 3. Combine and filter
-    return Rx.combineLatest2(
+    return Rx.combineLatest3(
       favoritesStream,
       subjectQuestionsStream,
-      (List<QuizQuestion> favorites, Set<String> subjectQuestionIds) {
+      streamArchivedQuestionIds(userId, subjectId),
+      (List<QuizQuestion> favorites, Set<String> subjectQuestionIds, Set<String> archivedIds) {
         return favorites.where((q) {
           if (q.id == null) return false;
+          if (archivedIds.contains(q.id)) return false; // Filter archived
           return q.subjectId == subjectId || subjectQuestionIds.contains(q.id);
         }).toList();
       },
@@ -140,29 +155,29 @@ class SubjectStatsService {
 
   /// Stream of questions answered incorrectly
   Stream<List<QuizQuestion>> streamWrongQuestions(String userId, String subjectId) {
-    return _db
-        .collection('user_history')
-        .doc(userId)
-        .snapshots()
-        .switchMap((userSnap) {
-          if (!userSnap.exists) return Stream.value([]);
-          final data = userSnap.data() as Map<String, dynamic>;
-          final List<dynamic> wrongIds = data['wrongAnswers_$subjectId'] ?? [];
-          if (wrongIds.isEmpty) return Stream.value([]);
+    return Rx.combineLatest2(
+      _db.collection('user_history').doc(userId).snapshots(),
+      streamArchivedQuestionIds(userId, subjectId),
+      (DocumentSnapshot userSnap, Set<String> archivedIds) {
+        if (!userSnap.exists) return <String>[];
+        final data = userSnap.data() as Map<String, dynamic>;
+        final List<dynamic> wrongIds = data['wrongAnswers_$subjectId'] ?? [];
+        return wrongIds.where((id) => !archivedIds.contains(id)).toList();
+      },
+    ).switchMap((wrongIds) {
+      if (wrongIds.isEmpty) return Stream.value([]);
 
-          // Firestore has a limit of 10-30 in 'whereIn'. For simplicity, fetch all subject questions and filter.
-          // In a high-scale app, we would fetch by individual IDs or chunks.
-          return _db
-              .collection('questions')
-              .where('subjectId', isEqualTo: subjectId)
-              .snapshots()
-              .map((qSnap) {
-                return qSnap.docs
-                    .map((doc) => QuizQuestion.fromFirestore(doc))
-                    .where((q) => wrongIds.contains(q.id))
-                    .toList();
-              });
-        });
+      return _db
+          .collection('questions')
+          .where('subjectId', isEqualTo: subjectId)
+          .snapshots()
+          .map((qSnap) {
+            return qSnap.docs
+                .map((doc) => QuizQuestion.fromFirestore(doc))
+                .where((q) => wrongIds.contains(q.id))
+                .toList();
+          });
+    });
   }
 
   /// Combined stream of favorites and wrong answers
@@ -182,5 +197,23 @@ class SubjectStatsService {
         return all.values.toList();
       },
     );
+  }
+
+  /// Stream of archived questions for a subject
+  Stream<List<QuizQuestion>> streamArchivedQuestions(String userId, String subjectId) {
+    return streamArchivedQuestionIds(userId, subjectId).switchMap((archivedIds) {
+      if (archivedIds.isEmpty) return Stream.value([]);
+      
+      return _db
+          .collection('questions')
+          .where('subjectId', isEqualTo: subjectId)
+          .snapshots()
+          .map((qSnap) {
+            return qSnap.docs
+                .map((doc) => QuizQuestion.fromFirestore(doc))
+                .where((q) => archivedIds.contains(q.id))
+                .toList();
+          });
+    });
   }
 }

@@ -8,6 +8,16 @@ class CramModeService {
 
   /// Generates a "Cram Session" of the most critical questions
   Future<List<QuizQuestion>> generateCramSession(String userId, String subjectId) async {
+    // 0. Get Archived IDs
+    final archivedSnap = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .where('subjectId', isEqualTo: subjectId)
+        .where('isArchived', isEqualTo: true)
+        .get();
+    final archivedIds = archivedSnap.docs.map((d) => d.id).toSet();
+
     // 1. Get Wrong Answer IDs
     final historyDoc = await _db.collection('user_history').doc(userId).get();
     Set<String> criticalIds = {};
@@ -15,7 +25,8 @@ class CramModeService {
     if (historyDoc.exists) {
       final data = historyDoc.data()!;
       final wrongField = 'wrongAnswers_$subjectId';
-      criticalIds.addAll(List<String>.from(data[wrongField] ?? []));
+      final ids = List<String>.from(data[wrongField] ?? []);
+      criticalIds.addAll(ids.where((id) => !archivedIds.contains(id)));
     }
 
     // 2. Get Favorite Question IDs for this subject
@@ -25,10 +36,15 @@ class CramModeService {
         .collection('favorites')
         .where('questionData.subjectId', isEqualTo: subjectId)
         .get();
-    criticalIds.addAll(favoritesSnap.docs.map((d) => d.id));
+    
+    for (var d in favoritesSnap.docs) {
+      if (!archivedIds.contains(d.id)) {
+        criticalIds.add(d.id);
+      }
+    }
 
     // 3. Get low mastery questions (those with consecutiveCorrect < 2)
-    // We filter in memory to avoid needing a composite index in Firestore
+    // and exclude archived ones
     final masterySnap = await _db
         .collection('users')
         .doc(userId)
@@ -40,7 +56,8 @@ class CramModeService {
         .where((doc) {
           final data = doc.data();
           final consecutiveCorrect = data['consecutiveCorrect'] as num? ?? 0;
-          return consecutiveCorrect < 2;
+          final isArchived = data['isArchived'] ?? false;
+          return consecutiveCorrect < 2 && !isArchived;
         })
         .map((doc) => doc.id)
         .take(20);

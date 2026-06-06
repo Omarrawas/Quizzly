@@ -8,6 +8,7 @@ class QuestionMastery {
   final int consecutiveCorrect;
   final String? mnemonic; // User's personal memory anchor
   final String? note; // User's personal note
+  final bool isArchived;
 
   QuestionMastery({
     required this.questionId,
@@ -19,6 +20,7 @@ class QuestionMastery {
     this.consecutiveCorrect = 0,
     this.mnemonic,
     this.note,
+    this.isArchived = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +34,7 @@ class QuestionMastery {
       'consecutiveCorrect': consecutiveCorrect,
       'mnemonic': mnemonic,
       'note': note,
+      'isArchived': isArchived,
     };
   }
 
@@ -46,6 +49,7 @@ class QuestionMastery {
       consecutiveCorrect: map['consecutiveCorrect'] ?? 0,
       mnemonic: map['mnemonic'],
       note: map['note'],
+      isArchived: map['isArchived'] ?? false,
     );
   }
 }

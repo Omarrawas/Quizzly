@@ -5,6 +5,7 @@ import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/subject/domain/services/subject_stats_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/cram_mode_service.dart';
+import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/cram_mode_session_screen.dart';
 
 class MasteryDashboardScreen extends StatefulWidget {
@@ -24,7 +25,8 @@ class MasteryDashboardScreen extends StatefulWidget {
 class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
   final SubjectStatsService _statsService = SubjectStatsService();
   final CramModeService _cramModeService = CramModeService();
-  String _activeFilter = 'all'; // all, mistakes, favorites, struggling
+  final SpacedRepetitionService _srsService = SpacedRepetitionService();
+  String _activeFilter = 'all'; // all, mistakes, favorites, struggling, archived
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +168,8 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
       questionsStream = _statsService.streamFavoriteQuestions(userId, widget.subjectId);
     } else if (_activeFilter == 'mistakes') {
       questionsStream = _statsService.streamWrongQuestions(userId, widget.subjectId);
+    } else if (_activeFilter == 'archived') {
+      questionsStream = _statsService.streamArchivedQuestions(userId, widget.subjectId);
     } else {
       // Default: Show all problems (favorites + mistakes + struggling)
       questionsStream = _statsService.streamAllProblematicQuestions(userId, widget.subjectId);
@@ -215,7 +219,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildQuestionItem(questions[index], isDark),
+              (context, index) => _buildQuestionItem(questions[index], userId, isDark),
               childCount: questions.length,
             ),
           ),
@@ -224,7 +228,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
     );
   }
 
-  Widget _buildQuestionItem(QuizQuestion question, bool isDark) {
+  Widget _buildQuestionItem(QuizQuestion question, String userId, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -250,10 +254,18 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
                 ),
               ),
               const Spacer(),
-              _buildActionButton(Icons.archive_outlined, 'أرشفة', Colors.blue, () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('سيتم تفعيل ميزة الأرشفة قريباً')),
-                );
+              _buildActionButton(
+                _activeFilter == 'archived' ? Icons.unarchive_outlined : Icons.archive_outlined, 
+                _activeFilter == 'archived' ? 'إلغاء الأرشفة' : 'أرشفة', 
+                Colors.blue, () async {
+                  await _srsService.toggleArchiveStatus(userId, question.id!, _activeFilter != 'archived');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_activeFilter == 'archived' ? 'تم إلغاء أرشفة السؤال' : 'تم أرشفة السؤال بنجاح'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
               }),
             ],
           ),
@@ -375,6 +387,8 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
           _buildFilterChip('المفضلة', 'favorites'),
           const SizedBox(width: 8),
           _buildFilterChip('قيد التعلم', 'struggling'),
+          const SizedBox(width: 8),
+          _buildFilterChip('المؤرشفة', 'archived'),
         ],
       ),
     );

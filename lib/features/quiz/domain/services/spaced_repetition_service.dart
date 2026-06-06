@@ -95,6 +95,7 @@ class SpacedRepetitionService {
         .collection('mastery')
         .where('subjectId', isEqualTo: subjectId)
         .where('nextReview', isLessThanOrEqualTo: now)
+        .where('isArchived', isNotEqualTo: true) // Filter out archived questions
         .limit(limit)
         .get();
 
@@ -172,5 +173,19 @@ class SpacedRepetitionService {
       }
     }
     return result;
+  }
+
+  /// Toggle archive status of a question
+  Future<void> toggleArchiveStatus(String userId, String questionId, bool archive) async {
+    final docRef = _db
+        .collection('users')
+        .doc(userId)
+        .collection('mastery')
+        .doc(questionId);
+
+    await docRef.set({
+      'isArchived': archive,
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }
