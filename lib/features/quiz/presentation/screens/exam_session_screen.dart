@@ -123,8 +123,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
     HapticFeedback.selectionClick();
 
-    // In speed mode, auto-confirm and move to next question
-    if (_isSpeedMode) {
+    // In speed mode, auto-confirm and move to next question (skip for checkbox - needs manual confirm)
+    if (_isSpeedMode && q.type != QuestionType.checkbox) {
       Future.delayed(const Duration(milliseconds: 300), _handleNext);
     }
   }

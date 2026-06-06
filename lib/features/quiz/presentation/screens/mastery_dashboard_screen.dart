@@ -7,6 +7,7 @@ import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/cram_mode_service.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/presentation/screens/cram_mode_session_screen.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
 
 class MasteryDashboardScreen extends StatefulWidget {
   final String subjectId;
@@ -270,15 +271,10 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            question.text,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-              height: 1.5,
-            ),
+          TexViewWidget(
+            text: question.text,
+            fontSize: 14,
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
           ),
           const SizedBox(height: 12),
           Row(

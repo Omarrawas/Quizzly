@@ -20,7 +20,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _openRouterController = TextEditingController();
   final _proxyController = TextEditingController();
 
-  String _selectedOpenRouterModel = 'google/gemini-flash-1.5';
+  String _selectedOpenRouterModel = 'google/gemini-2.0-flash-exp:free';
   bool _loading = true;
   bool _saving = false;
   bool _testing = false;
@@ -28,16 +28,18 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final AIGradingService _aiService = AIGradingService();
 
   static const List<Map<String, String>> _openRouterModels = [
-    {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5'},
-    {'id': 'google/gemini-2.0-flash-001', 'name': 'Gemini 2.0 Flash'},
-    {'id': 'anthropic/claude-3-haiku', 'name': 'Claude 3 Haiku'},
-    {'id': 'anthropic/claude-3-sonnet', 'name': 'Claude 3 Sonnet'},
-    {'id': 'openai/gpt-4o-mini', 'name': 'GPT-4o Mini'},
-    {'id': 'openai/gpt-4o', 'name': 'GPT-4o'},
-    {'id': 'meta-llama/llama-3.1-8b-instruct', 'name': 'Llama 3.1 8B'},
-    {'id': 'meta-llama/llama-3.1-70b-instruct', 'name': 'Llama 3.1 70B'},
-    {'id': 'mistralai/mistral-7b-instruct', 'name': 'Mistral 7B'},
-    {'id': 'qwen/qwen-2-72b-instruct', 'name': 'Qwen 2 72B'},
+    {'id': 'google/gemini-2.0-flash-exp:free', 'name': 'Gemini 2.0 Flash', 'tag': 'مجاني'},
+    {'id': 'meta-llama/llama-3.1-8b-instruct:free', 'name': 'Llama 3.1 8B', 'tag': 'مجاني'},
+    {'id': 'mistralai/mistral-7b-instruct:free', 'name': 'Mistral 7B', 'tag': 'مجاني'},
+    {'id': 'qwen/qwen-2-72b-instruct:free', 'name': 'Qwen 2 72B', 'tag': 'مجاني'},
+    {'id': 'deepseek/deepseek-chat:free', 'name': 'DeepSeek Chat', 'tag': 'مجاني'},
+    {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5', 'tag': 'مدفوع'},
+    {'id': 'google/gemini-2.0-flash-001', 'name': 'Gemini 2.0 Flash', 'tag': 'مدفوع'},
+    {'id': 'anthropic/claude-3-haiku', 'name': 'Claude 3 Haiku', 'tag': 'مدفوع'},
+    {'id': 'anthropic/claude-3-sonnet', 'name': 'Claude 3 Sonnet', 'tag': 'مدفوع'},
+    {'id': 'openai/gpt-4o-mini', 'name': 'GPT-4o Mini', 'tag': 'مدفوع'},
+    {'id': 'openai/gpt-4o', 'name': 'GPT-4o', 'tag': 'مدفوع'},
+    {'id': 'meta-llama/llama-3.1-70b-instruct', 'name': 'Llama 3.1 70B', 'tag': 'مدفوع'},
   ];
 
   @override
@@ -54,7 +56,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _geminiController.text = data['geminiKey'] ?? '';
         _groqController.text = data['groqKey'] ?? '';
         _openRouterController.text = data['openRouterKey'] ?? '';
-        _selectedOpenRouterModel = data['openRouterModel'] ?? 'google/gemini-flash-1.5';
+        _selectedOpenRouterModel = data['openRouterModel'] ?? 'google/gemini-2.0-flash-exp:free';
         _proxyController.text = data['cloudflareProxyUrl'] ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
       }
     } catch (e) {
@@ -263,28 +265,56 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   }
 
   Widget _buildOpenRouterModelDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('موديل OpenRouter', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text('موديل OpenRouter', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.05),
+            color: isDark ? const Color(0xFF1E293B) : Colors.grey.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.withValues(alpha: 0.2)),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedOpenRouterModel,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              iconEnabledColor: textColor,
+              style: GoogleFonts.inter(fontSize: 13, color: textColor),
               items: _openRouterModels.map((model) {
+                final isFree = model['tag'] == 'مجاني';
                 return DropdownMenuItem<String>(
                   value: model['id'],
-                  child: Text(
-                    '${model['name']}  (${model['id']})',
-                    style: GoogleFonts.inter(fontSize: 13),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          model['name']!,
+                          style: GoogleFonts.inter(fontSize: 13, color: textColor),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isFree ? Colors.green.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          model['tag']!,
+                          style: GoogleFonts.cairo(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isFree ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }).toList(),
