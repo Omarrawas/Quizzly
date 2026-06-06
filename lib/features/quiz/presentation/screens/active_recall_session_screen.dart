@@ -495,6 +495,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
             (o) => o != null && q.correctOptionIds.contains(o.id),
             orElse: () => null,
           );
+    final hasEssay = q.type == QuestionType.essay || (q.essayAnswer != null && q.essayAnswer!.isNotEmpty);
     return Column(
       children: [
         Icon(
@@ -504,8 +505,8 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
         ),
         const SizedBox(height: 12),
         TexViewWidget(
-          text: correctOption?.text ?? 'غير محدد',
-          fontSize: 20,
+          text: hasEssay ? (q.essayAnswer ?? 'غير محدد') : (correctOption?.text ?? 'غير محدد'),
+          fontSize: 18,
           fontWeight: FontWeight.bold,
           color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
         ),

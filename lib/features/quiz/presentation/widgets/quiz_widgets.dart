@@ -353,6 +353,9 @@ class QuestionCard extends StatelessWidget {
   final int? displayIndex;
   final void Function(String tag)? onTagTap;
 
+  final String? essayAnswerValue;
+  final Function(String)? onEssayChanged;
+
   const QuestionCard({
     super.key,
     required this.question,
@@ -373,6 +376,8 @@ class QuestionCard extends StatelessWidget {
     this.isSelected = false,
     this.displayIndex,
     this.onTagTap,
+    this.essayAnswerValue,
+    this.onEssayChanged,
   });
 
   Color _getTagColor(String text, bool isDark) {
@@ -604,7 +609,7 @@ class QuestionCard extends StatelessWidget {
             ),
 
           // Options List
-          if (question.options != null)
+          if (question.options != null && (question.type == QuestionType.mcq || question.type == QuestionType.checkbox))
             ...question.options!.map(
               (option) {
                 final bool isSelectedLocally = selectedOptionIds.contains(option.id) || selectedOptionId == option.id;
@@ -622,6 +627,76 @@ class QuestionCard extends StatelessWidget {
                   },
                 );
               },
+            ),
+
+          // Essay Input
+          if (question.type == QuestionType.essay)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    maxLines: 6,
+                    onChanged: onEssayChanged,
+                    enabled: answerState == AnswerState.unanswered,
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'اكتب إجابتك المقالية هنا...',
+                      hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                  if (answerState != AnswerState.unanswered) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'الإجابة النموذجية:',
+                                style: GoogleFonts.cairo(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF16A34A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TexViewWidget(
+                            text: question.essayAnswer ?? 'لا توجد إجابة نموذجية مسجلة.',
+                            fontSize: 14,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
 
           const SizedBox(height: 12),

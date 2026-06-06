@@ -33,7 +33,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   final ExamService _examService = ExamService();
   final SpacedRepetitionService _srsService = SpacedRepetitionService();
   int _currentIndex = 0;
-  final Map<int, Set<String>> _userAnswers = {}; // index -> Set of optionIds
+  final Map<int, Set<String>> _userAnswers = {}; // index -> Set of optionIds for MCQ/Checkbox
+  final Map<int, String> _essayAnswers = {}; // index -> String for Essay
 
   late int _timeLeft; // Total time or Per-question time
   bool _isSpeedMode = false;
@@ -128,6 +129,12 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     }
   }
 
+  void _onEssayChanged(String value) {
+    setState(() {
+      _essayAnswers[_currentIndex] = value;
+    });
+  }
+
   void _handleNext() {
     // Process answer
     if (!_processedIndices.contains(_currentIndex)) {
@@ -208,11 +215,16 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         countedIds.add(qId);
 
         final userAns = _userAnswers[i] ?? {};
+        final essayAns = _essayAnswers[i] ?? '';
         
         bool isCorrect = false;
         if (q.type == QuestionType.checkbox) {
           isCorrect = userAns.length == q.correctOptionIds.length &&
               userAns.every((id) => q.correctOptionIds.contains(id));
+        } else if (q.type == QuestionType.essay) {
+          // Essay questions are not auto-graded as correct/wrong during exam submission
+          // we treat them as unanswered/pending for now, or just not correct.
+          isCorrect = false; 
         } else {
           isCorrect = userAns.length == 1 &&
               q.correctOptionIds.contains(userAns.first);
@@ -223,6 +235,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
         results.add({
           'questionId': qId,
           'selectedOptionId': userAns,
+          'essayAnswer': essayAns,
           'isCorrect': isCorrect,
           'topicIds': q.topicIds,
         });
@@ -290,7 +303,10 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             totalCount: widget.questions.length,
             timeSpentSeconds: timeSpent,
             questions: widget.questions,
-            userAnswers: _userAnswers,
+            userAnswers: {
+              ..._userAnswers,
+              ..._essayAnswers,
+            },
           ),
         ),
       );
@@ -519,11 +535,31 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                 ),
               ],
       ),
-      child: TexViewWidget(
-        text: q.text,
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: isDark ? Colors.white : AppColors.textPrimary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TexViewWidget(
+            text: q.text,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
+          if (q.type == QuestionType.essay) ...[
+            const SizedBox(height: 24),
+            TextField(
+              maxLines: 6,
+              style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black),
+              onChanged: _onEssayChanged,
+              decoration: InputDecoration(
+                hintText: 'اكتب إجابتك هنا...',
+                hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                filled: true,
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

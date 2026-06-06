@@ -242,6 +242,12 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     });
   }
 
+  void _onEssayChanged(String value) {
+    setState(() {
+      _selectedOptionIds = {value}; 
+    });
+  }
+
   void _checkAnswer() {
     if (_selectedOptionIds.isEmpty) return;
     
@@ -251,6 +257,9 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     if (q.type == QuestionType.checkbox) {
       isCorrect = _selectedOptionIds.length == q.correctOptionIds.length &&
           _selectedOptionIds.every((id) => q.correctOptionIds.contains(id));
+    } else if (q.type == QuestionType.essay) {
+      // In practice mode, we treat all essay answers as "revealed" for comparison
+      isCorrect = true; // Placeholder, real grade is via AI or self
     } else {
       isCorrect = _selectedOptionIds.length == 1 &&
           q.correctOptionIds.contains(_selectedOptionIds.first);
@@ -563,7 +572,10 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
                             children: [
                               _buildQuestionCard(isDark),
                               const SizedBox(height: 16),
-                              if (_current?.options != null) _buildOptions(isDark),
+                              if (_current?.type == QuestionType.essay)
+                                _buildEssayInput(isDark),
+                              if (_current?.options != null && _current?.type != QuestionType.essay) 
+                                _buildOptions(isDark),
                               const SizedBox(height: 12),
                               if (_answerState != AnswerState.unanswered &&
                                   _current?.explanation != null)
@@ -1034,6 +1046,48 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
           listService: _listService,
         );
       },
+    );
+  }
+
+  Widget _buildEssayInput(bool isDark) {
+    final revealed = _answerState != AnswerState.unanswered;
+    final q = _current!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          maxLines: 6,
+          enabled: !revealed,
+          onChanged: _onEssayChanged,
+          style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black),
+          decoration: InputDecoration(
+            hintText: 'اكتب إجابتك المقالية...',
+            filled: true,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+        if (revealed) ...[
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('الإجابة النموذجية:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.green)),
+                const SizedBox(height: 8),
+                TexViewWidget(text: q.essayAnswer ?? q.explanation ?? '', fontSize: 14),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

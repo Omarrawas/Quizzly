@@ -11,6 +11,7 @@ import 'package:quizzly/features/admin/presentation/screens/financial_stats_scre
 import 'package:quizzly/features/admin/presentation/screens/send_notification_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/manage_socials_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/manage_sales_locations_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/ai_settings_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -430,6 +431,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ManageSalesLocationsScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.auto_awesome_rounded,
+              title: 'إعدادات الذكاء الاصطناعي',
+              subtitle: 'تعديل مفاتيح Gemini, Groq, OpenRouter والبروكسي',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AISettingsScreen(),
                   ),
                 );
               },
