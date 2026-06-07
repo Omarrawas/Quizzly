@@ -72,13 +72,13 @@ jobs:
             echo "General improvements and bug fixes for a better experience." > distribution/whatsnew/whatsnew-en-US
           fi
 
-      - name: Deploy to Google Play (Closed Testing)
+      - name: Deploy to Google Play (Production)
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.Quizzly.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: alpha
+          track: production
           status: completed
           changesNotSentForReview: false
           whatsNewDirectory: distribution/whatsnew
