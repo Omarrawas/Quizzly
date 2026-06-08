@@ -271,12 +271,13 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ReorderableListView(
+          child: ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
+            itemCount: docs.length,
             onReorder: (oldIndex, newIndex) => _handleLessonReorder(docs, oldIndex, newIndex),
-            children: docs.asMap().entries.map((entry) {
-              final doc = entry.value;
+            itemBuilder: (context, index) {
+              final doc = docs[index];
               final data = doc.data() as Map<String, dynamic>;
               final id = doc.id;
               final name = data['name'] ?? '';
@@ -294,9 +295,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 onPreview: () => _previewLesson(id, name, data),
                 onDelete: () => _confirmDelete(id, name),
                 data: data,
-                index: entry.key,
+                index: index,
               );
-            }).toList(),
+            },
           ),
         );
       },
@@ -335,6 +336,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     required int index,
   }) {
     return Container(
+      key: key,
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isSelected
@@ -348,7 +350,6 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         ),
       ),
       child: ListTile(
-        key: key,
         onTap: onTap,
         dense: true,
         leading: Row(
@@ -1007,58 +1008,51 @@ class _ChapterCardState extends State<_ChapterCard> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Theme(
-          data: Theme.of(context).copyWith(
-            dividerColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
+        child: ExpansionTile(
+          key: PageStorageKey<String>(widget.chapterId),
+          backgroundColor: Colors.transparent,
+          collapsedBackgroundColor: Colors.transparent,
+          leading: const Icon(
+            Icons.folder_rounded,
+            color: AppColors.primaryBlue,
+            size: 24,
           ),
-          child: ExpansionTile(
-            key: PageStorageKey<String>(widget.chapterId),
-            backgroundColor: Colors.transparent,
-            collapsedBackgroundColor: Colors.transparent,
-            leading: const Icon(
-              Icons.folder_rounded,
-              color: AppColors.primaryBlue,
-              size: 24,
-            ),
-            title: widget.chapterTitleWidget,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: Colors.green,
-                    size: 20,
-                  ),
-                  tooltip: 'إضافة درس',
-                  onPressed: widget.onAddLesson,
+          title: widget.chapterTitleWidget,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: Colors.green,
+                  size: 20,
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit_note_rounded,
-                    color: Colors.blue,
-                    size: 20,
-                  ),
-                  tooltip: 'تعديل الفصل',
-                  onPressed: widget.onEditChapter,
+                tooltip: 'إضافة درس',
+                onPressed: widget.onAddLesson,
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_note_rounded,
+                  color: Colors.blue,
+                  size: 20,
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red,
-                    size: 20,
-                  ),
-                  tooltip: 'حذف الفصل',
-                  onPressed: widget.onDeleteChapter,
+                tooltip: 'تعديل الفصل',
+                onPressed: widget.onEditChapter,
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red,
+                  size: 20,
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.keyboard_arrow_down_rounded),
-              ],
-            ),
-            children: [widget.lessonsList],
+                tooltip: 'حذف الفصل',
+                onPressed: widget.onDeleteChapter,
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down_rounded),
+            ],
           ),
+          children: [widget.lessonsList],
         ),
       ),
     );
