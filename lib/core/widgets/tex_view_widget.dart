@@ -253,18 +253,27 @@ class TexViewWidget extends StatelessWidget {
 
   static String _stripMathDelimiters(String token) {
     String t = token.trim();
+    
+    // Remove outer delimiters if they exist
     if (t.startsWith(r'\[') && t.endsWith(r'\]')) {
-      return t.substring(2, t.length - 2).trim();
+      t = t.substring(2, t.length - 2).trim();
+    } else if (t.startsWith(r'\(') && t.endsWith(r'\)')) {
+      t = t.substring(2, t.length - 2).trim();
+    } else if (t.startsWith('\$\$') && t.endsWith('\$\$')) {
+      t = t.substring(2, t.length - 2).trim();
+    } else if (t.startsWith('\$') && t.endsWith('\$')) {
+      t = t.substring(1, t.length - 1).trim();
     }
-    if (t.startsWith(r'\(') && t.endsWith(r'\)')) {
-      return t.substring(2, t.length - 2).trim();
+    
+    // Remove trailing dots or commas that might be outside but caught in the regex
+    if (t.endsWith('.') || t.endsWith(',')) {
+      t = t.substring(0, t.length - 1).trim();
     }
-    if (t.startsWith('\$\$') && t.endsWith('\$\$')) {
-      return t.substring(2, t.length - 2).trim();
-    }
-    if (t.startsWith('\$') && t.endsWith('\$')) {
-      return t.substring(1, t.length - 1).trim();
-    }
+    
+    // Fix common spacing issue in chemical reactions
+    t = t.replaceAll(' + ', ' + '); 
+    t = t.replaceAll(' -> ', r' \to ');
+    
     return t;
   }
 }

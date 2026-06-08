@@ -157,9 +157,10 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
           );
         }
 
-        return ListView.builder(
+        return ReorderableListView.builder(
           padding: const EdgeInsets.only(bottom: 88, top: 12),
           itemCount: docs.length,
+          onReorder: (oldIndex, newIndex) => _handleChapterReorder(docs, oldIndex, newIndex),
           itemBuilder: (context, index) {
             final doc = docs[index];
             final data = doc.data() as Map<String, dynamic>;
@@ -167,6 +168,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             final name = data['name'] ?? '';
 
             return _ChapterCard(
+              key: ValueKey(id),
               chapterId: id,
               chapterName: name,
               chapterTitleWidget: TexViewWidget(
@@ -185,6 +187,22 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         );
       },
     );
+  }
+
+  Future<void> _handleChapterReorder(List<QueryDocumentSnapshot> docs, int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final List<String> ids = docs.map((d) => d.id).toList();
+    final item = ids.removeAt(oldIndex);
+    ids.insert(newIndex, item);
+    try {
+      await _dbService.updateOrder(DatabaseService.colTopics, ids);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحديث الترتيب: $e', style: GoogleFonts.cairo())),
+        );
+      }
+    }
   }
 
   Widget _buildNestedLessonsList(String chapterId, bool isDark) {
@@ -253,13 +271,18 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            children: docs.map((doc) {
+          child: ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            onReorder: (oldIndex, newIndex) => _handleLessonReorder(docs, oldIndex, newIndex),
+            children: docs.asMap().entries.map((entry) {
+              final doc = entry.value;
               final data = doc.data() as Map<String, dynamic>;
               final id = doc.id;
               final name = data['name'] ?? '';
 
               return _buildListTile(
+                key: ValueKey(id),
                 id: id,
                 title: name,
                 isSelected: false,
@@ -271,6 +294,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 onPreview: () => _previewLesson(id, name, data),
                 onDelete: () => _confirmDelete(id, name),
                 data: data,
+                index: entry.key,
               );
             }).toList(),
           ),
@@ -279,7 +303,24 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     );
   }
 
+  Future<void> _handleLessonReorder(List<QueryDocumentSnapshot> docs, int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final List<String> ids = docs.map((d) => d.id).toList();
+    final item = ids.removeAt(oldIndex);
+    ids.insert(newIndex, item);
+    try {
+      await _dbService.updateOrder(DatabaseService.colTopics, ids);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحديث الترتيب: $e', style: GoogleFonts.cairo())),
+        );
+      }
+    }
+  }
+
   Widget _buildListTile({
+    required Key key,
     required String id,
     required String title,
     required bool isSelected,
@@ -290,7 +331,8 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
     VoidCallback? onPreview,
     required VoidCallback onDelete,
     bool showArrow = false,
-    Map<String, dynamic>? data, // Added to check for isFree
+    Map<String, dynamic>? data,
+    required int index,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -306,8 +348,31 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         ),
       ),
       child: ListTile(
+        key: key,
         onTap: onTap,
         dense: true,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showArrow) ...[
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 12,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(width: 8),
+            ],
+            ReorderableDragStartListener(
+              index: index,
+              child: Icon(
+                Icons.drag_indicator_rounded,
+                color: isDark ? Colors.white24 : Colors.grey[300],
+                size: 20,
+              ),
+            ),
+          ],
+        ),
         title: Row(
           children: [
             Expanded(
@@ -447,14 +512,6 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                 ),
               ],
             ),
-            if (showArrow) ...[
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 12,
-                color: Colors.grey[400],
-              ),
-            ],
           ],
         ),
       ),
@@ -918,6 +975,7 @@ class _ChapterCard extends StatefulWidget {
   final Widget chapterTitleWidget;
 
   const _ChapterCard({
+    super.key,
     required this.chapterId,
     required this.chapterName,
     required this.chapterData,

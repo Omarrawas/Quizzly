@@ -186,6 +186,16 @@ class _UnifiedLessonEditorSheetState extends State<UnifiedLessonEditorSheet> {
         await FirebaseFirestore.instance.collection('topics').doc(widget.docId).update(data);
       } else {
         data['createdAt'] = FieldValue.serverTimestamp();
+        
+        // Calculate order to place at bottom
+        final countSnap = await FirebaseFirestore.instance.collection('topics')
+            .where('subjectId', isEqualTo: widget.subjectId)
+            .where('sectionId', isEqualTo: widget.sectionId)
+            .where('parentId', isEqualTo: widget.parentId)
+            .count()
+            .get();
+        data['order'] = countSnap.count;
+        
         await FirebaseFirestore.instance.collection('topics').add(data);
       }
 

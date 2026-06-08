@@ -191,6 +191,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
             return _buildManagementCard(
               key: ValueKey(id),
+              index: index,
               title: name,
               subtitle: data['description'] ?? data['subtitle'] ?? '',
               basePrice: basePrice,
@@ -340,6 +341,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
   Widget _buildManagementCard({
     required Key key, 
+    required int index,
     required String title, 
     required String subtitle, 
     double? basePrice,
@@ -455,9 +457,12 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                       constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                       padding: EdgeInsets.zero,
                     ),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 2),
-                      child: Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: ReorderableDragStartListener(
+                        index: index,
+                        child: const Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
+                      ),
                     ),
                   ],
                 ),

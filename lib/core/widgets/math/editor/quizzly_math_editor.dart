@@ -67,11 +67,53 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
     final text = _controller.text;
     final start = sel.isValid ? sel.start : text.length;
     final end = sel.isValid ? sel.end : text.length;
+    
     final newText = text.replaceRange(start, end, symbol);
-    _controller.value = _controller.value.copyWith(
-      text: newText,
-      selection: TextSelection.collapsed(offset: start + symbol.length),
-    );
+    
+    // Find first placeholder in the inserted symbol
+    const placeholder = r'\square';
+    final placeholderIndex = symbol.indexOf(placeholder);
+    
+    if (placeholderIndex != -1) {
+      // Auto-select the first placeholder so typing replaces it
+      _controller.value = _controller.value.copyWith(
+        text: newText,
+        selection: TextSelection(
+          baseOffset: start + placeholderIndex,
+          extentOffset: start + placeholderIndex + placeholder.length,
+        ),
+      );
+      _controller.selection = TextSelection(
+        baseOffset: start + placeholderIndex,
+        extentOffset: start + placeholderIndex + placeholder.length,
+      );
+    } else {
+      _controller.value = _controller.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start + symbol.length),
+      );
+    }
+  }
+
+  void _jumpToNextPlaceholder() {
+    final text = _controller.text;
+    final sel = _controller.selection;
+    final start = sel.isValid ? sel.end : 0;
+    
+    const placeholder = r'\square';
+    var index = text.indexOf(placeholder, start);
+    
+    // If not found after cursor, wrap around to start
+    if (index == -1) {
+      index = text.indexOf(placeholder);
+    }
+    
+    if (index != -1) {
+      _controller.selection = TextSelection(
+        baseOffset: index,
+        extentOffset: index + placeholder.length,
+      );
+    }
   }
 
   void _updateSearchQuery(String query) {
@@ -219,10 +261,51 @@ class _QuizzlyMathEditorState extends State<QuizzlyMathEditor> {
                   Container(
                     color: Theme.of(context).cardColor,
                     padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-                    child: MathFieldWidget(
-                      controller: _controller,
-                      onClear: _clearExpression,
-                      onPaste: _handlePaste,
+                    child: Column(
+                      children: [
+                        MathFieldWidget(
+                          controller: _controller,
+                          onClear: _clearExpression,
+                          onPaste: _handlePaste,
+                        ),
+                        // Utility bar for navigation
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                onPressed: _jumpToNextPlaceholder,
+                                icon: const Icon(Icons.keyboard_tab_rounded, size: 16),
+                                label: const Text('المربع التالي', style: TextStyle(fontSize: 11)),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  foregroundColor: Colors.blue.shade300,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back_ios_rounded, size: 14),
+                                onPressed: () {
+                                  final sel = _controller.selection;
+                                  if (sel.isValid && sel.start > 0) {
+                                    _controller.selection = TextSelection.collapsed(offset: sel.start - 1);
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                                onPressed: () {
+                                  final sel = _controller.selection;
+                                  if (sel.isValid && sel.end < _controller.text.length) {
+                                    _controller.selection = TextSelection.collapsed(offset: sel.end + 1);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   // Rendered preview area

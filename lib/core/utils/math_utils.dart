@@ -12,8 +12,17 @@ class MathUtils {
   static String normalizeMathContent(String raw) {
     if (raw.trim().isEmpty) return raw;
 
-    // 1. Fix color hex codes (8-digit to 6-digit)
-    var processed = _normalizeColors(raw);
+    // 1. Fix common thermodynamic and chemical symbols that cause issues
+    var processed = raw
+        .replaceAll(r'^{\circ}', r'^\circ')
+        .replaceAll(r'\Delta G^{\circ}', r'\Delta G^\circ')
+        .replaceAll(r'\Delta H^{\circ}', r'\Delta H^\circ')
+        .replaceAll(r'\Delta S^{\circ}', r'\Delta S^\circ')
+        .replaceAll(r'\longrightarrow', r'\to')
+        .replaceAll(r'\longleftarrow', r'\leftarrow');
+
+    // 2. Fix color hex codes (8-digit to 6-digit)
+    processed = _normalizeColors(processed);
 
     // 2. EMERGENCY PATCH: Clean up garbled "$1 $2" from previous bug
     processed = processed.replaceAll(RegExp(r'\$(\\)?1 \$(\\)?2'), ' ');
