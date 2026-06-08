@@ -214,6 +214,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   final ScrollController _scrollController = ScrollController();
   bool _isFocused = false;
   final List<String> _deletedImageUrls = [];
+  TextDirection _baseDirection = TextDirection.rtl;
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -232,6 +233,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
     _controller.removeListener(_onContentChanged);
+    _controller.removeListener(_updateBaseDirection);
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -253,17 +255,29 @@ class _RichTextEditorState extends State<RichTextEditor> {
         );
       } else {
         _controller = quill.QuillController.basic();
-        // Apply RTL to the first paragraph by default
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _controller.formatSelection(quill.Attribute.rtl);
-          }
-        });
       }
     } catch (_) {
       _controller = quill.QuillController.basic();
     }
     _controller.addListener(_onContentChanged);
+    _controller.addListener(_updateBaseDirection);
+    
+    // Initial direction
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateBaseDirection();
+    });
+  }
+
+  void _updateBaseDirection() {
+    final style = _controller.getSelectionStyle();
+    final isRtl = style.attributes.containsKey(quill.Attribute.rtl.key);
+    final newDirection = isRtl ? TextDirection.rtl : TextDirection.ltr;
+    
+    if (newDirection != _baseDirection) {
+      setState(() {
+        _baseDirection = newDirection;
+      });
+    }
   }
 
   Delta _convertTextDelimitersToMathEmbeds(Delta delta) {
@@ -628,7 +642,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: Directionality.of(context),
+                        textDirection: _baseDirection,
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,

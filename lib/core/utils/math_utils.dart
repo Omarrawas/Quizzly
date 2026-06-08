@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'math_parser.dart';
 
 class MathUtils {
@@ -123,25 +124,24 @@ class MathUtils {
     // Single character detection
     if (trimmed.length == 1) {
       // Allow operators, common math symbols, and single variables even if single character
-      return RegExp(r'[a-zA-ZπλωσΔΩαβγθδσΦ\^/_=<>≤≥≠≈×÷±√∞²³〖〗【】()\[\]{}λπαβγ+*-]').hasMatch(trimmed);
+      return RegExp(r'[a-zA-ZπλωστρηΔΦΩαβγθδσΦ\^/_=<>≤≥≠≈×÷±∓∓√∞²³⁴⁵⁶⁷⁸⁹⁰〖〗【】()\[\]{}λπαβγ+*-∀∃∈∉∋∇∆∩∪ø∂]').hasMatch(trimmed);
     }
 
     // If it starts with a number but has no operators, don't treat as math (e.g. "22.4")
     if (RegExp(r'^\d+\.?\d*$').hasMatch(trimmed)) return false;
 
     final mathPatterns = [
-      r'[πλωσΔΩαβγθδσΦ]',
+      r'[πλωστρηΔΦΩαβγθδσΦ∀∃∈∉∋∇∆∩∪ø∂]',
       r'\^',
       r'_',
-      r'[=<>≤≥≠≈]',
+      r'[=<>≤≥≠≈≅≡∝≫≪]',
       r'/',
-      r'[×÷±√∞²³]',
+      r'[×÷±∓√∞²³⁴⁵⁶⁷⁸⁹⁰]',
       r'〖|〗|【|】',
       r'\(.*\/.*\)',
       r'\d+(\.\d+)?\s*[×*]\s*10',
-      r'[²³⁴⁵⁶⁷⁸⁹⁰]',
       r'\\[a-zA-Z]+',
-      r'[⟹⇒°´′″]',
+      r'[⟹⇒∴¬°´′″↑↓←→↔…·]',
     ];
 
     final combinedRegex = RegExp(mathPatterns.join('|'));
@@ -170,5 +170,17 @@ class MathUtils {
         .replaceAll('&nbsp;', ' ')
         .replaceAll('&quot;', '"')
         .replaceAll('&#39;', "'");
+  }
+
+  /// Detects the text direction based on presence of Arabic characters
+  static TextDirection getDirection(String text) {
+    if (text.isEmpty) return TextDirection.rtl; // Default to RTL for Quizzly
+    
+    // Check for Arabic characters (including extended Arabic blocks)
+    final hasArabic = RegExp(
+      r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]'
+    ).hasMatch(text);
+    
+    return hasArabic ? TextDirection.rtl : TextDirection.ltr;
   }
 }

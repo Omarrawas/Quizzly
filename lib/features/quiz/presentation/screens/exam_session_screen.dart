@@ -12,6 +12,7 @@ import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.
 import 'package:quizzly/features/quiz/presentation/screens/exam_result_screen.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:quizzly/features/gamification/domain/services/subject_league_service.dart';
+import 'package:quizzly/core/utils/math_utils.dart';
 
 class ExamSessionScreen extends StatefulWidget {
   final ExamConfig config;
@@ -520,111 +521,117 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
   }
 
   Widget _buildQuestionCard(QuizQuestion q, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: isDark ? Border.all(color: Colors.white10) : null,
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                ),
-              ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TexViewWidget(
-            text: q.text,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : AppColors.textPrimary,
-          ),
-          if (q.type == QuestionType.essay) ...[
-            const SizedBox(height: 24),
-            TextField(
-              maxLines: 6,
-              style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black),
-              onChanged: _onEssayChanged,
-              decoration: InputDecoration(
-                hintText: 'اكتب إجابتك هنا...',
-                hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
-                filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-              ),
+    return Directionality(
+      textDirection: MathUtils.getDirection(q.text),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: isDark ? Border.all(color: Colors.white10) : null,
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                  ),
+                ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TexViewWidget(
+              text: q.text,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textPrimary,
             ),
+            if (q.type == QuestionType.essay) ...[
+              const SizedBox(height: 24),
+              TextField(
+                maxLines: 6,
+                style: GoogleFonts.cairo(color: isDark ? Colors.white : Colors.black),
+                onChanged: _onEssayChanged,
+                decoration: InputDecoration(
+                  hintText: 'اكتب إجابتك هنا...',
+                  hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                  filled: true,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildOptions(QuizQuestion q, bool isDark) {
-    return Column(
-      children: (q.options ?? []).map((opt) {
-        final selections = _userAnswers[_currentIndex] ?? {};
-        final isSelected = selections.contains(opt.id);
+    return Directionality(
+      textDirection: MathUtils.getDirection(q.text),
+      child: Column(
+        children: (q.options ?? []).map((opt) {
+          final selections = _userAnswers[_currentIndex] ?? {};
+          final isSelected = selections.contains(opt.id);
 
-        Color borderColor = isDark ? Colors.white24 : AppColors.borderLight;
-        Color bgColor = isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white;
+          Color borderColor = isDark ? Colors.white24 : AppColors.borderLight;
+          Color bgColor = isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white;
 
-        if (isSelected) {
-          borderColor = isDark ? Colors.blueAccent : AppColors.primaryBlue;
-          bgColor = isSelected ? (borderColor.withValues(alpha: 0.1)) : bgColor;
-        }
+          if (isSelected) {
+            borderColor = isDark ? Colors.blueAccent : AppColors.primaryBlue;
+            bgColor = isSelected ? (borderColor.withValues(alpha: 0.1)) : bgColor;
+          }
 
-        final bool isCheckbox = q.type == QuestionType.checkbox;
+          final bool isCheckbox = q.type == QuestionType.checkbox;
 
-        return GestureDetector(
-          onTap: () => _selectOption(opt.id),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: isCheckbox ? BoxShape.rectangle : BoxShape.circle,
-                    borderRadius: isCheckbox ? BorderRadius.circular(6) : null,
-                    border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 2),
-                    color: isSelected ? borderColor : Colors.transparent,
+          return GestureDetector(
+            onTap: () => _selectOption(opt.id),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: isCheckbox ? BoxShape.rectangle : BoxShape.circle,
+                      borderRadius: isCheckbox ? BorderRadius.circular(6) : null,
+                      border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 2),
+                      color: isSelected ? borderColor : Colors.transparent,
+                    ),
+                    child: isSelected
+                        ? Icon(
+                            isCheckbox ? Icons.check_rounded : Icons.circle,
+                            size: isCheckbox ? 14 : 8,
+                            color: isDark ? Colors.black : Colors.white,
+                          )
+                        : null,
                   ),
-                  child: isSelected
-                      ? Icon(
-                          isCheckbox ? Icons.check_rounded : Icons.circle,
-                          size: isCheckbox ? 14 : 8,
-                          color: isDark ? Colors.black : Colors.white,
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TexViewWidget(
-                    text: opt.text,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TexViewWidget(
+                      text: opt.text,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 

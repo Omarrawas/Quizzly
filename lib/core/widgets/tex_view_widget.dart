@@ -83,7 +83,7 @@ class TexViewWidget extends StatelessWidget {
           normalizedContent,
           style: defaultStyle,
           textAlign: isTitle ? TextAlign.center : TextAlign.start,
-          textDirection: textDirection ?? Directionality.of(context),
+          textDirection: textDirection ?? MathUtils.getDirection(normalizedContent),
         );
       }
       return _buildMathText(context, normalizedContent, defaultStyle);
@@ -98,8 +98,10 @@ class TexViewWidget extends StatelessWidget {
       return '<math-tex>${match.group(0)}</math-tex>';
     });
 
+    final effectiveDirection = textDirection ?? MathUtils.getDirection(normalizedContent);
+    
     return Directionality(
-      textDirection: textDirection ?? Directionality.of(context),
+      textDirection: effectiveDirection,
       child: HtmlWidget(
         processedHtml,
         textStyle: htmlBaseStyle,
@@ -147,7 +149,7 @@ class TexViewWidget extends StatelessWidget {
         mathAwareText,
         style: baseStyle,
         textAlign: isTitle ? TextAlign.center : TextAlign.start,
-        textDirection: textDirection ?? Directionality.of(context),
+        textDirection: textDirection ?? MathUtils.getDirection(mathAwareText),
       );
     }
 
@@ -239,7 +241,7 @@ class TexViewWidget extends StatelessWidget {
     return Text.rich(
       TextSpan(children: spans),
       textAlign: isTitle ? TextAlign.center : TextAlign.start,
-      textDirection: textDirection ?? Directionality.of(context),
+      textDirection: textDirection ?? MathUtils.getDirection(mathAwareText),
     );
   }
 

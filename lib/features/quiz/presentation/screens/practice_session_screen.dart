@@ -14,6 +14,7 @@ import 'package:quizzly/features/quiz/domain/services/list_service.dart';
 import 'package:quizzly/features/quiz/domain/services/spaced_repetition_service.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/mnemonic_card.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/core/utils/math_utils.dart';
 import 'dart:async';
 
 class PracticeSessionScreen extends StatefulWidget {
@@ -771,26 +772,29 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_currentIndex + 1} - ',
-                style: GoogleFonts.cairo(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
+          Directionality(
+            textDirection: MathUtils.getDirection(q.text),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_currentIndex + 1} - ',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
                 ),
-              ),
-              Expanded(
-                child: TexViewWidget(
-                  text: q.text,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
+                Expanded(
+                  child: TexViewWidget(
+                    text: q.text,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -801,8 +805,10 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     final q = _current!;
     final optionLabels = ['أ', 'ب', 'ج', 'د', 'هـ', 'و'];
     
-    return Column(
-      children: q.options!.asMap().entries.map((entry) {
+    return Directionality(
+      textDirection: MathUtils.getDirection(q.text),
+      child: Column(
+        children: q.options!.asMap().entries.map((entry) {
         final index = entry.key;
         final option = entry.value;
         final isSelected = _selectedOptionIds.contains(option.id);
@@ -896,6 +902,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
           ),
         );
       }).toList(),
+      ),
     );
   }
 
