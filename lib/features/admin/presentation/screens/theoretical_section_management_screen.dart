@@ -48,6 +48,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   final Set<String> _selectedQuestionIds = {};
   bool get _isSelectionMode => _selectedQuestionIds.isNotEmpty;
   
+  // Search visibility state
+  bool _isSearchVisible = false;
+  
+  // Filter visibility state
+  bool _isFilterVisible = false;
+  
   // To keep track of visible question IDs for "Select All"
   List<String> _currentVisibleQuestionIds = [];
 
@@ -183,6 +189,28 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           ),
         ] : [
           IconButton(
+            icon: Icon(_isSearchVisible ? Icons.search_off_rounded : Icons.search_rounded),
+            tooltip: _isSearchVisible ? 'إغلاق البحث' : 'بحث',
+            onPressed: () {
+              setState(() {
+                _isSearchVisible = !_isSearchVisible;
+                if (!_isSearchVisible) {
+                  _searchController.clear();
+                  _searchQuery = '';
+                }
+              });
+            },
+          ),
+          IconButton(
+            icon: Icon(_isFilterVisible ? Icons.filter_alt_off_rounded : Icons.filter_alt_rounded),
+            tooltip: _isFilterVisible ? 'إغلاق الفلاتر' : 'الفلاتر',
+            onPressed: () {
+              setState(() {
+                _isFilterVisible = !_isFilterVisible;
+              });
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.download_rounded),
             tooltip: 'تصدير الأسئلة',
             onPressed: _showExportDialog,
@@ -237,126 +265,130 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
 
     return Column(
       children: [
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
-              boxShadow: isDark ? [] : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+        // Search Bar (conditionally visible)
+        if (_isSearchVisible)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
+                boxShadow: isDark ? [] : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                style: GoogleFonts.cairo(fontSize: 14),
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'ابحث عن سؤال...',
+                  hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBlue),
+                  suffixIcon: _searchQuery.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
-              style: GoogleFonts.cairo(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'ابحث عن سؤال...',
-                hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 14),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBlue),
-                suffixIcon: _searchQuery.isNotEmpty 
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_rounded, size: 20),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               ),
             ),
           ),
-        ),
 
-        // Chapters Filter
-        SizedBox(
-          height: 50,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildFilterChip(
-                label: 'الكل',
-                isSelected: _selectedChapterId == null,
-                onSelected: () => setState(() {
-                  _selectedChapterId = null;
-                  _selectedLessonId = null;
-                }),
-                isDark: isDark,
-              ),
-              ...chapters.map((chapter) {
-                final id = _topicsMap.keys.firstWhere((k) => _topicsMap[k] == chapter);
-                return _buildFilterChip(
-                  label: chapter['name'] ?? '',
-                  isSelected: _selectedChapterId == id,
-                  onSelected: () => setState(() {
-                    _selectedChapterId = id;
-                    _selectedLessonId = null;
-                  }),
-                  isDark: isDark,
-                );
-              }),
-            ],
-          ),
-        ),
-
-        // Lessons Filter (Only if a chapter is selected)
-        if (_selectedChapterId != null && lessons.isNotEmpty)
-          Container(
-            height: 45,
-            margin: const EdgeInsets.only(top: 4, bottom: 8),
+        // Chapters Filter (conditionally visible)
+        if (_isFilterVisible) ...[
+          SizedBox(
+            height: 50,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 _buildFilterChip(
-                  label: 'جميع دروس الفصل',
-                  isSelected: _selectedLessonId == null,
-                  onSelected: () => setState(() => _selectedLessonId = null),
+                  label: 'الكل',
+                  isSelected: _selectedChapterId == null,
+                  onSelected: () => setState(() {
+                    _selectedChapterId = null;
+                    _selectedLessonId = null;
+                  }),
                   isDark: isDark,
-                  isSecondary: true,
                 ),
-                ...lessons.map((lesson) {
-                  final id = _topicsMap.keys.firstWhere((k) => _topicsMap[k] == lesson);
+                ...chapters.map((chapter) {
+                  final id = _topicsMap.keys.firstWhere((k) => _topicsMap[k] == chapter);
                   return _buildFilterChip(
-                    label: lesson['name'] ?? '',
-                    isSelected: _selectedLessonId == id,
-                    onSelected: () => setState(() => _selectedLessonId = id),
+                    label: chapter['name'] ?? '',
+                    isSelected: _selectedChapterId == id,
+                    onSelected: () => setState(() {
+                      _selectedChapterId = id;
+                      _selectedLessonId = null;
+                    }),
                     isDark: isDark,
-                    isSecondary: true,
                   );
                 }),
               ],
             ),
           ),
-        
-        // Status Filter
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildStatusChip('الكل', 'all', isDark),
-                const SizedBox(width: 8),
-                _buildStatusChip('مفعل', 'active', isDark, activeColor: Colors.green),
-                const SizedBox(width: 8),
-                _buildStatusChip('غير مفعل', 'inactive', isDark, activeColor: Colors.red),
-              ],
+
+          // Lessons Filter (Only if a chapter is selected)
+          if (_selectedChapterId != null && lessons.isNotEmpty)
+            Container(
+              height: 45,
+              margin: const EdgeInsets.only(top: 4, bottom: 8),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _buildFilterChip(
+                    label: 'جميع دروس الفصل',
+                    isSelected: _selectedLessonId == null,
+                    onSelected: () => setState(() => _selectedLessonId = null),
+                    isDark: isDark,
+                    isSecondary: true,
+                  ),
+                  ...lessons.map((lesson) {
+                    final id = _topicsMap.keys.firstWhere((k) => _topicsMap[k] == lesson);
+                    return _buildFilterChip(
+                      label: lesson['name'] ?? '',
+                      isSelected: _selectedLessonId == id,
+                      onSelected: () => setState(() => _selectedLessonId = id),
+                      isDark: isDark,
+                      isSecondary: true,
+                    );
+                  }),
+                ],
+              ),
+            ),
+          
+          // Status Filter
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildStatusChip('الكل', 'all', isDark),
+                  const SizedBox(width: 8),
+                  _buildStatusChip('مفعل', 'active', isDark, activeColor: Colors.green),
+                  const SizedBox(width: 8),
+                  _buildStatusChip('غير مفعل', 'inactive', isDark, activeColor: Colors.red),
+                ],
+              ),
             ),
           ),
-        ),
-        
-        const Divider(height: 1),
+          
+          const Divider(height: 1),
+        ],
       ],
     );
   }

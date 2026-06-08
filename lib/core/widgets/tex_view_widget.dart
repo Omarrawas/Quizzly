@@ -15,6 +15,7 @@ class TexViewWidget extends StatelessWidget {
   final double? fontSize;
   final FontWeight? fontWeight;
   final Color? color;
+  final TextDirection? textDirection;
 
   const TexViewWidget({
     super.key,
@@ -24,6 +25,7 @@ class TexViewWidget extends StatelessWidget {
     this.fontSize,
     this.fontWeight,
     this.color,
+    this.textDirection,
   });
 
   static final RegExp _latexRegex = MathUtils.latexRegex;
@@ -81,7 +83,7 @@ class TexViewWidget extends StatelessWidget {
           normalizedContent,
           style: defaultStyle,
           textAlign: isTitle ? TextAlign.center : TextAlign.start,
-          textDirection: TextDirection.rtl,
+          textDirection: textDirection ?? Directionality.of(context),
         );
       }
       return _buildMathText(context, normalizedContent, defaultStyle);
@@ -97,7 +99,7 @@ class TexViewWidget extends StatelessWidget {
     });
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: textDirection ?? Directionality.of(context),
       child: HtmlWidget(
         processedHtml,
         textStyle: htmlBaseStyle,
@@ -145,80 +147,99 @@ class TexViewWidget extends StatelessWidget {
         mathAwareText,
         style: baseStyle,
         textAlign: isTitle ? TextAlign.center : TextAlign.start,
-        textDirection: TextDirection.rtl,
+        textDirection: textDirection ?? Directionality.of(context),
       );
     }
 
-    final children = <Widget>[];
+    final spans = <InlineSpan>[];
     var cursor = 0;
 
     for (final match in matches) {
+      // 1. إضافة النص الذي يسبق المعادلة
       if (match.start > cursor) {
-        final textSegment = mathAwareText.substring(cursor, match.start).trim();
+        final textSegment = mathAwareText.substring(cursor, match.start);
         if (textSegment.isNotEmpty) {
-          children.add(
-            Text(
-              textSegment,
-              style: baseStyle,
-              textAlign: isTitle ? TextAlign.center : TextAlign.start,
-              textDirection: TextDirection.rtl,
-            ),
-          );
+          spans.add(TextSpan(
+            text: textSegment,
+            style: baseStyle,
+          ));
         }
       }
 
+      // 2. معالجة المعادلة
       final token = match.group(0)!;
       final latex = _stripMathDelimiters(token);
-      children.add(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: Math.tex(
-            latex,
-            mathStyle:
-                _isDisplayMath(token) ? MathStyle.display : MathStyle.text,
-            textStyle: TextStyle(
-              color: textColor,
-              fontSize: (baseStyle.fontSize ?? 16) + 2,
-            ),
-            onErrorFallback: (error) => Text(
-              token,
-              style: baseStyle.copyWith(
-                color: Colors.redAccent,
-                fontFamily: 'monospace',
-                fontSize: 13,
-              ),
+      final isDisplay = _isDisplayMath(token);
+
+      if (isDisplay) {
+        // إذا كانت معادلة منفصلة (Display Mode)، نضعها في WidgetSpan يأخذ عرض السطر بالكامل
+        spans.add(const TextSpan(text: '\n'));
+        spans.add(WidgetSpan(
+          child: Container(
+            width: double.infinity,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Directionality(
               textDirection: TextDirection.ltr,
+              child: Math.tex(
+                latex,
+                mathStyle: MathStyle.display,
+                textStyle: TextStyle(
+                  color: textColor,
+                  fontSize: (baseStyle.fontSize ?? 16) + 2,
+                ),
+              ),
             ),
           ),
-        ),
-      );
+        ));
+        spans.add(const TextSpan(text: '\n'));
+      } else {
+        // معادلة ضمن السطر (Inline)
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Math.tex(
+                latex,
+                mathStyle: MathStyle.text,
+                textStyle: TextStyle(
+                  color: textColor,
+                  fontSize: (baseStyle.fontSize ?? 16) + 1,
+                ),
+                onErrorFallback: (error) => Text(
+                  token,
+                  style: baseStyle.copyWith(
+                    color: Colors.redAccent,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ));
+      }
 
       cursor = match.end;
     }
 
+    // 3. إضافة النص المتبقي بعد آخر معادلة
     if (cursor < mathAwareText.length) {
-      final trailing = mathAwareText.substring(cursor).trim();
+      final trailing = mathAwareText.substring(cursor);
       if (trailing.isNotEmpty) {
-        children.add(
-          Text(
-            trailing,
-            style: baseStyle,
-            textAlign: isTitle ? TextAlign.center : TextAlign.start,
-            textDirection: TextDirection.rtl,
-          ),
-        );
+        spans.add(TextSpan(
+          text: trailing,
+          style: baseStyle,
+        ));
       }
     }
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        alignment: isTitle ? WrapAlignment.center : WrapAlignment.start,
-        runSpacing: 4,
-        spacing: 4,
-        children: children,
-      ),
+    return Text.rich(
+      TextSpan(children: spans),
+      textAlign: isTitle ? TextAlign.center : TextAlign.start,
+      textDirection: textDirection ?? Directionality.of(context),
     );
   }
 

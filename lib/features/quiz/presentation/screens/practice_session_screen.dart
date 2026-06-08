@@ -773,7 +773,6 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
           const SizedBox(height: 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            textDirection: TextDirection.rtl,
             children: [
               Text(
                 '${_currentIndex + 1} - ',
@@ -844,7 +843,6 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
               border: Border.all(color: borderColor, width: revealed && (isCorrect || isSelected) ? 1.5 : 1),
             ),
             child: Row(
-              textDirection: TextDirection.ltr,
               children: [
                 Container(
                   width: 28,

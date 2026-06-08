@@ -563,7 +563,6 @@ class QuestionCard extends StatelessWidget {
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    textDirection: TextDirection.rtl,
                     children: [
                       Text(
                         '${displayIndex ?? question.number} - ',
@@ -882,30 +881,7 @@ class _OptionTile extends StatelessWidget {
           ),
         ),
         child: Row(
-          textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
           children: [
-            Expanded(
-              child: Align(
-                alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
-                child: TexViewWidget(
-                  text: option.text,
-                  fontSize: 15,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ),
-            if (showCorrect && isCorrect) ...[
-              SizedBox(width: isRtl ? 0 : 8),
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
-              SizedBox(width: isRtl ? 8 : 0),
-            ],
-            if (isSelected && answerState == AnswerState.wrong) ...[
-              SizedBox(width: isRtl ? 0 : 8),
-              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
-              SizedBox(width: isRtl ? 8 : 0),
-            ],
-            const SizedBox(width: 12),
             // Radio circle or Checkbox square
             Container(
               width: 22,
@@ -924,6 +900,34 @@ class _OptionTile extends StatelessWidget {
                     )
                   : null,
             ),
+            const SizedBox(width: 12),
+            if (showCorrect && isCorrect && isRtl) ...[
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+              const SizedBox(width: 8),
+            ],
+            if (isSelected && answerState == AnswerState.wrong && isRtl) ...[
+              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Align(
+                alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
+                child: TexViewWidget(
+                  text: option.text,
+                  fontSize: 15,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+            if (showCorrect && isCorrect && !isRtl) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+            ],
+            if (isSelected && answerState == AnswerState.wrong && !isRtl) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+            ],
           ],
         ),
       ),

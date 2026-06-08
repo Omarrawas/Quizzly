@@ -595,14 +595,6 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: TexViewWidget(
-                    text: opt.text,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Container(
                   width: 22,
                   height: 22,
@@ -619,6 +611,14 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                           color: isDark ? Colors.black : Colors.white,
                         )
                       : null,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TexViewWidget(
+                    text: opt.text,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),

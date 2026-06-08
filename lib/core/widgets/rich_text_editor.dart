@@ -83,7 +83,7 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
 
     return Container(
       width: double.infinity,
-      alignment: Alignment.centerRight, // Arabic context, usually right aligned
+      alignment: Directionality.of(context) == TextDirection.rtl ? Alignment.centerRight : Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Stack(
         clipBehavior: Clip.none,
@@ -628,7 +628,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: TextDirection.rtl,
+                        textDirection: Directionality.of(context),
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
