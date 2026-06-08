@@ -4,10 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
-import 'package:quizzly/features/admin/presentation/screens/theoretical_section_management_screen.dart';
-import 'package:quizzly/features/subject/presentation/screens/theoretical_lesson_detail_screen.dart';
 import 'package:quizzly/features/admin/presentation/widgets/unified_lesson_editor.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:quizzly/features/admin/presentation/screens/lesson_management_screen.dart';
 
 class TopicManagementScreen extends StatefulWidget {
   final String subjectId;
@@ -171,6 +170,22 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
               key: ValueKey(id),
               chapterId: id,
               chapterName: name,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LessonManagementScreen(
+                      subjectId: _resolvedSubjectId,
+                      subjectName: widget.subjectName,
+                      sectionId: widget.sectionId,
+                      sectionName: widget.sectionName,
+                      chapterId: id,
+                      chapterName: name,
+                      breadcrumbs: [...widget.breadcrumbs, name],
+                    ),
+                  ),
+                );
+              },
               chapterTitleWidget: TexViewWidget(
                 text: name,
                 fontSize: 16,
@@ -181,7 +196,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
               onAddLesson: () => _showAddTopicDialog(context, id, 'lesson'),
               onEditChapter: () => _showEditTopicDialog(id, data, 'فصل'),
               onDeleteChapter: () => _confirmDelete(id, name),
-              lessonsList: _buildNestedLessonsList(id, isDark),
+              index: index,
             );
           },
         );
@@ -203,356 +218,6 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
         );
       }
     }
-  }
-
-  Widget _buildNestedLessonsList(String chapterId, bool isDark) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _dbService.getTopics(
-        _resolvedSubjectId,
-        sectionId: widget.sectionId,
-        parentId: chapterId,
-        type: 'lesson',
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'خطأ: ${snapshot.error}',
-              style: GoogleFonts.cairo(color: Colors.red, fontSize: 12),
-            ),
-          );
-        }
-        if (snapshot.connectionState == ConnectionState.waiting ||
-            !snapshot.hasData) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 2,
-                child: LinearProgressIndicator(),
-              ),
-            ),
-          );
-        }
-
-        final docs = [...snapshot.data!.docs]
-          ..sort((a, b) {
-            final aData = a.data() as Map<String, dynamic>;
-            final bData = b.data() as Map<String, dynamic>;
-            final aOrder = _readOrder(aData);
-            final bOrder = _readOrder(bData);
-            
-            if (aOrder != bOrder) {
-              return aOrder.compareTo(bOrder);
-            }
-            
-            final aTime = (aData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-            final bTime = (bData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-            return aTime.compareTo(bTime);
-          });
-
-        if (docs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Center(
-              child: Text(
-                'لا توجد دروس في هذا الفصل حالياً.',
-                style: GoogleFonts.cairo(
-                  color: isDark ? Colors.white60 : Colors.black54,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: docs.length,
-            onReorder: (oldIndex, newIndex) => _handleLessonReorder(docs, oldIndex, newIndex),
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final id = doc.id;
-              final name = data['name'] ?? '';
-
-              return _buildListTile(
-                key: ValueKey(id),
-                id: id,
-                title: name,
-                isSelected: false,
-                isDark: isDark,
-                showArrow: true,
-                onTap: () => _goToLessonQuestions(id, name),
-                onEdit: () => _showEditTopicDialog(id, data, 'درس'),
-                onEditContent: () => _showEditLessonContentDialog(id, data),
-                onPreview: () => _previewLesson(id, name, data),
-                onDelete: () => _confirmDelete(id, name),
-                data: data,
-                index: index,
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _handleLessonReorder(List<QueryDocumentSnapshot> docs, int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) newIndex -= 1;
-    final List<String> ids = docs.map((d) => d.id).toList();
-    final item = ids.removeAt(oldIndex);
-    ids.insert(newIndex, item);
-    try {
-      await _dbService.updateOrder(DatabaseService.colTopics, ids);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل تحديث الترتيب: $e', style: GoogleFonts.cairo())),
-        );
-      }
-    }
-  }
-
-  Widget _buildListTile({
-    required Key key,
-    required String id,
-    required String title,
-    required bool isSelected,
-    required bool isDark,
-    required VoidCallback onTap,
-    required VoidCallback onEdit,
-    VoidCallback? onEditContent,
-    VoidCallback? onPreview,
-    required VoidCallback onDelete,
-    bool showArrow = false,
-    Map<String, dynamic>? data,
-    required int index,
-  }) {
-    return Container(
-      key: key,
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppColors.primaryBlue.withValues(alpha: 0.1)
-            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected
-              ? AppColors.primaryBlue
-              : (isDark ? Colors.white10 : AppColors.borderLight),
-        ),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        dense: true,
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showArrow) ...[
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 12,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(width: 8),
-            ],
-            ReorderableDragStartListener(
-              index: index,
-              child: Icon(
-                Icons.drag_indicator_rounded,
-                color: isDark ? Colors.white24 : Colors.grey[300],
-                size: 20,
-              ),
-            ),
-          ],
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: TexViewWidget(
-                text: title,
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? AppColors.primaryBlue
-                    : (isDark ? Colors.white : Colors.black87),
-              ),
-            ),
-            if (data != null && data['isFree'] == true)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Colors.green.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Text(
-                  'مجاني',
-                  style: GoogleFonts.cairo(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_vert_rounded,
-                color: isDark ? Colors.white60 : Colors.grey[600],
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              elevation: 4,
-              onSelected: (value) {
-                switch (value) {
-                  case 'preview':
-                    onPreview?.call();
-                    break;
-                  case 'edit_content':
-                    onEditContent?.call();
-                    break;
-                  case 'edit':
-                    onEdit();
-                    break;
-                  case 'delete':
-                    onDelete();
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                if (onPreview != null)
-                  PopupMenuItem(
-                    value: 'preview',
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.remove_red_eye_rounded,
-                          size: 18,
-                          color: AppColors.primaryBlue,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'معاينة الدرس',
-                          style: GoogleFonts.cairo(fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (onEditContent != null)
-                  PopupMenuItem(
-                    value: 'edit_content',
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.video_collection_rounded,
-                          size: 18,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'تعديل المحتوى النظري',
-                          style: GoogleFonts.cairo(fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.edit_note_rounded,
-                        size: 18,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'تعديل الاسم/النوع',
-                        style: GoogleFonts.cairo(fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.delete_outline_rounded,
-                        size: 18,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'حذف',
-                        style: GoogleFonts.cairo(
-                          color: Colors.red,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _goToLessonQuestions(String lessonId, String lessonName) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TheoreticalSectionManagementScreen(
-          sectionId: widget.sectionId,
-          sectionName: widget.sectionName,
-          subjectId: widget.subjectId,
-          breadcrumbs: [...widget.breadcrumbs, lessonName],
-          lessonId: lessonId,
-          lessonName: lessonName,
-        ),
-      ),
-    );
-  }
-
-  void _previewLesson(
-    String lessonId,
-    String lessonName,
-    Map<String, dynamic> data,
-  ) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TheoreticalLessonDetailScreen(
-          lessonId: lessonId,
-          lessonName: lessonName,
-          subjectId: widget.subjectId,
-          subjectName: widget.subjectName,
-          sectionId: widget.sectionId,
-          data: data,
-        ),
-      ),
-    );
   }
 
   Widget _buildErrorState(String error) {
@@ -947,24 +612,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
       ),
     );
   }
-  void _showEditLessonContentDialog(String id, Map<String, dynamic> data) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => UnifiedLessonEditorSheet(
-        subjectId: _resolvedSubjectId,
-        sectionId: widget.sectionId,
-        type: 'lesson',
-        docId: id,
-        initialData: data,
-        parentId: data['parentId'],
-      ),
-    );
-  }
 }
 
-class _ChapterCard extends StatefulWidget {
+class _ChapterCard extends StatelessWidget {
   final String chapterId;
   final String chapterName;
   final Map<String, dynamic> chapterData;
@@ -972,8 +622,9 @@ class _ChapterCard extends StatefulWidget {
   final VoidCallback onAddLesson;
   final VoidCallback onEditChapter;
   final VoidCallback onDeleteChapter;
-  final Widget lessonsList;
+  final VoidCallback onTap;
   final Widget chapterTitleWidget;
+  final int index;
 
   const _ChapterCard({
     super.key,
@@ -984,15 +635,11 @@ class _ChapterCard extends StatefulWidget {
     required this.onAddLesson,
     required this.onEditChapter,
     required this.onDeleteChapter,
-    required this.lessonsList,
+    required this.onTap,
     required this.chapterTitleWidget,
+    required this.index,
   });
 
-  @override
-  State<_ChapterCard> createState() => _ChapterCardState();
-}
-
-class _ChapterCardState extends State<_ChapterCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1000,59 +647,59 @@ class _ChapterCardState extends State<_ChapterCard> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.grey[200]!,
+          color: isDark ? Colors.white10 : Colors.grey[200]!,
         ),
-        color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: ExpansionTile(
-          key: PageStorageKey<String>(widget.chapterId),
-          backgroundColor: Colors.transparent,
-          collapsedBackgroundColor: Colors.transparent,
-          leading: const Icon(
-            Icons.folder_rounded,
-            color: AppColors.primaryBlue,
-            size: 24,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ReorderableDragStartListener(
+              index: index,
+              child: Icon(
+                Icons.drag_indicator_rounded,
+                color: isDark ? Colors.white24 : Colors.grey[300],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.folder_rounded,
+              color: AppColors.primaryBlue,
+              size: 28,
+            ),
+          ],
+        ),
+        title: chapterTitleWidget,
+        subtitle: Text(
+          'اضغط لاستعراض الدروس',
+          style: GoogleFonts.cairo(
+            fontSize: 11,
+            color: isDark ? Colors.white38 : Colors.grey,
           ),
-          title: widget.chapterTitleWidget,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: Colors.green,
-                  size: 20,
-                ),
-                tooltip: 'إضافة درس',
-                onPressed: widget.onAddLesson,
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit_note_rounded,
-                  color: Colors.blue,
-                  size: 20,
-                ),
-                tooltip: 'تعديل الفصل',
-                onPressed: widget.onEditChapter,
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: Colors.red,
-                  size: 20,
-                ),
-                tooltip: 'حذف الفصل',
-                onPressed: widget.onDeleteChapter,
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_down_rounded),
-            ],
-          ),
-          children: [widget.lessonsList],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 22),
+              onPressed: onEditChapter,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22),
+              onPressed: onDeleteChapter,
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+          ],
         ),
       ),
     );
