@@ -202,22 +202,25 @@ class TexViewWidget extends StatelessWidget {
           child: Directionality(
             textDirection: TextDirection.ltr,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Math.tex(
                 latex,
                 mathStyle: MathStyle.text,
                 textStyle: TextStyle(
                   color: textColor,
-                  fontSize: (baseStyle.fontSize ?? 16) + 1,
+                  fontSize: (baseStyle.fontSize ?? 16),
                 ),
-                onErrorFallback: (error) => Text(
-                  token,
-                  style: baseStyle.copyWith(
-                    color: Colors.redAccent,
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                  ),
-                ),
+                onErrorFallback: (error) {
+                  // If failing, let's try to remove any problematic characters like leading/trailing delimiters
+                  final cleanLatex = latex.replaceAll(RegExp(r'\\\(|\\\)|\$'), '');
+                  return Text(
+                    cleanLatex,
+                    style: baseStyle.copyWith(
+                      color: textColor.withValues(alpha: 0.9),
+                      fontFamily: 'Cairo', // Fallback to Cairo
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -254,25 +257,32 @@ class TexViewWidget extends StatelessWidget {
   static String _stripMathDelimiters(String token) {
     String t = token.trim();
     
-    // Remove outer delimiters if they exist
-    if (t.startsWith(r'\[') && t.endsWith(r'\]')) {
-      t = t.substring(2, t.length - 2).trim();
-    } else if (t.startsWith(r'\(') && t.endsWith(r'\)')) {
-      t = t.substring(2, t.length - 2).trim();
-    } else if (t.startsWith('\$\$') && t.endsWith('\$\$')) {
-      t = t.substring(2, t.length - 2).trim();
-    } else if (t.startsWith('\$') && t.endsWith('\$')) {
-      t = t.substring(1, t.length - 1).trim();
-    }
+    // 1. Force remove any leading/trailing math delimiters
+    if (t.startsWith(r'\\\\[')) t = t.substring(4);
+    if (t.startsWith(r'\\[')) t = t.substring(2);
+    if (t.startsWith(r'\[')) t = t.substring(2);
+    if (t.startsWith(r'\\\\(')) t = t.substring(4);
+    if (t.startsWith(r'\\(')) t = t.substring(2);
+    if (t.startsWith(r'\(')) t = t.substring(2);
+    if (t.startsWith(r'$$')) t = t.substring(2);
+    if (t.startsWith(r'$')) t = t.substring(1);
+
+    if (t.endsWith(r'\\\\]')) t = t.substring(0, t.length - 4);
+    if (t.endsWith(r'\\]')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'\]')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'\\\\)')) t = t.substring(0, t.length - 4);
+    if (t.endsWith(r'\\)')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'\)')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'$$')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'$')) t = t.substring(0, t.length - 1);
+
+    t = t.trim();
     
-    // Remove trailing dots or commas that might be outside but caught in the regex
-    if (t.endsWith('.') || t.endsWith(',')) {
-      t = t.substring(0, t.length - 1).trim();
-    }
-    
-    // Fix common spacing issue in chemical reactions
-    t = t.replaceAll(' + ', ' + '); 
-    t = t.replaceAll(' -> ', r' \to ');
+    // Clean up chemical arrows and common linear notations
+    t = t.replaceAll('->', r' \to ');
+    t = t.replaceAll('<-', r' \gets ');
+    t = t.replaceAll('=>', r' \implies ');
+    t = t.replaceAll('<=', r' \Leftarrow ');
     
     return t;
   }

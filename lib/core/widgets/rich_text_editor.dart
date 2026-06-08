@@ -269,9 +269,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _updateBaseDirection() {
+    if (!mounted) return;
+    
     final style = _controller.getSelectionStyle();
-    final isRtl = style.attributes.containsKey(quill.Attribute.rtl.key);
-    final newDirection = isRtl ? TextDirection.rtl : TextDirection.ltr;
+    final isRtlAttr = style.attributes.containsKey(quill.Attribute.rtl.key);
+    final align = style.attributes[quill.Attribute.align.key]?.value;
+    
+    // Logic: If explicitly RTL attribute is set OR if aligned to right, use RTL
+    TextDirection newDirection = (isRtlAttr || align == 'right') 
+        ? TextDirection.rtl 
+        : TextDirection.ltr;
     
     if (newDirection != _baseDirection) {
       setState(() {
@@ -583,13 +590,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   _buildToolbarButton(
                     icon: Icons.format_textdirection_r_to_l,
                     isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] != null,
-                    onPressed: () => _controller.formatSelection(quill.Attribute.rtl),
+                    onPressed: () {
+                      _controller.formatSelection(quill.Attribute.rtl);
+                      _controller.formatSelection(quill.Attribute.rightAlignment);
+                    },
                     tooltip: 'من اليمين لليسار (RTL)',
                   ),
                   _buildToolbarButton(
                     icon: Icons.format_textdirection_l_to_r,
                     isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] == null,
-                    onPressed: () => _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null)),
+                    onPressed: () {
+                      _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null));
+                      _controller.formatSelection(quill.Attribute.leftAlignment);
+                    },
                     tooltip: 'من اليسار لليمين (LTR)',
                   ),
                   const VerticalDivider(width: 12),

@@ -15,11 +15,17 @@ class MathUtils {
     // 1. Fix common thermodynamic and chemical symbols that cause issues
     var processed = raw
         .replaceAll(r'^{\circ}', r'^\circ')
+        .replaceAll(r'^{\circ}C', r'^\circ\text{C}')
         .replaceAll(r'\Delta G^{\circ}', r'\Delta G^\circ')
         .replaceAll(r'\Delta H^{\circ}', r'\Delta H^\circ')
         .replaceAll(r'\Delta S^{\circ}', r'\Delta S^\circ')
+        .replaceAll(r'\delta G', r'\Delta G')
+        .replaceAll(r'\delta H', r'\Delta H')
+        .replaceAll(r'\delta S', r'\Delta S')
         .replaceAll(r'\longrightarrow', r'\to')
-        .replaceAll(r'\longleftarrow', r'\leftarrow');
+        .replaceAll(r'\longleftarrow', r'\gets')
+        .replaceAll(r' \rightarrow ', r' \to ')
+        .replaceAll(r' \leftarrow ', r' \gets ');
 
     // 2. Fix color hex codes (8-digit to 6-digit)
     processed = _normalizeColors(processed);
@@ -160,11 +166,14 @@ class MathUtils {
     if (text.contains('^')) hits++;
     if (text.contains('_')) hits++;
     if (text.contains('=')) hits++;
+    if (text.contains('+')) hits++;
+    if (text.contains('-')) hits++;
     if (text.contains('⟹') || text.contains('⇒')) hits += 2;
     if (text.contains('°')) hits++;
     if (text.contains('´') || text.contains('′')) hits++;
     if (text.contains('〖')) hits += 2;
     if (RegExp(r'[a-zA-Z]').hasMatch(text) && hits > 0) hits++;
+    if (RegExp(r'[\d]').hasMatch(text) && hits > 1) hits++;
 
     return hits >= 2 || combinedRegex.hasMatch(text);
   }
