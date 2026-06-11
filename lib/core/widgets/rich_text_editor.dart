@@ -262,7 +262,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
           if (!attrs.containsKey(quill.Attribute.rtl.key)) {
             attrs[quill.Attribute.rtl.key] = true;
           }
-          if (!attrs.containsKey(quill.Attribute.align.key)) {
+          if (!attrs.containsKey(quill.Attribute.align.key) || attrs[quill.Attribute.align.key] == 'left') {
             attrs[quill.Attribute.align.key] = 'right';
           }
           newDelta.insert('\n', attrs);
@@ -277,7 +277,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
               if (!attrs.containsKey(quill.Attribute.rtl.key)) {
                 attrs[quill.Attribute.rtl.key] = true;
               }
-              if (!attrs.containsKey(quill.Attribute.align.key)) {
+              if (!attrs.containsKey(quill.Attribute.align.key) || attrs[quill.Attribute.align.key] == 'left') {
                 attrs[quill.Attribute.align.key] = 'right';
               }
               newDelta.insert('\n', attrs);
