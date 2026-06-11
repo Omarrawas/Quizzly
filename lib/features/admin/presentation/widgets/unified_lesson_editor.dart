@@ -164,6 +164,7 @@ class _UnifiedLessonEditorSheetState extends State<UnifiedLessonEditorSheet> {
       // 4. Prepare Final Data
       final data = {
         'title': _titleCtrl.text.trim(),
+        'name': _titleCtrl.text.trim(),
         'description': _descriptionCtrl.text.trim(),
         'videoUrl': finalVideoUrl,
         'imageUrls': _imageUrls,

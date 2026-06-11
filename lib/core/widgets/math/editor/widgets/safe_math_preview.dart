@@ -8,16 +8,20 @@ class SafeMathPreview extends StatelessWidget {
   final String latex;
   final Color textColor;
   final double mathSize;
+  final TextDirection? textDirection;
 
   const SafeMathPreview({
     super.key,
     required this.latex,
     required this.textColor,
     this.mathSize = 18,
+    this.textDirection,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveDirection = textDirection ?? TextDirection.ltr;
+
     if (latex.isEmpty) {
       return Text(
         'معادلة...',
@@ -26,11 +30,12 @@ class SafeMathPreview extends StatelessWidget {
           fontSize: 14,
           fontStyle: FontStyle.italic,
         ),
+        textDirection: effectiveDirection,
       );
     }
 
     return Directionality(
-      textDirection: TextDirection.ltr,
+      textDirection: effectiveDirection,
       child: math_fork.Math.tex(
         latex,
         textStyle: TextStyle(fontSize: mathSize, color: textColor),
@@ -41,6 +46,7 @@ class SafeMathPreview extends StatelessWidget {
             fontSize: mathSize * 0.8,
             fontFamily: 'monospace',
           ),
+          textDirection: effectiveDirection,
         ),
       ),
     );

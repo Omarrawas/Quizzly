@@ -5,7 +5,8 @@ import 'package:intl/intl.dart' as intl;
 import 'package:quizzly/core/theme/app_colors.dart';
 
 class ReportsManagementScreen extends StatefulWidget {
-  const ReportsManagementScreen({super.key});
+  final String? subjectId;
+  const ReportsManagementScreen({super.key, this.subjectId});
 
   @override
   State<ReportsManagementScreen> createState() => _ReportsManagementScreenState();
@@ -114,7 +115,14 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
           // Stream Builder for Reports List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _db.collection('question_reports').orderBy('createdAt', descending: true).snapshots(),
+              stream: widget.subjectId != null
+                  ? _db.collection('question_reports')
+                      .where('subjectId', isEqualTo: widget.subjectId)
+                      .orderBy('createdAt', descending: true)
+                      .snapshots()
+                  : _db.collection('question_reports')
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('حدث خطأ: ${snapshot.error}', style: GoogleFonts.cairo()));

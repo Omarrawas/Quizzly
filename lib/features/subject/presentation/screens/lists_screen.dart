@@ -326,7 +326,11 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 
       Widget screen;
       if (pillar == 0) {
-        screen = ExamBookModeScreen(config: config, questions: questions);
+        screen = ExamBookModeScreen(
+          config: config,
+          questions: questions,
+          isSubjectFree: widget.isFree,
+        );
       } else if (pillar == 1) {
         screen = ActiveRecallSessionScreen(config: config, questions: questions);
       } else {

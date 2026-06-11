@@ -101,20 +101,14 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
       _isDragging = false;
     });
 
-    if (_dragOffset.dx.abs() > _dragOffset.dy.abs()) {
-      if (_dragOffset.dx > _swipeThreshold) {
+    if (_dragOffset.dx.abs() > _swipeThreshold) {
+      if (_dragOffset.dx > 0) {
         _swipeOut(const Offset(600, 0), 5);
-      } else if (_dragOffset.dx < -_swipeThreshold) {
-        _swipeOut(const Offset(-600, 0), 0);
       } else {
-        _snapBack();
+        _swipeOut(const Offset(-600, 0), 0);
       }
     } else {
-      if (_dragOffset.dy < -_swipeThreshold) {
-        _swipeOut(const Offset(0, -800), 3);
-      } else {
-        _snapBack();
-      }
+      _snapBack();
     }
   }
 
@@ -153,8 +147,6 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
     Offset targetOffset;
     if (quality == 5) {
       targetOffset = const Offset(600, 0);
-    } else if (quality == 3) {
-      targetOffset = const Offset(0, -800);
     } else {
       targetOffset = const Offset(-600, 0);
     }
@@ -178,29 +170,35 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
     final qId = q.id;
 
     if (userId != null && qId != null) {
-      try {
-        await _srs.updateMastery(
-          userId: userId,
-          questionId: qId,
-          subjectId: widget.config.subjectId,
-          quality: quality,
-        );
-        
-        final int xpGained = quality >= 5 ? 5 : (quality >= 3 ? 3 : 1);
-        final gamification = GamificationService();
-        final leagues = SubjectLeagueService();
-
-        gamification.addXp(userId, xpGained);
-        leagues.addSubjectXp(
-          userId: userId,
-          subjectId: widget.config.subjectId,
-          xpGained: xpGained,
-          userName: userName,
-          userAvatar: userAvatar,
-        );
-      } catch (e) {
+      _srs.updateMastery(
+        userId: userId,
+        questionId: qId,
+        subjectId: widget.config.subjectId,
+        quality: quality,
+      ).catchError((e) {
         debugPrint('Error updating mastery in active recall: $e');
-      }
+      });
+      
+      final int xpGained = quality >= 5 ? 5 : 1;
+      final gamification = GamificationService();
+      final leagues = SubjectLeagueService();
+
+      unawaited(() async {
+        try {
+          await gamification.addXp(userId, xpGained);
+        } catch (e) {
+          debugPrint('Error adding XP: $e');
+        }
+      }());
+      leagues.addSubjectXp(
+        userId: userId,
+        subjectId: widget.config.subjectId,
+        xpGained: xpGained,
+        userName: userName,
+        userAvatar: userAvatar,
+      ).catchError((e) {
+        debugPrint('Error adding subject XP: $e');
+      });
     } else {
       debugPrint(
         'Warning: userId or question ID is null. userId: $userId, questionId: $qId',
@@ -332,7 +330,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
                 },
                 child: _showAnswer
                     ? _buildFlashcardBack(q, isDark)
-                    : _buildFlashcardFront(q.text, isDark),
+                    : _buildFlashcardFront(q, isDark),
               ),
             ),
           ),
@@ -344,7 +342,6 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
 
   Widget _buildSwipeIndicatorOverlay() {
     final dx = _dragOffset.dx;
-    final dy = _dragOffset.dy;
     const startThreshold = 15.0;
     
     String label = '';
@@ -352,24 +349,17 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
     double opacity = 0.0;
     IconData icon = Icons.check;
 
-    if (dx.abs() > dy.abs()) {
-      if (dx > startThreshold) {
-        label = 'سهل';
+    if (dx.abs() > startThreshold) {
+      if (dx > 0) {
+        label = 'أعرفها';
         color = const Color(0xFF10B981);
         opacity = ((dx - startThreshold) / (_swipeThreshold - startThreshold)).clamp(0.0, 1.0);
         icon = Icons.sentiment_very_satisfied_rounded;
-      } else if (dx < -startThreshold) {
-        label = 'صعب';
+      } else {
+        label = 'لا أعرفها';
         color = const Color(0xFFEF4444);
         opacity = ((-dx - startThreshold) / (_swipeThreshold - startThreshold)).clamp(0.0, 1.0);
         icon = Icons.sentiment_very_dissatisfied_rounded;
-      }
-    } else {
-      if (dy < -startThreshold) {
-        label = 'متوسط';
-        color = const Color(0xFFFBBF24);
-        opacity = ((-dy - startThreshold) / (_swipeThreshold - startThreshold)).clamp(0.0, 1.0);
-        icon = Icons.sentiment_satisfied_rounded;
       }
     }
 
@@ -424,12 +414,12 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
     );
   }
 
-  Widget _buildFlashcardFront(String text, bool isDark) {
+  Widget _buildFlashcardFront(QuizQuestion q, bool isDark) {
     return Container(
       key: const ValueKey(true),
       width: double.infinity,
-      height: 350,
-      padding: const EdgeInsets.all(32),
+      constraints: const BoxConstraints(minHeight: 350),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -441,13 +431,65 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
           ),
         ],
       ),
-      child: Center(
-        child: TexViewWidget(
-          text: text,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: isDark ? Colors.white : Colors.black,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: TexViewWidget(
+              text: q.text,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          if (q.imageUrl != null && q.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                q.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+          if (q.options != null && q.options!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ...q.options!.map((opt) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.grey.shade200,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      q.type == QuestionType.checkbox
+                          ? Icons.check_box_outline_blank_rounded
+                          : Icons.radio_button_off_rounded,
+                      size: 18,
+                      color: isDark ? Colors.white38 : Colors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TexViewWidget(
+                        text: opt.text,
+                        fontSize: 14,
+                        color: isDark ? Colors.white70 : AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ],
       ),
     );
   }
@@ -459,8 +501,8 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
       child: Container(
         key: const ValueKey(false),
         width: double.infinity,
-        height: 350,
-        padding: const EdgeInsets.all(32),
+        constraints: const BoxConstraints(minHeight: 350),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF064E3B) : const Color(0xFFF0FDF4),
           borderRadius: BorderRadius.circular(24),
@@ -475,13 +517,11 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
             ),
           ],
         ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.rotationY(3.14),
-              child: _buildAnswerSection(q, isDark),
-            ),
+        child: SingleChildScrollView(
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.rotationY(3.14),
+            child: _buildAnswerSection(q, isDark),
           ),
         ),
       ),
@@ -489,13 +529,13 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
   }
 
   Widget _buildAnswerSection(QuizQuestion q, bool isDark) {
-    final correctOption = (q.options ?? []).isEmpty
-        ? null
-        : (q.options ?? []).cast<QuizOption?>().firstWhere(
-            (o) => o != null && q.correctOptionIds.contains(o.id),
-            orElse: () => null,
-          );
     final hasEssay = q.type == QuestionType.essay || (q.essayAnswer != null && q.essayAnswer!.isNotEmpty);
+    
+    List<QuizOption> correctOptions = [];
+    if (q.options != null) {
+      correctOptions = q.options!.where((o) => q.correctOptionIds.contains(o.id)).toList();
+    }
+
     return Column(
       children: [
         Icon(
@@ -504,15 +544,69 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
           size: 40,
         ),
         const SizedBox(height: 12),
-        TexViewWidget(
-          text: hasEssay ? (q.essayAnswer ?? 'غير محدد') : (correctOption?.text ?? 'غير محدد'),
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
-        ),
+        if (hasEssay) ...[
+          Text(
+            'الإجابة النموذجية:',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: isDark ? Colors.white70 : const Color(0xFF166534),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TexViewWidget(
+            text: q.essayAnswer ?? 'غير محدد',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
+          ),
+        ] else if (correctOptions.isNotEmpty) ...[
+          Text(
+            correctOptions.length > 1 ? 'الإجابات الصحيحة:' : 'الإجابة الصحيحة:',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: isDark ? Colors.white70 : const Color(0xFF166534),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...correctOptions.map((opt) => Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF047857).withValues(alpha: 0.3) : const Color(0xFFD1FAE5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_rounded, color: Colors.green, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TexViewWidget(
+                    text: opt.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ] else ...[
+          TexViewWidget(
+            text: 'غير محدد',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534),
+          ),
+        ],
         if (q.explanation != null && q.explanation!.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark
@@ -520,10 +614,24 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
                   : Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: TexViewWidget(
-              text: q.explanation!,
-              fontSize: 13,
-              color: isDark ? Colors.white70 : AppColors.textPrimary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'الشرح والتوضيح:',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: isDark ? Colors.white70 : AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TexViewWidget(
+                  text: q.explanation!,
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : AppColors.textPrimary,
+                ),
+              ],
             ),
           ),
         ],
@@ -584,26 +692,17 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
                   children: [
                     Expanded(
                       child: _RatingButton(
-                        label: 'سهل',
-                        color: Colors.greenAccent,
+                        label: 'أعرفها',
+                        color: const Color(0xFF10B981),
                         isDark: isDark,
                         onTap: () => _onRatingButtonPressed(5),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _RatingButton(
-                        label: 'متوسط',
-                        color: Colors.orangeAccent,
-                        isDark: isDark,
-                        onTap: () => _onRatingButtonPressed(3),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _RatingButton(
-                        label: 'صعب',
-                        color: Colors.redAccent,
+                        label: 'لا أعرفها',
+                        color: const Color(0xFFEF4444),
                         isDark: isDark,
                         onTap: () => _onRatingButtonPressed(0),
                       ),

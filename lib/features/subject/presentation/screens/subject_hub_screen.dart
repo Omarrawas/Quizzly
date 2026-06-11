@@ -81,7 +81,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             .doc(targetId)
             .get(const GetOptions(source: Source.cache));
       }
-      
+
       if (doc.exists && mounted && targetId == widget.subjectId) {
         final data = doc.data();
         if (data != null && data['referenceSubjectId'] != null) {
@@ -101,7 +101,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     bool active = false;
     try {
       // Try primary activation check with a reasonable timeout
-      active = await _activationService.isSubjectActivated(userId, targetSubjectId)
+      active = await _activationService
+          .isSubjectActivated(userId, targetSubjectId)
           .timeout(const Duration(seconds: 5), onTimeout: () => false);
     } catch (_) {
       // Fallback to cache if primary check fails or times out
@@ -129,12 +130,12 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final user = context.watch<AuthService>().user;
     if (user == null) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: CircularProgressIndicator())
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -149,7 +150,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     if (_checkingActivation) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: CircularProgressIndicator())
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     final userId = user.uid;
@@ -171,9 +172,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   // ── Dynamic banner: only shown when readiness score < 50%
   Widget _buildDynamicCoachBanner(String userId) {
-    if (!_isActivated) return const SizedBox.shrink(); // Hide coach for free users to keep it clean
+    if (!_isActivated) {
+      return const SizedBox.shrink(); // Hide coach for free users to keep it clean
+    }
     return StreamBuilder<double>(
-      stream: ReadinessService().streamReadinessScore(userId, _contentSubjectId),
+      stream: ReadinessService().streamReadinessScore(
+        userId,
+        _contentSubjectId,
+      ),
       builder: (context, snapshot) {
         final score = snapshot.data ?? 0.0;
         if (score >= 0.5) return const SizedBox.shrink();
@@ -198,12 +204,17 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
   Widget _buildReadinessHeader(String userId, bool isDark) {
     return StreamBuilder<double>(
-      stream: ReadinessService().streamReadinessScore(userId, _contentSubjectId),
+      stream: ReadinessService().streamReadinessScore(
+        userId,
+        _contentSubjectId,
+      ),
       builder: (context, snapshot) {
         final score = snapshot.data ?? 0.0;
         final percentage = (score * 100).toInt();
 
-        Color statusColor = const Color(0xFFFBBF24); // Warm orange/yellow from screenshot
+        Color statusColor = const Color(
+          0xFFFBBF24,
+        ); // Warm orange/yellow from screenshot
         String statusText = 'جاهزية متوسطة';
         if (score > 0.8) {
           statusColor = const Color(0xFF10B981); // Emerald Green
@@ -220,7 +231,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey[200]!,
               width: 1.5,
             ),
             boxShadow: [
@@ -243,7 +256,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     child: CircularProgressIndicator(
                       value: score,
                       strokeWidth: 9,
-                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey[200]!,
+                      backgroundColor: isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : Colors.grey[200]!,
                       valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                     ),
                   ),
@@ -266,7 +281,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     Text(
                       'نسبة الاستعداد للامتحان',
                       style: GoogleFonts.cairo(
-                        color: isDark ? Colors.white70 : AppColors.textSecondary,
+                        color: isDark
+                            ? Colors.white70
+                            : AppColors.textSecondary,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -282,7 +299,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _isActivated ? 'بناءً على إتقانك وتغطية المنهج' : 'اشترك لتفعيل خارطة الإتقان الكاملة',
+                      _isActivated
+                          ? 'بناءً على إتقانك وتغطية المنهج'
+                          : 'اشترك لتفعيل خارطة الإتقان الكاملة',
                       style: GoogleFonts.cairo(
                         color: isDark ? Colors.white30 : Colors.grey[400],
                         fontSize: 11,
@@ -311,7 +330,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       leading: canPop
           ? IconButton(
               icon: Icon(
-                isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded,
+                isRtl
+                    ? Icons.arrow_forward_ios_rounded
+                    : Icons.arrow_back_ios_new_rounded,
                 color: isDark ? Colors.white : AppColors.textPrimary,
                 size: 20,
               ),
@@ -359,7 +380,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.grey[200]!,
             width: 1.5,
           ),
           boxShadow: [
@@ -394,11 +417,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      icon,
-                      size: 26,
-                      color: color,
-                    ),
+                    child: Icon(icon, size: 26, color: color),
                   ),
                   const SizedBox(height: 14),
                   // Label
@@ -414,7 +433,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                 ],
               ),
             ),
-            
+
             // Lock icon in the top-right
             if (isLocked)
               Positioned(
@@ -426,7 +445,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                   size: 16,
                 ),
               ),
-            
+
             // Badge icon in the top-left (RTL)
             if (showBadge && badgeCount > 0)
               Positioned(
@@ -435,7 +454,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(5),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF5F5DFA), // Indigo/purple badge from screenshot
+                    color: Color(
+                      0xFF5F5DFA,
+                    ), // Indigo/purple badge from screenshot
                     shape: BoxShape.circle,
                   ),
                   constraints: const BoxConstraints(
@@ -483,7 +504,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           }
         }
 
-        final List<(IconData, String, Color, Stream<int>, int, bool)> gridActions = [
+        final List<(IconData, String, Color, Stream<int>, int, bool)>
+        gridActions = [
           (
             Icons.assignment_rounded,
             'الامتحانات',
@@ -503,7 +525,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           (
             Icons.auto_awesome_motion_rounded,
             'مركز الإتقان',
-            isDark ? Colors.white60 : const Color(0xFF475569), // Slate theme color
+            isDark
+                ? Colors.white60
+                : const Color(0xFF475569), // Slate theme color
             _statsService.streamWrongAnswersCount(userId, _contentSubjectId),
             2,
             !_isActivated,
@@ -536,7 +560,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           if (showTheoretical)
             (
               Icons.menu_book_rounded,
-              'تصفح الدروس',
+              'دروس النظري',
               const Color(0xFF8B5CF6), // Violet theme color
               _statsService.streamTopicsCount(_contentSubjectId),
               6,
@@ -571,7 +595,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                 builder: (context, countSnap) {
                   final count = countSnap.data ?? 0;
                   final showBadge = a.$5 == 0 || (a.$5 == 1 && count > 0);
-                  
+
                   return _buildPremiumActionCard(
                     icon: a.$1,
                     label: a.$2,
@@ -592,7 +616,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
   }
 
   Widget _buildCramModeSliver(String userId, bool isDark) {
-    if (!_isActivated) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    if (!_isActivated) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
     return SliverToBoxAdapter(
       child: FutureBuilder<List<QuizQuestion>>(
         future: _cramModeService.generateCramSession(userId, _contentSubjectId),
@@ -600,7 +626,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SizedBox.shrink();
           }
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          if (snapshot.hasError ||
+              !snapshot.hasData ||
+              snapshot.data!.isEmpty) {
             return const SizedBox.shrink();
           }
           final count = snapshot.data!.length;
@@ -609,10 +637,14 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E1711) : Colors.amber[50]!.withValues(alpha: 0.7),
+              color: isDark
+                  ? const Color(0xFF1E1711)
+                  : Colors.amber[50]!.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark ? const Color(0xFF92400E).withValues(alpha: 0.5) : Colors.amber[200]!,
+                color: isDark
+                    ? const Color(0xFF92400E).withValues(alpha: 0.5)
+                    : Colors.amber[200]!,
                 width: 1.5,
               ),
             ),
@@ -630,22 +662,30 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFBBF24), // Yellow background
+                    backgroundColor: const Color(
+                      0xFFFBBF24,
+                    ), // Yellow background
                     foregroundColor: Colors.black,
                     elevation: 0,
                     minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: Text(
                     'ابدأ الآن',
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                
+
                 // 2. Middle: Title & Subtitle aligned to the right (Expanded)
                 Expanded(
                   child: Column(
@@ -657,7 +697,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                         style: GoogleFonts.cairo(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: isDark ? const Color(0xFFFBBF24) : Colors.amber[900],
+                          color: isDark
+                              ? const Color(0xFFFBBF24)
+                              : Colors.amber[900],
                         ),
                       ),
                       Text(
@@ -712,16 +754,22 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber[50],
+                color: isDark
+                    ? Colors.amber.withValues(alpha: 0.1)
+                    : Colors.amber[50],
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 32),
+              child: const Icon(
+                Icons.workspace_premium_rounded,
+                color: Colors.amber,
+                size: 32,
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'افتح المحتوى الكامل الآن',
               style: GoogleFonts.cairo(
-                fontSize: 20, 
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: isDark ? Colors.white : AppColors.textPrimary,
               ),
@@ -731,7 +779,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
               'اشترك لتتمكن من الوصول لجميع الدروس، الاختبارات، وتحليل الأخطاء المتقدم.',
               textAlign: TextAlign.center,
               style: GoogleFonts.cairo(
-                color: isDark ? Colors.white60 : AppColors.textSecondary, 
+                color: isDark ? Colors.white60 : AppColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -747,16 +795,23 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                   backgroundColor: AppColors.primaryBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: Text('تفعيل المادة بالكود', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                child: Text(
+                  'تفعيل المادة بالكود',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'ربما لاحقاً', 
-                style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                'ربما لاحقاً',
+                style: GoogleFonts.cairo(
+                  color: isDark ? Colors.white38 : Colors.grey,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -777,7 +832,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             'تفعيل المادة',
             style: GoogleFonts.cairo(
@@ -806,13 +863,15 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     fontSize: 13,
                     color: isDark ? Colors.white24 : Colors.grey[400],
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   filled: true,
                   fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
                 ),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold, 
+                  fontWeight: FontWeight.bold,
                   letterSpacing: 2,
                   color: isDark ? Colors.white : Colors.black,
                 ),
@@ -823,51 +882,81 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'إلغاء', 
-                style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                'إلغاء',
+                style: GoogleFonts.cairo(
+                  color: isDark ? Colors.white38 : Colors.grey,
+                ),
               ),
             ),
             ElevatedButton(
-              onPressed: isLoading ? null : () async {
-                if (controller.text.isEmpty) return;
-                
-                setDialogState(() => isLoading = true);
-                final userId = context.read<AuthService>().user?.uid;
-                final result = await _activationService.activateWithCode(
-                  userId: userId!,
-                  code: controller.text,
-                  subjectId: widget.subjectId,
-                );
-                
-                if (!mounted) return;
-                setDialogState(() => isLoading = false);
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (controller.text.isEmpty) return;
 
-                if (result['success']) {
-                  if (!context.mounted) return;
-                  Navigator.pop(context); // Close dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result['message'], style: GoogleFonts.cairo())),
-                  );
-                  // Refresh Hub
-                  setState(() {
-                    _isActivated = true;
-                    _checkingActivation = true;
-                  });
-                  _checkActivationForUser(userId);
-                } else {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result['message'], style: GoogleFonts.cairo()), backgroundColor: Colors.red),
-                  );
-                }
-              },
+                      setDialogState(() => isLoading = true);
+                      final userId = context.read<AuthService>().user?.uid;
+                      final result = await _activationService.activateWithCode(
+                        userId: userId!,
+                        code: controller.text,
+                        subjectId: widget.subjectId,
+                      );
+
+                      if (!mounted) return;
+                      setDialogState(() => isLoading = false);
+
+                      if (result['success']) {
+                        if (!context.mounted) return;
+                        Navigator.pop(context); // Close dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result['message'],
+                              style: GoogleFonts.cairo(),
+                            ),
+                          ),
+                        );
+                        // Refresh Hub
+                        setState(() {
+                          _isActivated = true;
+                          _checkingActivation = true;
+                        });
+                        _checkActivationForUser(userId);
+                      } else {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result['message'],
+                              style: GoogleFonts.cairo(),
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBlue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: isLoading 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text('تفعيل الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'تفعيل الآن',
+                      style: GoogleFonts.cairo(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -995,10 +1084,10 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
         .collection(DatabaseService.colSections)
         .where('parentId', isEqualTo: _contentSubjectId)
         .get();
-    
+
     String? theorySectionId;
     String? theorySectionName;
-    
+
     // First pass: look for 'نظري'
     for (var doc in sectionsSnap.docs) {
       final name = (doc.data()['name'] ?? '').toString();
@@ -1012,7 +1101,8 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     // Second pass: if not found and there is only ONE section, use it
     if (theorySectionId == null && sectionsSnap.docs.length == 1) {
       theorySectionId = sectionsSnap.docs.first.id;
-      theorySectionName = sectionsSnap.docs.first.data()['name'] ?? 'القسم النظري';
+      theorySectionName =
+          sectionsSnap.docs.first.data()['name'] ?? 'القسم النظري';
     }
 
     // Third pass: check for any lessons directly under the subject (legacy support)
@@ -1023,7 +1113,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           .where('type', isEqualTo: 'lesson')
           .limit(1)
           .get();
-      
+
       if (lessonsSnap.docs.isNotEmpty) {
         // We found lessons, use the sectionId from the first lesson if it exists
         theorySectionId = lessonsSnap.docs.first.data()['sectionId'];
@@ -1035,7 +1125,9 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
 
     if (theorySectionId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لم يتم العثور على القسم النظري لهذه المادة')),
+        const SnackBar(
+          content: Text('لم يتم العثور على القسم النظري لهذه المادة'),
+        ),
       );
       return;
     }
@@ -1077,7 +1169,11 @@ class _MasteryMapSheet extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A), // Keep it dark as it's a premium sheet style
+        color: isDark
+            ? const Color(0xFF1E293B)
+            : const Color(
+                0xFF0F172A,
+              ), // Keep it dark as it's a premium sheet style
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       ),
       padding: const EdgeInsets.all(24),

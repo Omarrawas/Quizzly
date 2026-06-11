@@ -10,11 +10,13 @@ import 'package:quizzly/features/quiz/presentation/screens/exam_book_mode_screen
 class SubjectTagsScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
+  final bool isFree;
 
   const SubjectTagsScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
+    this.isFree = false,
   });
 
   @override
@@ -193,6 +195,7 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
           config: config,
           questions: tagQuestions,
           isSubExam: true,
+          isSubjectFree: widget.isFree,
         ),
       ),
     );

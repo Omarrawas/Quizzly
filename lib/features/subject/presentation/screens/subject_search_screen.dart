@@ -8,11 +8,13 @@ import '../../../quiz/presentation/screens/exam_book_mode_screen.dart';
 class SubjectSearchScreen extends StatefulWidget {
   final String subjectId;
   final String subjectName;
+  final bool isFree;
 
   const SubjectSearchScreen({
     super.key,
     required this.subjectId,
     required this.subjectName,
+    this.isFree = false,
   });
 
   @override
@@ -114,6 +116,7 @@ class _SubjectSearchScreenState extends State<SubjectSearchScreen> {
       questions: _allQuestions,
       isSubExam: true,
       isGlobalSearch: true,
+      isSubjectFree: widget.isFree,
     );
   }
 }

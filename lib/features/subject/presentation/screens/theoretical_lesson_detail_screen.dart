@@ -17,6 +17,7 @@ class TheoreticalLessonDetailScreen extends StatefulWidget {
   final String subjectName;
   final String sectionId;
   final Map<String, dynamic> data;
+  final bool isFree;
 
   const TheoreticalLessonDetailScreen({
     super.key,
@@ -26,6 +27,7 @@ class TheoreticalLessonDetailScreen extends StatefulWidget {
     required this.subjectName,
     required this.sectionId,
     required this.data,
+    this.isFree = false,
   });
 
   @override
@@ -392,6 +394,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
             config: config,
             questions: questions,
             isSubExam: true,
+            isSubjectFree: widget.isFree,
           ),
         ),
       );

@@ -1161,6 +1161,7 @@ void showReportDialog(BuildContext context, QuizQuestion question) {
                   try {
                     await FirebaseFirestore.instance.collection('question_reports').add({
                       'questionId': question.id ?? question.number.toString(),
+                      'subjectId': question.subjectId,
                       'questionNumber': question.number,
                       'questionText': question.text,
                       'tagLabel': question.tagLabel ?? '',

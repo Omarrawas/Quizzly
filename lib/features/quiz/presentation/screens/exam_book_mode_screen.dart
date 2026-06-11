@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/quiz_widgets.dart';
@@ -16,6 +17,7 @@ class ExamBookModeScreen extends StatefulWidget {
   final List<QuizQuestion> questions;
   final bool isSubExam;
   final bool isGlobalSearch;
+  final bool isSubjectFree;
 
   const ExamBookModeScreen({
     super.key,
@@ -23,6 +25,7 @@ class ExamBookModeScreen extends StatefulWidget {
     required this.questions,
     this.isSubExam = false,
     this.isGlobalSearch = false,
+    this.isSubjectFree = false,
   });
 
   @override
@@ -37,6 +40,8 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
   bool _showAnswers = false;
   bool _showFilters = false;
   bool _isSearchingMobile = false;
+  
+  final Set<String> _unlockedTopics = {};
   
   // Filtering state
   final Set<String> _selectedTags = {};
@@ -139,6 +144,108 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     });
     _setupPrimaryListSync('favorites'); // Fallback until stream emits
     _loadCloudNotes();
+    if (widget.isSubjectFree) {
+      _loadUnlockData();
+    }
+  }
+
+  Future<void> _loadUnlockData() async {
+    if (!widget.isSubjectFree || widget.config.subjectId.isEmpty) return;
+    try {
+      // 1. Fetch all questions of the subject to find all unique topic names (for alphabetical ordering)
+      final questionsSnap = await FirebaseFirestore.instance
+          .collection('questions')
+          .where('subjectId', isEqualTo: widget.config.subjectId)
+          .get();
+
+      final Set<String> allTags = {};
+      for (var doc in questionsSnap.docs) {
+        final topicNames = doc.data()['topicNames'];
+        if (topicNames is List) {
+          for (var t in topicNames) {
+            final str = t?.toString().trim();
+            if (str != null && str.isNotEmpty) allTags.add(str);
+          }
+        }
+        final tagLabel = doc.data()['tagLabel']?.toString().trim();
+        if (tagLabel != null && tagLabel.isNotEmpty) {
+          allTags.add(tagLabel);
+        }
+      }
+
+      // Sort alphabetically
+      final sortedTags = allTags.toList()..sort((a, b) => a.compareTo(b));
+
+      // The first 2 topics are free by default
+      if (sortedTags.isNotEmpty) _unlockedTopics.add(sortedTags[0].toLowerCase());
+      if (sortedTags.length > 1) _unlockedTopics.add(sortedTags[1].toLowerCase());
+
+      // 2. Fetch all topics of the subject to check which ones have isFree == true
+      final topicsSnap = await FirebaseFirestore.instance
+          .collection('topics')
+          .where('subjectId', isEqualTo: widget.config.subjectId)
+          .get();
+
+      for (var doc in topicsSnap.docs) {
+        final data = doc.data();
+        if (data['isFree'] == true) {
+          final title = data['title'] as String?;
+          final nameField = data['name'] as String?;
+          if (title != null) _unlockedTopics.add(title.trim().toLowerCase());
+          if (nameField != null) _unlockedTopics.add(nameField.trim().toLowerCase());
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading unlock data in ExamBookModeScreen: $e');
+    }
+  }
+
+  void _showLockedDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_rounded, color: Colors.amber, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'محتوى مقفل',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'هذا الدرس يتطلب الاشتراك في المادة. يرجى تفعيل المادة بالكود لفتح جميع الأسئلة والدروس.',
+          style: GoogleFonts.cairo(
+            color: isDark ? Colors.white70 : AppColors.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context); 
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('الاشتراك الآن', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadCloudNotes() async {
@@ -862,6 +969,15 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       onCheckAnswer: () => _onCheckAnswer(realIndex),
                       isChecked: _checkedQuestions.contains(realIndex),
                       onTagTap: (tag) {
+                        if (widget.isSubjectFree) {
+                          final tagLower = tag.trim().toLowerCase();
+                          final bool isUnlocked = _unlockedTopics.contains(tagLower);
+                          if (!isUnlocked) {
+                            _showLockedDialog();
+                            return;
+                          }
+                        }
+
                         final filteredQuestions = widget.questions.where((q) {
                           return q.topicNames?.contains(tag) ?? false;
                         }).toList();
@@ -891,6 +1007,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                                 config: newConfig,
                                 questions: filteredQuestions,
                                 isSubExam: true,
+                                isSubjectFree: widget.isSubjectFree,
                               ),
                             ),
                           );

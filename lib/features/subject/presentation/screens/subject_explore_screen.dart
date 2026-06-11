@@ -32,6 +32,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
   String _searchQuery = '';
   List<String> _viewedTags = [];
   Map<String, Map<String, int>> _tagsStats = {};
+  final Set<String> _freeTopicNames = {};
 
   @override
   void initState() {
@@ -83,6 +84,22 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
         }
       }
 
+      _freeTopicNames.clear();
+      final topicsSnap = await FirebaseFirestore.instance
+          .collection('topics')
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+
+      for (var doc in topicsSnap.docs) {
+        final data = doc.data();
+        if (data['isFree'] == true) {
+          final title = data['title'] as String?;
+          final nameField = data['name'] as String?;
+          if (title != null) _freeTopicNames.add(title.trim().toLowerCase());
+          if (nameField != null) _freeTopicNames.add(nameField.trim().toLowerCase());
+        }
+      }
+
       final snap = await FirebaseFirestore.instance
           .collection('questions')
           .where('subjectId', isEqualTo: widget.subjectId)
@@ -111,9 +128,11 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
       }
 
       final List<Map<String, dynamic>> tagsList = tagCounts.keys.map((tag) {
+        final isTopicFree = _freeTopicNames.contains(tag.trim().toLowerCase());
         return {
           'name': tag,
           'count': tagCounts[tag]!,
+          'isFree': isTopicFree,
         };
       }).toList();
 
@@ -457,8 +476,9 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
     final stats = _tagsStats[name];
     final bool hasStats = stats != null && stats['answered']! > 0;
     
-    // Protection logic: Only first 3 tags are free
-    final bool isLocked = widget.isFree && index >= 3;
+    // Protection logic: Only first 2 tags are free
+    final bool isTopicFree = tag['isFree'] == true;
+    final bool isLocked = widget.isFree && index >= 2 && !isTopicFree;
 
     // Split "Chapter - Lesson"
     final parts = name.split(' - ');
@@ -547,12 +567,12 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isLocked ? 'محتوى مدفوع' : '$count سؤال',
+                            isLocked ? 'محتوى مدفوع' : (isTopicFree && widget.isFree ? 'مجاني للجميع • $count سؤال' : '$count سؤال'),
                             style: GoogleFonts.cairo(
                               fontSize: 11,
                               color: isLocked 
                                   ? (isDark ? Colors.red[300] : Colors.red[600]) 
-                                  : (isDark ? const Color(0xFF94A3B8) : Colors.grey),
+                                  : (isTopicFree && widget.isFree ? Colors.green : (isDark ? const Color(0xFF94A3B8) : Colors.grey)),
                             ),
                           ),
                         ],
@@ -677,6 +697,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
           config: config,
           questions: questions,
           isSubExam: true,
+          isSubjectFree: widget.isFree,
         ),
       ),
     );

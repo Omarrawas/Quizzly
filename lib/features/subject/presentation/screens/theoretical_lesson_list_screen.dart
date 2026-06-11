@@ -451,6 +451,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           subjectName: widget.subjectName,
           sectionId: widget.sectionId,
           data: data,
+          isFree: widget.isFree,
         ),
       ),
     );

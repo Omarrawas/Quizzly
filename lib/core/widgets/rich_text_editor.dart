@@ -32,33 +32,38 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
   @override
   String get key => 'math';
 
-  @override
+@override
   Widget build(BuildContext context, quill.EmbedContext embedContext) {
     final rawData = embedContext.node.value.data;
     final latex = rawData is String ? rawData : '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    return InkWell(
-      onTap: () async {
-        final resultLatex = await showDialog<String>(
-          context: context,
-          builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
-        );
-        if (resultLatex != null) {
-          final offset = embedContext.node.offset;
-          embedContext.controller.replaceText(offset, 1, quill.Embeddable('math', resultLatex), null);
-        }
-      },
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3), width: 0.5),
+    // Wrap in Directionality with LTR to ensure math renders correctly
+    // regardless of surrounding RTL text direction
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: InkWell(
+        onTap: () async {
+          final resultLatex = await showDialog<String>(
+            context: context,
+            builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
+          );
+          if (resultLatex != null) {
+            final offset = embedContext.node.offset;
+            embedContext.controller.replaceText(offset, 1, quill.Embeddable('math', resultLatex), null);
+          }
+        },
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3), width: 0.5),
+          ),
+          child: SafeMathPreview(latex: latex, textColor: textColor, mathSize: 18),
         ),
-        child: SafeMathPreview(latex: latex, textColor: textColor, mathSize: 18),
       ),
     );
   }
@@ -80,10 +85,12 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
   Widget build(BuildContext context, quill.EmbedContext embedContext) {
     final imageUrl = embedContext.node.value.data as String;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final editorDirection = Directionality.of(context);
+    final isRtl = editorDirection == TextDirection.rtl;
 
     return Container(
       width: double.infinity,
-      alignment: Directionality.of(context) == TextDirection.rtl ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Stack(
         clipBehavior: Clip.none,
@@ -92,7 +99,7 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
           Container(
             constraints: const BoxConstraints(
               maxHeight: 400,
-              minHeight: 100, // Ensure it doesn't collapse
+              minHeight: 100,
               minWidth: 100,
             ),
             decoration: BoxDecoration(
@@ -132,6 +139,7 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
                           : 'خطأ في تحميل الصورة',
                         style: TextStyle(fontSize: 10, color: Colors.red.shade300),
                         textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
                       ),
                     ],
                   ),
@@ -143,7 +151,8 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
           // ── Delete Button ──
           Positioned(
             top: -10,
-            left: -10,
+            left: isRtl ? null : -10,
+            right: isRtl ? -10 : null,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -243,21 +252,77 @@ class _RichTextEditorState extends State<RichTextEditor> {
     if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
   }
 
+  Delta _applyDefaultRtl(Delta delta) {
+    final newDelta = Delta();
+    for (final op in delta.toList()) {
+      if (op.isInsert && op.data is String) {
+        final text = op.data as String;
+        if (text == '\n') {
+          final attrs = Map<String, dynamic>.from(op.attributes ?? {});
+          if (!attrs.containsKey(quill.Attribute.rtl.key)) {
+            attrs[quill.Attribute.rtl.key] = true;
+          }
+          if (!attrs.containsKey(quill.Attribute.align.key)) {
+            attrs[quill.Attribute.align.key] = 'right';
+          }
+          newDelta.insert('\n', attrs);
+        } else if (text.contains('\n')) {
+          final parts = text.split('\n');
+          for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isNotEmpty) {
+              newDelta.insert(parts[i], op.attributes);
+            }
+            if (i < parts.length - 1) {
+              final attrs = Map<String, dynamic>.from(op.attributes ?? {});
+              if (!attrs.containsKey(quill.Attribute.rtl.key)) {
+                attrs[quill.Attribute.rtl.key] = true;
+              }
+              if (!attrs.containsKey(quill.Attribute.align.key)) {
+                attrs[quill.Attribute.align.key] = 'right';
+              }
+              newDelta.insert('\n', attrs);
+            }
+          }
+        } else {
+          newDelta.push(op);
+        }
+      } else {
+        newDelta.push(op);
+      }
+    }
+    return newDelta;
+  }
+
   void _initializeController() {
     try {
       if (widget.initialHtml != null && widget.initialHtml!.isNotEmpty) {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
         delta = _convertTextDelimitersToMathEmbeds(delta);
+        delta = _applyDefaultRtl(delta);
         _controller = quill.QuillController(
           document: quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
         );
       } else {
-        _controller = quill.QuillController.basic();
+        final delta = Delta()..insert('\n', {
+          quill.Attribute.rtl.key: true,
+          quill.Attribute.align.key: 'right',
+        });
+        _controller = quill.QuillController(
+          document: quill.Document.fromDelta(delta),
+          selection: const TextSelection.collapsed(offset: 0),
+        );
       }
     } catch (_) {
-      _controller = quill.QuillController.basic();
+      final delta = Delta()..insert('\n', {
+        quill.Attribute.rtl.key: true,
+        quill.Attribute.align.key: 'right',
+      });
+      _controller = quill.QuillController(
+        document: quill.Document.fromDelta(delta),
+        selection: const TextSelection.collapsed(offset: 0),
+      );
     }
     _controller.addListener(_onContentChanged);
     _controller.addListener(_updateBaseDirection);
@@ -275,10 +340,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final isRtlAttr = style.attributes.containsKey(quill.Attribute.rtl.key);
     final align = style.attributes[quill.Attribute.align.key]?.value;
     
-    // Logic: If explicitly RTL attribute is set OR if aligned to right, use RTL
-    TextDirection newDirection = (isRtlAttr || align == 'right') 
-        ? TextDirection.rtl 
-        : TextDirection.ltr;
+    // Get plain text around cursor to detect actual content direction
+    final plainText = _controller.document.toPlainText();
+    final detectedDirection = MathUtils.getDirection(plainText);
+    
+    // Priority: explicit RTL attribute > explicit right align > detected direction > default RTL
+    TextDirection newDirection = isRtlAttr 
+        ? TextDirection.rtl
+        : (align == 'right' 
+            ? TextDirection.rtl 
+            : detectedDirection);
     
     if (newDirection != _baseDirection) {
       setState(() {
@@ -338,6 +409,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _onContentChanged() {
+    if (_controller.document.length == 1) {
+      final style = _controller.getSelectionStyle();
+      if (!style.attributes.containsKey(quill.Attribute.rtl.key)) {
+        _controller.removeListener(_onContentChanged);
+        _controller.formatSelection(quill.Attribute.rtl);
+        _controller.formatSelection(quill.Attribute.rightAlignment);
+        _controller.addListener(_onContentChanged);
+      }
+    }
+
     final delta = _controller.document.toDelta();
     final List<Map<String, dynamic>> processedOps = [];
 
@@ -454,20 +535,15 @@ class _RichTextEditorState extends State<RichTextEditor> {
         
         // Convert the text being pasted if it contains math delimiters
         final tempDelta = Delta()..insert(text);
-        final convertedDelta = _convertTextDelimitersToMathEmbeds(tempDelta);
+        var convertedDelta = _convertTextDelimitersToMathEmbeds(tempDelta);
+        convertedDelta = _applyDefaultRtl(convertedDelta);
         
-        if (convertedDelta.length > 1 || (convertedDelta.first.data is! String)) {
-          // It contains embeds now
-          _controller.replaceText(
-            index, 
-            length >= 0 ? length : 0, 
-            convertedDelta, 
-            null
-          );
-        } else {
-          // Regular text
-          _controller.replaceText(index, length >= 0 ? length : 0, text, null);
-        }
+        _controller.replaceText(
+          index, 
+          length >= 0 ? length : 0, 
+          convertedDelta, 
+          null
+        );
       }
     } catch (e) {
       debugPrint('Paste error: $e');

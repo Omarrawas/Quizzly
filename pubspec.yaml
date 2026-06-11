@@ -1,7 +1,7 @@
 name: quizzly
 description: "كويزلي"
 publish_to: 'none' 
-version: 1.0.9+10
+version: 1.0.11+11
 
 environment:
   sdk: ^3.11.1

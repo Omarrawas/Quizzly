@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/presentation/screens/subject_dashboard_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/reports_management_screen.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
   const TeacherDashboardScreen({super.key});
@@ -16,11 +17,13 @@ class _SubjectStats {
   final int subscribers;
   final int activeStudents;
   final int revenue;
+  final int reports;
 
   _SubjectStats({
     this.subscribers = 0,
     this.activeStudents = 0,
     this.revenue = 0,
+    this.reports = 0,
   });
 }
 
@@ -103,10 +106,20 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           if (userId != null) totalUniqueStudents.add(userId);
         }
 
+        // 4. Fetch Pending Reports Count
+        final reportsSnap = await FirebaseFirestore.instance
+            .collection('question_reports')
+            .where('subjectId', isEqualTo: id)
+            .where('status', isEqualTo: 'pending')
+            .count()
+            .get();
+        final reportsCount = reportsSnap.count ?? 0;
+
         _statsMap[id] = _SubjectStats(
           subscribers: subsCount,
           activeStudents: activeCount,
           revenue: revenue,
+          reports: reportsCount,
         );
         
         totalRevenue += revenue;
@@ -347,6 +360,21 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               children: [
                 _buildMiniStat('المشتركين', stats.subscribers.toString(), Icons.groups_rounded, isDark),
                 _buildMiniStat('النشطين', stats.activeStudents.toString(), Icons.trending_up_rounded, isDark),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReportsManagementScreen(subjectId: id),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: _buildMiniStat('البلاغات', stats.reports.toString(), Icons.report_problem_rounded, isDark, valueColor: Colors.red),
+                  ),
+                ),
                 _buildMiniStat('إحصاءات مالية', '${stats.revenue} ل.س', Icons.payments_rounded, isDark, valueColor: Colors.green),
               ],
             ),
