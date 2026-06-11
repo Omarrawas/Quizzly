@@ -192,7 +192,7 @@ class MathUtils {
 
   /// Detects the text direction based on presence of Arabic characters
   static TextDirection getDirection(String text) {
-    if (text.isEmpty) return TextDirection.rtl; // Default to RTL for Quizzly
+    if (text.trim().isEmpty) return TextDirection.rtl; // Default to RTL for Quizzly
     
     // Check for Arabic characters (including extended Arabic blocks)
     final hasArabic = RegExp(
