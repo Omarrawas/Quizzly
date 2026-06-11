@@ -161,7 +161,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           // Optional: Update current selected names if they are just lesson names
           if (widget.lessonId != null && selectedTopicIds.contains(widget.lessonId)) {
             final idx = selectedTopicIds.indexOf(widget.lessonId!);
-            final lessonData = availableLessons.firstWhere((l) => l['id'] == widget.lessonId, orElse: () => {});
+            final lessonData = availableLessons.firstWhere((l) => l['id'] == widget.lessonId, orElse: () => <String, dynamic>{});
             if (lessonData.isNotEmpty) {
               selectedTopicNames[idx] = lessonData['name'];
             }

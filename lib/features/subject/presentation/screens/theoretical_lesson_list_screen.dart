@@ -54,7 +54,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
       for (var doc in snap.docs) {
         final data = doc.data();
         chapters[doc.id] = data['name'] ?? '';
-        orders[doc.id] = data['order'] ?? 0;
+        orders[doc.id] = (data['order'] as num?)?.toInt() ?? 0;
       }
 
       if (mounted) {
@@ -225,9 +225,9 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
             return aChapterOrder.compareTo(bChapterOrder);
           }
 
-          final aOrder = aData['order'] ?? 0;
-          final bOrder = bData['order'] ?? 0;
-          return (aOrder as num).compareTo(bOrder as num);
+          final aOrder = (aData['order'] is num) ? (aData['order'] as num) : 0;
+          final bOrder = (bData['order'] is num) ? (bData['order'] as num) : 0;
+          return aOrder.compareTo(bOrder);
         });
 
         if (docs.isEmpty) {

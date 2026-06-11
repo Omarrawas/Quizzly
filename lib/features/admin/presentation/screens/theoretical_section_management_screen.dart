@@ -571,8 +571,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         // Sort Chapters by their order in _topicsMap
         final sortedChapters = grouped.keys.toList();
         sortedChapters.sort((a, b) {
-          final aTopic = _topicsMap.values.firstWhere((t) => t['name'] == a && t['parentId'] == null, orElse: () => {});
-          final bTopic = _topicsMap.values.firstWhere((t) => t['name'] == b && t['parentId'] == null, orElse: () => {});
+          final aTopic = _topicsMap.values.firstWhere((t) => t['name'] == a && t['parentId'] == null, orElse: () => <String, dynamic>{});
+          final bTopic = _topicsMap.values.firstWhere((t) => t['name'] == b && t['parentId'] == null, orElse: () => <String, dynamic>{});
           return (aTopic['order'] ?? 0).compareTo(bTopic['order'] ?? 0);
         });
 
