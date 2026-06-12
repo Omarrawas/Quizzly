@@ -223,7 +223,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   final ScrollController _scrollController = ScrollController();
   bool _isFocused = false;
   final List<String> _deletedImageUrls = [];
-  TextDirection _baseDirection = TextDirection.rtl;
+  int _previousLength = 1;
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -242,7 +242,6 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
     _controller.removeListener(_onContentChanged);
-    _controller.removeListener(_updateBaseDirection);
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -324,38 +323,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
         selection: const TextSelection.collapsed(offset: 0),
       );
     }
+    _previousLength = _controller.document.length;
     _controller.addListener(_onContentChanged);
-    _controller.addListener(_updateBaseDirection);
-    
-    // Initial direction
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _updateBaseDirection();
-    });
-  }
-
-  void _updateBaseDirection() {
-    if (!mounted) return;
-    
-    final style = _controller.getSelectionStyle();
-    final isRtlAttr = style.attributes.containsKey(quill.Attribute.rtl.key);
-    final align = style.attributes[quill.Attribute.align.key]?.value;
-    
-    // Get plain text around cursor to detect actual content direction
-    final plainText = _controller.document.toPlainText();
-    final detectedDirection = MathUtils.getDirection(plainText);
-    
-    // Priority: explicit RTL attribute > explicit right align > detected direction > default RTL
-    TextDirection newDirection = isRtlAttr 
-        ? TextDirection.rtl
-        : (align == 'right' 
-            ? TextDirection.rtl 
-            : detectedDirection);
-    
-    if (newDirection != _baseDirection) {
-      setState(() {
-        _baseDirection = newDirection;
-      });
-    }
   }
 
   Delta _convertTextDelimitersToMathEmbeds(Delta delta) {
@@ -409,15 +378,14 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _onContentChanged() {
-    if (_controller.document.length == 1) {
-      final style = _controller.getSelectionStyle();
-      if (!style.attributes.containsKey(quill.Attribute.rtl.key)) {
-        _controller.removeListener(_onContentChanged);
-        _controller.formatSelection(quill.Attribute.rtl);
-        _controller.formatSelection(quill.Attribute.rightAlignment);
-        _controller.addListener(_onContentChanged);
-      }
+    final currentLength = _controller.document.length;
+    if (currentLength == 1 && _previousLength > 1) {
+      _controller.removeListener(_onContentChanged);
+      _controller.formatSelection(quill.Attribute.rtl);
+      _controller.formatSelection(quill.Attribute.rightAlignment);
+      _controller.addListener(_onContentChanged);
     }
+    _previousLength = currentLength;
 
     final delta = _controller.document.toDelta();
     final List<Map<String, dynamic>> processedOps = [];
@@ -731,7 +699,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: _baseDirection,
+                        textDirection: TextDirection.ltr, // Enforce LTR ambient direction to fix flutter_quill RTL bug
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
