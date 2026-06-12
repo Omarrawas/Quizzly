@@ -230,6 +230,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   quill.Style get _selectionStyle => _controller.getSelectionStyle();
 
+  int get _activeInsertionOffset {
+    final offset = _controller.selection.extentOffset;
+    if (offset < 0) return _controller.document.length - 1;
+    return offset.clamp(0, _controller.document.length - 1);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -476,8 +482,13 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (mounted) Navigator.pop(context);
 
       if (url != null) {
-        final index = _controller.selection.baseOffset;
-        _controller.replaceText(index, 0, quill.BlockEmbed.image(url), null);
+        final index = _activeInsertionOffset;
+        _controller.replaceText(
+          index,
+          0,
+          quill.BlockEmbed.image(url),
+          TextSelection.collapsed(offset: index + 1),
+        );
       }
     } catch (e) {
       if (mounted && Navigator.canPop(context)) Navigator.pop(context);
@@ -498,8 +509,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       if (data?.text != null) {
         final text = data!.text!;
-        final index = _controller.selection.baseOffset;
-        final length = _controller.selection.extentOffset - index;
+        final selection = _controller.selection;
+        final index = selection.start;
+        final length = selection.end - selection.start;
         
         // Convert the text being pasted if it contains math delimiters
         final tempDelta = Delta()..insert(text);
@@ -508,7 +520,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
         
         _controller.replaceText(
           index, 
-          length >= 0 ? length : 0, 
+          length,
           convertedDelta, 
           null
         );
@@ -699,7 +711,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: TextDirection.ltr, // Enforce LTR ambient direction to fix flutter_quill RTL bug
+                        textDirection: TextDirection.rtl,
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
@@ -733,7 +745,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _insertMathLatex(String latex) {
-    final index = _controller.selection.baseOffset;
-    _controller.replaceText(index, 0, quill.Embeddable('math', latex), null);
+    final index = _activeInsertionOffset;
+    _controller.replaceText(
+      index,
+      0,
+      quill.Embeddable('math', latex),
+      TextSelection.collapsed(offset: index + 1),
+    );
   }
 }

@@ -28,7 +28,8 @@ class QuestionManagementScreen extends StatefulWidget {
   });
 
   @override
-  State<QuestionManagementScreen> createState() => _QuestionManagementScreenState();
+  State<QuestionManagementScreen> createState() =>
+      _QuestionManagementScreenState();
 }
 
 class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
@@ -46,19 +47,27 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   late TextEditingController timeController;
   late bool isEnabled;
   late Difficulty selectedDifficulty;
-  
+
   List<Map<String, String>> options = [];
   List<String> correctOptionIds = [];
   List<TextEditingController> optionControllers = [];
-  
+
   // Topic selection
   List<String> selectedTopicIds = [];
   List<String> selectedTopicNames = [];
   List<Map<String, dynamic>> availableLessons = [];
 
   final List<Map<String, dynamic>> questionTypes = [
-    {'id': 'mcq', 'label': 'خيارات متعددة', 'icon': Icons.radio_button_checked_rounded},
-    {'id': 'checkbox', 'label': 'مربعات اختيار', 'icon': Icons.check_box_rounded},
+    {
+      'id': 'mcq',
+      'label': 'خيارات متعددة',
+      'icon': Icons.radio_button_checked_rounded,
+    },
+    {
+      'id': 'checkbox',
+      'label': 'مربعات اختيار',
+      'icon': Icons.check_box_rounded,
+    },
     {'id': 'tf', 'label': 'صح/خطأ', 'icon': Icons.rule_rounded},
     {'id': 'essay', 'label': 'مقالي', 'icon': Icons.short_text_rounded},
   ];
@@ -67,42 +76,73 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   void initState() {
     super.initState();
     final currentData = widget.currentData;
-    
+
     selectedTypeId = currentData?['type'] ?? 'mcq';
     textController = TextEditingController(text: currentData?['text']);
-    translationTextController = TextEditingController(text: currentData?['translationText'] ?? '');
-    essayAnswerController = TextEditingController(text: currentData?['essayAnswer']);
-    explanationController = TextEditingController(text: currentData?['explanation']);
-    explanationImageUrlController = TextEditingController(text: currentData?['explanationImageUrl']);
-    explanationAudioUrlController = TextEditingController(text: currentData?['explanationAudioUrl'] ?? '');
-    explanationPdfUrlController = TextEditingController(text: currentData?['explanationPdfUrl'] ?? '');
-    explanationVideoUrlController = TextEditingController(text: currentData?['explanationVideoUrl'] ?? '');
-    timeController = TextEditingController(text: currentData?['estimatedTime']?.toString() ?? '60');
+    translationTextController = TextEditingController(
+      text: currentData?['translationText'] ?? '',
+    );
+    essayAnswerController = TextEditingController(
+      text: currentData?['essayAnswer'],
+    );
+    explanationController = TextEditingController(
+      text: currentData?['explanation'],
+    );
+    explanationImageUrlController = TextEditingController(
+      text: currentData?['explanationImageUrl'],
+    );
+    explanationAudioUrlController = TextEditingController(
+      text: currentData?['explanationAudioUrl'] ?? '',
+    );
+    explanationPdfUrlController = TextEditingController(
+      text: currentData?['explanationPdfUrl'] ?? '',
+    );
+    explanationVideoUrlController = TextEditingController(
+      text: currentData?['explanationVideoUrl'] ?? '',
+    );
+    timeController = TextEditingController(
+      text: currentData?['estimatedTime']?.toString() ?? '60',
+    );
     isEnabled = currentData?['isEnabled'] ?? true;
-    
-    selectedDifficulty = Difficulty.values.firstWhere((e) => e.name == currentData?['difficulty'], orElse: () => Difficulty.medium);
-    
+
+    selectedDifficulty = Difficulty.values.firstWhere(
+      (e) => e.name == currentData?['difficulty'],
+      orElse: () => Difficulty.medium,
+    );
+
     options = (currentData?['options'] as List? ?? [])
         .map((e) => {'id': e['id'].toString(), 'text': e['text'].toString()})
         .toList();
-    
+
     if (options.isEmpty) {
       if (selectedTypeId == 'tf') {
-        options = [{'id': 'true', 'text': 'صح'}, {'id': 'false', 'text': 'خطأ'}];
+        options = [
+          {'id': 'true', 'text': 'صح'},
+          {'id': 'false', 'text': 'خطأ'},
+        ];
       } else if (selectedTypeId == 'mcq' || selectedTypeId == 'checkbox') {
-        options = [{'id': '1', 'text': ''}];
+        options = [
+          {'id': '1', 'text': ''},
+        ];
       }
     }
-    
-    correctOptionIds = (currentData?['correctOptionIds'] as List?)?.map((e) => e.toString()).toList() ?? 
-        (currentData?['correctOptionId'] != null ? [currentData!['correctOptionId'].toString()] : []);
-    
+
+    correctOptionIds =
+        (currentData?['correctOptionIds'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        (currentData?['correctOptionId'] != null
+            ? [currentData!['correctOptionId'].toString()]
+            : []);
+
     if (correctOptionIds.isEmpty && options.isNotEmpty) {
       correctOptionIds = [options[0]['id']!];
     }
 
-    optionControllers = options.map((opt) => TextEditingController(text: opt['text'])).toList();
-    
+    optionControllers = options
+        .map((opt) => TextEditingController(text: opt['text']))
+        .toList();
+
     // Initialize topics
     if (widget.questionId != null) {
       selectedTopicIds = List<String>.from(currentData?['topicIds'] ?? []);
@@ -111,19 +151,22 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       selectedTopicIds = [widget.lessonId!];
       selectedTopicNames = [widget.lessonName ?? 'درس غير معروف'];
     }
-    
+
     _loadAvailableLessons();
   }
 
   Future<void> _loadAvailableLessons() async {
     try {
       // Get all topics for this subject to build the hierarchy
-      final snapshot = await _dbService.getAllTopicsForSubject(widget.subjectId, sectionId: widget.sectionId).first;
+      final snapshot = await _dbService
+          .getAllTopicsForSubject(widget.subjectId, sectionId: widget.sectionId)
+          .first;
       if (mounted) {
         final allDocs = snapshot.docs;
         // Create a map for quick name lookup
         final Map<String, String> nameMap = {
-          for (var doc in allDocs) doc.id: (doc.data() as Map<String, dynamic>)['name'] ?? ''
+          for (var doc in allDocs)
+            doc.id: (doc.data() as Map<String, dynamic>)['name'] ?? '',
         };
 
         setState(() {
@@ -137,8 +180,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           lessonDocs.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
-            final aTime = (aData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-            final bTime = (bData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            final aTime =
+                (aData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+            final bTime =
+                (bData['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
             return aTime.compareTo(bTime);
           });
 
@@ -146,22 +191,23 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
             final data = doc.data() as Map<String, dynamic>;
             final parentId = data['parentId'];
             final parentName = (parentId != null) ? nameMap[parentId] : null;
-            
+
             // Format as "Chapter Name - Lesson Name"
-            final fullName = parentName != null 
-                ? '$parentName - ${data['name']}' 
+            final fullName = parentName != null
+                ? '$parentName - ${data['name']}'
                 : data['name'] ?? '';
 
-            return {
-              'id': doc.id,
-              'name': fullName,
-            };
+            return {'id': doc.id, 'name': fullName};
           }).toList();
 
           // Optional: Update current selected names if they are just lesson names
-          if (widget.lessonId != null && selectedTopicIds.contains(widget.lessonId)) {
+          if (widget.lessonId != null &&
+              selectedTopicIds.contains(widget.lessonId)) {
             final idx = selectedTopicIds.indexOf(widget.lessonId!);
-            final lessonData = availableLessons.firstWhere((l) => l['id'] == widget.lessonId, orElse: () => <String, dynamic>{});
+            final lessonData = availableLessons.firstWhere(
+              (l) => l['id'] == widget.lessonId,
+              orElse: () => <String, dynamic>{},
+            );
             if (lessonData.isNotEmpty) {
               selectedTopicNames[idx] = lessonData['name'];
             }
@@ -193,7 +239,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   void _showStatusSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        content: Text(
+          message,
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: isError ? Colors.red : Colors.green,
         behavior: SnackBarBehavior.floating,
       ),
@@ -208,19 +257,30 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey.shade200,
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+          Text(
+            title,
+            style: GoogleFonts.cairo(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryBlue,
+            ),
+          ),
           const SizedBox(height: 16),
           child,
         ],
@@ -236,12 +296,20 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade300, width: 1),
+              border: Border.all(
+                color: isDark ? Colors.white10 : Colors.grey.shade300,
+                width: 1,
+              ),
             ),
             child: IconButton(
-              icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black87),
+              icon: Icon(
+                Icons.arrow_back,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -259,7 +327,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('مفعل', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(
+                'مفعل',
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Transform.scale(
                 scale: 0.8,
                 child: Switch(
@@ -297,7 +371,9 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         icon: const Icon(Icons.check, color: Colors.white),
         label: Text(
@@ -319,7 +395,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       _showStatusSnackBar('يرجى كتابة نص السؤال', isError: true);
       return;
     }
-    
+
     final Map<String, dynamic> questionData = {
       'text': textController.text.trim(),
       'translationText': translationTextController.text.trim(),
@@ -331,7 +407,9 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'explanationPdfUrl': explanationPdfUrlController.text.trim(),
       'explanationVideoUrl': explanationVideoUrlController.text.trim(),
       'difficulty': selectedDifficulty.name,
-      'primaryTopicId': selectedTopicIds.isNotEmpty ? selectedTopicIds.first : (widget.lessonId ?? 'global'),
+      'primaryTopicId': selectedTopicIds.isNotEmpty
+          ? selectedTopicIds.first
+          : (widget.lessonId ?? 'global'),
       'topicIds': selectedTopicIds,
       'topicNames': selectedTopicNames,
       'topicWeights': {for (var id in selectedTopicIds) id: 1.0},
@@ -340,7 +418,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       'parentId': widget.sectionId ?? 'global',
       'isEnabled': isEnabled,
     };
-    
+
     if (selectedTypeId != 'essay') {
       questionData['options'] = options;
       questionData['correctOptionIds'] = correctOptionIds;
@@ -350,13 +428,20 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     } else {
       questionData['essayAnswer'] = essayAnswerController.text.trim();
     }
-    
+
     final navigator = Navigator.of(context);
     try {
       if (isEdit) {
-        await _dbService.updateDoc(DatabaseService.colQuestions, widget.questionId!, questionData);
+        await _dbService.updateDoc(
+          DatabaseService.colQuestions,
+          widget.questionId!,
+          questionData,
+        );
       } else {
-        await _dbService.addQuestion(widget.sectionId ?? 'global', questionData);
+        await _dbService.addQuestion(
+          widget.sectionId ?? 'global',
+          questionData,
+        );
       }
 
       // After successful save, delete images that were removed in the editor
@@ -411,7 +496,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
         if (file.bytes == null) {
-          _showStatusSnackBar('لا يمكن قراءة بيانات الملف المختار', isError: true);
+          _showStatusSnackBar(
+            'لا يمكن قراءة بيانات الملف المختار',
+            isError: true,
+          );
           return;
         }
 
@@ -423,7 +511,11 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
         final storageService = FirebaseStorageService();
         final url = await storageService.uploadFile(
           fileBytes: file.bytes!,
-          fileExtension: file.extension ?? (fileType == 'pdf' ? 'pdf' : (fileType == 'audio' ? 'mp3' : 'png')),
+          fileExtension:
+              file.extension ??
+              (fileType == 'pdf'
+                  ? 'pdf'
+                  : (fileType == 'audio' ? 'mp3' : 'png')),
           folderName: folderName,
         );
 
@@ -446,7 +538,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           });
           _showStatusSnackBar('تم رفع الملف بنجاح!', isError: false);
         } else {
-          _showStatusSnackBar('فشل رفع الملف إلى الخادم الرئيسي', isError: true);
+          _showStatusSnackBar(
+            'فشل رفع الملف إلى الخادم الرئيسي',
+            isError: true,
+          );
         }
       }
     } catch (e) {
@@ -467,16 +562,19 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasAttachment = url.isNotEmpty;
-    final isUploadingThisType = _isUploadingFile && _uploadingFileType == fileType;
+    final isUploadingThisType =
+        _isUploadingFile && _uploadingFileType == fileType;
 
     return Container(
       height: 100,
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.02)
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasAttachment 
-              ? color 
+          color: hasAttachment
+              ? color
               : (isDark ? Colors.white10 : Colors.grey.shade300),
           width: hasAttachment ? 2 : 1,
         ),
@@ -484,8 +582,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isUploadingThisType 
-              ? null 
+          onTap: isUploadingThisType
+              ? null
               : () {
                   if (hasAttachment) {
                     _showAttachmentOptionsDialog(title, url, fileType);
@@ -495,7 +593,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                 },
           borderRadius: BorderRadius.circular(14),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8.0,
+              vertical: 12.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -511,7 +612,9 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                 else
                   Icon(
                     hasAttachment ? Icons.check_circle_rounded : icon,
-                    color: hasAttachment ? color : (isDark ? Colors.white30 : Colors.grey.shade400),
+                    color: hasAttachment
+                        ? color
+                        : (isDark ? Colors.white30 : Colors.grey.shade400),
                     size: 28,
                   ),
                 const SizedBox(height: 8),
@@ -520,8 +623,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                   style: GoogleFonts.cairo(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: hasAttachment 
-                        ? color 
+                    color: hasAttachment
+                        ? color
                         : (isDark ? Colors.white70 : Colors.black87),
                   ),
                 ),
@@ -547,7 +650,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.open_in_new_rounded, color: AppColors.primaryBlue),
+              leading: const Icon(
+                Icons.open_in_new_rounded,
+                color: AppColors.primaryBlue,
+              ),
               title: Text('عرض/استعراض الملف', style: GoogleFonts.cairo()),
               onTap: () async {
                 Navigator.pop(context);
@@ -563,8 +669,17 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-              title: Text('حذف المرفق', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+              leading: const Icon(
+                Icons.delete_forever_rounded,
+                color: Colors.red,
+              ),
+              title: Text(
+                'حذف المرفق',
+                style: GoogleFonts.cairo(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
@@ -602,279 +717,401 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(context, isEdit),
-                
+
                 _buildSection(
                   title: 'إعدادات السؤال',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('نوع السؤال', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+                      Text(
+                        'نوع السؤال',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Container(
                         width: 220,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
-                          border: Border.all(color: isDark ? Colors.white10 : Colors.grey[300]!),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.grey[50],
+                          border: Border.all(
+                            color: isDark ? Colors.white10 : Colors.grey[300]!,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: selectedTypeId,
                             isExpanded: true,
-                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            dropdownColor: isDark
+                                ? const Color(0xFF1E293B)
+                                : Colors.white,
                             onChanged: (val) {
                               setState(() {
                                 final oldType = selectedTypeId;
                                 selectedTypeId = val!;
-                                
+
                                 if (selectedTypeId == 'tf') {
-                                  options = [{'id': 'true', 'text': 'صح'}, {'id': 'false', 'text': 'خطأ'}];
-                                  for (var c in optionControllers) { c.dispose(); }
+                                  options = [
+                                    {'id': 'true', 'text': 'صح'},
+                                    {'id': 'false', 'text': 'خطأ'},
+                                  ];
+                                  for (var c in optionControllers) {
+                                    c.dispose();
+                                  }
                                   optionControllers.clear();
-                                  optionControllers.addAll(options.map((o) => TextEditingController(text: o['text'])));
+                                  optionControllers.addAll(
+                                    options.map(
+                                      (o) => TextEditingController(
+                                        text: o['text'],
+                                      ),
+                                    ),
+                                  );
                                   correctOptionIds = ['true'];
                                 } else if (selectedTypeId == 'essay') {
                                   options = [];
-                                  for (var c in optionControllers) { c.dispose(); }
+                                  for (var c in optionControllers) {
+                                    c.dispose();
+                                  }
                                   optionControllers.clear();
                                   correctOptionIds = [];
-                                } else if (oldType == 'tf' || oldType == 'essay') {
-                                  options = [{'id': '1', 'text': ''}];
-                                  for (var c in optionControllers) { c.dispose(); }
+                                } else if (oldType == 'tf' ||
+                                    oldType == 'essay') {
+                                  options = [
+                                    {'id': '1', 'text': ''},
+                                  ];
+                                  for (var c in optionControllers) {
+                                    c.dispose();
+                                  }
                                   optionControllers.clear();
-                                  optionControllers.add(TextEditingController());
+                                  optionControllers.add(
+                                    TextEditingController(),
+                                  );
                                   correctOptionIds = ['1'];
                                 }
                               });
                             },
-                            items: questionTypes.map((type) => DropdownMenuItem(
-                              value: type['id'] as String,
-                              child: Row(
-                                children: [
-                                  Icon(type['icon'] as IconData, size: 20, color: AppColors.primaryBlue),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    type['label'] as String,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 14,
-                                      color: isDark ? Colors.white : Colors.black87,
+                            items: questionTypes
+                                .map(
+                                  (type) => DropdownMenuItem(
+                                    value: type['id'] as String,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          type['icon'] as IconData,
+                                          size: 20,
+                                          color: AppColors.primaryBlue,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          type['label'] as String,
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 14,
+                                            color: isDark
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            )).toList(),
+                                )
+                                .toList(),
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Text('نص السؤال', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  RichTextEditor(
-                    initialHtml: textController.text,
-                    placeholder: 'اكتب نص السؤال هنا...',
-                    height: 200,
-                    onContentChanged: (html) {
-                      textController.text = html;
-                    },
-                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('ترجمة السؤال (اختياري)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  RichTextEditor(
-                    initialHtml: translationTextController.text,
-                    placeholder: 'ترجمة نص السؤال بالعربية...',
-                    height: 150,
-                    onContentChanged: (html) {
-                      translationTextController.text = html;
-                    },
-                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
-                  ),
-                ],
-              ),
-            ),
-            
-            if (selectedTypeId != 'essay')
-              _buildSection(
-                title: 'الخيارات والإجابة',
-                child: selectedTypeId == 'checkbox'
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildOptionsList(isDark),
-                      )
-                    : RadioGroup<String>(
-                        groupValue: correctOptionIds.isNotEmpty ? correctOptionIds.first : null,
-                        onChanged: (v) {
-                          if (v != null) setState(() => correctOptionIds = [v]);
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: _buildOptionsList(isDark),
+                      Text(
+                        'نص السؤال',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-              )
-            else
-              _buildSection(
-                title: 'الإجابة النموذجية',
-                child: TextField(
-                  controller: essayAnswerController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: 'اكتب الإجابة النموذجية للسؤال المقالي...',
-                    hintStyle: GoogleFonts.cairo(color: Colors.grey),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 8),
+                      RichTextEditor(
+                        initialHtml: textController.text,
+                        placeholder: 'اكتب نص السؤال هنا',
+                        height: 200,
+                        onContentChanged: (html) {
+                          textController.text = html;
+                        },
+                        onImageDeleted: (url) =>
+                            _pendingImageDeletions.add(url),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'ترجمة السؤال (اختياري)',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      RichTextEditor(
+                        initialHtml: translationTextController.text,
+                        placeholder: 'ترجمة نص السؤال بالعربية...',
+                        height: 150,
+                        onContentChanged: (html) {
+                          translationTextController.text = html;
+                        },
+                        onImageDeleted: (url) =>
+                            _pendingImageDeletions.add(url),
+                      ),
+                    ],
                   ),
                 ),
-              ),
 
-            _buildSection(
-              title: 'معلومات إضافية',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('شرح الإجابة (اختياري)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  RichTextEditor(
-                    initialHtml: explanationController.text,
-                    placeholder: 'اكتب الشرح هنا...',
-                    height: 150,
-                    onContentChanged: (html) {
-                      explanationController.text = html;
-                    },
-                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
-                  ),
-                  const SizedBox(height: 16),
-                   Text('مرفقات الشرح (صورة، صوت، فيديو أو PDF)', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                   const SizedBox(height: 12),
-                   Wrap(
-                     spacing: 12,
-                     runSpacing: 12,
-                     children: [
-                       SizedBox(
-                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
-                         child: _buildAttachmentCard(
-                           title: 'صورة توضيحية',
-                           icon: Icons.image_rounded,
-                           url: explanationImageUrlController.text,
-                           fileType: 'image',
-                           color: const Color(0xFF10B981),
-                         ),
-                       ),
-                       SizedBox(
-                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
-                         child: _buildAttachmentCard(
-                           title: 'مقطع صوتي',
-                           icon: Icons.audiotrack_rounded,
-                           url: explanationAudioUrlController.text,
-                           fileType: 'audio',
-                           color: const Color(0xFF6366F1),
-                         ),
-                       ),
-                       SizedBox(
-                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
-                         child: _buildAttachmentCard(
-                           title: 'مقطع فيديو',
-                           icon: Icons.videocam_rounded,
-                           url: explanationVideoUrlController.text,
-                           fileType: 'video',
-                           color: const Color(0xFFF59E0B),
-                         ),
-                       ),
-                       SizedBox(
-                         width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
-                         child: _buildAttachmentCard(
-                           title: 'ملف PDF',
-                           icon: Icons.picture_as_pdf_rounded,
-                           url: explanationPdfUrlController.text,
-                           fileType: 'pdf',
-                           color: const Color(0xFFEF4444),
-                         ),
-                       ),
-                     ],
-                   ),
-                  
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<Difficulty>(
-                          initialValue: selectedDifficulty,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          decoration: InputDecoration(
-                            labelText: 'الصعوبة',
-                            labelStyle: GoogleFonts.cairo(),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          items: Difficulty.values.map((e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(
-                              _translateDifficulty(e),
-                              style: GoogleFonts.cairo(
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
+                if (selectedTypeId != 'essay')
+                  _buildSection(
+                    title: 'الخيارات والإجابة',
+                    child: selectedTypeId == 'checkbox'
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: _buildOptionsList(isDark),
+                          )
+                        : RadioGroup<String>(
+                            groupValue: correctOptionIds.isNotEmpty
+                                ? correctOptionIds.first
+                                : null,
+                            onChanged: (v) {
+                              if (v != null)
+                                setState(() => correctOptionIds = [v]);
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: _buildOptionsList(isDark),
                             ),
-                          )).toList(),
-                          onChanged: (v) => setState(() => selectedDifficulty = v!),
+                          ),
+                  )
+                else
+                  _buildSection(
+                    title: 'الإجابة النموذجية',
+                    child: TextField(
+                      controller: essayAnswerController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'اكتب الإجابة النموذجية للسؤال المقالي...',
+                        hintStyle: GoogleFonts.cairo(color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: timeController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'الوقت المقدر (بالثواني)',
-                      labelStyle: GoogleFonts.cairo(),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
-                  
-                  const SizedBox(height: 24),
-                  Text('المواضيع المرتبطة', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+
+                _buildSection(
+                  title: 'معلومات إضافية',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ...selectedTopicIds.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final name = selectedTopicNames[idx];
-                        return Chip(
-                          label: Text(name, style: GoogleFonts.cairo(fontSize: 12)),
-                          deleteIcon: const Icon(Icons.close, size: 14),
-                          onDeleted: () => setState(() {
-                            selectedTopicIds.removeAt(idx);
-                            selectedTopicNames.removeAt(idx);
+                      Text(
+                        'شرح الإجابة (اختياري)',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      RichTextEditor(
+                        initialHtml: explanationController.text,
+                        placeholder: 'اكتب الشرح هنا...',
+                        height: 150,
+                        onContentChanged: (html) {
+                          explanationController.text = html;
+                        },
+                        onImageDeleted: (url) =>
+                            _pendingImageDeletions.add(url),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'مرفقات الشرح (صورة، صوت، فيديو أو PDF)',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          SizedBox(
+                            width:
+                                (MediaQuery.of(context).size.width - 48 - 12) /
+                                2,
+                            child: _buildAttachmentCard(
+                              title: 'صورة توضيحية',
+                              icon: Icons.image_rounded,
+                              url: explanationImageUrlController.text,
+                              fileType: 'image',
+                              color: const Color(0xFF10B981),
+                            ),
+                          ),
+                          SizedBox(
+                            width:
+                                (MediaQuery.of(context).size.width - 48 - 12) /
+                                2,
+                            child: _buildAttachmentCard(
+                              title: 'مقطع صوتي',
+                              icon: Icons.audiotrack_rounded,
+                              url: explanationAudioUrlController.text,
+                              fileType: 'audio',
+                              color: const Color(0xFF6366F1),
+                            ),
+                          ),
+                          SizedBox(
+                            width:
+                                (MediaQuery.of(context).size.width - 48 - 12) /
+                                2,
+                            child: _buildAttachmentCard(
+                              title: 'مقطع فيديو',
+                              icon: Icons.videocam_rounded,
+                              url: explanationVideoUrlController.text,
+                              fileType: 'video',
+                              color: const Color(0xFFF59E0B),
+                            ),
+                          ),
+                          SizedBox(
+                            width:
+                                (MediaQuery.of(context).size.width - 48 - 12) /
+                                2,
+                            child: _buildAttachmentCard(
+                              title: 'ملف PDF',
+                              icon: Icons.picture_as_pdf_rounded,
+                              url: explanationPdfUrlController.text,
+                              fileType: 'pdf',
+                              color: const Color(0xFFEF4444),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<Difficulty>(
+                              initialValue: selectedDifficulty,
+                              dropdownColor: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              decoration: InputDecoration(
+                                labelText: 'الصعوبة',
+                                labelStyle: GoogleFonts.cairo(),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: Difficulty.values
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(
+                                        _translateDifficulty(e),
+                                        style: GoogleFonts.cairo(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => selectedDifficulty = v!),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: timeController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'الوقت المقدر (بالثواني)',
+                          labelStyle: GoogleFonts.cairo(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                      Text(
+                        'المواضيع المرتبطة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ...selectedTopicIds.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final name = selectedTopicNames[idx];
+                            return Chip(
+                              label: Text(
+                                name,
+                                style: GoogleFonts.cairo(fontSize: 12),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 14),
+                              onDeleted: () => setState(() {
+                                selectedTopicIds.removeAt(idx);
+                                selectedTopicNames.removeAt(idx);
+                              }),
+                              backgroundColor: AppColors.primaryBlue.withValues(
+                                alpha: 0.1,
+                              ),
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            );
                           }),
-                          backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        );
-                      }),
-                      ActionChip(
-                        label: Text('إضافة موضوع', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.primaryBlue)),
-                        avatar: const Icon(Icons.add, size: 14, color: AppColors.primaryBlue),
-                        onPressed: _showTopicSelectionDialog,
-                        backgroundColor: Colors.transparent,
-                        side: const BorderSide(color: AppColors.primaryBlue),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ActionChip(
+                            label: Text(
+                              'إضافة موضوع',
+                              style: GoogleFonts.cairo(
+                                fontSize: 12,
+                                color: AppColors.primaryBlue,
+                              ),
+                            ),
+                            avatar: const Icon(
+                              Icons.add,
+                              size: 14,
+                              color: AppColors.primaryBlue,
+                            ),
+                            onPressed: _showTopicSelectionDialog,
+                            backgroundColor: Colors.transparent,
+                            side: const BorderSide(
+                              color: AppColors.primaryBlue,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                _buildSubmitButton(isEdit),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 16),
-            _buildSubmitButton(isEdit),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   void _showTopicSelectionDialog() {
@@ -883,67 +1120,92 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: Text('اختر المواضيع', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            title: Text(
+              'اختر المواضيع',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
             content: Container(
               width: double.maxFinite,
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
-              child: availableLessons.isEmpty 
-                ? Center(child: Text('لا توجد مواضيع متاحة', style: GoogleFonts.cairo()))
-                : ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: availableLessons.length,
-                    separatorBuilder: (c, i) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final lesson = availableLessons[index];
-                      final isSelected = selectedTopicIds.contains(lesson['id']);
-                      return CheckboxListTile(
-                        title: Text(
-                          lesson['name'], 
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          )
-                        ),
-                        value: isSelected,
-                        activeColor: AppColors.primaryBlue,
-                        onChanged: (val) {
-                          setState(() {
-                            if (val ?? false) {
-                              if (!selectedTopicIds.contains(lesson['id'])) {
-                                selectedTopicIds.add(lesson['id']);
-                                selectedTopicNames.add(lesson['name']);
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
+              ),
+              child: availableLessons.isEmpty
+                  ? Center(
+                      child: Text(
+                        'لا توجد مواضيع متاحة',
+                        style: GoogleFonts.cairo(),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: availableLessons.length,
+                      separatorBuilder: (c, i) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final lesson = availableLessons[index];
+                        final isSelected = selectedTopicIds.contains(
+                          lesson['id'],
+                        );
+                        return CheckboxListTile(
+                          title: Text(
+                            lesson['name'],
+                            style: GoogleFonts.cairo(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          value: isSelected,
+                          activeColor: AppColors.primaryBlue,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val ?? false) {
+                                if (!selectedTopicIds.contains(lesson['id'])) {
+                                  selectedTopicIds.add(lesson['id']);
+                                  selectedTopicNames.add(lesson['name']);
+                                }
+                              } else {
+                                final idx = selectedTopicIds.indexOf(
+                                  lesson['id'],
+                                );
+                                if (idx != -1) {
+                                  selectedTopicIds.removeAt(idx);
+                                  selectedTopicNames.removeAt(idx);
+                                }
                               }
-                            } else {
-                              final idx = selectedTopicIds.indexOf(lesson['id']);
-                              if (idx != -1) {
-                                selectedTopicIds.removeAt(idx);
-                                selectedTopicNames.removeAt(idx);
-                              }
-                            }
-                          });
-                          setDialogState(() {}); // Update dialog UI
-                        },
-                      );
-                    },
-                  ),
+                            });
+                            setDialogState(() {}); // Update dialog UI
+                          },
+                        );
+                      },
+                    ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('تم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                child: Text(
+                  'تم',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
 
   String _translateDifficulty(Difficulty d) {
     switch (d) {
-      case Difficulty.easy: return 'سهل';
-      case Difficulty.medium: return 'متوسط';
-      case Difficulty.hard: return 'صعب';
+      case Difficulty.easy:
+        return 'سهل';
+      case Difficulty.medium:
+        return 'متوسط';
+      case Difficulty.hard:
+        return 'صعب';
     }
   }
 
@@ -959,10 +1221,14 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           decoration: BoxDecoration(
             color: isCorrect
                 ? Colors.green.withValues(alpha: 0.1)
-                : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white),
+                : (isDark
+                      ? Colors.white.withValues(alpha: 0.02)
+                      : Colors.white),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isCorrect ? Colors.green : (isDark ? Colors.white10 : Colors.grey.shade300),
+              color: isCorrect
+                  ? Colors.green
+                  : (isDark ? Colors.white10 : Colors.grey.shade300),
               width: isCorrect ? 2 : 1,
             ),
           ),
@@ -991,7 +1257,10 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                 ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   child: RichTextEditor(
                     initialHtml: opt['text'],
                     placeholder: 'الخيار ${index + 1}',
@@ -1022,11 +1291,16 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
           padding: const EdgeInsets.only(top: 8.0),
           child: OutlinedButton.icon(
             icon: const Icon(Icons.add, size: 20),
-            label: Text('إضافة خيار جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            label: Text(
+              'إضافة خيار جديد',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryBlue,
               side: const BorderSide(color: AppColors.primaryBlue),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             onPressed: () => setState(() {
