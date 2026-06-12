@@ -50,7 +50,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
             builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
           );
           if (resultLatex != null) {
-            final offset = embedContext.node.offset;
+            final offset = embedContext.node.documentOffset;
             embedContext.controller.replaceText(offset, 1, quill.Embeddable('math', resultLatex), null);
           }
         },
@@ -157,7 +157,7 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () {
-                  final offset = embedContext.node.offset;
+                  final offset = embedContext.node.documentOffset;
                   embedContext.controller.replaceText(offset, 1, '', null);
                   onDeleteImage?.call(imageUrl);
                 },
