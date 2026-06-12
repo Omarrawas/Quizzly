@@ -26,6 +26,8 @@ class PasteIntent extends Intent {
   const PasteIntent();
 }
 
+const String _rtlMarker = '\u200F';
+
 class MathEmbedBuilder extends quill.EmbedBuilder {
   MathEmbedBuilder();
 
@@ -369,6 +371,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
             }
             
             newDelta.insert(quill.BlockEmbed('math', mathContent), op.attributes);
+            newDelta.insert(_rtlMarker, op.attributes);
             lastMatchEnd = match.end;
           }
           final remainingText = text.substring(lastMatchEnd);
@@ -417,6 +420,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     String html = converter.convert();
     html = html.replaceAll('MATH_LATEX_START', '\\(');
     html = html.replaceAll('MATH_LATEX_END', '\\)');
+    html = html.replaceAll(_rtlMarker, '');
     widget.onContentChanged(html);
   }
 
@@ -711,7 +715,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: TextDirection.rtl,
+                        textDirection: TextDirection.ltr,
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
@@ -746,11 +750,14 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   void _insertMathLatex(String latex) {
     final index = _activeInsertionOffset;
+    final delta = Delta()
+      ..insert(quill.Embeddable('math', latex))
+      ..insert(_rtlMarker);
     _controller.replaceText(
       index,
       0,
-      quill.Embeddable('math', latex),
-      TextSelection.collapsed(offset: index + 1),
+      delta,
+      TextSelection.collapsed(offset: index + 2),
     );
   }
 }

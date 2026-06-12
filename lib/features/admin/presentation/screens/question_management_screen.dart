@@ -879,8 +879,9 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                 ? correctOptionIds.first
                                 : null,
                             onChanged: (v) {
-                              if (v != null)
+                              if (v != null) {
                                 setState(() => correctOptionIds = [v]);
+                              }
                             },
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
