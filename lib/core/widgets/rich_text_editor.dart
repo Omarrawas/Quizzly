@@ -226,6 +226,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
   bool _isFocused = false;
   final List<String> _deletedImageUrls = [];
   int _previousLength = 1;
+  TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
+  bool _isNormalizingSelection = false;
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -332,6 +334,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       );
     }
     _previousLength = _controller.document.length;
+    _previousSelection = _controller.selection;
     _controller.addListener(_onContentChanged);
   }
 
@@ -388,6 +391,22 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   void _onContentChanged() {
     final currentLength = _controller.document.length;
+    final currentSelection = _controller.selection;
+    final wasTypingAtEnd = _previousSelection.isCollapsed &&
+        _previousSelection.extentOffset >= _previousLength - 1 &&
+        currentLength > _previousLength;
+
+    if (!_isNormalizingSelection &&
+        wasTypingAtEnd &&
+        currentSelection.extentOffset < currentLength - 1) {
+      _isNormalizingSelection = true;
+      _controller.updateSelection(
+        TextSelection.collapsed(offset: currentLength - 1),
+        quill.ChangeSource.local,
+      );
+      _isNormalizingSelection = false;
+    }
+
     if (currentLength == 1 && _previousLength > 1) {
       _controller.removeListener(_onContentChanged);
       _controller.formatSelection(quill.Attribute.rtl);
@@ -395,6 +414,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _controller.addListener(_onContentChanged);
     }
     _previousLength = currentLength;
+    _previousSelection = _controller.selection;
 
     final delta = _controller.document.toDelta();
     final List<Map<String, dynamic>> processedOps = [];
