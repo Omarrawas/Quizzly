@@ -465,22 +465,27 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
             ),
             child: Row(
               children: [
-                if (q.type == QuestionType.checkbox) ...[
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.rectangle,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 2),
-                      color: isSelected ? borderColor : Colors.transparent,
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: q.type == QuestionType.checkbox ? BoxShape.rectangle : BoxShape.circle,
+                    borderRadius: q.type == QuestionType.checkbox ? BorderRadius.circular(6) : null,
+                    border: Border.all(
+                      color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), 
+                      width: 2,
                     ),
-                    child: isSelected
-                        ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-                        : null,
+                    color: isSelected ? borderColor : Colors.transparent,
                   ),
-                  const SizedBox(width: 12),
-                ],
+                  child: isSelected
+                      ? Icon(
+                          q.type == QuestionType.checkbox ? Icons.check_rounded : Icons.circle,
+                          size: q.type == QuestionType.checkbox ? 14 : 8,
+                          color: isDark ? Colors.black : Colors.white,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: TexViewWidget(
                     text: option.text,
@@ -488,18 +493,6 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
-                if (q.type != QuestionType.checkbox) ...[
-                  // For MCQ, we show a subtle indicator or nothing if we want consistency
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: isSelected ? borderColor : Colors.grey.withValues(alpha: 0.3), width: 1.5),
-                    ),
-                    child: isSelected ? Center(child: Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: borderColor))) : null,
-                  ),
-                ],
               ],
             ),
           ),
