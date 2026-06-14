@@ -115,13 +115,17 @@ class TexViewWidget extends StatelessWidget {
         },
         customWidgetBuilder: (element) {
           if (element.localName == 'math-tex') {
-            return _buildMathText(context, element.text, defaultStyle);
+            return InlineCustomWidget(
+              child: _buildMathText(context, element.text, defaultStyle),
+            );
           }
           
           if (element.children.isEmpty) {
             final text = element.text;
             if (_latexRegex.hasMatch(text)) {
-              return _buildMathText(context, text, defaultStyle);
+              return InlineCustomWidget(
+                child: _buildMathText(context, text, defaultStyle),
+              );
             }
           }
           return null;
