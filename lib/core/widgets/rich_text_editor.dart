@@ -15,6 +15,8 @@ import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'math/editor/quizzly_math_editor.dart';
 import 'math/editor/widgets/safe_math_preview.dart';
+import 'package:http/http.dart' as http;
+import 'package:file_saver/file_saver.dart';
 
 
 
@@ -90,6 +92,15 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
     final editorDirection = Directionality.of(context);
     final isRtl = editorDirection == TextDirection.rtl;
 
+    // Read the width attribute
+    final style = embedContext.node.style;
+    final widthAttr = style.attributes['width']?.value;
+    
+    double? width;
+    if (widthAttr != null) {
+      width = double.tryParse(widthAttr.toString());
+    }
+
     return Container(
       width: double.infinity,
       alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
@@ -98,52 +109,56 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
         clipBehavior: Clip.none,
         children: [
           // ── Image Container ──
-          Container(
-            constraints: const BoxConstraints(
-              maxHeight: 400,
-              minHeight: 100,
-              minWidth: 100,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
-              border: Border.all(
-                color: isDark ? Colors.white12 : Colors.grey.shade300,
-                width: 1,
+          GestureDetector(
+            onTap: () => _showImageOptionsMenu(context, imageUrl, embedContext),
+            child: Container(
+              width: width,
+              constraints: BoxConstraints(
+                maxHeight: 400,
+                minHeight: 100,
+                minWidth: width != null ? 0 : 100,
               ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.contain,
-                placeholder: (context, url) => Container(
-                  height: 150,
-                  width: 200,
-                  alignment: Alignment.center,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primaryBlue,
-                  ),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
+                border: Border.all(
+                  color: isDark ? Colors.white12 : Colors.grey.shade300,
+                  width: 1,
                 ),
-                errorWidget: (context, url, error) => Container(
-                  height: 120,
-                  width: 200,
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image_rounded, color: Colors.red.shade300, size: 32),
-                      const SizedBox(height: 8),
-                      Text(
-                        kIsWeb 
-                          ? 'خطأ CORS (يرجى مراجعة إعدادات Firebase)'
-                          : 'خطأ في تحميل الصورة',
-                        style: TextStyle(fontSize: 10, color: Colors.red.shade300),
-                        textAlign: TextAlign.center,
-                        textDirection: TextDirection.rtl,
-                      ),
-                    ],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => Container(
+                    height: 150,
+                    width: 200,
+                    alignment: Alignment.center,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 120,
+                    width: 200,
+                    alignment: Alignment.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.broken_image_rounded, color: Colors.red.shade300, size: 32),
+                        const SizedBox(height: 8),
+                        Text(
+                          kIsWeb 
+                            ? 'خطأ CORS (يرجى مراجعة إعدادات Firebase)'
+                            : 'خطأ في تحميل الصورة',
+                          style: TextStyle(fontSize: 10, color: Colors.red.shade300),
+                          textAlign: TextAlign.center,
+                          textDirection: TextDirection.rtl,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -188,6 +203,305 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
         ],
       ),
     );
+  }
+
+  void _showImageOptionsMenu(BuildContext context, String imageUrl, quill.EmbedContext embedContext) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = const Color(0xFF6E56FF);
+    final errorColor = const Color(0xFFFF4C6A);
+    final surfaceColor = const Color(0xFF222329);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'خيارات الصورة',
+                  style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // 1. Resize (تعديل الحجم)
+                ListTile(
+                  leading: Icon(Icons.photo_size_select_large_rounded, color: primaryColor),
+                  title: const Text(
+                    'تعديل الحجم',
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 16),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showResizeDialog(context, embedContext);
+                  },
+                ),
+                
+                // 2. Zoom (معاينة)
+                ListTile(
+                  leading: Icon(Icons.zoom_in_rounded, color: primaryColor),
+                  title: const Text(
+                    'معاينة وتكبير',
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 16),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showZoomDialog(context, imageUrl);
+                  },
+                ),
+                
+                // 3. Copy (نسخ الرابط)
+                ListTile(
+                  leading: Icon(Icons.copy_rounded, color: primaryColor),
+                  title: const Text(
+                    'نسخ رابط الصورة',
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 16),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Clipboard.setData(ClipboardData(text: imageUrl));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'تم نسخ رابط الصورة إلى الحافظة',
+                          style: TextStyle(fontFamily: 'Tajawal'),
+                          textDirection: TextDirection.rtl,
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Color(0xFF6E56FF),
+                      ),
+                    );
+                  },
+                ),
+                
+                // 4. Save (حفظ)
+                ListTile(
+                  leading: Icon(Icons.save_rounded, color: primaryColor),
+                  title: const Text(
+                    'حفظ الصورة في الجهاز',
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 16),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _saveImage(context, imageUrl);
+                  },
+                ),
+                
+                // Divider
+                Divider(color: const Color(0xFF2D2E36)),
+                
+                // 5. Remove (حذف)
+                ListTile(
+                  leading: Icon(Icons.delete_outline_rounded, color: errorColor),
+                  title: Text(
+                    'حذف الصورة',
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 16, color: errorColor),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    final offset = embedContext.node.documentOffset;
+                    embedContext.controller.replaceText(offset, 1, '', null);
+                    onDeleteImage?.call(imageUrl);
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showResizeDialog(BuildContext context, quill.EmbedContext embedContext) {
+    final surfaceColor = const Color(0xFF222329);
+    final primaryColor = const Color(0xFF6E56FF);
+    final currentStyle = embedContext.node.style;
+    final currentWidthVal = currentStyle.attributes['width']?.value;
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text(
+              'اختر حجم الصورة',
+              style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildResizeOption(context, embedContext, 'ملء العرض (100%)', null, currentWidthVal == null),
+                _buildResizeOption(context, embedContext, 'كبير (400 بكسل)', '400', currentWidthVal?.toString() == '400'),
+                _buildResizeOption(context, embedContext, 'متوسط (300 بكسل)', '300', currentWidthVal?.toString() == '300'),
+                _buildResizeOption(context, embedContext, 'صغير (200 بكسل)', '200', currentWidthVal?.toString() == '200'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'إلغاء',
+                  style: TextStyle(fontFamily: 'Tajawal', color: primaryColor),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResizeOption(
+    BuildContext context, 
+    quill.EmbedContext embedContext, 
+    String label, 
+    String? widthValue, 
+    bool isSelected
+  ) {
+    final primaryColor = const Color(0xFF6E56FF);
+    return ListTile(
+      title: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Tajawal',
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? primaryColor : null,
+        ),
+      ),
+      trailing: isSelected ? Icon(Icons.check_circle_rounded, color: primaryColor) : null,
+      onTap: () {
+        Navigator.pop(context);
+        final offset = embedContext.node.documentOffset;
+        if (widthValue == null) {
+          embedContext.controller.formatText(
+            offset,
+            1,
+            quill.Attribute.clone(quill.Attribute.width, null),
+          );
+        } else {
+          embedContext.controller.formatText(
+            offset,
+            1,
+            quill.Attribute.clone(quill.Attribute.width, widthValue),
+          );
+        }
+      },
+    );
+  }
+
+  void _showZoomDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(8),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: IconButton(
+                  style: IconButton.styleFrom(backgroundColor: Colors.black38),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _saveImage(BuildContext context, String imageUrl) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF6E56FF))),
+      );
+      
+      final response = await http.get(Uri.parse(imageUrl));
+      if (!context.mounted) return;
+      Navigator.pop(context); // close loader
+      
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final fileName = 'quizzly_image_${DateTime.now().millisecondsSinceEpoch}';
+        
+        await FileSaver.instance.saveFile(
+          name: fileName,
+          bytes: bytes,
+          ext: 'png',
+          mimeType: MimeType.png,
+        );
+        
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'تم حفظ الصورة بنجاح',
+              style: TextStyle(fontFamily: 'Tajawal'),
+              textDirection: TextDirection.rtl,
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Color(0xFF7DFFA2),
+          ),
+        );
+      } else {
+        throw Exception('Failed to download image');
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'فشل حفظ الصورة: $e',
+            style: const TextStyle(fontFamily: 'Tajawal'),
+            textDirection: TextDirection.rtl,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFFF4C6A),
+        ),
+      );
+    }
   }
 }
 
