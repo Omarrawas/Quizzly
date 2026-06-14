@@ -110,22 +110,107 @@ class MathUtils {
   }
 
   static String _processTextSegment(String input) {
-    if (latexRegex.hasMatch(input)) return input;
+    if (input.trim().isEmpty) return input;
 
+    // Use splitMapJoin to isolate already-existing LaTeX blocks
     return input.splitMapJoin(
-      RegExp(r'\S+'),
+      latexRegex,
       onMatch: (Match match) {
-        final token = match.group(0)!;
-        if (isMathLike(token)) {
-          final latex = MathParser.convertToLatex(token);
-          return '\\($latex\\)';
-        }
-        return token;
+        return match.group(0)!;
       },
-      onNonMatch: (String nonMatch) {
-        return nonMatch;
+      onNonMatch: (String nonMathPart) {
+        return _processNonLatexSegment(nonMathPart);
       },
     );
+  }
+
+  static String _processNonLatexSegment(String input) {
+    final arabicRegex = RegExp(r'([\u0600-\u06FF]+)');
+
+    return input.splitMapJoin(
+      arabicRegex,
+      onMatch: (Match match) {
+        return match.group(0)!;
+      },
+      onNonMatch: (String nonArabicPart) {
+        if (nonArabicPart.trim().isEmpty) return nonArabicPart;
+
+        // Split non-Arabic part by common English words to keep them outside math blocks
+        final englishWordRegex = RegExp(
+          r'\b(?:the|of|and|to|in|is|for|that|this|with|by|from|at|on|an|or|as|be|are|was|were|value|calculate|find|where|show|if|then|given|determine|solve|equation|formula|mass|ratio|constant|temperature|pressure|volume|moles|concentration|reacts|produces|formed|yields|which|what|how|many|each|following|select)\b',
+          caseSensitive: false,
+        );
+
+        return nonArabicPart.splitMapJoin(
+          englishWordRegex,
+          onMatch: (Match match) {
+            return match.group(0)!;
+          },
+          onNonMatch: (String part) {
+            if (part.trim().isEmpty) return part;
+
+            // Trim leading/trailing spaces and common punctuation (like colons, commas) so they stay outside the math block
+            final leadingMatch = RegExp(r'^[\s:!?,;،؛\.]*').firstMatch(part);
+            final leading = leadingMatch?.group(0) ?? '';
+
+            final trailingMatch = RegExp(r'[\s:!?,;،؛\.]*$').firstMatch(part);
+            final trailing = trailingMatch?.group(0) ?? '';
+
+            final trimmedMath = part.substring(leading.length, part.length - trailing.length);
+
+            if (trimmedMath.isNotEmpty && isMathExpression(trimmedMath)) {
+              final latex = MathParser.convertToLatex(trimmedMath);
+              return '$leading\\($latex\\)$trailing';
+            }
+            return part;
+          },
+        );
+      },
+    );
+  }
+
+  static bool isMathExpression(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+
+    // Arabic characters are never math in this context
+    if (RegExp(r'[\u0600-\u06FF]').hasMatch(trimmed)) return false;
+
+    // Single character detection
+    if (trimmed.length == 1) {
+      return RegExp(r'[a-zA-ZπλωστρηΔΦΩαβγθδσΦ\^/_=<>≤≥≠≈×÷±∓∓√∞²³⁴⁵⁶⁷⁸⁹⁰〖〗【】()\[\]{}λπαβγ+*-∀∃∈∉∋∇∆∩∪ø∂]').hasMatch(trimmed);
+    }
+
+    // If it starts with a number but has no operators or other indicators, don't treat as math (e.g. "22.4")
+    if (RegExp(r'^\d+(\.\d+)?$').hasMatch(trimmed)) return false;
+
+    // Math operators indicate a math expression
+    final hasMathOperator = RegExp(r'[=+\-*/^_<≤≥≠±×÷√⟹⇒]|\\').hasMatch(trimmed);
+    if (hasMathOperator) return true;
+
+    // Chemical formulas (e.g. H2O, CO2, NaCl, H2SO4)
+    final isChemicalFormula = RegExp(r'^[A-Z][a-z]?\d+([A-Z][a-z]?\d*)*$').hasMatch(trimmed);
+    if (isChemicalFormula) return true;
+
+    // For short strings:
+    if (trimmed.length <= 5) {
+      // Exclude common English words
+      final isCommonEnglishWord = RegExp(
+        r'^(the|of|and|to|in|is|for|that|this|with|by|from|at|on|an|or|as|be|are|was|were|value|calculate|find|where|show|if|then|given|determine|solve|equation|formula|mass|ratio|constant|temperature|pressure|volume|moles|concentration|reacts|produces|formed|yields|which|what|how|many|each|following|select)$',
+        caseSensitive: false,
+      ).hasMatch(trimmed);
+      
+      if (!isCommonEnglishWord) {
+        // Purely alphabetic strings of length 2-5 are only math if they match known functions
+        final isPureAlpha = RegExp(r'^[a-zA-Z]+$').hasMatch(trimmed);
+        if (isPureAlpha) {
+          return RegExp(r'^(sin|cos|tan|log|ln|lim)$', caseSensitive: false).hasMatch(trimmed);
+        }
+        return RegExp(r'[a-zA-Z0-9()\[\]{}]+').hasMatch(trimmed);
+      }
+    }
+
+    return isMathLike(trimmed);
   }
 
   /// Detects if a string looks like a mathematical equation
@@ -177,6 +262,7 @@ class MathUtils {
 
     return hits >= 2 || combinedRegex.hasMatch(text);
   }
+
 
   static String decodeHtmlEntities(String input) {
     return input

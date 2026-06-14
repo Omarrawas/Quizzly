@@ -75,6 +75,18 @@ class MathNormalizer {
     '⁷': '^7',
     '⁸': '^8',
     '⁹': '^9',
+    '₀': '_0',
+    '₁': '_1',
+    '₂': '_2',
+    '₃': '_3',
+    '₄': '_4',
+    '₅': '_5',
+    '₆': '_6',
+    '₇': '_7',
+    '₈': '_8',
+    '₉': '_9',
+    '₊': '_+',
+    '₋': '_-',
     '´': "'",
     '′': "'",
     '″': "''",
@@ -110,6 +122,12 @@ class MathNormalizer {
     result = result.replaceAll(r'\circ  ', r'\circ ');
     // Remove triple-backslashes or double-backslashes that might have been accidentally doubled during normalization
     result = result.replaceAll(r'\\\\', r'\\');
+
+    // Convert letters followed by digits to subscripts (e.g. H2O -> H_2O, x1 -> x_1)
+    result = result.replaceAllMapped(
+      RegExp(r'([a-zA-Z])(\d+)'),
+      (match) => '${match.group(1)}_${match.group(2)}'
+    );
 
     result = result.trim();
     

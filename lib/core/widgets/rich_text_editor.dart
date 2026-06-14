@@ -572,6 +572,22 @@ class _RichTextEditorState extends State<RichTextEditor> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant RichTextEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialHtml != oldWidget.initialHtml) {
+      final currentHtml = _getCurrentHtml();
+      if (widget.initialHtml != currentHtml) {
+        _controller.removeListener(_onContentChanged);
+        _controller.dispose();
+        _initializeController();
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    }
+  }
+
   void _onFocusChanged() {
     if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
   }
@@ -704,6 +720,35 @@ class _RichTextEditorState extends State<RichTextEditor> {
     return newDelta;
   }
 
+  String _getCurrentHtml() {
+    final delta = _controller.document.toDelta();
+    final List<Map<String, dynamic>> processedOps = [];
+
+    for (final op in delta.toJson()) {
+      final insert = op['insert'];
+      if (insert is Map && insert.containsKey('math')) {
+        final latex = insert['math'].toString();
+        processedOps.add({
+          'insert': 'MATH_LATEX_START${latex}MATH_LATEX_END',
+          'attributes': op['attributes'],
+        });
+      } else {
+        processedOps.add(Map<String, dynamic>.from(op));
+      }
+    }
+
+    final converter = QuillDeltaToHtmlConverter(
+      processedOps,
+      ConverterOptions(converterOptions: OpConverterOptions(inlineStylesFlag: true)),
+    );
+
+    String html = converter.convert();
+    html = html.replaceAll('MATH_LATEX_START', '\\(');
+    html = html.replaceAll('MATH_LATEX_END', '\\)');
+    html = html.replaceAll(_rtlMarker, '');
+    return html;
+  }
+
   void _onContentChanged() {
     final currentLength = _controller.document.length;
     final currentSelection = _controller.selection;
@@ -731,31 +776,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _previousLength = currentLength;
     _previousSelection = _controller.selection;
 
-    final delta = _controller.document.toDelta();
-    final List<Map<String, dynamic>> processedOps = [];
-
-    for (final op in delta.toJson()) {
-      final insert = op['insert'];
-      if (insert is Map && insert.containsKey('math')) {
-        final latex = insert['math'].toString();
-        processedOps.add({
-          'insert': 'MATH_LATEX_START${latex}MATH_LATEX_END',
-          'attributes': op['attributes'],
-        });
-      } else {
-        processedOps.add(Map<String, dynamic>.from(op));
-      }
-    }
-
-    final converter = QuillDeltaToHtmlConverter(
-      processedOps,
-      ConverterOptions(converterOptions: OpConverterOptions(inlineStylesFlag: true)),
-    );
-
-    String html = converter.convert();
-    html = html.replaceAll('MATH_LATEX_START', '\\(');
-    html = html.replaceAll('MATH_LATEX_END', '\\)');
-    html = html.replaceAll(_rtlMarker, '');
+    final html = _getCurrentHtml();
     widget.onContentChanged(html);
   }
 

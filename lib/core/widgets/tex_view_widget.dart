@@ -190,6 +190,17 @@ class TexViewWidget extends StatelessWidget {
                   color: textColor,
                   fontSize: (baseStyle.fontSize ?? 16) + 2,
                 ),
+                onErrorFallback: (error) {
+                  final cleanLatex = latex.replaceAll(RegExp(r'\\\(|\\\)|\$'), '');
+                  return Text(
+                    cleanLatex,
+                    style: baseStyle.copyWith(
+                      color: textColor.withValues(alpha: 0.9),
+                      fontFamily: 'Cairo',
+                    ),
+                    textAlign: TextAlign.center,
+                  );
+                },
               ),
             ),
           ),

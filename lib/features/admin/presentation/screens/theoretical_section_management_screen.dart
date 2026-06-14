@@ -37,6 +37,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   final DatabaseService _dbService = DatabaseService();
   Map<String, Map<String, dynamic>> _topicsMap = {};
   bool _isLoadingTopics = true;
+  Stream<QuerySnapshot>? _questionsStream;
   
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -61,6 +62,31 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   void initState() {
     super.initState();
     _loadTopics();
+    _initQuestionsStream();
+  }
+
+  @override
+  void didUpdateWidget(covariant TheoreticalSectionManagementScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.subjectId != oldWidget.subjectId ||
+        widget.lessonId != oldWidget.lessonId ||
+        widget.sectionId != oldWidget.sectionId) {
+      _initQuestionsStream();
+    }
+  }
+
+  void _initQuestionsStream() {
+    Query query = FirebaseFirestore.instance
+        .collection(DatabaseService.colQuestions)
+        .where('subjectId', isEqualTo: widget.subjectId);
+
+    if (widget.lessonId != null) {
+      query = query.where('topicIds', arrayContains: widget.lessonId);
+    } else if (widget.sectionId != null) {
+      query = query.where('parentId', isEqualTo: widget.sectionId);
+    }
+
+    _questionsStream = query.snapshots();
   }
 
   Future<void> _loadTopics() async {
@@ -482,19 +508,10 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
 
   Widget _buildQuestionsList(bool isDark) {
     if (_isLoadingTopics) return const Center(child: CircularProgressIndicator());
-
-    Query query = FirebaseFirestore.instance
-        .collection(DatabaseService.colQuestions)
-        .where('subjectId', isEqualTo: widget.subjectId);
-
-    if (widget.lessonId != null) {
-      query = query.where('topicIds', arrayContains: widget.lessonId);
-    } else if (widget.sectionId != null) {
-      query = query.where('parentId', isEqualTo: widget.sectionId);
-    }
+    if (_questionsStream == null) return const Center(child: CircularProgressIndicator());
 
     return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
+      stream: _questionsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (snapshot.hasError) {
@@ -550,13 +567,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           return _emptyState('لا توجد نتائج تطابق البحث أو الفلاتر', isDark);
         }
 
-        // Update current visible IDs for Select All logic
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final newIds = docs.map((d) => d.id).toList();
-          if (newIds.length != _currentVisibleQuestionIds.length || !newIds.every((id) => _currentVisibleQuestionIds.contains(id))) {
-             if (mounted) setState(() => _currentVisibleQuestionIds = newIds);
-          }
-        });
+        // Update current visible IDs for Select All logic synchronously without rebuild loop
+        _currentVisibleQuestionIds = docs.map((d) => d.id).toList();
 
         // Group and sort questions by chapter and lesson order
         final Map<String, List<QueryDocumentSnapshot>> grouped = {};
