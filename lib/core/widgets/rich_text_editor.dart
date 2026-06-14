@@ -974,7 +974,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   const VerticalDivider(width: 8),
                   _buildToolbarButton(
                     icon: Icons.format_textdirection_r_to_l,
-                    isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] != null,
+                    isSelected: _selectionStyle.attributes[quill.Attribute.align.key]?.value != 'left',
                     onPressed: () {
                       _controller.formatSelection(quill.Attribute.rtl);
                       _controller.formatSelection(quill.Attribute.rightAlignment);
@@ -983,7 +983,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   ),
                   _buildToolbarButton(
                     icon: Icons.format_textdirection_l_to_r,
-                    isSelected: _selectionStyle.attributes[quill.Attribute.rtl.key] == null,
+                    isSelected: _selectionStyle.attributes[quill.Attribute.align.key]?.value == 'left',
                     onPressed: () {
                       _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null));
                       _controller.formatSelection(quill.Attribute.leftAlignment);
