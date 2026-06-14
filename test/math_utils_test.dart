@@ -35,7 +35,7 @@ void main() {
 
     test('should ignore common English words and not treat them as math', () {
       final input = 'Calculate the value of x where x = 3';
-      final expected = r'Calculate the value of \(x\) where \(x = 3\)';
+      final expected = r'Calculate the value of x where \(x = 3\)';
       expect(MathUtils.normalizeMathContent(input), expected);
     });
 

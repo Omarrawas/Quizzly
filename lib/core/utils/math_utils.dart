@@ -182,9 +182,11 @@ class MathUtils {
     // Arabic characters are never math in this context
     if (RegExp(r'[\u0600-\u06FF]').hasMatch(trimmed)) return false;
 
-    // Single character detection
+    // Single character detection:
+    // Only treat as math if it's a Greek letter, math operator, or superscript/subscript digit.
+    // Do NOT match plain English letters (like a, b, c, x, y, z) or brackets/parentheses here.
     if (trimmed.length == 1) {
-      return RegExp(r'[a-zA-ZπλωστρηΔΦΩαβγθδσΦ\^/_=<>≤≥≠≈×÷±∓∓√∞²³⁴⁵⁶⁷⁸⁹⁰〖〗【】()\[\]{}λπαβγ+*-∀∃∈∉∋∇∆∩∪ø∂]').hasMatch(trimmed);
+      return RegExp(r'[πλωστρηΔΦΩαβγθδσΦ\^/_=<>≤≥≠≈×÷±∓∓√∞²³⁴⁵⁶⁷⁸⁹⁰λπαβγ+*\-∀∃∈∉∋∇∆∩∪ø∂]').hasMatch(trimmed);
     }
 
     // If it starts with a number but has no operators or other indicators, don't treat as math (e.g. "22.4")
@@ -192,7 +194,13 @@ class MathUtils {
 
     // Math operators indicate a math expression
     final hasMathOperator = RegExp(r'[=+\-*/^_<≤≥≠±×÷√⟹⇒]|\\').hasMatch(trimmed);
-    if (hasMathOperator) return true;
+    if (hasMathOperator) {
+      // Exclude simple parenthesized options like "(a)", "(b)", "(1)"
+      final isParenthesizedOption = RegExp(r'^\([a-zA-Z0-9]\)$').hasMatch(trimmed);
+      if (!isParenthesizedOption) {
+        return true;
+      }
+    }
 
     // Chemical formulas (e.g. H2O, CO2, NaCl, H2SO4)
     final isChemicalFormula = RegExp(r'^[A-Z][a-z]?\d+([A-Z][a-z]?\d*)*$').hasMatch(trimmed);
