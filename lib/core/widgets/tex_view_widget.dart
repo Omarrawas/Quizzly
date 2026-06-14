@@ -96,8 +96,26 @@ class TexViewWidget extends StatelessWidget {
     final effectiveDirection = textDirection ?? MathUtils.getDirection(normalizedContent);
     final String htmlDir = effectiveDirection == TextDirection.rtl ? 'rtl' : 'ltr';
 
-    // Wrap in a div with correct direction attribute so HtmlWidget inherits directionality correctly
-    final String wrappedHtml = '<div dir="$htmlDir">$normalizedContent</div>';
+    // Inject dir attribute into block tags (p, li, div) to force direct block directionality
+    var directedHtml = normalizedContent;
+    directedHtml = directedHtml.replaceAllMapped(RegExp(r'<p(\s+[^>]*|)>', caseSensitive: false), (match) {
+      final attrs = match.group(1) ?? '';
+      if (attrs.contains('dir=')) return match.group(0)!;
+      return '<p dir="$htmlDir"$attrs>';
+    });
+    directedHtml = directedHtml.replaceAllMapped(RegExp(r'<li(\s+[^>]*|)>', caseSensitive: false), (match) {
+      final attrs = match.group(1) ?? '';
+      if (attrs.contains('dir=')) return match.group(0)!;
+      return '<li dir="$htmlDir"$attrs>';
+    });
+    directedHtml = directedHtml.replaceAllMapped(RegExp(r'<div(\s+[^>]*|)>', caseSensitive: false), (match) {
+      final attrs = match.group(1) ?? '';
+      if (attrs.contains('dir=')) return match.group(0)!;
+      return '<div dir="$htmlDir"$attrs>';
+    });
+
+    // Wrap in a div with correct direction attribute as a fallback
+    final String wrappedHtml = '<div dir="$htmlDir">$directedHtml</div>';
 
     // Wrap LaTeX formulas in <math-tex> so they can be parsed as standalone elements by HtmlWidget.
     final String processedHtml = wrappedHtml.replaceAllMapped(_latexRegex, (match) {
