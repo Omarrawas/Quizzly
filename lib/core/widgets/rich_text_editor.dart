@@ -1084,7 +1084,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: TextDirection.ltr,
+                        textDirection: TextDirection.rtl,
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
