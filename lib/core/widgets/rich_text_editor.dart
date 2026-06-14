@@ -542,9 +542,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
   final List<String> _deletedImageUrls = [];
   int _previousLength = 1;
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
-  bool _isNormalizingSelection = false;
   String? _lastGeneratedHtml;
   int? _lastKnownInsertionOffset;
+  bool _isAutoFormatting = false;
+  bool _isNormalizingSelection = false;
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -558,6 +559,31 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final offset = _controller.selection.extentOffset;
     if (offset < 0) return _controller.document.length - 1;
     return offset.clamp(0, _controller.document.length - 1);
+  }
+
+  String _getCurrentLineText() {
+    try {
+      final text = _controller.document.toPlainText();
+      final offset = _controller.selection.extentOffset;
+      if (offset < 0 || offset > text.length) return '';
+      
+      int start = text.lastIndexOf('\n', offset - 1);
+      if (start == -1) {
+        start = 0;
+      } else {
+        start += 1;
+      }
+      
+      int end = text.indexOf('\n', offset);
+      if (end == -1) {
+        end = text.length;
+      }
+      
+      if (start >= end) return '';
+      return text.substring(start, end);
+    } catch (_) {
+      return '';
+    }
   }
 
   @override
@@ -744,6 +770,40 @@ class _RichTextEditorState extends State<RichTextEditor> {
     // Update last known insertion offset if selection is valid and editor is focused
     if (_focusNode.hasFocus && currentSelection.extentOffset >= 0) {
       _lastKnownInsertionOffset = currentSelection.extentOffset;
+    }
+
+    // Dynamic auto-directionality formatting based on text content
+    if (!_isAutoFormatting && 
+        _focusNode.hasFocus && 
+        currentSelection.isCollapsed && 
+        currentSelection.extentOffset >= 0) {
+      _isAutoFormatting = true;
+      try {
+        final lineText = _getCurrentLineText();
+        // Default to RTL if line is empty or spaces, otherwise check for Arabic
+        final isArabic = lineText.trim().isEmpty || 
+            MathUtils.getDirection(lineText) == TextDirection.rtl;
+            
+        final selectionStyle = _controller.getSelectionStyle();
+        final hasRtlAttr = selectionStyle.attributes.containsKey(quill.Attribute.rtl.key);
+        final hasRightAlign = selectionStyle.attributes[quill.Attribute.align.key]?.value == 'right';
+
+        if (isArabic) {
+          if (!hasRtlAttr || !hasRightAlign) {
+            _controller.formatSelection(quill.Attribute.rtl);
+            _controller.formatSelection(quill.Attribute.rightAlignment);
+          }
+        } else {
+          if (hasRtlAttr) {
+            _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null));
+            _controller.formatSelection(quill.Attribute.clone(quill.Attribute.align, null));
+          }
+        }
+      } catch (e) {
+        debugPrint('Auto format error: $e');
+      } finally {
+        _isAutoFormatting = false;
+      }
     }
 
     final wasTypingAtEnd = _previousSelection.isCollapsed &&
@@ -995,7 +1055,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   const VerticalDivider(width: 8),
                   _buildToolbarButton(
                     icon: Icons.format_textdirection_r_to_l,
-                    isSelected: _selectionStyle.attributes[quill.Attribute.align.key]?.value != 'left',
+                    isSelected: _selectionStyle.attributes.containsKey(quill.Attribute.rtl.key),
                     onPressed: () {
                       _controller.formatSelection(quill.Attribute.rtl);
                       _controller.formatSelection(quill.Attribute.rightAlignment);
@@ -1004,7 +1064,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   ),
                   _buildToolbarButton(
                     icon: Icons.format_textdirection_l_to_r,
-                    isSelected: _selectionStyle.attributes[quill.Attribute.align.key]?.value == 'left',
+                    isSelected: !_selectionStyle.attributes.containsKey(quill.Attribute.rtl.key),
                     onPressed: () {
                       _controller.formatSelection(quill.Attribute.clone(quill.Attribute.rtl, null));
                       _controller.formatSelection(quill.Attribute.leftAlignment);

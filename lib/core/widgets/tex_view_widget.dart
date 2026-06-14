@@ -93,12 +93,16 @@ class TexViewWidget extends StatelessWidget {
     final htmlBaseStyle = defaultStyle.copyWith(color: null);
     final defaultCssColor = _colorToCss(defaultStyle.color ?? defaultTextColor);
 
+    final effectiveDirection = textDirection ?? MathUtils.getDirection(normalizedContent);
+    final String htmlDir = effectiveDirection == TextDirection.rtl ? 'rtl' : 'ltr';
+
+    // Wrap in a div with correct direction attribute so HtmlWidget inherits directionality correctly
+    final String wrappedHtml = '<div dir="$htmlDir">$normalizedContent</div>';
+
     // Wrap LaTeX formulas in <math-tex> so they can be parsed as standalone elements by HtmlWidget.
-    final String processedHtml = normalizedContent.replaceAllMapped(_latexRegex, (match) {
+    final String processedHtml = wrappedHtml.replaceAllMapped(_latexRegex, (match) {
       return '<math-tex>${match.group(0)}</math-tex>';
     });
-
-    final effectiveDirection = textDirection ?? MathUtils.getDirection(normalizedContent);
     
     return Directionality(
       textDirection: effectiveDirection,
