@@ -111,11 +111,18 @@ class TexViewWidget extends StatelessWidget {
         textStyle: htmlBaseStyle,
         renderMode: RenderMode.column,
         customStylesBuilder: (element) {
+          final Map<String, String> styles = {};
+          
+          if (element.localName != 'math-tex') {
+            styles['direction'] = htmlDir;
+          }
+          
           final inlineStyle = element.attributes['style'] ?? '';
           if (!inlineStyle.contains('color')) {
-            return {'color': defaultCssColor};
+            styles['color'] = defaultCssColor;
           }
-          return null;
+          
+          return styles;
         },
         customWidgetBuilder: (element) {
           if (element.localName == 'math-tex') {
