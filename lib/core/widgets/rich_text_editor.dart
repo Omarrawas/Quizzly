@@ -679,8 +679,15 @@ class _RichTextEditorState extends State<RichTextEditor> {
       final List<Map<String, dynamic>> processedOps = [];
 
       for (final op in delta.toJson()) {
-        final insert = op['insert'];
+        final Map<String, dynamic> opMap = Map<String, dynamic>.from(op);
+        var insert = opMap['insert'];
         
+        // If it is an Embeddable object, serialize it to JSON map first
+        if (insert is quill.Embeddable) {
+          insert = insert.toJson();
+          opMap['insert'] = insert;
+        }
+
         bool isMath = false;
         String latex = '';
         if (insert is Map) {
@@ -696,10 +703,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
         if (isMath) {
           processedOps.add({
             'insert': 'MATH_LATEX_START${latex}MATH_LATEX_END',
-            'attributes': op['attributes'],
+            'attributes': opMap['attributes'],
           });
         } else {
-          processedOps.add(Map<String, dynamic>.from(op));
+          processedOps.add(opMap);
         }
       }
 
@@ -773,6 +780,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   Future<void> _uploadAndInsertImage({Uint8List? rawBytes, String? extension}) async {
+    final index = _activeInsertionOffset;
     try {
       Uint8List? bytes = rawBytes;
       String? ext = extension;
@@ -812,7 +820,6 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (mounted) Navigator.pop(context);
 
       if (url != null) {
-        final index = _activeInsertionOffset;
         _controller.replaceText(
           index,
           0,
@@ -1014,12 +1021,13 @@ class _RichTextEditorState extends State<RichTextEditor> {
                     icon: Icons.functions_rounded,
                     isSelected: false,
                     onPressed: () async {
+                      final index = _activeInsertionOffset;
                       final resultLatex = await showDialog<String>(
                         context: context,
                         builder: (context) => const QuizzlyMathEditorProvider(),
                       );
                       if (resultLatex != null && resultLatex.isNotEmpty) {
-                        _insertMathLatex(resultLatex);
+                        _insertMathLatex(resultLatex, index);
                       }
                     },
                     tooltip: 'إدراج معادلة',
@@ -1086,8 +1094,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
     );
   }
 
-  void _insertMathLatex(String latex) {
-    final index = _activeInsertionOffset;
+  void _insertMathLatex(String latex, [int? customOffset]) {
+    final index = customOffset ?? _activeInsertionOffset;
     final delta = Delta()
       ..insert(quill.Embeddable('math', latex))
       ..insert(_rtlMarker);
