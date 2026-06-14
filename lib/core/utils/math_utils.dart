@@ -156,7 +156,13 @@ class MathUtils {
             final trailingMatch = RegExp(r'[\s:!?,;،؛\.]*$').firstMatch(part);
             final trailing = trailingMatch?.group(0) ?? '';
 
-            final trimmedMath = part.substring(leading.length, part.length - trailing.length);
+            String trimmedMath = '';
+            if (leading.length < part.length) {
+              final endIdx = part.length - trailing.length;
+              if (leading.length < endIdx) {
+                trimmedMath = part.substring(leading.length, endIdx);
+              }
+            }
 
             if (trimmedMath.isNotEmpty && isMathExpression(trimmedMath)) {
               final latex = MathParser.convertToLatex(trimmedMath);

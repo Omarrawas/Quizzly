@@ -38,5 +38,14 @@ void main() {
       final expected = r'Calculate the value of \(x\) where \(x = 3\)';
       expect(MathUtils.normalizeMathContent(input), expected);
     });
+
+    test('should process segments that consist entirely of punctuation or spaces without throwing RangeError', () {
+      final input1 = ' : ';
+      final input2 = ' :  : ';
+      final input3 = ' ، ';
+      expect(MathUtils.normalizeMathContent(input1), ' : ');
+      expect(MathUtils.normalizeMathContent(input2), ' :  : ');
+      expect(MathUtils.normalizeMathContent(input3), ' ، ');
+    });
   });
 }
