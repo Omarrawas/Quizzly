@@ -592,36 +592,52 @@ class _RichTextEditorState extends State<RichTextEditor> {
     if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
   }
 
-  Delta _applyDefaultRtl(Delta delta) {
+  bool _containsArabic(String text) {
+    return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+  }
+
+  Delta _applyDefaultDirection(Delta delta) {
     final newDelta = Delta();
-    for (final op in delta.toList()) {
-      if (op.isInsert && op.data is String) {
-        final text = op.data as String;
-        if (text == '\n') {
-          final attrs = Map<String, dynamic>.from(op.attributes ?? {});
-          if (!attrs.containsKey(quill.Attribute.rtl.key)) {
-            attrs[quill.Attribute.rtl.key] = true;
-          }
-          if (!attrs.containsKey(quill.Attribute.align.key) || attrs[quill.Attribute.align.key] == 'left') {
-            attrs[quill.Attribute.align.key] = 'right';
-          }
-          newDelta.insert('\n', attrs);
-        } else if (text.contains('\n')) {
-          final parts = text.split('\n');
-          for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isNotEmpty) {
-              newDelta.insert(parts[i], op.attributes);
-            }
-            if (i < parts.length - 1) {
-              final attrs = Map<String, dynamic>.from(op.attributes ?? {});
-              if (!attrs.containsKey(quill.Attribute.rtl.key)) {
-                attrs[quill.Attribute.rtl.key] = true;
+    final ops = delta.toList();
+    String currentLineText = '';
+
+    for (int i = 0; i < ops.length; i++) {
+      final op = ops[i];
+      if (op.isInsert) {
+        if (op.data is String) {
+          final text = op.data as String;
+          if (text.contains('\n')) {
+            final parts = text.split('\n');
+            for (int j = 0; j < parts.length; j++) {
+              final part = parts[j];
+              currentLineText += part;
+
+              if (j < parts.length - 1) {
+                final attrs = Map<String, dynamic>.from(op.attributes ?? {});
+                if (_containsArabic(currentLineText)) {
+                  if (!attrs.containsKey(quill.Attribute.rtl.key)) {
+                    attrs[quill.Attribute.rtl.key] = true;
+                  }
+                  if (!attrs.containsKey(quill.Attribute.align.key) || attrs[quill.Attribute.align.key] == 'left') {
+                    attrs[quill.Attribute.align.key] = 'right';
+                  }
+                } else {
+                  attrs.remove(quill.Attribute.rtl.key);
+                  if (attrs[quill.Attribute.align.key] == 'right') {
+                    attrs.remove(quill.Attribute.align.key);
+                  }
+                }
+                newDelta.insert('\n', attrs);
+                currentLineText = '';
+              } else {
+                if (part.isNotEmpty) {
+                  newDelta.insert(part, op.attributes);
+                }
               }
-              if (!attrs.containsKey(quill.Attribute.align.key) || attrs[quill.Attribute.align.key] == 'left') {
-                attrs[quill.Attribute.align.key] = 'right';
-              }
-              newDelta.insert('\n', attrs);
             }
+          } else {
+            currentLineText += text;
+            newDelta.push(op);
           }
         } else {
           newDelta.push(op);
@@ -639,7 +655,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
         delta = _convertTextDelimitersToMathEmbeds(delta);
-        delta = _applyDefaultRtl(delta);
+        delta = _applyDefaultDirection(delta);
         if (delta.isEmpty) {
           delta = Delta()..insert('\n', {
             quill.Attribute.rtl.key: true,
@@ -884,7 +900,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
         // Convert the text being pasted if it contains math delimiters
         final tempDelta = Delta()..insert(text);
         var convertedDelta = _convertTextDelimitersToMathEmbeds(tempDelta);
-        convertedDelta = _applyDefaultRtl(convertedDelta);
+        convertedDelta = _applyDefaultDirection(convertedDelta);
         
         _controller.replaceText(
           index, 
@@ -1092,7 +1108,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: TextDirection.rtl,
+                        textDirection: TextDirection.ltr,
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
