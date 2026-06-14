@@ -118,10 +118,8 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
               stream: widget.subjectId != null
                   ? _db.collection('question_reports')
                       .where('subjectId', isEqualTo: widget.subjectId)
-                      .orderBy('createdAt', descending: true)
                       .snapshots()
                   : _db.collection('question_reports')
-                      .orderBy('createdAt', descending: true)
                       .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -132,7 +130,19 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final allReports = snapshot.data?.docs ?? [];
+                final allReports = List<QueryDocumentSnapshot>.from(snapshot.data?.docs ?? []);
+                
+                // Sort client-side by createdAt descending
+                allReports.sort((a, b) {
+                  final aData = a.data() as Map<String, dynamic>;
+                  final bData = b.data() as Map<String, dynamic>;
+                  final aTime = aData['createdAt'] as Timestamp?;
+                  final bTime = bData['createdAt'] as Timestamp?;
+                  if (aTime == null && bTime == null) return 0;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime);
+                });
                 
                 // Client-side filter based on status
                 final reports = allReports.where((doc) {

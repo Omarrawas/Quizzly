@@ -544,6 +544,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
   bool _isNormalizingSelection = false;
   String? _lastGeneratedHtml;
+  int? _lastKnownInsertionOffset;
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -551,6 +552,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
   quill.Style get _selectionStyle => _controller.getSelectionStyle();
 
   int get _activeInsertionOffset {
+    if (_lastKnownInsertionOffset != null) {
+      return _lastKnownInsertionOffset!.clamp(0, _controller.document.length - 1);
+    }
     final offset = _controller.selection.extentOffset;
     if (offset < 0) return _controller.document.length - 1;
     return offset.clamp(0, _controller.document.length - 1);
@@ -618,6 +622,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
     }
     _previousLength = _controller.document.length;
     _previousSelection = _controller.selection;
+    _lastKnownInsertionOffset = _controller.selection.extentOffset >= 0 
+        ? _controller.selection.extentOffset 
+        : null;
     _lastGeneratedHtml = _getCurrentHtml();
     _controller.addListener(_onContentChanged);
   }
@@ -733,6 +740,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
   void _onContentChanged() {
     final currentLength = _controller.document.length;
     final currentSelection = _controller.selection;
+    
+    // Update last known insertion offset if selection is valid and editor is focused
+    if (_focusNode.hasFocus && currentSelection.extentOffset >= 0) {
+      _lastKnownInsertionOffset = currentSelection.extentOffset;
+    }
+
     final wasTypingAtEnd = _previousSelection.isCollapsed &&
         _previousSelection.extentOffset >= _previousLength - 1 &&
         currentLength > _previousLength;
@@ -826,6 +839,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
           quill.BlockEmbed.image(url),
           TextSelection.collapsed(offset: index + 1),
         );
+        _lastKnownInsertionOffset = index + 1;
       }
     } catch (e) {
       if (mounted && Navigator.canPop(context)) Navigator.pop(context);
@@ -1105,6 +1119,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       delta,
       TextSelection.collapsed(offset: index + 2),
     );
+    _lastKnownInsertionOffset = index + 2;
   }
 
   void _showColorPickerDialog({required bool isBackground}) {
