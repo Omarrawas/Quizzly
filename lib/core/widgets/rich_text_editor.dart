@@ -17,6 +17,7 @@ import 'math/editor/quizzly_math_editor.dart';
 import 'math/editor/widgets/safe_math_preview.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 
 
@@ -1001,6 +1002,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
                   ),
                   const VerticalDivider(width: 12),
                   _buildToolbarButton(
+                    icon: Icons.format_color_text_rounded,
+                    isSelected: _selectionStyle.attributes.containsKey(quill.Attribute.color.key),
+                    onPressed: () => _showColorPickerDialog(isBackground: false),
+                    tooltip: 'لون النص',
+                  ),
+                  _buildToolbarButton(
+                    icon: Icons.border_color_rounded,
+                    isSelected: _selectionStyle.attributes.containsKey(quill.Attribute.background.key),
+                    onPressed: () => _showColorPickerDialog(isBackground: true),
+                    tooltip: 'لون التظليل',
+                  ),
+                  const VerticalDivider(width: 12),
+                  _buildToolbarButton(
                     icon: Icons.image_rounded,
                     isSelected: false,
                     onPressed: _uploadAndInsertImage,
@@ -1092,6 +1106,86 @@ class _RichTextEditorState extends State<RichTextEditor> {
       0,
       delta,
       TextSelection.collapsed(offset: index + 2),
+    );
+  }
+
+  void _showColorPickerDialog({required bool isBackground}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = const Color(0xFF222329);
+    final primaryColor = const Color(0xFF6E56FF);
+    
+    // Get current color from selection style
+    final attributeKey = isBackground ? quill.Attribute.background.key : quill.Attribute.color.key;
+    final currentHex = _selectionStyle.attributes[attributeKey]?.value?.toString();
+    Color initialColor = Colors.red; // default color
+    if (currentHex != null && currentHex.startsWith('#')) {
+      try {
+        initialColor = Color(int.parse(currentHex.substring(1), radix: 16) + 0xFF000000);
+      } catch (_) {}
+    }
+    
+    Color tempColor = initialColor;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              isBackground ? 'اختر لون الخلفية (التظليل)' : 'اختر لون النص',
+              style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            content: SingleChildScrollView(
+              child: SizedBox(
+                width: 320,
+                height: 400,
+                child: MaterialPicker(
+                  pickerColor: tempColor,
+                  onColorChanged: (color) {
+                    tempColor = color;
+                  },
+                ),
+              ),
+            ),
+            actions: [
+              // Clear color option
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  final targetAttribute = isBackground ? quill.Attribute.background : quill.Attribute.color;
+                  _controller.formatSelection(quill.Attribute.clone(targetAttribute, null));
+                },
+                child: const Text(
+                  'مسح اللون',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.redAccent),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'إلغاء',
+                  style: TextStyle(fontFamily: 'Tajawal', color: isDark ? Colors.white60 : Colors.black54),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  final hexString = '#${(tempColor.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+                  final targetAttribute = isBackground ? quill.Attribute.background : quill.Attribute.color;
+                  _controller.formatSelection(quill.Attribute.clone(targetAttribute, hexString));
+                },
+                child: Text(
+                  'موافق',
+                  style: TextStyle(fontFamily: 'Tajawal', color: primaryColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
