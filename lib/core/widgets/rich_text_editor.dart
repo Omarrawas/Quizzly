@@ -543,6 +543,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   int _previousLength = 1;
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
   bool _isNormalizingSelection = false;
+  String? _lastGeneratedHtml;
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -576,8 +577,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   void didUpdateWidget(covariant RichTextEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialHtml != oldWidget.initialHtml) {
-      final currentHtml = _getCurrentHtml();
-      if (widget.initialHtml != currentHtml) {
+      if (widget.initialHtml != _lastGeneratedHtml) {
         _controller.removeListener(_onContentChanged);
         _controller.dispose();
         _initializeController();
@@ -640,6 +640,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
         var delta = HtmlToDelta().convert(html);
         delta = _convertTextDelimitersToMathEmbeds(delta);
         delta = _applyDefaultRtl(delta);
+        if (delta.isEmpty) {
+          delta = Delta()..insert('\n', {
+            quill.Attribute.rtl.key: true,
+            quill.Attribute.align.key: 'right',
+          });
+        }
         _controller = quill.QuillController(
           document: quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
@@ -666,6 +672,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     }
     _previousLength = _controller.document.length;
     _previousSelection = _controller.selection;
+    _lastGeneratedHtml = _getCurrentHtml();
     _controller.addListener(_onContentChanged);
   }
 
@@ -769,14 +776,15 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
     if (currentLength == 1 && _previousLength > 1) {
       _controller.removeListener(_onContentChanged);
-      _controller.formatSelection(quill.Attribute.rtl);
-      _controller.formatSelection(quill.Attribute.rightAlignment);
+      _controller.formatText(0, 1, quill.Attribute.rtl);
+      _controller.formatText(0, 1, quill.Attribute.rightAlignment);
       _controller.addListener(_onContentChanged);
     }
     _previousLength = currentLength;
     _previousSelection = _controller.selection;
 
     final html = _getCurrentHtml();
+    _lastGeneratedHtml = html;
     widget.onContentChanged(html);
   }
 
