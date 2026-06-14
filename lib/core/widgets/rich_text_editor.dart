@@ -37,7 +37,7 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
   @override
   String get key => 'math';
 
-@override
+  @override
   Widget build(BuildContext context, quill.EmbedContext embedContext) {
     final rawData = embedContext.node.value.data;
     final latex = rawData is String ? rawData : '';
@@ -48,26 +48,29 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
     // regardless of surrounding RTL text direction
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: InkWell(
-        onTap: () async {
-          final resultLatex = await showDialog<String>(
-            context: context,
-            builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
-          );
-          if (resultLatex != null) {
-            final offset = embedContext.node.documentOffset;
-            embedContext.controller.replaceText(offset, 1, quill.Embeddable('math', resultLatex), null);
-          }
-        },
-        borderRadius: BorderRadius.circular(4),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3), width: 0.5),
+      child: Transform.translate(
+        offset: const Offset(0, 3.5),
+        child: InkWell(
+          onTap: () async {
+            final resultLatex = await showDialog<String>(
+              context: context,
+              builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
+            );
+            if (resultLatex != null) {
+              final offset = embedContext.node.documentOffset;
+              embedContext.controller.replaceText(offset, 1, quill.Embeddable('math', resultLatex), null);
+            }
+          },
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3), width: 0.5),
+            ),
+            child: SafeMathPreview(latex: latex, textColor: textColor, mathSize: 18),
           ),
-          child: SafeMathPreview(latex: latex, textColor: textColor, mathSize: 18),
         ),
       ),
     );
