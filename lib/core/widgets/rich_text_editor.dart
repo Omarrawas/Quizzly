@@ -592,62 +592,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
   }
 
-  bool _containsArabic(String text) {
-    return RegExp(r'[\u0600-\u06FF]').hasMatch(text);
-  }
-
-  Delta _applyDefaultDirection(Delta delta) {
-    final newDelta = Delta();
-    final ops = delta.toList();
-    String currentLineText = '';
-
-    for (int i = 0; i < ops.length; i++) {
-      final op = ops[i];
-      if (op.isInsert) {
-        if (op.data is String) {
-          final text = op.data as String;
-          if (text.contains('\n')) {
-            final parts = text.split('\n');
-            for (int j = 0; j < parts.length; j++) {
-              final part = parts[j];
-              currentLineText += part;
-
-              if (j < parts.length - 1) {
-                final attrs = Map<String, dynamic>.from(op.attributes ?? {});
-                if (_containsArabic(currentLineText)) {
-                  if (!attrs.containsKey(quill.Attribute.rtl.key)) {
-                    attrs[quill.Attribute.rtl.key] = true;
-                  }
-                  if (!attrs.containsKey(quill.Attribute.align.key) || attrs[quill.Attribute.align.key] == 'left') {
-                    attrs[quill.Attribute.align.key] = 'right';
-                  }
-                } else {
-                  attrs.remove(quill.Attribute.rtl.key);
-                  if (attrs[quill.Attribute.align.key] == 'right') {
-                    attrs.remove(quill.Attribute.align.key);
-                  }
-                }
-                newDelta.insert('\n', attrs);
-                currentLineText = '';
-              } else {
-                if (part.isNotEmpty) {
-                  newDelta.insert(part, op.attributes);
-                }
-              }
-            }
-          } else {
-            currentLineText += text;
-            newDelta.push(op);
-          }
-        } else {
-          newDelta.push(op);
-        }
-      } else {
-        newDelta.push(op);
-      }
-    }
-    return newDelta;
-  }
+  // Direction helpers removed to let the editor layout handle directionality naturally
 
   void _initializeController() {
     try {
@@ -655,34 +600,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
         delta = _convertTextDelimitersToMathEmbeds(delta);
-        delta = _applyDefaultDirection(delta);
-        if (delta.isEmpty) {
-          delta = Delta()..insert('\n', {
-            quill.Attribute.rtl.key: true,
-            quill.Attribute.align.key: 'right',
-          });
-        }
         _controller = quill.QuillController(
-          document: quill.Document.fromDelta(delta),
+          document: delta.isEmpty ? quill.Document() : quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
         );
       } else {
-        final delta = Delta()..insert('\n', {
-          quill.Attribute.rtl.key: true,
-          quill.Attribute.align.key: 'right',
-        });
         _controller = quill.QuillController(
-          document: quill.Document.fromDelta(delta),
+          document: quill.Document(),
           selection: const TextSelection.collapsed(offset: 0),
         );
       }
     } catch (_) {
-      final delta = Delta()..insert('\n', {
-        quill.Attribute.rtl.key: true,
-        quill.Attribute.align.key: 'right',
-      });
       _controller = quill.QuillController(
-        document: quill.Document.fromDelta(delta),
+        document: quill.Document(),
         selection: const TextSelection.collapsed(offset: 0),
       );
     }
@@ -744,32 +674,53 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   String _getCurrentHtml() {
-    final delta = _controller.document.toDelta();
-    final List<Map<String, dynamic>> processedOps = [];
+    try {
+      final delta = _controller.document.toDelta();
+      final List<Map<String, dynamic>> processedOps = [];
 
-    for (final op in delta.toJson()) {
-      final insert = op['insert'];
-      if (insert is Map && insert.containsKey('math')) {
-        final latex = insert['math'].toString();
-        processedOps.add({
-          'insert': 'MATH_LATEX_START${latex}MATH_LATEX_END',
-          'attributes': op['attributes'],
-        });
-      } else {
-        processedOps.add(Map<String, dynamic>.from(op));
+      for (final op in delta.toJson()) {
+        final insert = op['insert'];
+        
+        bool isMath = false;
+        String latex = '';
+        if (insert is Map) {
+          if (insert.containsKey('math')) {
+            isMath = true;
+            latex = insert['math'].toString();
+          } else if (insert['type'] == 'math') {
+            isMath = true;
+            latex = insert['value']?.toString() ?? '';
+          }
+        }
+
+        if (isMath) {
+          processedOps.add({
+            'insert': 'MATH_LATEX_START${latex}MATH_LATEX_END',
+            'attributes': op['attributes'],
+          });
+        } else {
+          processedOps.add(Map<String, dynamic>.from(op));
+        }
+      }
+
+      final converter = QuillDeltaToHtmlConverter(
+        processedOps,
+        ConverterOptions(converterOptions: OpConverterOptions(inlineStylesFlag: true)),
+      );
+
+      String html = converter.convert();
+      html = html.replaceAll('MATH_LATEX_START', '\\(');
+      html = html.replaceAll('MATH_LATEX_END', '\\)');
+      html = html.replaceAll(_rtlMarker, '');
+      return html;
+    } catch (e, stackTrace) {
+      debugPrint('Error in _getCurrentHtml: $e\n$stackTrace');
+      try {
+        return _controller.document.toPlainText();
+      } catch (_) {
+        return '';
       }
     }
-
-    final converter = QuillDeltaToHtmlConverter(
-      processedOps,
-      ConverterOptions(converterOptions: OpConverterOptions(inlineStylesFlag: true)),
-    );
-
-    String html = converter.convert();
-    html = html.replaceAll('MATH_LATEX_START', '\\(');
-    html = html.replaceAll('MATH_LATEX_END', '\\)');
-    html = html.replaceAll(_rtlMarker, '');
-    return html;
   }
 
   void _onContentChanged() {
@@ -790,12 +741,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _isNormalizingSelection = false;
     }
 
-    if (currentLength == 1 && _previousLength > 1) {
-      _controller.removeListener(_onContentChanged);
-      _controller.formatText(0, 1, quill.Attribute.rtl);
-      _controller.formatText(0, 1, quill.Attribute.rightAlignment);
-      _controller.addListener(_onContentChanged);
-    }
+    // Let natural directionality handle empty documents
     _previousLength = currentLength;
     _previousSelection = _controller.selection;
 
@@ -899,8 +845,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
         
         // Convert the text being pasted if it contains math delimiters
         final tempDelta = Delta()..insert(text);
-        var convertedDelta = _convertTextDelimitersToMathEmbeds(tempDelta);
-        convertedDelta = _applyDefaultDirection(convertedDelta);
+        final convertedDelta = _convertTextDelimitersToMathEmbeds(tempDelta);
         
         _controller.replaceText(
           index, 
@@ -1108,7 +1053,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                         fontSize: 16,
                       ),
                       child: Directionality(
-                        textDirection: TextDirection.ltr,
+                        textDirection: TextDirection.rtl,
                         child: quill.QuillEditor.basic(
                           controller: _controller,
                           focusNode: _focusNode,
