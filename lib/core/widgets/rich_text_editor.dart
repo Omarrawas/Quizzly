@@ -633,19 +633,22 @@ class _RichTextEditorState extends State<RichTextEditor> {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
         delta = _convertTextDelimitersToMathEmbeds(delta);
+        delta = _applyRtlToDeltaBlocks(delta);
         _controller = quill.QuillController(
           document: delta.isEmpty ? quill.Document() : quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
         );
       } else {
+        final delta = Delta()..insert('\n', {'rtl': true, 'align': 'right'});
         _controller = quill.QuillController(
-          document: quill.Document(),
+          document: quill.Document.fromDelta(delta),
           selection: const TextSelection.collapsed(offset: 0),
         );
       }
     } catch (_) {
+      final delta = Delta()..insert('\n', {'rtl': true, 'align': 'right'});
       _controller = quill.QuillController(
-        document: quill.Document(),
+        document: quill.Document.fromDelta(delta),
         selection: const TextSelection.collapsed(offset: 0),
       );
     }
@@ -656,6 +659,70 @@ class _RichTextEditorState extends State<RichTextEditor> {
         : null;
     _lastGeneratedHtml = _getCurrentHtml();
     _controller.addListener(_onContentChanged);
+  }
+
+  Delta _applyRtlToDeltaBlocks(Delta delta) {
+    try {
+      final newDelta = Delta();
+      final ops = delta.toList();
+      
+      final plainText = _getPlainTextOfDelta(delta);
+      final lines = plainText.split('\n');
+      final lineIsArabic = lines.map((line) {
+        return line.trim().isEmpty || RegExp(r'[\u0600-\u06FF]').hasMatch(line);
+      }).toList();
+      
+      int currentLineIndex = 0;
+      for (final op in ops) {
+        if (op.isInsert) {
+          final data = op.data;
+          if (data is String) {
+            if (data.contains('\n')) {
+              final parts = data.split('\n');
+              for (int i = 0; i < parts.length; i++) {
+                final part = parts[i];
+                if (part.isNotEmpty) {
+                  newDelta.insert(part, op.attributes);
+                }
+                if (i < parts.length - 1) {
+                  final isRtl = currentLineIndex < lineIsArabic.length && lineIsArabic[currentLineIndex];
+                  final newAttrs = Map<String, dynamic>.from(op.attributes ?? {});
+                  if (isRtl) {
+                    newAttrs['rtl'] = true;
+                    newAttrs['align'] = 'right';
+                  }
+                  newDelta.insert('\n', newAttrs);
+                  currentLineIndex++;
+                }
+              }
+            } else {
+              newDelta.push(op);
+            }
+          } else {
+            newDelta.push(op);
+          }
+        } else {
+          newDelta.push(op);
+        }
+      }
+      return newDelta;
+    } catch (_) {
+      return delta;
+    }
+  }
+
+  String _getPlainTextOfDelta(Delta delta) {
+    final buffer = StringBuffer();
+    for (final op in delta.toList()) {
+      if (op.isInsert) {
+        if (op.data is String) {
+          buffer.write(op.data as String);
+        } else {
+          buffer.write(' ');
+        }
+      }
+    }
+    return buffer.toString();
   }
 
   Delta _convertTextDelimitersToMathEmbeds(Delta delta) {

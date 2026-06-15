@@ -118,7 +118,11 @@ class TexViewWidget extends StatelessWidget {
     final String wrappedHtml = '<div dir="$htmlDir">$directedHtml</div>';
 
     // Wrap LaTeX formulas in <math-tex> so they can be parsed as standalone elements by HtmlWidget.
+    // Wrap in \u200F (RTL marker) for RTL layout to prevent visual swapping of equations.
     final String processedHtml = wrappedHtml.replaceAllMapped(_latexRegex, (match) {
+      if (effectiveDirection == TextDirection.rtl) {
+        return '\u200F<math-tex>${match.group(0)}</math-tex>\u200F';
+      }
       return '<math-tex>${match.group(0)}</math-tex>';
     });
     
@@ -175,6 +179,7 @@ class TexViewWidget extends StatelessWidget {
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = baseStyle.color ?? (isDark ? Colors.white : AppColors.textPrimary);
+    final resolvedDirection = textDirection ?? MathUtils.getDirection(mathAwareText);
     final matches = _latexRegex.allMatches(mathAwareText).toList();
 
     if (matches.isEmpty) {
@@ -182,7 +187,7 @@ class TexViewWidget extends StatelessWidget {
         mathAwareText,
         style: baseStyle,
         textAlign: isTitle ? TextAlign.center : TextAlign.start,
-        textDirection: textDirection ?? MathUtils.getDirection(mathAwareText),
+        textDirection: resolvedDirection,
       );
     }
 
@@ -241,6 +246,9 @@ class TexViewWidget extends StatelessWidget {
         spans.add(const TextSpan(text: '\n'));
       } else {
         // معادلة ضمن السطر (Inline)
+        if (resolvedDirection == TextDirection.rtl) {
+          spans.add(const TextSpan(text: '\u200F'));
+        }
         spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Directionality(
@@ -269,6 +277,9 @@ class TexViewWidget extends StatelessWidget {
             ),
           ),
         ));
+        if (resolvedDirection == TextDirection.rtl) {
+          spans.add(const TextSpan(text: '\u200F'));
+        }
       }
 
       cursor = match.end;
@@ -288,7 +299,7 @@ class TexViewWidget extends StatelessWidget {
     return Text.rich(
       TextSpan(children: spans),
       textAlign: isTitle ? TextAlign.center : TextAlign.start,
-      textDirection: textDirection ?? MathUtils.getDirection(mathAwareText),
+      textDirection: resolvedDirection,
     );
   }
 
