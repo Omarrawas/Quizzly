@@ -771,6 +771,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
               mathContent = mathContent.substring(1, mathContent.length - 1);
             }
             
+            newDelta.insert(_rtlMarker, op.attributes);
             newDelta.insert(quill.BlockEmbed('math', mathContent), op.attributes);
             newDelta.insert(_rtlMarker, op.attributes);
             lastMatchEnd = match.end;
@@ -1252,16 +1253,17 @@ class _RichTextEditorState extends State<RichTextEditor> {
   void _insertMathLatex(String latex, [int? customOffset]) {
     final index = customOffset ?? _activeInsertionOffset;
     final delta = Delta()
+      ..insert(_rtlMarker)
       ..insert(quill.Embeddable('math', latex))
-      ..insert(' ')
-      ..insert(_rtlMarker);
+      ..insert(_rtlMarker)
+      ..insert(' ');
     _controller.replaceText(
       index,
       0,
       delta,
-      TextSelection.collapsed(offset: index + 3),
+      TextSelection.collapsed(offset: index + 4),
     );
-    _lastKnownInsertionOffset = index + 3;
+    _lastKnownInsertionOffset = index + 4;
   }
 
   void _showColorPickerDialog({required bool isBackground}) {
