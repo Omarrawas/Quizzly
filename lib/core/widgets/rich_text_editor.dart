@@ -556,12 +556,14 @@ class _RichTextEditorState extends State<RichTextEditor> {
   quill.Style get _selectionStyle => _controller.getSelectionStyle();
 
   int get _activeInsertionOffset {
+    final selectionOffset = _controller.selection.extentOffset;
+    if (selectionOffset >= 0) {
+      return selectionOffset.clamp(0, _controller.document.length - 1);
+    }
     if (_lastKnownInsertionOffset != null) {
       return _lastKnownInsertionOffset!.clamp(0, _controller.document.length - 1);
     }
-    final offset = _controller.selection.extentOffset;
-    if (offset < 0) return _controller.document.length - 1;
-    return offset.clamp(0, _controller.document.length - 1);
+    return _controller.document.length - 1;
   }
 
   String _getCurrentLineText() {
@@ -611,9 +613,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
     super.didUpdateWidget(oldWidget);
     if (widget.initialHtml != oldWidget.initialHtml) {
       if (widget.initialHtml != _lastGeneratedHtml) {
+        final currentSelection = _controller.selection;
         _controller.removeListener(_onContentChanged);
         _controller.dispose();
-        _initializeController();
+        _initializeController(currentSelection);
         if (mounted) {
           setState(() {});
         }
@@ -627,16 +630,24 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   // Direction helpers removed to let the editor layout handle directionality naturally
 
-  void _initializeController() {
+  void _initializeController([TextSelection? preserveSelection]) {
     try {
       if (widget.initialHtml != null && widget.initialHtml!.isNotEmpty) {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
         delta = _convertTextDelimitersToMathEmbeds(delta);
         delta = _applyRtlToDeltaBlocks(delta);
+        
+        final doc = delta.isEmpty ? quill.Document() : quill.Document.fromDelta(delta);
+        final docLength = doc.length;
+        TextSelection finalSelection = preserveSelection ?? const TextSelection.collapsed(offset: 0);
+        if (finalSelection.baseOffset > docLength - 1 || finalSelection.extentOffset > docLength - 1) {
+          finalSelection = TextSelection.collapsed(offset: docLength - 1);
+        }
+        
         _controller = quill.QuillController(
-          document: delta.isEmpty ? quill.Document() : quill.Document.fromDelta(delta),
-          selection: const TextSelection.collapsed(offset: 0),
+          document: doc,
+          selection: finalSelection,
         );
       } else {
         final delta = Delta()..insert('\n', {'rtl': true, 'align': 'right'});
@@ -1242,14 +1253,15 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final index = customOffset ?? _activeInsertionOffset;
     final delta = Delta()
       ..insert(quill.Embeddable('math', latex))
+      ..insert(' ')
       ..insert(_rtlMarker);
     _controller.replaceText(
       index,
       0,
       delta,
-      TextSelection.collapsed(offset: index + 2),
+      TextSelection.collapsed(offset: index + 3),
     );
-    _lastKnownInsertionOffset = index + 2;
+    _lastKnownInsertionOffset = index + 3;
   }
 
   void _showColorPickerDialog({required bool isBackground}) {
