@@ -680,7 +680,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       final plainText = _getPlainTextOfDelta(delta);
       final lines = plainText.split('\n');
       final lineIsArabic = lines.map((line) {
-        return line.trim().isEmpty || RegExp(r'[\u0600-\u06FF]').hasMatch(line);
+        return true; // Always RTL for Quizzly to comply with global dark fintech rules
       }).toList();
       
       int currentLineIndex = 0;

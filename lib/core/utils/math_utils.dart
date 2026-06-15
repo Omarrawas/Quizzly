@@ -290,12 +290,9 @@ class MathUtils {
         .replaceAll('&#39;', "'");
   }
 
-  /// Detects the text direction based on presence of Arabic characters.
+  /// Detects the text direction.
   /// For Quizzly, we return RTL direction always to comply with global dark fintech layout rules.
   static TextDirection getDirection(String text) {
-    if (RegExp(r'[\u0600-\u06FF]').hasMatch(text)) {
-      return TextDirection.rtl;
-    }
-    return TextDirection.ltr;
+    return TextDirection.rtl;
   }
 }
