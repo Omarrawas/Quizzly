@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'package:quizzly/features/quiz/domain/services/ai_grading_service.dart';
 import 'package:quizzly/features/quiz/presentation/widgets/interactive_explanation.dart';
+import 'package:quizzly/core/widgets/zoomable_image.dart';
 
 class QuestionReviewScreen extends StatefulWidget {
   final List<QuizQuestion> questions;
@@ -292,16 +292,9 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         ),
         if (question.explanationImageUrl != null && question.explanationImageUrl!.isNotEmpty) ...[
           const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: question.explanationImageUrl!,
-              placeholder: (context, url) => const SizedBox(
-                height: 50,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              ),
-              errorWidget: (context, url, error) => const SizedBox(),
-            ),
+          ZoomableImage(
+            imageUrl: question.explanationImageUrl!,
+            fit: BoxFit.contain,
           ),
         ],
         if (question.explanationVideoUrl != null && question.explanationVideoUrl!.isNotEmpty) ...[

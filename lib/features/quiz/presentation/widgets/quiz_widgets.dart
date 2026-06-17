@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/core/widgets/zoomable_image.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
@@ -613,13 +614,9 @@ class QuestionCard extends StatelessWidget {
           if (question.imageUrl != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  question.imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                ),
+              child: ZoomableImage(
+                imageUrl: question.imageUrl!,
+                fit: BoxFit.contain,
               ),
             ),
 
@@ -1398,13 +1395,10 @@ class _AutoCloseExplanationBottomSheetState extends State<AutoCloseExplanationBo
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   if (widget.question.explanationImageUrl != null && widget.question.explanationImageUrl!.isNotEmpty) ...[
-                    ClipRRect(
+                    ZoomableImage(
+                      imageUrl: widget.question.explanationImageUrl!,
+                      fit: BoxFit.contain,
                       borderRadius: BorderRadius.circular(14),
-                      child: Image.network(
-                        widget.question.explanationImageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      ),
                     ),
                     const SizedBox(height: 12),
                   ],

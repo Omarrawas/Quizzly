@@ -10,6 +10,7 @@ import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/gamification/domain/services/gamification_service.dart';
 import 'package:quizzly/features/gamification/domain/services/subject_league_service.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/core/widgets/zoomable_image.dart';
 
 class ActiveRecallSessionScreen extends StatefulWidget {
   final ExamConfig config;
@@ -445,13 +446,9 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
           ),
           if (q.imageUrl != null && q.imageUrl!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                q.imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-              ),
+            ZoomableImage(
+              imageUrl: q.imageUrl!,
+              fit: BoxFit.contain,
             ),
           ],
           if (q.options != null && q.options!.isNotEmpty) ...[
