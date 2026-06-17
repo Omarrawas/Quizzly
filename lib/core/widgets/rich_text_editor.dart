@@ -85,8 +85,9 @@ class MathEmbedBuilder extends quill.EmbedBuilder {
 
 class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
   final void Function(String imageUrl)? onDeleteImage;
+  final void Function(String imageUrl, quill.EmbedContext embedContext)? onEditImage;
 
-  ImageBlockEmbedBuilder({this.onDeleteImage});
+  ImageBlockEmbedBuilder({this.onDeleteImage, this.onEditImage});
 
   @override
   String get key => quill.BlockEmbed.imageType;
@@ -263,6 +264,20 @@ class ImageBlockEmbedBuilder extends quill.EmbedBuilder {
                     _showResizeDialog(context, embedContext);
                   },
                 ),
+                
+                // إزالة الخلفية للصورة المرفوعة مسبقاً
+                if (onEditImage != null)
+                  ListTile(
+                    leading: Icon(Icons.blur_off_rounded, color: primaryColor),
+                    title: const Text(
+                      'إزالة الخلفية',
+                      style: TextStyle(fontFamily: 'Tajawal', fontSize: 16),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onEditImage!(imageUrl, embedContext);
+                    },
+                  ),
                 
                 // 2. Zoom (معاينة)
                 ListTile(
@@ -920,14 +935,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _controller.formatSelection(isActive ? quill.Attribute.clone(attribute, null) : attribute);
   }
 
-  Future<Uint8List> _compressImage(Uint8List bytes) async {
+  Future<Uint8List> _compressImage(Uint8List bytes, {String formatStr = 'jpeg'}) async {
     try {
+      final compressFormat = (formatStr.toLowerCase() == 'png') 
+          ? CompressFormat.png 
+          : CompressFormat.jpeg;
+          
       // Compress to around 70% quality, max 1200px width/height
       final compressed = await FlutterImageCompress.compressWithList(
         bytes,
         minWidth: 1200,
         minHeight: 1200,
         quality: 70,
+        format: compressFormat,
       );
       return compressed;
     } catch (e) {
@@ -977,7 +997,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       String finalExt = processingResult.removeBackground ? 'png' : (ext ?? 'png');
 
       // 1. Compress
-      final compressedBytes = await _compressImage(finalBytes);
+      final compressedBytes = await _compressImage(finalBytes, formatStr: finalExt);
 
       // 2. Upload
       final storageService = FirebaseStorageService();
@@ -1001,6 +1021,104 @@ class _RichTextEditorState extends State<RichTextEditor> {
     } catch (e) {
       if (mounted && Navigator.canPop(context)) Navigator.pop(context);
       debugPrint('Upload error: $e');
+    }
+  }
+
+  Future<void> _editExistingImage(String imageUrl, quill.EmbedContext embedContext) async {
+    // Show a loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF6E56FF)),
+      ),
+    );
+
+    try {
+      final response = await http.get(Uri.parse(imageUrl));
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (response.statusCode != 200) {
+        throw Exception('فشل تحميل الصورة من الخادم');
+      }
+
+      final bytes = response.bodyBytes;
+      if (!mounted) return;
+      
+      final processingResult = await showDialog<ImageProcessResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => ImageOptimizerDialog(imageBytes: bytes),
+      );
+
+      if (processingResult == null) return; // user cancelled
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF6E56FF))),
+      );
+
+      Uint8List finalBytes = processingResult.processedBytes;
+      String finalExt = 'png'; // background removal outputs png
+
+      // Compress
+      final compressedBytes = await _compressImage(finalBytes, formatStr: finalExt);
+
+      // Upload
+      final storageService = FirebaseStorageService();
+      final url = await storageService.uploadFile(
+        fileBytes: compressedBytes,
+        fileExtension: finalExt,
+        folderName: 'question_images',
+      );
+
+      if (mounted) Navigator.pop(context); // Close loading dialog
+
+      if (url != null) {
+        final offset = embedContext.node.documentOffset;
+        
+        // Preserve width attributes if any
+        final style = embedContext.node.style;
+        final widthAttr = style.attributes['width'];
+
+        // Replace the existing image block embed
+        _controller.replaceText(
+          offset,
+          1,
+          quill.BlockEmbed.image(url),
+          null,
+        );
+
+        if (widthAttr != null) {
+          _controller.formatText(
+            offset,
+            1,
+            widthAttr,
+          );
+        }
+
+        // Delete the old image
+        _deletedImageUrls.add(imageUrl);
+        widget.onImageDeleted?.call(imageUrl);
+      }
+    } catch (e) {
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      debugPrint('Edit existing image error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'فشل تعديل الصورة: $e',
+              style: const TextStyle(fontFamily: 'Tajawal'),
+              textDirection: TextDirection.rtl,
+            ),
+            backgroundColor: const Color(0xFFFF4C6A),
+          ),
+        );
+      }
     }
   }
 
@@ -1248,6 +1366,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                                   _deletedImageUrls.add(url);
                                   widget.onImageDeleted?.call(url);
                                 },
+                                onEditImage: _editExistingImage,
                               ),
                               MathEmbedBuilder(),
                             ],
@@ -1432,7 +1551,7 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
     }
 
     final thresholdVal = _threshold.toInt();
-    final processed = img_lib.Image.from(_previewImage!);
+    final processed = _previewImage!.convert(numChannels: 4);
     for (final pixel in processed) {
       if (_bgType == 'white') {
         if (pixel.r >= thresholdVal && pixel.g >= thresholdVal && pixel.b >= thresholdVal) {
@@ -1502,7 +1621,7 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
     final int threshold = params['threshold'] as int;
     final String bgType = params['bgType'] as String;
 
-    final processed = img_lib.Image.from(original);
+    final processed = original.convert(numChannels: 4);
     for (final pixel in processed) {
       if (bgType == 'white') {
         if (pixel.r >= threshold && pixel.g >= threshold && pixel.b >= threshold) {
