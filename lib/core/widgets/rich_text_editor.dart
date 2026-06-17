@@ -1387,6 +1387,7 @@ class ImageOptimizerDialog extends StatefulWidget {
 
 class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
   bool _removeBackground = false;
+  String _bgType = 'white'; // 'white' or 'black'
   double _threshold = 240.0;
   bool _isInitializing = true;
   bool _isProcessingFull = false;
@@ -1433,8 +1434,14 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
     final thresholdVal = _threshold.toInt();
     final processed = img_lib.Image.from(_previewImage!);
     for (final pixel in processed) {
-      if (pixel.r >= thresholdVal && pixel.g >= thresholdVal && pixel.b >= thresholdVal) {
-        pixel.a = 0;
+      if (_bgType == 'white') {
+        if (pixel.r >= thresholdVal && pixel.g >= thresholdVal && pixel.b >= thresholdVal) {
+          pixel.a = 0;
+        }
+      } else {
+        if (pixel.r <= thresholdVal && pixel.g <= thresholdVal && pixel.b <= thresholdVal) {
+          pixel.a = 0;
+        }
       }
     }
 
@@ -1464,6 +1471,7 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
       final processedBytes = await compute(_processFullImageStatic, {
         'image': _originalFullImage!,
         'threshold': thresholdVal,
+        'bgType': _bgType,
       });
 
       if (mounted) {
@@ -1492,11 +1500,18 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
   static Uint8List _processFullImageStatic(Map<String, dynamic> params) {
     final img_lib.Image original = params['image'] as img_lib.Image;
     final int threshold = params['threshold'] as int;
+    final String bgType = params['bgType'] as String;
 
     final processed = img_lib.Image.from(original);
     for (final pixel in processed) {
-      if (pixel.r >= threshold && pixel.g >= threshold && pixel.b >= threshold) {
-        pixel.a = 0;
+      if (bgType == 'white') {
+        if (pixel.r >= threshold && pixel.g >= threshold && pixel.b >= threshold) {
+          pixel.a = 0;
+        }
+      } else {
+        if (pixel.r <= threshold && pixel.g <= threshold && pixel.b <= threshold) {
+          pixel.a = 0;
+        }
       }
     }
     return Uint8List.fromList(img_lib.encodePng(processed));
@@ -1510,192 +1525,221 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Dialog(
+      child: AlertDialog(
         backgroundColor: surfaceColor,
+        scrollable: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
-            maxWidth: 550,
+        title: Text(
+          'تحسين وتجهيز الصورة',
+          style: GoogleFonts.tajawal(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.white,
           ),
-          padding: const EdgeInsets.all(20),
-          child: _isProcessingFull
-              ? SizedBox(
-                  height: 200,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircularProgressIndicator(color: Color(0xFF6E56FF)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'جاري إزالة الخلفية البيضاء وجاري المعالجة...',
-                          style: GoogleFonts.tajawal(color: Colors.white70),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'تحسين وتجهيز الصورة',
-                      style: GoogleFonts.tajawal(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Container(
-                              height: 180,
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.black26 : Colors.grey[200],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white10),
-                              ),
-                              child: _isInitializing
-                                  ? const Center(
-                                      child: CircularProgressIndicator(color: Color(0xFF6E56FF)),
-                                    )
-                                  : ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: _previewBytes != null
-                                          ? Image.memory(_previewBytes!, fit: BoxFit.contain)
-                                          : const Icon(Icons.image, size: 48, color: Colors.grey),
-                                    ),
-                            ),
-                            const SizedBox(height: 16),
-                            SwitchListTile(
-                              title: Text(
-                                'إزالة الخلفية البيضاء',
-                                style: GoogleFonts.tajawal(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'يجعل خلفية الورق البيضاء شفافة بالكامل',
-                                style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white60),
-                              ),
-                              value: _removeBackground,
-                              activeThumbColor: primaryColor,
-                              onChanged: _isInitializing
-                                  ? null
-                                  : (val) {
-                                      setState(() {
-                                        _removeBackground = val;
-                                      });
-                                      _updatePreview();
-                                    },
-                            ),
-                            if (_removeBackground) ...[
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'حساسية إزالة اللون الأبيض',
-                                      style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white70),
-                                    ),
-                                    Text(
-                                      '${_threshold.toInt()}',
-                                      style: GoogleFonts.tajawal(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Slider(
-                                value: _threshold,
-                                min: 150.0,
-                                max: 255.0,
-                                activeColor: primaryColor,
-                                inactiveColor: Colors.white10,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _threshold = val;
-                                  });
-                                  _updatePreview();
-                                },
-                              ),
-                            ],
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: primaryColor.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.info_outline_rounded, color: primaryColor, size: 16),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'هذه الأداة تقوم بتحويل لون الورق الأبيض إلى شفاف بالكامل وتضغط حجم الصورة لتسريع التصفح وتوفير المساحة.',
-                                      style: GoogleFonts.tajawal(
-                                        fontSize: 10,
-                                        color: Colors.white70,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'إلغاء',
-                              style: GoogleFonts.tajawal(color: Colors.grey),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: _isInitializing ? null : _confirmAndProcess,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: Text(
-                              'إدراج الصورة',
-                              style: GoogleFonts.tajawal(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
+          textAlign: TextAlign.center,
+        ),
+        content: _isProcessingFull
+            ? SizedBox(
+                height: 200,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'جاري معالجة الصورة وإزالة الخلفية...',
+                        style: GoogleFonts.tajawal(color: Colors.white70),
                       ),
                     ],
                   ),
                 ),
-        ),
-      );
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.black26 : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: _isInitializing
+                        ? const Center(
+                            child: CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: _previewBytes != null
+                                ? Image.memory(_previewBytes!, fit: BoxFit.contain)
+                                : const Icon(Icons.image, size: 48, color: Colors.grey),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    title: Text(
+                      'إزالة خلفية الصورة',
+                      style: GoogleFonts.tajawal(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'يجعل خلفية الصورة البيضاء أو السوداء شفافة',
+                      style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white60),
+                    ),
+                    value: _removeBackground,
+                    activeThumbColor: primaryColor,
+                    onChanged: _isInitializing
+                        ? null
+                        : (val) {
+                            setState(() {
+                              _removeBackground = val;
+                            });
+                            _updatePreview();
+                          },
+                  ),
+                  if (_removeBackground) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'نوع الخلفية المراد إزالتها:',
+                            style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white70),
+                          ),
+                          Row(
+                            children: [
+                              ChoiceChip(
+                                label: Text('بيضاء', style: GoogleFonts.tajawal(fontSize: 11)),
+                                selected: _bgType == 'white',
+                                selectedColor: primaryColor,
+                                labelStyle: TextStyle(color: _bgType == 'white' ? Colors.white : Colors.white70),
+                                backgroundColor: Colors.white10,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _bgType = 'white';
+                                      _threshold = 240.0;
+                                    });
+                                    _updatePreview();
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ChoiceChip(
+                                label: Text('سوداء/داكنة', style: GoogleFonts.tajawal(fontSize: 11)),
+                                selected: _bgType == 'black',
+                                selectedColor: primaryColor,
+                                labelStyle: TextStyle(color: _bgType == 'black' ? Colors.white : Colors.white70),
+                                backgroundColor: Colors.white10,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _bgType = 'black';
+                                      _threshold = 40.0;
+                                    });
+                                    _updatePreview();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _bgType == 'white' ? 'حساسية اللون الأبيض' : 'حساسية اللون الأسود',
+                            style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white70),
+                          ),
+                          Text(
+                            '${_threshold.toInt()}',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Slider(
+                      value: _threshold,
+                      min: _bgType == 'white' ? 150.0 : 0.0,
+                      max: _bgType == 'white' ? 255.0 : 120.0,
+                      activeColor: primaryColor,
+                      inactiveColor: Colors.white10,
+                      onChanged: (val) {
+                        setState(() {
+                          _threshold = val;
+                        });
+                        _updatePreview();
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: primaryColor, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'هذه الأداة تقوم بتحويل لون الخلفية المختار إلى شفاف بالكامل وتضغط حجم الصورة لتسريع التصفح وتوفير المساحة.',
+                            style: GoogleFonts.tajawal(
+                              fontSize: 10,
+                              color: Colors.white70,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.tajawal(color: Colors.grey),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: _isInitializing ? null : _confirmAndProcess,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'إدراج الصورة',
+              style: GoogleFonts.tajawal(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
