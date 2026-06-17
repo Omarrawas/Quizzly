@@ -1515,6 +1515,10 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: MediaQuery.of(context).size.width * 0.9,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+            maxWidth: 550,
+          ),
           padding: const EdgeInsets.all(20),
           child: _isProcessingFull
               ? SizedBox(
@@ -1533,126 +1537,134 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
                     ),
                   ),
                 )
-              : SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'تحسين وتجهيز الصورة',
-                        style: GoogleFonts.tajawal(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'تحسين وتجهيز الصورة',
+                      style: GoogleFonts.tajawal(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.white,
                       ),
-                      const SizedBox(height: 16),
-                      Container(
-                        height: 180,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.black26 : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: _isInitializing
-                            ? const Center(
-                                child: CircularProgressIndicator(color: Color(0xFF6E56FF)),
-                              )
-                            : ClipRRect(
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              height: 180,
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.black26 : Colors.grey[200],
                                 borderRadius: BorderRadius.circular(12),
-                                child: _previewBytes != null
-                                    ? Image.memory(_previewBytes!, fit: BoxFit.contain)
-                                    : const Icon(Icons.image, size: 48, color: Colors.grey),
+                                border: Border.all(color: Colors.white10),
                               ),
-                      ),
-                      const SizedBox(height: 16),
-                      SwitchListTile(
-                        title: Text(
-                          'إزالة الخلفية البيضاء',
-                          style: GoogleFonts.tajawal(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'يجعل خلفية الورق البيضاء شفافة بالكامل',
-                          style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white60),
-                        ),
-                        value: _removeBackground,
-                        activeThumbColor: primaryColor,
-                        onChanged: _isInitializing
-                            ? null
-                            : (val) {
-                                setState(() {
-                                  _removeBackground = val;
-                                });
-                                _updatePreview();
-                              },
-                      ),
-                      if (_removeBackground) ...[
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'حساسية إزالة اللون الأبيض',
-                                style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white70),
-                              ),
-                              Text(
-                                '${_threshold.toInt()}',
+                              child: _isInitializing
+                                  ? const Center(
+                                      child: CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                                    )
+                                  : ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: _previewBytes != null
+                                          ? Image.memory(_previewBytes!, fit: BoxFit.contain)
+                                          : const Icon(Icons.image, size: 48, color: Colors.grey),
+                                    ),
+                            ),
+                            const SizedBox(height: 16),
+                            SwitchListTile(
+                              title: Text(
+                                'إزالة الخلفية البيضاء',
                                 style: GoogleFonts.tajawal(
-                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: primaryColor,
+                                  fontSize: 14,
+                                  color: Colors.white,
                                 ),
+                              ),
+                              subtitle: Text(
+                                'يجعل خلفية الورق البيضاء شفافة بالكامل',
+                                style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white60),
+                              ),
+                              value: _removeBackground,
+                              activeThumbColor: primaryColor,
+                              onChanged: _isInitializing
+                                  ? null
+                                  : (val) {
+                                      setState(() {
+                                        _removeBackground = val;
+                                      });
+                                      _updatePreview();
+                                    },
+                            ),
+                            if (_removeBackground) ...[
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'حساسية إزالة اللون الأبيض',
+                                      style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white70),
+                                    ),
+                                    Text(
+                                      '${_threshold.toInt()}',
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: primaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Slider(
+                                value: _threshold,
+                                min: 150.0,
+                                max: 255.0,
+                                activeColor: primaryColor,
+                                inactiveColor: Colors.white10,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _threshold = val;
+                                  });
+                                  _updatePreview();
+                                },
                               ),
                             ],
-                          ),
-                        ),
-                        Slider(
-                          value: _threshold,
-                          min: 150.0,
-                          max: 255.0,
-                          activeColor: primaryColor,
-                          inactiveColor: Colors.white10,
-                          onChanged: (val) {
-                            setState(() {
-                              _threshold = val;
-                            });
-                            _updatePreview();
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: primaryColor, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'هذه الأداة تقوم بتحويل لون الورق الأبيض إلى شفاف بالكامل وتضغط حجم الصورة لتسريع التصفح وتوفير المساحة.',
-                                style: GoogleFonts.tajawal(
-                                  fontSize: 10,
-                                  color: Colors.white70,
-                                  height: 1.4,
-                                ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: primaryColor.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline_rounded, color: primaryColor, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'هذه الأداة تقوم بتحويل لون الورق الأبيض إلى شفاف بالكامل وتضغط حجم الصورة لتسريع التصفح وتوفير المساحة.',
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 10,
+                                        color: Colors.white70,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -1684,7 +1696,6 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
                   ),
                 ),
         ),
-      ),
-    );
+      );
   }
 }
