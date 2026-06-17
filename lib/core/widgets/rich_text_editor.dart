@@ -18,6 +18,8 @@ import 'math/editor/widgets/safe_math_preview.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:image/image.dart' as img_lib;
+import 'package:google_fonts/google_fonts.dart';
 
 
 
@@ -955,20 +957,33 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (bytes == null) return;
       if (!mounted) return;
 
+      // Show the Background Removal and Optimizer dialog!
+      final processingResult = await showDialog<ImageProcessResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => ImageOptimizerDialog(imageBytes: bytes!),
+      );
+
+      if (processingResult == null) return; // user cancelled
+
+      if (!mounted) return;
       showDialog(
         context: context, 
         barrierDismissible: false, 
-        builder: (_) => const Center(child: CircularProgressIndicator())
+        builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF6E56FF)))
       );
 
+      Uint8List finalBytes = processingResult.processedBytes;
+      String finalExt = processingResult.removeBackground ? 'png' : (ext ?? 'png');
+
       // 1. Compress
-      final compressedBytes = await _compressImage(bytes);
+      final compressedBytes = await _compressImage(finalBytes);
 
       // 2. Upload
       final storageService = FirebaseStorageService();
       final url = await storageService.uploadFile(
         fileBytes: compressedBytes, 
-        fileExtension: ext ?? 'png', 
+        fileExtension: finalExt, 
         folderName: 'question_images'
       );
 
@@ -1343,6 +1358,333 @@ class _RichTextEditorState extends State<RichTextEditor> {
           ),
         );
       },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// IMAGE OPTIMIZER AND BACKGROUND REMOVER DIALOG
+// ═══════════════════════════════════════════════════════════════
+
+class ImageProcessResult {
+  final Uint8List processedBytes;
+  final bool removeBackground;
+
+  ImageProcessResult({
+    required this.processedBytes,
+    required this.removeBackground,
+  });
+}
+
+class ImageOptimizerDialog extends StatefulWidget {
+  final Uint8List imageBytes;
+
+  const ImageOptimizerDialog({super.key, required this.imageBytes});
+
+  @override
+  State<ImageOptimizerDialog> createState() => _ImageOptimizerDialogState();
+}
+
+class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
+  bool _removeBackground = false;
+  double _threshold = 240.0;
+  bool _isInitializing = true;
+  bool _isProcessingFull = false;
+
+  img_lib.Image? _originalFullImage;
+  img_lib.Image? _previewImage;
+  Uint8List? _previewBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeImages();
+  }
+
+  Future<void> _initializeImages() async {
+    try {
+      final decoded = await compute(img_lib.decodeImage, widget.imageBytes);
+      if (decoded != null) {
+        _originalFullImage = decoded;
+        _previewImage = img_lib.copyResize(decoded, width: 400);
+        _previewBytes = widget.imageBytes;
+      }
+    } catch (e) {
+      debugPrint('Error decoding image for optimizer: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
+    }
+  }
+
+  void _updatePreview() {
+    if (_previewImage == null) return;
+
+    if (!_removeBackground) {
+      setState(() {
+        _previewBytes = widget.imageBytes;
+      });
+      return;
+    }
+
+    final thresholdVal = _threshold.toInt();
+    final processed = img_lib.Image.from(_previewImage!);
+    for (final pixel in processed) {
+      if (pixel.r >= thresholdVal && pixel.g >= thresholdVal && pixel.b >= thresholdVal) {
+        pixel.a = 0;
+      }
+    }
+
+    setState(() {
+      _previewBytes = Uint8List.fromList(img_lib.encodePng(processed));
+    });
+  }
+
+  Future<void> _confirmAndProcess() async {
+    if (!_removeBackground || _originalFullImage == null) {
+      Navigator.pop(
+        context,
+        ImageProcessResult(
+          processedBytes: widget.imageBytes,
+          removeBackground: false,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isProcessingFull = true;
+    });
+
+    try {
+      final thresholdVal = _threshold.toInt();
+      final processedBytes = await compute(_processFullImageStatic, {
+        'image': _originalFullImage!,
+        'threshold': thresholdVal,
+      });
+
+      if (mounted) {
+        Navigator.pop(
+          context,
+          ImageProcessResult(
+            processedBytes: processedBytes,
+            removeBackground: true,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error processing full image: $e');
+      if (mounted) {
+        Navigator.pop(
+          context,
+          ImageProcessResult(
+            processedBytes: widget.imageBytes,
+            removeBackground: false,
+          ),
+        );
+      }
+    }
+  }
+
+  static Uint8List _processFullImageStatic(Map<String, dynamic> params) {
+    final img_lib.Image original = params['image'] as img_lib.Image;
+    final int threshold = params['threshold'] as int;
+
+    final processed = img_lib.Image.from(original);
+    for (final pixel in processed) {
+      if (pixel.r >= threshold && pixel.g >= threshold && pixel.b >= threshold) {
+        pixel.a = 0;
+      }
+    }
+    return Uint8List.fromList(img_lib.encodePng(processed));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = const Color(0xFF6E56FF);
+    final surfaceColor = const Color(0xFF222329);
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Dialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          padding: const EdgeInsets.all(20),
+          child: _isProcessingFull
+              ? SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'جاري إزالة الخلفية البيضاء وجاري المعالجة...',
+                          style: GoogleFonts.tajawal(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'تحسين وتجهيز الصورة',
+                        style: GoogleFonts.tajawal(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black26 : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: _isInitializing
+                            ? const Center(
+                                child: CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: _previewBytes != null
+                                    ? Image.memory(_previewBytes!, fit: BoxFit.contain)
+                                    : const Icon(Icons.image, size: 48, color: Colors.grey),
+                              ),
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: Text(
+                          'إزالة الخلفية البيضاء',
+                          style: GoogleFonts.tajawal(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'يجعل خلفية الورق البيضاء شفافة بالكامل',
+                          style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white60),
+                        ),
+                        value: _removeBackground,
+                        activeThumbColor: primaryColor,
+                        onChanged: _isInitializing
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  _removeBackground = val;
+                                });
+                                _updatePreview();
+                              },
+                      ),
+                      if (_removeBackground) ...[
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'حساسية إزالة اللون الأبيض',
+                                style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white70),
+                              ),
+                              Text(
+                                '${_threshold.toInt()}',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Slider(
+                          value: _threshold,
+                          min: 150.0,
+                          max: 255.0,
+                          activeColor: primaryColor,
+                          inactiveColor: Colors.white10,
+                          onChanged: (val) {
+                            setState(() {
+                              _threshold = val;
+                            });
+                            _updatePreview();
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline_rounded, color: primaryColor, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'هذه الأداة تقوم بتحويل لون الورق الأبيض إلى شفاف بالكامل وتضغط حجم الصورة لتسريع التصفح وتوفير المساحة.',
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 10,
+                                  color: Colors.white70,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'إلغاء',
+                              style: GoogleFonts.tajawal(color: Colors.grey),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: _isInitializing ? null : _confirmAndProcess,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(
+                              'إدراج الصورة',
+                              style: GoogleFonts.tajawal(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }
