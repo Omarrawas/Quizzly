@@ -7,6 +7,7 @@ import 'package:quizzly/features/settings/domain/services/settings_service.dart'
 
 import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
+import 'zoomable_image.dart';
 
 class TexViewWidget extends StatelessWidget {
   final String text;
@@ -151,6 +152,16 @@ class TexViewWidget extends StatelessWidget {
             return InlineCustomWidget(
               child: _buildMathText(context, element.text, defaultStyle),
             );
+          }
+          
+          if (element.localName == 'img') {
+            final src = element.attributes['src'] ?? '';
+            if (src.isNotEmpty) {
+              return ZoomableImage(
+                imageUrl: src,
+                fit: BoxFit.contain,
+              );
+            }
           }
           
           if (element.children.isEmpty) {

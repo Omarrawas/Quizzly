@@ -56,22 +56,13 @@ class QuizHud extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 1. Play/Pause button
-          GestureDetector(
-            onTap: onToggleTimer,
-            child: Icon(
-              isTimerRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: isDark ? Colors.white : Colors.black,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 8),
-          // 2. Timer Pill
+          // Timer Pill with integrated Play/Pause toggle
           _HudPill(
-            icon: Icons.timer_outlined,
+            icon: isTimerRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
             label: _formatTime(elapsed),
             color: const Color(0xFF2563EB),
             bgColor: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
+            onTap: onToggleTimer,
           ),
           // 3. Filters button (additionalAction)
           if (additionalAction != null) ...[
