@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/core/widgets/zoomable_image.dart';
 
 class StaticExamQuestionSelector extends StatefulWidget {
   final String examId;
@@ -35,9 +37,6 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
   List<Map<String, dynamic>> _chapters = [];
   Map<String, List<Map<String, dynamic>>> _lessonsByChapter = {};
   bool _isLoadingTopics = true;
-
-  // Collapsed chapters
-  final Set<String> _collapsedChapters = {};
 
   @override
   void initState() {
@@ -210,172 +209,84 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
 
     if (_chapters.isEmpty) return const SizedBox.shrink();
 
+    // Prepare dropdown items
+    final List<DropdownMenuItem<String?>> items = [];
+    
+    // Default item
+    items.add(DropdownMenuItem<String?>(
+      value: null,
+      child: Text(
+        'جميع الفصول والمواضيع',
+        style: GoogleFonts.tajawal(
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white70 : AppColors.textSecondary,
+        ),
+      ),
+    ));
+
+    for (var chapter in _chapters) {
+      final chapterId = chapter['id'] as String;
+      final chapterName = chapter['name'] as String? ?? '';
+      final lessons = _lessonsByChapter[chapterId] ?? [];
+
+      items.add(DropdownMenuItem<String?>(
+        value: chapterId,
+        child: Text(
+          'الفصل: $chapterName',
+          style: GoogleFonts.tajawal(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryBlue,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ));
+
+      for (var lesson in lessons) {
+        final lessonId = lesson['id'] as String;
+        final lessonName = lesson['name'] as String? ?? '';
+
+        items.add(DropdownMenuItem<String?>(
+          value: lessonId,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16.0), // Indent lessons in RTL
+            child: Text(
+              '← الدرس: $lessonName',
+              style: GoogleFonts.tajawal(
+                fontSize: 13,
+                color: isDark ? Colors.white60 : Colors.grey[700],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ));
+      }
+    }
+
     return Container(
-      constraints: const BoxConstraints(maxHeight: 240),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                const Icon(Icons.topic_rounded, size: 16, color: AppColors.primaryBlue),
-                const SizedBox(width: 8),
-                Text(
-                  _selectedTopicId == null
-                      ? 'جميع المواضيع'
-                      : 'تصفية: ${_getTopicName(_selectedTopicId!)}',
-                  style: GoogleFonts.cairo(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: _selectedTopicId == null ? AppColors.textSecondary : AppColors.primaryBlue,
-                  ),
-                ),
-                const Spacer(),
-                if (_selectedTopicId != null)
-                  GestureDetector(
-                    onTap: () => setState(() => _selectedTopicId = null),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text('إلغاء التصفية',
-                          style: GoogleFonts.cairo(fontSize: 11, color: Colors.red)),
-                    ),
-                  ),
-              ],
-            ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          value: _selectedTopicId,
+          isExpanded: true,
+          hint: Text(
+            'اختر الفصل أو الدرس للتصفية',
+            style: GoogleFonts.tajawal(fontSize: 14),
           ),
-          const Divider(height: 1),
-          // Chapters & Lessons list
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              children: _chapters.map((chapter) {
-                final chapterId = chapter['id'] as String;
-                final chapterName = chapter['name'] as String? ?? '';
-                final lessons = _lessonsByChapter[chapterId] ?? [];
-                final isCollapsed = _collapsedChapters.contains(chapterId);
-                final isChapterSelected = _selectedTopicId == chapterId;
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Chapter row
-                    InkWell(
-                      onTap: () => setState(() {
-                        _selectedTopicId = isChapterSelected ? null : chapterId;
-                      }),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Row(
-                          children: [
-                            // Collapse toggle
-                            if (lessons.isNotEmpty)
-                              GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => setState(() {
-                                  if (isCollapsed) {
-                                    _collapsedChapters.remove(chapterId);
-                                  } else {
-                                    _collapsedChapters.add(chapterId);
-                                  }
-                                }),
-                                child: Icon(
-                                  isCollapsed
-                                      ? Icons.chevron_left_rounded
-                                      : Icons.expand_more_rounded,
-                                  size: 20,
-                                  color: Colors.grey,
-                                ),
-                              )
-                            else
-                              const SizedBox(width: 20),
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text('فصل',
-                                  style: GoogleFonts.cairo(
-                                      fontSize: 9, color: AppColors.primaryBlue)),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                chapterName,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: isChapterSelected
-                                      ? AppColors.primaryBlue
-                                      : null,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (isChapterSelected)
-                              const Icon(Icons.check_circle_rounded,
-                                  color: AppColors.primaryBlue, size: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Lessons
-                    if (!isCollapsed && lessons.isNotEmpty)
-                      ...lessons.map((lesson) {
-                        final lessonId = lesson['id'] as String;
-                        final lessonName = lesson['name'] as String? ?? '';
-                        final isLessonSelected = _selectedTopicId == lessonId;
-
-                        return InkWell(
-                          onTap: () => setState(() {
-                            _selectedTopicId = isLessonSelected ? null : lessonId;
-                          }),
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 36, left: 12, top: 6, bottom: 6),
-                            child: Row(
-                              children: [
-                                Icon(Icons.arrow_forward_ios_rounded,
-                                    size: 10, color: Colors.grey[400]),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    lessonName,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 12,
-                                      color: isLessonSelected ? AppColors.primaryBlue : null,
-                                      fontWeight: isLessonSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (isLessonSelected)
-                                  const Icon(Icons.check_circle_rounded,
-                                      color: AppColors.primaryBlue, size: 14),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          items: items,
+          onChanged: (String? value) {
+            setState(() {
+              _selectedTopicId = value;
+            });
+          },
+        ),
       ),
     );
   }
@@ -505,7 +416,6 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
             final diffLabel = _translateDifficulty(data['difficulty']);
             final examTags = (data['examTags'] as List?) ?? [];
             final isRepeated = examTags.length > 1;
-            final questionText = _stripHtml(data['text'] ?? '');
 
             return GestureDetector(
               onTap: () => setState(() {
@@ -578,19 +488,23 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(
-                                    questionText,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected ? AppColors.primaryBlue : null,
-                                    ),
-
-
+                                  child: TexViewWidget(
+                                    text: data['text'] ?? '',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected ? AppColors.primaryBlue : (isDark ? Colors.white : AppColors.textPrimary),
                                   ),
                                 ),
                               ],
                             ),
+                            if (data['imageUrl'] != null && data['imageUrl'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              ZoomableImage(
+                                imageUrl: data['imageUrl'].toString(),
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             // Topic label
                             if (topicLabel.isNotEmpty)
