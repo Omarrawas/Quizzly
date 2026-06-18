@@ -629,6 +629,11 @@ class _RichTextEditorState extends State<RichTextEditor> {
   @override
   void didUpdateWidget(covariant RichTextEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Do NOT reinitialize while we are doing a programmatic insert (equation/image).
+    // The programmatic insert fires onContentChanged which updates the parent's
+    // initialHtml; if we reinitialize here we would reload the OLD html and lose
+    // (or reorder) the just-inserted embed.
+    if (_isProgrammaticInsert) return;
     if (widget.initialHtml != oldWidget.initialHtml) {
       if (widget.initialHtml != _lastGeneratedHtml) {
         final currentSelection = _controller.selection;
@@ -872,8 +877,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _lastKnownInsertionOffset = currentSelection.extentOffset;
     }
 
-    // Dynamic auto-directionality formatting based on text content
-    if (!_isAutoFormatting && 
+    // Dynamic auto-directionality formatting based on text content.
+    // Skip during programmatic inserts: formatSelection triggers another
+    // _onContentChanged → onContentChanged → parent rebuild → didUpdateWidget
+    // which can reload stale HTML and swap/erase the inserted embed.
+    if (!_isAutoFormatting &&
+        !_isProgrammaticInsert &&
         _focusNode.hasFocus && 
         currentSelection.isCollapsed && 
         currentSelection.extentOffset >= 0) {
@@ -929,6 +938,20 @@ class _RichTextEditorState extends State<RichTextEditor> {
     _previousLength = currentLength;
     _previousSelection = _controller.selection;
 
+    // Do NOT propagate to parent during a programmatic insert.
+    // The insert itself will call _notifyParentAfterInsert() once it is
+    // fully done so the parent sees the final, correct document.
+    if (_isProgrammaticInsert) return;
+
+    final html = _getCurrentHtml();
+    _lastGeneratedHtml = html;
+    widget.onContentChanged(html);
+  }
+
+  /// Called after a programmatic insert (equation / image) completes to push
+  /// the final document HTML to the parent exactly once.
+  void _notifyParentAfterInsert() {
+    if (!mounted) return;
     final html = _getCurrentHtml();
     _lastGeneratedHtml = html;
     widget.onContentChanged(html);
@@ -1026,6 +1049,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
           _lastKnownInsertionOffset = index + 1;
         } finally {
           _isProgrammaticInsert = false;
+          // Notify parent once with the settled document.
+          _notifyParentAfterInsert();
         }
       }
     } catch (e) {
@@ -1412,6 +1437,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _lastKnownInsertionOffset = index + 4;
     } finally {
       _isProgrammaticInsert = false;
+      // Notify parent once after the full insert is settled.
+      _notifyParentAfterInsert();
     }
   }
 
