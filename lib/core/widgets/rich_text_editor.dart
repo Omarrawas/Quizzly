@@ -566,6 +566,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   int? _lastKnownInsertionOffset;
   bool _isAutoFormatting = false;
   bool _isNormalizingSelection = false;
+  bool _isProgrammaticInsert = false; // prevents cursor normalization during equation/image inserts
 
   /// List of image URLs that were deleted from this editor
   List<String> get deletedImageUrls => List.unmodifiable(_deletedImageUrls);
@@ -909,7 +910,11 @@ class _RichTextEditorState extends State<RichTextEditor> {
         _previousSelection.extentOffset >= _previousLength - 1 &&
         currentLength > _previousLength;
 
+    // Only normalize cursor if user is actively typing at the end,
+    // NOT during programmatic inserts like equations or images which
+    // deliberately insert content in the middle of the document.
     if (!_isNormalizingSelection &&
+        !_isProgrammaticInsert &&
         wasTypingAtEnd &&
         currentSelection.extentOffset < currentLength - 1) {
       _isNormalizingSelection = true;
@@ -1010,13 +1015,18 @@ class _RichTextEditorState extends State<RichTextEditor> {
       if (mounted) Navigator.pop(context);
 
       if (url != null) {
-        _controller.replaceText(
-          index,
-          0,
-          quill.BlockEmbed.image(url),
-          TextSelection.collapsed(offset: index + 1),
-        );
-        _lastKnownInsertionOffset = index + 1;
+        _isProgrammaticInsert = true;
+        try {
+          _controller.replaceText(
+            index,
+            0,
+            quill.BlockEmbed.image(url),
+            TextSelection.collapsed(offset: index + 1),
+          );
+          _lastKnownInsertionOffset = index + 1;
+        } finally {
+          _isProgrammaticInsert = false;
+        }
       }
     } catch (e) {
       if (mounted && Navigator.canPop(context)) Navigator.pop(context);
@@ -1386,18 +1396,23 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   void _insertMathLatex(String latex, [int? customOffset]) {
     final index = customOffset ?? _activeInsertionOffset;
-    final delta = Delta()
-      ..insert(_rtlMarker)
-      ..insert(quill.Embeddable('math', latex))
-      ..insert(_rtlMarker)
-      ..insert(' ');
-    _controller.replaceText(
-      index,
-      0,
-      delta,
-      TextSelection.collapsed(offset: index + 4),
-    );
-    _lastKnownInsertionOffset = index + 4;
+    _isProgrammaticInsert = true;
+    try {
+      final delta = Delta()
+        ..insert(_rtlMarker)
+        ..insert(quill.Embeddable('math', latex))
+        ..insert(_rtlMarker)
+        ..insert(' ');
+      _controller.replaceText(
+        index,
+        0,
+        delta,
+        TextSelection.collapsed(offset: index + 4),
+      );
+      _lastKnownInsertionOffset = index + 4;
+    } finally {
+      _isProgrammaticInsert = false;
+    }
   }
 
   void _showColorPickerDialog({required bool isBackground}) {
@@ -1526,7 +1541,17 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
       final decoded = await compute(img_lib.decodeImage, widget.imageBytes);
       if (decoded != null) {
         _originalFullImage = decoded;
-        _previewImage = img_lib.copyResize(decoded, width: 400);
+        // If image is larger than 1000px wide, downscale the preview to 1000px.
+        // Otherwise use the original image directly to preserve maximum clarity.
+        if (decoded.width > 1000) {
+          _previewImage = img_lib.copyResize(
+            decoded, 
+            width: 1000, 
+            interpolation: img_lib.Interpolation.average,
+          );
+        } else {
+          _previewImage = decoded;
+        }
         _previewBytes = widget.imageBytes;
       }
     } catch (e) {
@@ -1552,14 +1577,38 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
 
     final thresholdVal = _threshold.toInt();
     final processed = _previewImage!.convert(numChannels: 4);
+    const int tolerance = 25; // anti-aliasing transition range
+
     for (final pixel in processed) {
+      final num r = pixel.r;
+      final num g = pixel.g;
+      final num b = pixel.b;
+
       if (_bgType == 'white') {
-        if (pixel.r >= thresholdVal && pixel.g >= thresholdVal && pixel.b >= thresholdVal) {
+        final int minVal = thresholdVal - tolerance;
+        // W represents the level of whiteness/brightness in the darkest channel.
+        // A high minimum of R, G, B implies neutral white or very light grey.
+        final num w = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        if (w >= thresholdVal) {
           pixel.a = 0;
+        } else if (w > minVal) {
+          final double ratio = (w - minVal) / tolerance;
+          final int newAlpha = (255 * (1.0 - ratio)).round();
+          if (newAlpha < pixel.a) {
+            pixel.a = newAlpha;
+          }
         }
       } else {
-        if (pixel.r <= thresholdVal && pixel.g <= thresholdVal && pixel.b <= thresholdVal) {
+        // For black background removal
+        final num bMax = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        if (bMax <= thresholdVal) {
           pixel.a = 0;
+        } else if (bMax < thresholdVal + tolerance) {
+          final double ratio = (bMax - thresholdVal) / tolerance;
+          final int newAlpha = (255 * ratio).round();
+          if (newAlpha < pixel.a) {
+            pixel.a = newAlpha;
+          }
         }
       }
     }
@@ -1622,14 +1671,35 @@ class _ImageOptimizerDialogState extends State<ImageOptimizerDialog> {
     final String bgType = params['bgType'] as String;
 
     final processed = original.convert(numChannels: 4);
+    const int tolerance = 25; // anti-aliasing transition range
+
     for (final pixel in processed) {
+      final num r = pixel.r;
+      final num g = pixel.g;
+      final num b = pixel.b;
+
       if (bgType == 'white') {
-        if (pixel.r >= threshold && pixel.g >= threshold && pixel.b >= threshold) {
+        final int minVal = threshold - tolerance;
+        final num w = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        if (w >= threshold) {
           pixel.a = 0;
+        } else if (w > minVal) {
+          final double ratio = (w - minVal) / tolerance;
+          final int newAlpha = (255 * (1.0 - ratio)).round();
+          if (newAlpha < pixel.a) {
+            pixel.a = newAlpha;
+          }
         }
       } else {
-        if (pixel.r <= threshold && pixel.g <= threshold && pixel.b <= threshold) {
+        final num bMax = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        if (bMax <= threshold) {
           pixel.a = 0;
+        } else if (bMax < threshold + tolerance) {
+          final double ratio = (bMax - threshold) / tolerance;
+          final int newAlpha = (255 * ratio).round();
+          if (newAlpha < pixel.a) {
+            pixel.a = newAlpha;
+          }
         }
       }
     }
