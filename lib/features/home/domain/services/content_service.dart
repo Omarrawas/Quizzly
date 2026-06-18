@@ -413,15 +413,16 @@ class ContentService {
           .where('status', isEqualTo: 'approved')
           .get(const GetOptions(source: Source.server));
 
-      // 5. Pre-download all explanation and question attachments in background
+      // 5. Pre-download all image attachments in background
       final cacheManager = DefaultCacheManager();
       for (var qDoc in questionsSnapshot.docs) {
         final data = qDoc.data();
         
+        // ── Dedicated image URL fields ──
         final String? explanationImageUrl = data['explanationImageUrl'];
         final String? explanationAudioUrl = data['explanationAudioUrl'];
-        final String? explanationPdfUrl = data['explanationPdfUrl'];
-        final String? imageUrl = data['imageUrl'];
+        final String? explanationPdfUrl   = data['explanationPdfUrl'];
+        final String? imageUrl            = data['imageUrl'];
 
         if (explanationImageUrl != null && explanationImageUrl.isNotEmpty) {
           _downloadToCacheSilently(cacheManager, explanationImageUrl);
@@ -435,8 +436,39 @@ class ContentService {
         if (imageUrl != null && imageUrl.isNotEmpty) {
           _downloadToCacheSilently(cacheManager, imageUrl);
         }
+
+        // ── HTML-embedded images (from Rich Text Editor) ──
+        // These are stored as <img src="https://..."> inside text fields.
+        final htmlFields = <String?>[
+          data['questionText'] as String?,
+          data['explanation']  as String?,
+          data['answer_a']     as String?,
+          data['answer_b']     as String?,
+          data['answer_c']     as String?,
+          data['answer_d']     as String?,
+          data['answer_e']     as String?,
+          // Support generic options array
+          ...((data['options'] as List?)?.map((o) => o?.toString()) ?? []),
+        ];
+
+        for (final htmlField in htmlFields) {
+          if (htmlField == null || htmlField.isEmpty) continue;
+          for (final url in _extractImageUrlsFromHtml(htmlField)) {
+            _downloadToCacheSilently(cacheManager, url);
+          }
+        }
       }
     }
+  }
+
+  /// Extracts all image URLs from `<img src="...">` tags inside HTML.
+  static List<String> _extractImageUrlsFromHtml(String html) {
+    final regex = RegExp(r'''<img[^>]+src=["']([^"']+)["']''', caseSensitive: false);
+    return regex
+        .allMatches(html)
+        .map((m) => m.group(1)!)
+        .where((url) => url.startsWith('http'))
+        .toList();
   }
 
   Future<void> _downloadToCacheSilently(DefaultCacheManager cacheManager, String url) async {
