@@ -1474,8 +1474,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
   /// The student-facing renderer (TexViewWidget) parses and renders the LaTeX.
   void _insertMathLatex(String latex, [int? customOffset]) {
     final index = customOffset ?? _activeInsertionOffset;
-    // Insert as plain text: \(formula\) followed by a space
-    final textToInsert = '\\($latex\\) ';
+    // Wrap in Unicode LTR Isolate (\u2066 ... \u2069) so that the backslash-paren
+    // delimiters don't confuse the Unicode Bidi algorithm in RTL paragraphs.
+    // \u2066 = LEFT-TO-RIGHT ISOLATE (LRI), \u2069 = POP DIRECTIONAL ISOLATE (PDI)
+    const lri = '\u2066'; // LTR Isolate start
+    const pdi = '\u2069'; // Pop Directional Isolate
+    final textToInsert = '$lri\\($latex\\)$pdi ';
     _controller.replaceText(
       index,
       0,
