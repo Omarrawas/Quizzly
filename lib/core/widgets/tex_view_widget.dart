@@ -195,42 +195,57 @@ class TexViewWidget extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = baseStyle.color ?? (isDark ? Colors.white : AppColors.textPrimary);
     final resolvedDirection = textDirection ?? MathUtils.getDirection(mathAwareText);
-    final matches = _latexRegex.allMatches(mathAwareText).toList();
+
+    // Clean all bidi markers to avoid any interference
+    final cleanText = mathAwareText
+        .replaceAll('\u200E', '')
+        .replaceAll('\u2066', '')
+        .replaceAll('\u2069', '')
+        .replaceAll('\u200F', '');
+
+    final matches = _latexRegex.allMatches(cleanText).toList();
 
     if (matches.isEmpty) {
       return Text(
-        mathAwareText,
+        cleanText,
         style: baseStyle,
         textAlign: isTitle ? TextAlign.center : TextAlign.start,
         textDirection: resolvedDirection,
       );
     }
 
-    final spans = <InlineSpan>[];
+    final widgets = <Widget>[];
     var cursor = 0;
 
-    for (final match in matches) {
-      // 1. إضافة النص الذي يسبق المعادلة
-      if (match.start > cursor) {
-        final textSegment = mathAwareText.substring(cursor, match.start);
-        if (textSegment.isNotEmpty) {
-          spans.add(TextSpan(
-            text: textSegment,
-            style: baseStyle,
-          ));
+    void addTextWords(String text) {
+      final words = text.split(RegExp(r'\s+'));
+      for (final word in words) {
+        if (word.trim().isNotEmpty) {
+          widgets.add(
+            Text(
+              word,
+              style: baseStyle,
+            ),
+          );
         }
       }
+    }
 
-      // 2. معالجة المعادلة
+    for (final match in matches) {
+      // 1. Add text before the equation
+      if (match.start > cursor) {
+        addTextWords(cleanText.substring(cursor, match.start));
+      }
+
+      // 2. Process the equation
       final token = match.group(0)!;
       final latex = _stripMathDelimiters(token);
       final isDisplay = _isDisplayMath(token);
 
       if (isDisplay) {
-        // إذا كانت معادلة منفصلة (Display Mode)، نضعها في WidgetSpan يأخذ عرض السطر بالكامل
-        spans.add(const TextSpan(text: '\n'));
-        spans.add(WidgetSpan(
-          child: Container(
+        // Display mode math equation takes full width
+        widgets.add(
+          Container(
             width: double.infinity,
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -257,19 +272,14 @@ class TexViewWidget extends StatelessWidget {
               ),
             ),
           ),
-        ));
-        spans.add(const TextSpan(text: '\n'));
+        );
       } else {
-        // معادلة ضمن السطر (Inline)
-        if (resolvedDirection == TextDirection.rtl) {
-          spans.add(const TextSpan(text: '\u200F'));
-        }
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
+        // Inline math equation
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Directionality(
+              textDirection: TextDirection.ltr,
               child: Math.tex(
                 latex,
                 mathStyle: MathStyle.text,
@@ -278,43 +288,36 @@ class TexViewWidget extends StatelessWidget {
                   fontSize: (baseStyle.fontSize ?? 16),
                 ),
                 onErrorFallback: (error) {
-                  // If failing, let's try to remove any problematic characters like leading/trailing delimiters
                   final cleanLatex = latex.replaceAll(RegExp(r'\\\(|\\\)|\$'), '');
                   return Text(
                     cleanLatex,
                     style: baseStyle.copyWith(
                       color: textColor.withValues(alpha: 0.9),
-                      fontFamily: 'Cairo', // Fallback to Cairo
+                      fontFamily: 'Cairo',
                     ),
                   );
                 },
               ),
             ),
           ),
-        ));
-        if (resolvedDirection == TextDirection.rtl) {
-          spans.add(const TextSpan(text: '\u200F'));
-        }
+        );
       }
 
       cursor = match.end;
     }
 
-    // 3. إضافة النص المتبقي بعد آخر معادلة
-    if (cursor < mathAwareText.length) {
-      final trailing = mathAwareText.substring(cursor);
-      if (trailing.isNotEmpty) {
-        spans.add(TextSpan(
-          text: trailing,
-          style: baseStyle,
-        ));
-      }
+    // 3. Add remaining text after last equation
+    if (cursor < cleanText.length) {
+      addTextWords(cleanText.substring(cursor));
     }
 
-    return Text.rich(
-      TextSpan(children: spans),
-      textAlign: isTitle ? TextAlign.center : TextAlign.start,
+    return Wrap(
       textDirection: resolvedDirection,
+      alignment: isTitle ? WrapAlignment.center : WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6,
+      runSpacing: 8,
+      children: widgets,
     );
   }
 
