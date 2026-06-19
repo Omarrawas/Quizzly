@@ -2043,35 +2043,43 @@ class _MathPreviewDialog extends StatelessWidget {
 
   const _MathPreviewDialog({required this.content, required this.htmlContent});
 
-  List<InlineSpan> _buildSpans(BuildContext context) {
+  List<Widget> _buildPreviewWidgets(BuildContext context) {
     final textColor = Colors.white.withValues(alpha: 0.92);
-    // Strip Bidi markers (\u200E, \u2066, \u2069) from the plain text so that the
-    // Bidi algorithm does not create mixed LTR/RTL runs that swap the visual order
-    // of the inline WidgetSpans in the preview.
+    final latexRegex = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true);
+
+    // Strip Bidi markers (\u200E, \u2066, \u2069) from the plain text so that they
+    // do not interfere with text extraction.
     final cleanContent = content
         .replaceAll('\u200E', '')
         .replaceAll('\u2066', '')
         .replaceAll('\u2069', '');
 
-    final latexRegex = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true);
-
-    final spans = <InlineSpan>[];
+    final widgets = <Widget>[];
     int lastEnd = 0;
+
+    void addTextWords(String text) {
+      final words = text.split(RegExp(r'\s+'));
+      for (final word in words) {
+        if (word.trim().isNotEmpty) {
+          widgets.add(
+            Text(
+              word,
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                fontSize: 17,
+                color: textColor,
+                height: 1.3,
+              ),
+            ),
+          );
+        }
+      }
+    }
 
     for (final match in latexRegex.allMatches(cleanContent)) {
       // Text before the equation
       if (match.start > lastEnd) {
-        spans.add(
-          TextSpan(
-            text: cleanContent.substring(lastEnd, match.start),
-            style: TextStyle(
-              fontFamily: 'Tajawal',
-              fontSize: 17,
-              color: textColor,
-              height: 1.7,
-            ),
-          ),
-        );
+        addTextWords(cleanContent.substring(lastEnd, match.start));
       }
 
       // Extract raw LaTeX between delimiters
@@ -2083,23 +2091,20 @@ class _MathPreviewDialog extends StatelessWidget {
         latex = raw.substring(2, raw.length - 2);
       }
 
-      spans.add(
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: math_fork.Math.tex(
-                latex,
-                textStyle: TextStyle(fontSize: 18, color: textColor),
-                onErrorFallback: (e) => Text(
-                  raw,
-                  style: TextStyle(
-                    color: Colors.red.shade300,
-                    fontSize: 14,
-                    fontFamily: 'monospace',
-                  ),
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: math_fork.Math.tex(
+              latex,
+              textStyle: TextStyle(fontSize: 18, color: textColor),
+              onErrorFallback: (e) => Text(
+                raw,
+                style: TextStyle(
+                  color: Colors.red.shade300,
+                  fontSize: 14,
+                  fontFamily: 'monospace',
                 ),
               ),
             ),
@@ -2112,20 +2117,10 @@ class _MathPreviewDialog extends StatelessWidget {
 
     // Remaining text after last equation
     if (lastEnd < cleanContent.length) {
-      spans.add(
-        TextSpan(
-          text: cleanContent.substring(lastEnd),
-          style: TextStyle(
-            fontFamily: 'Tajawal',
-            fontSize: 17,
-            color: textColor,
-            height: 1.7,
-          ),
-        ),
-      );
+      addTextWords(cleanContent.substring(lastEnd));
     }
 
-    return spans;
+    return widgets;
   }
 
   @override
@@ -2188,11 +2183,18 @@ class _MathPreviewDialog extends StatelessWidget {
               Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: RichText(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Directionality(
                       textDirection: TextDirection.rtl,
-                      text: TextSpan(children: _buildSpans(context)),
+                      child: Wrap(
+                        textDirection: TextDirection.rtl,
+                        alignment: WrapAlignment.start,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 8,
+                        children: _buildPreviewWidgets(context),
+                      ),
                     ),
                   ),
                 ),
