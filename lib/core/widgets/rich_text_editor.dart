@@ -606,7 +606,45 @@ class _RichTextEditorState extends State<RichTextEditor> {
     return _controller.document.length - 1;
   }
 
+  String _getCurrentLineText() {
+    try {
+      final text = _controller.document.toPlainText();
+      final offset = _controller.selection.extentOffset;
+      if (offset < 0 || offset > text.length) return '';
 
+      int start = text.lastIndexOf('\n', offset - 1);
+      if (start == -1) {
+        start = 0;
+      } else {
+        start += 1;
+      }
+
+      int end = text.indexOf('\n', offset);
+      if (end == -1) {
+        end = text.length;
+      }
+
+      if (start >= end) return '';
+      return text.substring(start, end);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  TextDirection _getLineDirection(String text) {
+    // Strip math delimiters, numbers, spaces, and common operators/punctuation
+    // to find the first strong directional character of the line.
+    final clean = text
+        .replaceAll(RegExp(r'[\s\d\\(\)$+\-*/=<>!?,.;:،؛]'), '')
+        .trim();
+    if (clean.isEmpty) return TextDirection.rtl; // Arabic default
+
+    final firstChar = clean.codeUnitAt(0);
+    if (firstChar >= 0x0600 && firstChar <= 0x06FF) {
+      return TextDirection.rtl;
+    }
+    return TextDirection.ltr;
+  }
 
   @override
   void initState() {
@@ -812,9 +850,47 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _lastKnownInsertionOffset = currentSelection.extentOffset;
     }
 
-    // Dynamic auto-directionality formatting was removed to make the editor behave
-    // like a normal text editor. It does not automatically flip lines to LTR/Left-align
-    // when typing equations or English text, respecting the user's chosen alignment.
+    // Dynamic auto-directionality formatting based on the first strong character
+    // typed in the paragraph (excluding math syntax and spacing).
+    // This allows Arabic paragraphs to stay RTL right-aligned, and English paragraphs
+    // to stay LTR left-aligned, without shifting alignment while typing mixed formulas.
+    // Skip during programmatic insertions (images/equations) to prevent selection resets.
+    if (!_isNormalizingSelection &&
+        !_isProgrammaticInsert &&
+        _focusNode.hasFocus &&
+        currentSelection.isCollapsed &&
+        currentSelection.extentOffset >= 0) {
+      try {
+        final lineText = _getCurrentLineText();
+        final textDirection = _getLineDirection(lineText);
+
+        final selectionStyle = _controller.getSelectionStyle();
+        final hasRtlAttr = selectionStyle.attributes.containsKey(
+          quill.Attribute.rtl.key,
+        );
+        final hasRightAlign =
+            selectionStyle.attributes[quill.Attribute.align.key]?.value ==
+            'right';
+
+        if (textDirection == TextDirection.rtl) {
+          if (!hasRtlAttr || !hasRightAlign) {
+            _controller.formatSelection(quill.Attribute.rtl);
+            _controller.formatSelection(quill.Attribute.rightAlignment);
+          }
+        } else {
+          if (hasRtlAttr || hasRightAlign) {
+            _controller.formatSelection(
+              quill.Attribute.clone(quill.Attribute.rtl, null),
+            );
+            _controller.formatSelection(
+              quill.Attribute.clone(quill.Attribute.align, null),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Auto direction format error: $e');
+      }
+    }
 
     final wasTypingAtEnd =
         _previousSelection.isCollapsed &&
