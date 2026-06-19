@@ -836,52 +836,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
       _lastKnownInsertionOffset = currentSelection.extentOffset;
     }
 
-    // Dynamic auto-directionality formatting based on text content.
-    // Skip during programmatic inserts: formatSelection triggers another
-    // _onContentChanged → onContentChanged → parent rebuild → didUpdateWidget
-    // which can reload stale HTML and swap/erase the inserted embed.
-    if (!_isAutoFormatting &&
-        !_isProgrammaticInsert &&
-        _focusNode.hasFocus &&
-        currentSelection.isCollapsed &&
-        currentSelection.extentOffset >= 0) {
-      _isAutoFormatting = true;
-      try {
-        final lineText = _getCurrentLineText();
-        // Default to RTL if line is empty or spaces, otherwise check for Arabic
-        final isArabic =
-            lineText.trim().isEmpty ||
-            MathUtils.getDirection(lineText) == TextDirection.rtl;
-
-        final selectionStyle = _controller.getSelectionStyle();
-        final hasRtlAttr = selectionStyle.attributes.containsKey(
-          quill.Attribute.rtl.key,
-        );
-        final hasRightAlign =
-            selectionStyle.attributes[quill.Attribute.align.key]?.value ==
-            'right';
-
-        if (isArabic) {
-          if (!hasRtlAttr || !hasRightAlign) {
-            _controller.formatSelection(quill.Attribute.rtl);
-            _controller.formatSelection(quill.Attribute.rightAlignment);
-          }
-        } else {
-          if (hasRtlAttr) {
-            _controller.formatSelection(
-              quill.Attribute.clone(quill.Attribute.rtl, null),
-            );
-            _controller.formatSelection(
-              quill.Attribute.clone(quill.Attribute.align, null),
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('Auto format error: $e');
-      } finally {
-        _isAutoFormatting = false;
-      }
-    }
+    // Dynamic auto-directionality formatting was removed to make the editor behave
+    // like a normal text editor. It does not automatically flip lines to LTR/Left-align
+    // when typing equations or English text, respecting the user's chosen alignment.
 
     final wasTypingAtEnd =
         _previousSelection.isCollapsed &&
