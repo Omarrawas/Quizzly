@@ -587,15 +587,22 @@ class _RichTextEditorState extends State<RichTextEditor> {
   quill.Style get _selectionStyle => _controller.getSelectionStyle();
 
   int get _activeInsertionOffset {
-    final selectionOffset = _controller.selection.extentOffset;
-    if (selectionOffset >= 0) {
-      return selectionOffset.clamp(0, _controller.document.length - 1);
+    if (_focusNode.hasFocus) {
+      final selectionOffset = _controller.selection.extentOffset;
+      if (selectionOffset >= 0) {
+        _lastKnownInsertionOffset = selectionOffset;
+        return selectionOffset.clamp(0, _controller.document.length - 1);
+      }
     }
     if (_lastKnownInsertionOffset != null) {
       return _lastKnownInsertionOffset!.clamp(
         0,
         _controller.document.length - 1,
       );
+    }
+    final selectionOffset = _controller.selection.extentOffset;
+    if (selectionOffset >= 0) {
+      return selectionOffset.clamp(0, _controller.document.length - 1);
     }
     return _controller.document.length - 1;
   }
@@ -1469,24 +1476,27 @@ class _RichTextEditorState extends State<RichTextEditor> {
     );
   }
 
-  /// Inserts a math equation as plain LaTeX text \(formula\) at the cursor.
-  /// This is simple, reliable, and free from embed↔HTML conversion issues.
-  /// The student-facing renderer (TexViewWidget) parses and renders the LaTeX.
   void _insertMathLatex(String latex, [int? customOffset]) {
     final index = customOffset ?? _activeInsertionOffset;
-    // Wrap in Unicode LTR Isolate (\u2066 ... \u2069) so that the backslash-paren
-    // delimiters don't confuse the Unicode Bidi algorithm in RTL paragraphs.
-    // \u2066 = LEFT-TO-RIGHT ISOLATE (LRI), \u2069 = POP DIRECTIONAL ISOLATE (PDI)
-    const lri = '\u2066'; // LTR Isolate start
-    const pdi = '\u2069'; // Pop Directional Isolate
-    final textToInsert = '$lri\\($latex\\)$pdi ';
-    _controller.replaceText(
-      index,
-      0,
-      textToInsert,
-      TextSelection.collapsed(offset: index + textToInsert.length),
-    );
-    _lastKnownInsertionOffset = index + textToInsert.length;
+    _isProgrammaticInsert = true;
+    try {
+      // Use LTR Mark (\u200E) instead of directional isolates (\u2066/\u2069)
+      // to avoid cursor positioning bugs at isolate boundaries in Flutter,
+      // while still preventing bidi reordering of the LaTeX delimiters.
+      const ltrMark = '\u200E';
+      final textToInsert = '$ltrMark\\($latex\\)$ltrMark ';
+      _controller.replaceText(
+        index,
+        0,
+        textToInsert,
+        TextSelection.collapsed(offset: index + textToInsert.length),
+      );
+      _lastKnownInsertionOffset = index + textToInsert.length;
+      _focusNode.requestFocus();
+    } finally {
+      _isProgrammaticInsert = false;
+      _notifyParentAfterInsert();
+    }
   }
 
   /// Shows a preview dialog rendering all \(...\) equations in the current text.
