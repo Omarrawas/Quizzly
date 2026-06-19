@@ -576,6 +576,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
   String? _lastGeneratedHtml;
   int? _lastKnownInsertionOffset;
+  bool _isAutoFormatting = false;
   bool _isNormalizingSelection = false;
   bool _isProgrammaticInsert =
       false; // prevents cursor normalization during equation/image inserts
@@ -855,11 +856,13 @@ class _RichTextEditorState extends State<RichTextEditor> {
     // This allows Arabic paragraphs to stay RTL right-aligned, and English paragraphs
     // to stay LTR left-aligned, without shifting alignment while typing mixed formulas.
     // Skip during programmatic insertions (images/equations) to prevent selection resets.
-    if (!_isNormalizingSelection &&
+    if (!_isAutoFormatting &&
+        !_isNormalizingSelection &&
         !_isProgrammaticInsert &&
         _focusNode.hasFocus &&
         currentSelection.isCollapsed &&
         currentSelection.extentOffset >= 0) {
+      _isAutoFormatting = true;
       try {
         final lineText = _getCurrentLineText();
         final textDirection = _getLineDirection(lineText);
@@ -889,6 +892,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
         }
       } catch (e) {
         debugPrint('Auto direction format error: $e');
+      } finally {
+        _isAutoFormatting = false;
       }
     }
 
