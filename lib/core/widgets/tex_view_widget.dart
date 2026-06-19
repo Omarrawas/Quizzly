@@ -73,7 +73,11 @@ class TexViewWidget extends StatelessWidget {
           color: color ?? defaultTextColor,
         );
 
-    final normalizedContent = MathUtils.normalizeMathContent(text);
+    final cleanText = text
+        .replaceAll('\u200E', '')
+        .replaceAll('\u2066', '')
+        .replaceAll('\u2069', '');
+    final normalizedContent = MathUtils.normalizeMathContent(cleanText);
     final hasLatex = _latexRegex.hasMatch(normalizedContent);
     final hasHtml =
         normalizedContent.contains('<') && normalizedContent.contains('>');
