@@ -576,7 +576,6 @@ class _RichTextEditorState extends State<RichTextEditor> {
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
   String? _lastGeneratedHtml;
   int? _lastKnownInsertionOffset;
-  bool _isAutoFormatting = false;
   bool _isNormalizingSelection = false;
   bool _isProgrammaticInsert =
       false; // prevents cursor normalization during equation/image inserts
@@ -607,30 +606,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     return _controller.document.length - 1;
   }
 
-  String _getCurrentLineText() {
-    try {
-      final text = _controller.document.toPlainText();
-      final offset = _controller.selection.extentOffset;
-      if (offset < 0 || offset > text.length) return '';
 
-      int start = text.lastIndexOf('\n', offset - 1);
-      if (start == -1) {
-        start = 0;
-      } else {
-        start += 1;
-      }
-
-      int end = text.indexOf('\n', offset);
-      if (end == -1) {
-        end = text.length;
-      }
-
-      if (start >= end) return '';
-      return text.substring(start, end);
-    } catch (_) {
-      return '';
-    }
-  }
 
   @override
   void initState() {
@@ -2067,20 +2043,27 @@ class _MathPreviewDialog extends StatelessWidget {
 
   const _MathPreviewDialog({required this.content, required this.htmlContent});
 
-  /// Splits plain-text content into segments of normal text and LaTeX spans.
   List<InlineSpan> _buildSpans(BuildContext context) {
     final textColor = Colors.white.withValues(alpha: 0.92);
+    // Strip Bidi markers (\u200E, \u2066, \u2069) from the plain text so that the
+    // Bidi algorithm does not create mixed LTR/RTL runs that swap the visual order
+    // of the inline WidgetSpans in the preview.
+    final cleanContent = content
+        .replaceAll('\u200E', '')
+        .replaceAll('\u2066', '')
+        .replaceAll('\u2069', '');
+
     final latexRegex = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true);
 
     final spans = <InlineSpan>[];
     int lastEnd = 0;
 
-    for (final match in latexRegex.allMatches(content)) {
+    for (final match in latexRegex.allMatches(cleanContent)) {
       // Text before the equation
       if (match.start > lastEnd) {
         spans.add(
           TextSpan(
-            text: content.substring(lastEnd, match.start),
+            text: cleanContent.substring(lastEnd, match.start),
             style: TextStyle(
               fontFamily: 'Tajawal',
               fontSize: 17,
@@ -2128,10 +2111,10 @@ class _MathPreviewDialog extends StatelessWidget {
     }
 
     // Remaining text after last equation
-    if (lastEnd < content.length) {
+    if (lastEnd < cleanContent.length) {
       spans.add(
         TextSpan(
-          text: content.substring(lastEnd),
+          text: cleanContent.substring(lastEnd),
           style: TextStyle(
             fontFamily: 'Tajawal',
             fontSize: 17,
