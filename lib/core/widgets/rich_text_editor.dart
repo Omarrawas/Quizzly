@@ -870,6 +870,244 @@ class _RichTextEditorState extends State<RichTextEditor> {
     widget.onContentChanged(html);
   }
 
+  Widget _buildListDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final listValue = _selectionStyle.attributes[quill.Attribute.list.key]?.value;
+
+    IconData currentIcon = Icons.format_list_bulleted;
+    String currentTooltip = 'قائمة نقطية';
+    if (listValue == 'ordered') {
+      currentIcon = Icons.format_list_numbered;
+      currentTooltip = 'قائمة مرقّمة';
+    } else if (listValue == 'bullet') {
+      currentIcon = Icons.format_list_bulleted;
+      currentTooltip = 'قائمة نقطية';
+    } else {
+      currentIcon = Icons.format_list_bulleted;
+      currentTooltip = 'قائمة';
+    }
+
+    final foregroundColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    return PopupMenuButton<String>(
+      tooltip: currentTooltip,
+      color: const Color(0xFF222329),
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF2D2E36)),
+      ),
+      onSelected: (value) {
+        if (value == 'bullet') {
+          _controller.formatSelection(quill.Attribute.ul);
+        } else if (value == 'ordered') {
+          _controller.formatSelection(quill.Attribute.ol);
+        } else {
+          _controller.formatSelection(
+            quill.Attribute.clone(quill.Attribute.list, null),
+          );
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'bullet',
+          child: Row(
+            children: [
+              Icon(Icons.format_list_bulleted, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('قائمة نقطية', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'ordered',
+          child: Row(
+            children: [
+              Icon(Icons.format_list_numbered, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('قائمة مرقّمة', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'none',
+          child: Row(
+            children: [
+              Icon(Icons.format_indent_decrease, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('بدون قائمة', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(currentIcon, size: 18, color: foregroundColor),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down_rounded, size: 14, color: foregroundColor.withValues(alpha: 0.6)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlignmentDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final alignValue = _selectionStyle.attributes[quill.Attribute.align.key]?.value;
+
+    IconData currentIcon = Icons.format_align_right;
+    String currentTooltip = 'محاذاة يمين';
+    if (alignValue == 'center') {
+      currentIcon = Icons.format_align_center;
+      currentTooltip = 'توسيط';
+    } else if (alignValue == 'left') {
+      currentIcon = Icons.format_align_left;
+      currentTooltip = 'محاذاة يسار';
+    }
+
+    final foregroundColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    return PopupMenuButton<String>(
+      tooltip: currentTooltip,
+      color: const Color(0xFF222329),
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF2D2E36)),
+      ),
+      onSelected: (value) {
+        if (value == 'right') {
+          _controller.formatSelection(quill.Attribute.rightAlignment);
+        } else if (value == 'center') {
+          _controller.formatSelection(quill.Attribute.centerAlignment);
+        } else if (value == 'left') {
+          _controller.formatSelection(quill.Attribute.leftAlignment);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'right',
+          child: Row(
+            children: [
+              Icon(Icons.format_align_right, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('محاذاة يمين', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'center',
+          child: Row(
+            children: [
+              Icon(Icons.format_align_center, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('توسيط', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'left',
+          child: Row(
+            children: [
+              Icon(Icons.format_align_left, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('محاذاة يسار', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(currentIcon, size: 18, color: foregroundColor),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down_rounded, size: 14, color: foregroundColor.withValues(alpha: 0.6)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDirectionDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasRtl = _selectionStyle.attributes.containsKey(quill.Attribute.rtl.key);
+
+    IconData currentIcon = hasRtl ? Icons.format_textdirection_r_to_l : Icons.format_textdirection_l_to_r;
+    String currentTooltip = hasRtl ? 'من اليمين لليسار (RTL)' : 'من اليسار لليمين (LTR)';
+    final foregroundColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    return PopupMenuButton<String>(
+      tooltip: currentTooltip,
+      color: const Color(0xFF222329),
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF2D2E36)),
+      ),
+      onSelected: (value) {
+        if (value == 'rtl') {
+          _controller.formatSelection(quill.Attribute.rtl);
+          _controller.formatSelection(quill.Attribute.rightAlignment);
+        } else {
+          _controller.formatSelection(
+            quill.Attribute.clone(quill.Attribute.rtl, null),
+          );
+          _controller.formatSelection(quill.Attribute.leftAlignment);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'rtl',
+          child: Row(
+            children: [
+              Icon(Icons.format_textdirection_r_to_l, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('من اليمين لليسار (RTL)', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'ltr',
+          child: Row(
+            children: [
+              Icon(Icons.format_textdirection_l_to_r, size: 18, color: isDark ? Colors.white : Colors.black),
+              const SizedBox(width: 8),
+              Text('من اليسار لليمين (LTR)', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(currentIcon, size: 18, color: foregroundColor),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down_rounded, size: 14, color: foregroundColor.withValues(alpha: 0.6)),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _toggleInlineStyle(quill.Attribute attribute) {
     _focusNode.requestFocus();
     final isActive = _selectionStyle.attributes.containsKey(attribute.key);
@@ -1199,114 +1437,11 @@ class _RichTextEditorState extends State<RichTextEditor> {
                     tooltip: 'تسطير',
                   ),
                   const VerticalDivider(width: 12),
-                  _buildToolbarButton(
-                    icon: Icons.format_list_bulleted,
-                    isSelected:
-                        _selectionStyle
-                            .attributes[quill.Attribute.list.key]
-                            ?.value ==
-                        'bullet',
-                    onPressed: () {
-                      final isActive =
-                          _selectionStyle
-                              .attributes[quill.Attribute.list.key]
-                              ?.value ==
-                          'bullet';
-                      _controller.formatSelection(
-                        isActive
-                            ? quill.Attribute.clone(quill.Attribute.ol, null)
-                            : quill.Attribute.ul,
-                      );
-                    },
-                    tooltip: 'قائمة نقطية',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.format_list_numbered,
-                    isSelected:
-                        _selectionStyle
-                            .attributes[quill.Attribute.list.key]
-                            ?.value ==
-                        'ordered',
-                    onPressed: () {
-                      final isActive =
-                          _selectionStyle
-                              .attributes[quill.Attribute.list.key]
-                              ?.value ==
-                          'ordered';
-                      _controller.formatSelection(
-                        isActive
-                            ? quill.Attribute.clone(quill.Attribute.ol, null)
-                            : quill.Attribute.ol,
-                      );
-                    },
-                    tooltip: 'قائمة مرقّمة',
-                  ),
+                  _buildListDropdown(),
                   const VerticalDivider(width: 12),
-                  _buildToolbarButton(
-                    icon: Icons.format_align_right,
-                    isSelected:
-                        _selectionStyle
-                            .attributes[quill.Attribute.align.key]
-                            ?.value ==
-                        'right',
-                    onPressed: () => _controller.formatSelection(
-                      quill.Attribute.rightAlignment,
-                    ),
-                    tooltip: 'محاذاة يمين',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.format_align_center,
-                    isSelected:
-                        _selectionStyle
-                            .attributes[quill.Attribute.align.key]
-                            ?.value ==
-                        'center',
-                    onPressed: () => _controller.formatSelection(
-                      quill.Attribute.centerAlignment,
-                    ),
-                    tooltip: 'توسيط',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.format_align_left,
-                    isSelected:
-                        _selectionStyle
-                            .attributes[quill.Attribute.align.key]
-                            ?.value ==
-                        'left',
-                    onPressed: () => _controller.formatSelection(
-                      quill.Attribute.leftAlignment,
-                    ),
-                    tooltip: 'محاذاة يسار',
-                  ),
+                  _buildAlignmentDropdown(),
                   const VerticalDivider(width: 8),
-                  _buildToolbarButton(
-                    icon: Icons.format_textdirection_r_to_l,
-                    isSelected: _selectionStyle.attributes.containsKey(
-                      quill.Attribute.rtl.key,
-                    ),
-                    onPressed: () {
-                      _controller.formatSelection(quill.Attribute.rtl);
-                      _controller.formatSelection(
-                        quill.Attribute.rightAlignment,
-                      );
-                    },
-                    tooltip: 'من اليمين لليسار (RTL)',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.format_textdirection_l_to_r,
-                    isSelected: !_selectionStyle.attributes.containsKey(
-                      quill.Attribute.rtl.key,
-                    ),
-                    onPressed: () {
-                      _controller.formatSelection(
-                        quill.Attribute.clone(quill.Attribute.rtl, null),
-                      );
-                      _controller.formatSelection(
-                        quill.Attribute.leftAlignment,
-                      );
-                    },
-                    tooltip: 'من اليسار لليمين (LTR)',
-                  ),
+                  _buildDirectionDropdown(),
                   const VerticalDivider(width: 12),
                   _buildToolbarButton(
                     icon: Icons.format_color_text_rounded,
