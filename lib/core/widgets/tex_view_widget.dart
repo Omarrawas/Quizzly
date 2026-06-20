@@ -123,11 +123,7 @@ class TexViewWidget extends StatelessWidget {
     final String wrappedHtml = '<div dir="$htmlDir">$directedHtml</div>';
 
     // Wrap LaTeX formulas in <math-tex> so they can be parsed as standalone elements by HtmlWidget.
-    // Wrap in \u200E (LTR marker) for RTL layout to prevent visual swapping of equations.
     final String processedHtml = wrappedHtml.replaceAllMapped(_latexRegex, (match) {
-      if (effectiveDirection == TextDirection.rtl) {
-        return '\u200E<math-tex>${match.group(0)}</math-tex>\u200E';
-      }
       return '<math-tex>${match.group(0)}</math-tex>';
     });
     
