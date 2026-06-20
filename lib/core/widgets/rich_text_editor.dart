@@ -568,6 +568,10 @@ class RichTextEditor extends StatefulWidget {
 
 class _RichTextEditorState extends State<RichTextEditor> {
   late quill.QuillController _controller;
+
+  @visibleForTesting
+  quill.QuillController get controller => _controller;
+
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   bool _isFocused = false;
@@ -660,6 +664,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
         String html = MathUtils.normalizeMathContent(widget.initialHtml!);
         var delta = HtmlToDelta().convert(html);
         delta = _applyRtlToDeltaBlocks(delta);
+        delta = _convertTextMathToEmbeds(delta);
 
         final doc = delta.isEmpty
             ? quill.Document()
@@ -767,6 +772,125 @@ class _RichTextEditorState extends State<RichTextEditor> {
     return buffer.toString();
   }
 
+  Delta _convertTextMathToEmbeds(Delta delta) {
+    final newDelta = Delta();
+    final latexRegex = MathUtils.latexRegex;
+
+    String stripMathDelimiters(String token) {
+      String t = token.trim();
+      if (t.startsWith(r'\(') && t.endsWith(r'\)')) {
+        return t.substring(2, t.length - 2).trim();
+      }
+      if (t.startsWith(r'\[') && t.endsWith(r'\]')) {
+        return t.substring(2, t.length - 2).trim();
+      }
+      if (t.startsWith(r'$$') && t.endsWith(r'$$')) {
+        return t.substring(2, t.length - 2).trim();
+      }
+      if (t.startsWith(r'$') && t.endsWith(r'$')) {
+        return t.substring(1, t.length - 1).trim();
+      }
+      return t;
+    }
+
+    for (final op in delta.toList()) {
+      if (op.isInsert && op.data is String) {
+        final text = op.data as String;
+        
+        if (text == '\n') {
+          newDelta.push(op);
+          continue;
+        }
+
+        int lastEnd = 0;
+        final matches = latexRegex.allMatches(text).toList();
+        
+        if (matches.isEmpty) {
+          newDelta.push(op);
+          continue;
+        }
+        
+        for (final match in matches) {
+          // 1. Text before equation
+          if (match.start > lastEnd) {
+            newDelta.insert(text.substring(lastEnd, match.start), op.attributes);
+          }
+          
+          // 2. Insert math embed
+          final token = match.group(0)!;
+          final latex = stripMathDelimiters(token);
+          newDelta.insert(quill.Embeddable('math', latex), op.attributes);
+          
+          lastEnd = match.end;
+        }
+        
+        // 3. Text after last equation
+        if (lastEnd < text.length) {
+          newDelta.insert(text.substring(lastEnd), op.attributes);
+        }
+      } else {
+        newDelta.push(op);
+      }
+    }
+    return newDelta;
+  }
+
+  TextSelection _mapSelectionToNewDelta(
+    Delta oldDelta,
+    Delta newDelta,
+    TextSelection oldSelection,
+    int newDocLength,
+  ) {
+    if (oldSelection.baseOffset < 0 || oldSelection.extentOffset < 0) {
+      return oldSelection;
+    }
+
+    int newBase = oldSelection.baseOffset;
+    int newExtent = oldSelection.extentOffset;
+
+    final latexRegex = MathUtils.latexRegex;
+    int currentOldOffset = 0;
+
+    for (final op in oldDelta.toList()) {
+      if (op.isInsert) {
+        final data = op.data;
+        if (data is String) {
+          final matches = latexRegex.allMatches(data);
+          for (final match in matches) {
+            final blockStart = currentOldOffset + match.start;
+            final blockEnd = currentOldOffset + match.end;
+            final blockLen = match.end - match.start;
+
+            // Adjust baseOffset
+            if (oldSelection.baseOffset >= blockEnd) {
+              newBase -= (blockLen - 1);
+            } else if (oldSelection.baseOffset > blockStart &&
+                oldSelection.baseOffset < blockEnd) {
+              newBase = blockStart + 1;
+            }
+
+            // Adjust extentOffset
+            if (oldSelection.extentOffset >= blockEnd) {
+              newExtent -= (blockLen - 1);
+            } else if (oldSelection.extentOffset > blockStart &&
+                oldSelection.extentOffset < blockEnd) {
+              newExtent = blockStart + 1;
+            }
+          }
+          currentOldOffset += data.length;
+        } else {
+          currentOldOffset += 1;
+        }
+      }
+    }
+
+    return TextSelection(
+      baseOffset: newBase.clamp(0, newDocLength),
+      extentOffset: newExtent.clamp(0, newDocLength),
+    );
+  }
+
+
   String _getCurrentHtml() {
     try {
       final delta = _controller.document.toDelta();
@@ -776,10 +900,24 @@ class _RichTextEditorState extends State<RichTextEditor> {
         final Map<String, dynamic> opMap = Map<String, dynamic>.from(op);
         var insert = opMap['insert'];
 
-        // Serialize Embeddable objects (images only now)
-        if (insert is quill.Embeddable) {
-          insert = insert.toJson();
-          opMap['insert'] = insert;
+        if (insert is Map<String, dynamic>) {
+          final String? type = insert['type'];
+          if (type == 'math') {
+            final String latex = insert['value'] as String;
+            opMap['insert'] = '\\($latex\\)';
+          }
+        } else if (insert is quill.Embeddable) {
+          if (insert.type == 'math') {
+            final String latex = insert.data as String;
+            opMap['insert'] = '\\($latex\\)';
+          } else {
+            opMap['insert'] = insert.toJson();
+          }
+        } else {
+          if (insert is quill.Embeddable) {
+            insert = insert.toJson();
+            opMap['insert'] = insert;
+          }
         }
         processedOps.add(opMap);
       }
@@ -804,6 +942,63 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _onContentChanged() {
+    if (_isProgrammaticInsert) return;
+
+    final currentDelta = _controller.document.toDelta();
+    final convertedDelta = _convertTextMathToEmbeds(currentDelta);
+
+    if (currentDelta != convertedDelta) {
+      Future.microtask(() {
+        if (!mounted) return;
+        
+        final latestDelta = _controller.document.toDelta();
+        final latestConverted = _convertTextMathToEmbeds(latestDelta);
+        if (latestDelta == latestConverted) return;
+
+        final oldSelection = _controller.selection;
+        _isProgrammaticInsert = true;
+        try {
+          final change = Delta()..delete(_controller.document.length);
+          for (final op in latestConverted.toList()) {
+            change.push(op);
+          }
+
+          int convertedLength = 0;
+          for (final op in latestConverted.toList()) {
+            if (op.isInsert) {
+              if (op.data is String) {
+                convertedLength += (op.data as String).length;
+              } else {
+                convertedLength += 1;
+              }
+            }
+          }
+
+          final newSelection = _mapSelectionToNewDelta(
+            latestDelta,
+            latestConverted,
+            oldSelection,
+            convertedLength,
+          );
+
+          _controller.compose(
+            change,
+            newSelection,
+            quill.ChangeSource.local,
+          );
+
+          final newDocLength = _controller.document.length;
+          _previousLength = newDocLength;
+          _previousSelection = newSelection;
+        } finally {
+          _isProgrammaticInsert = false;
+        }
+        _notifyParentAfterInsert();
+      });
+      return;
+    }
+
+
     final currentLength = _controller.document.length;
     final currentSelection = _controller.selection;
 
@@ -811,6 +1006,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     if (_focusNode.hasFocus && currentSelection.extentOffset >= 0) {
       _lastKnownInsertionOffset = currentSelection.extentOffset;
     }
+
 
     // Force RTL right-aligned when the editor is completely empty (contains only \n)
     // to ensure the placeholder and cursor start on the right side.
@@ -1540,6 +1736,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
                                 },
                                 onEditImage: _editExistingImage,
                               ),
+                              MathEmbedBuilder(),
                             ],
                           ),
                         ),
@@ -1559,18 +1756,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final index = customOffset ?? _activeInsertionOffset;
     _isProgrammaticInsert = true;
     try {
-      // Use LTR Mark (\u200E) instead of directional isolates (\u2066/\u2069)
-      // to avoid cursor positioning bugs at isolate boundaries in Flutter,
-      // while still preventing bidi reordering of the LaTeX delimiters.
-      const ltrMark = '\u200E';
-      final textToInsert = '$ltrMark\\($latex\\)$ltrMark ';
       _controller.replaceText(
         index,
         0,
-        textToInsert,
-        TextSelection.collapsed(offset: index + textToInsert.length),
+        quill.Embeddable('math', latex),
+        null,
       );
-      _lastKnownInsertionOffset = index + textToInsert.length;
+      _controller.replaceText(
+        index + 1,
+        0,
+        ' ',
+        TextSelection.collapsed(offset: index + 2),
+      );
+      _lastKnownInsertionOffset = index + 2;
       _focusNode.requestFocus();
     } finally {
       _isProgrammaticInsert = false;
@@ -2395,6 +2593,75 @@ class _MathPreviewDialog extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MATH EMBED BUILDER
+// ═══════════════════════════════════════════════════════════════
+
+class MathEmbedBuilder extends quill.EmbedBuilder {
+  MathEmbedBuilder();
+
+  @override
+  String get key => 'math';
+
+  @override
+  Widget build(BuildContext context, quill.EmbedContext embedContext) {
+    final latex = embedContext.node.value.data as String;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    return GestureDetector(
+      onTap: () async {
+        final result = await showDialog<String>(
+          context: context,
+          builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
+        );
+        if (result != null && result.isNotEmpty) {
+          final controller = embedContext.controller;
+          final offset = embedContext.node.documentOffset;
+          controller.replaceText(
+            offset,
+            1,
+            quill.Embeddable('math', result),
+            null,
+          );
+        }
+      },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6E56FF).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: const Color(0xFF6E56FF).withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: math_fork.Math.tex(
+              latex,
+              textStyle: TextStyle(
+                color: textColor,
+                fontSize: 16,
+              ),
+              onErrorFallback: (err) => Text(
+                latex,
+                style: TextStyle(
+                  color: Colors.red.shade300,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
         ),
       ),
