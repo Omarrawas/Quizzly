@@ -5,9 +5,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:quizzly/features/settings/domain/services/settings_service.dart';
 
+import 'package:html/dom.dart' as dom;
 import '../theme/app_colors.dart';
 import '../utils/math_utils.dart';
 import 'zoomable_image.dart';
+
+String _getMathAwareText(dom.Node node) {
+  final buffer = StringBuffer();
+  for (final child in node.nodes) {
+    if (child is dom.Text) {
+      buffer.write(child.text);
+    } else if (child is dom.Element) {
+      if (child.localName == 'math-tex') {
+        buffer.write(child.text);
+      } else {
+        buffer.write(_getMathAwareText(child));
+      }
+    }
+  }
+  return buffer.toString();
+}
 
 class TexViewWidget extends StatelessWidget {
   final String text;
@@ -125,9 +142,6 @@ class TexViewWidget extends StatelessWidget {
     // Wrap LaTeX formulas in <math-tex> so they can be parsed as standalone elements by HtmlWidget.
     // Wrap in \u2066 (LRI) and \u2069 (PDI) for RTL layout to prevent visual swapping of equations.
     final String processedHtml = wrappedHtml.replaceAllMapped(_latexRegex, (match) {
-      if (effectiveDirection == TextDirection.rtl) {
-        return '\u2066<math-tex>${match.group(0)}</math-tex>\u2069';
-      }
       return '<math-tex>${match.group(0)}</math-tex>';
     });
     
@@ -152,6 +166,35 @@ class TexViewWidget extends StatelessWidget {
           return styles;
         },
         customWidgetBuilder: (element) {
+          // 1. Check if this is a paragraph or similar container that contains math formulas
+          if (element.localName == 'p' || element.localName == 'div' || element.localName == 'li') {
+            final hasMath = element.getElementsByTagName('math-tex').isNotEmpty || 
+                            _latexRegex.hasMatch(element.text);
+            final hasImg = element.getElementsByTagName('img').isNotEmpty;
+            final hasTable = element.getElementsByTagName('table').isNotEmpty;
+
+            if (hasMath && !hasImg && !hasTable) {
+              final mathAwareText = _getMathAwareText(element);
+              final styleAttr = element.attributes['style'] ?? '';
+              WrapAlignment alignment = isTitle ? WrapAlignment.center : WrapAlignment.start;
+              
+              if (styleAttr.contains('text-align:center')) {
+                alignment = WrapAlignment.center;
+              } else if (styleAttr.contains('text-align:right')) {
+                alignment = WrapAlignment.start; // In RTL, start alignment is right
+              } else if (styleAttr.contains('text-align:left')) {
+                alignment = WrapAlignment.end; // In RTL, end alignment is left
+              }
+
+              return _buildMathText(
+                context,
+                mathAwareText,
+                defaultStyle,
+                alignment: alignment,
+              );
+            }
+          }
+
           if (element.localName == 'math-tex') {
             return InlineCustomWidget(
               child: _buildMathText(context, element.text, defaultStyle),
@@ -190,8 +233,9 @@ class TexViewWidget extends StatelessWidget {
   Widget _buildMathText(
     BuildContext context,
     String mathAwareText,
-    TextStyle baseStyle,
-  ) {
+    TextStyle baseStyle, {
+    WrapAlignment? alignment,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = baseStyle.color ?? (isDark ? Colors.white : AppColors.textPrimary);
     final resolvedDirection = textDirection ?? MathUtils.getDirection(mathAwareText);
@@ -313,7 +357,7 @@ class TexViewWidget extends StatelessWidget {
 
     return Wrap(
       textDirection: resolvedDirection,
-      alignment: isTitle ? WrapAlignment.center : WrapAlignment.start,
+      alignment: alignment ?? (isTitle ? WrapAlignment.center : WrapAlignment.start),
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 6,
       runSpacing: 8,

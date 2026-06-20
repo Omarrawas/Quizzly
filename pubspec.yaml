@@ -52,6 +52,7 @@ dependencies:
   vsc_quill_delta_to_html: ^1.0.5
   flutter_quill_delta_from_html: ^1.5.3
   flutter_widget_from_html: ^0.17.2
+  html: ^0.15.4
   # ── Offline Video Download ──────────────────────────────
   dio: ^5.7.0
   path_provider: ^2.1.3
