@@ -99,31 +99,9 @@ class TexViewWidget extends StatelessWidget {
     final defaultCssColor = _colorToCss(defaultStyle.color ?? defaultTextColor);
 
     final effectiveDirection = textDirection ?? MathUtils.getDirection(normalizedContent);
-    final String htmlDir = effectiveDirection == TextDirection.rtl ? 'rtl' : 'ltr';
-
-    // Inject dir attribute into block tags (p, li, div) to force direct block directionality
-    var directedHtml = normalizedContent;
-    directedHtml = directedHtml.replaceAllMapped(RegExp(r'<p(\s+[^>]*|)>', caseSensitive: false), (match) {
-      final attrs = match.group(1) ?? '';
-      if (attrs.contains('dir=')) return match.group(0)!;
-      return '<p dir="$htmlDir"$attrs>';
-    });
-    directedHtml = directedHtml.replaceAllMapped(RegExp(r'<li(\s+[^>]*|)>', caseSensitive: false), (match) {
-      final attrs = match.group(1) ?? '';
-      if (attrs.contains('dir=')) return match.group(0)!;
-      return '<li dir="$htmlDir"$attrs>';
-    });
-    directedHtml = directedHtml.replaceAllMapped(RegExp(r'<div(\s+[^>]*|)>', caseSensitive: false), (match) {
-      final attrs = match.group(1) ?? '';
-      if (attrs.contains('dir=')) return match.group(0)!;
-      return '<div dir="$htmlDir"$attrs>';
-    });
-
-    // Wrap in a div with correct direction attribute as a fallback
-    final String wrappedHtml = '<div dir="$htmlDir">$directedHtml</div>';
 
     // Wrap LaTeX formulas in <math-tex> so they can be parsed as standalone elements by HtmlWidget.
-    final String processedHtml = wrappedHtml.replaceAllMapped(_latexRegex, (match) {
+    final String processedHtml = normalizedContent.replaceAllMapped(_latexRegex, (match) {
       return '<math-tex>${match.group(0)}</math-tex>';
     });
     
@@ -135,10 +113,6 @@ class TexViewWidget extends StatelessWidget {
         renderMode: RenderMode.column,
         customStylesBuilder: (element) {
           final Map<String, String> styles = {};
-          
-          if (element.localName != 'math-tex') {
-            styles['direction'] = htmlDir;
-          }
           
           final inlineStyle = element.attributes['style'] ?? '';
           if (!inlineStyle.contains('color')) {
