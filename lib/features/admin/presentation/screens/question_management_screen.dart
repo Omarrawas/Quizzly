@@ -52,6 +52,13 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   List<String> correctOptionIds = [];
   List<TextEditingController> optionControllers = [];
 
+  // Visibility states for translation and explanation fields
+  bool _showTranslation = false;
+  bool _showExplanation = false;
+
+  // Primary fintech color
+  static const Color _primaryFintechColor = Color(0xFF6E56FF);
+
   // Topic selection
   List<String> selectedTopicIds = [];
   List<String> selectedTopicNames = [];
@@ -151,6 +158,18 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       selectedTopicIds = [widget.lessonId!];
       selectedTopicNames = [widget.lessonName ?? 'درس غير معروف'];
     }
+
+    _showTranslation = translationTextController.text.trim().isNotEmpty &&
+        translationTextController.text.trim() != '<p></p>' &&
+        translationTextController.text.trim() != '<p><br></p>';
+
+    _showExplanation = (explanationController.text.trim().isNotEmpty &&
+            explanationController.text.trim() != '<p></p>' &&
+            explanationController.text.trim() != '<p><br></p>') ||
+        explanationImageUrlController.text.isNotEmpty ||
+        explanationAudioUrlController.text.isNotEmpty ||
+        explanationPdfUrlController.text.isNotEmpty ||
+        explanationVideoUrlController.text.isNotEmpty;
 
     _loadAvailableLessons();
   }
@@ -398,14 +417,14 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
 
     final Map<String, dynamic> questionData = {
       'text': textController.text.trim(),
-      'translationText': translationTextController.text.trim(),
+      'translationText': _showTranslation ? translationTextController.text.trim() : '',
       'type': selectedTypeId,
       'subjectId': widget.subjectId,
-      'explanation': explanationController.text.trim(),
-      'explanationImageUrl': explanationImageUrlController.text.trim(),
-      'explanationAudioUrl': explanationAudioUrlController.text.trim(),
-      'explanationPdfUrl': explanationPdfUrlController.text.trim(),
-      'explanationVideoUrl': explanationVideoUrlController.text.trim(),
+      'explanation': _showExplanation ? explanationController.text.trim() : '',
+      'explanationImageUrl': _showExplanation ? explanationImageUrlController.text.trim() : '',
+      'explanationAudioUrl': _showExplanation ? explanationAudioUrlController.text.trim() : '',
+      'explanationPdfUrl': _showExplanation ? explanationPdfUrlController.text.trim() : '',
+      'explanationVideoUrl': _showExplanation ? explanationVideoUrlController.text.trim() : '',
       'difficulty': selectedDifficulty.name,
       'primaryTopicId': selectedTopicIds.isNotEmpty
           ? selectedTopicIds.first
@@ -843,25 +862,67 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                         onImageDeleted: (url) =>
                             _pendingImageDeletions.add(url),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'ترجمة السؤال (اختياري)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                      if (_showTranslation) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.between,
+                          children: [
+                            Text(
+                              'ترجمة السؤال (اختياري)',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                              tooltip: 'حذف الترجمة',
+                              onPressed: () {
+                                setState(() {
+                                  _showTranslation = false;
+                                  translationTextController.clear();
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      RichTextEditor(
-                        initialHtml: translationTextController.text,
-                        placeholder: 'ترجمة نص السؤال بالعربية...',
-                        height: 150,
-                        onContentChanged: (html) {
-                          translationTextController.text = html;
-                        },
-                        onImageDeleted: (url) =>
-                            _pendingImageDeletions.add(url),
-                      ),
+                        const SizedBox(height: 8),
+                        RichTextEditor(
+                          initialHtml: translationTextController.text,
+                          placeholder: 'ترجمة نص السؤال بالعربية...',
+                          height: 150,
+                          onContentChanged: (html) {
+                            translationTextController.text = html;
+                          },
+                          onImageDeleted: (url) =>
+                              _pendingImageDeletions.add(url),
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _showTranslation = true;
+                            });
+                          },
+                          icon: const Icon(Icons.translate_rounded, size: 20, color: _primaryFintechColor),
+                          label: Text(
+                            'إضافة ترجمة للسؤال',
+                            style: GoogleFonts.tajawal(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: _primaryFintechColor,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: _primaryFintechColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -910,87 +971,134 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'شرح الإجابة (اختياري)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                      if (!_showExplanation) ...[
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _showExplanation = true;
+                            });
+                          },
+                          icon: const Icon(Icons.add_comment_rounded, size: 20, color: _primaryFintechColor),
+                          label: Text(
+                            'إضافة شرح ومرفقات للسؤال',
+                            style: GoogleFonts.tajawal(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: _primaryFintechColor,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: _primaryFintechColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      RichTextEditor(
-                        initialHtml: explanationController.text,
-                        placeholder: 'اكتب الشرح هنا...',
-                        height: 150,
-                        onContentChanged: (html) {
-                          explanationController.text = html;
-                        },
-                        onImageDeleted: (url) =>
-                            _pendingImageDeletions.add(url),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'مرفقات الشرح (صورة، صوت، فيديو أو PDF)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(height: 24),
+                      ] else ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.between,
+                          children: [
+                            Text(
+                              'شرح الإجابة (اختياري)',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                              tooltip: 'حذف الشرح والمرفقات',
+                              onPressed: () {
+                                setState(() {
+                                  _showExplanation = false;
+                                  explanationController.clear();
+                                  explanationImageUrlController.clear();
+                                  explanationAudioUrlController.clear();
+                                  explanationPdfUrlController.clear();
+                                  explanationVideoUrlController.clear();
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          SizedBox(
-                            width:
-                                (MediaQuery.of(context).size.width - 48 - 12) /
-                                2,
-                            child: _buildAttachmentCard(
-                              title: 'صورة توضيحية',
-                              icon: Icons.image_rounded,
-                              url: explanationImageUrlController.text,
-                              fileType: 'image',
-                              color: const Color(0xFF10B981),
-                            ),
+                        const SizedBox(height: 8),
+                        RichTextEditor(
+                          initialHtml: explanationController.text,
+                          placeholder: 'اكتب الشرح هنا...',
+                          height: 150,
+                          onContentChanged: (html) {
+                            explanationController.text = html;
+                          },
+                          onImageDeleted: (url) =>
+                              _pendingImageDeletions.add(url),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'مرفقات الشرح (صورة، صوت، فيديو أو PDF)',
+                          style: GoogleFonts.tajawal(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
-                          SizedBox(
-                            width:
-                                (MediaQuery.of(context).size.width - 48 - 12) /
-                                2,
-                            child: _buildAttachmentCard(
-                              title: 'مقطع صوتي',
-                              icon: Icons.audiotrack_rounded,
-                              url: explanationAudioUrlController.text,
-                              fileType: 'audio',
-                              color: const Color(0xFF6366F1),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(
+                              width:
+                                  (MediaQuery.of(context).size.width - 48 - 12) /
+                                  2,
+                              child: _buildAttachmentCard(
+                                title: 'صورة توضيحية',
+                                icon: Icons.image_rounded,
+                                url: explanationImageUrlController.text,
+                                fileType: 'image',
+                                color: const Color(0xFF10B981),
+                              ),
                             ),
-                          ),
-                          SizedBox(
-                            width:
-                                (MediaQuery.of(context).size.width - 48 - 12) /
-                                2,
-                            child: _buildAttachmentCard(
-                              title: 'مقطع فيديو',
-                              icon: Icons.videocam_rounded,
-                              url: explanationVideoUrlController.text,
-                              fileType: 'video',
-                              color: const Color(0xFFF59E0B),
+                            SizedBox(
+                              width:
+                                  (MediaQuery.of(context).size.width - 48 - 12) /
+                                  2,
+                              child: _buildAttachmentCard(
+                                title: 'مقطع صوتي',
+                                icon: Icons.audiotrack_rounded,
+                                url: explanationAudioUrlController.text,
+                                fileType: 'audio',
+                                color: const Color(0xFF6366F1),
+                              ),
                             ),
-                          ),
-                          SizedBox(
-                            width:
-                                (MediaQuery.of(context).size.width - 48 - 12) /
-                                2,
-                            child: _buildAttachmentCard(
-                              title: 'ملف PDF',
-                              icon: Icons.picture_as_pdf_rounded,
-                              url: explanationPdfUrlController.text,
-                              fileType: 'pdf',
-                              color: const Color(0xFFEF4444),
+                            SizedBox(
+                              width:
+                                  (MediaQuery.of(context).size.width - 48 - 12) /
+                                  2,
+                              child: _buildAttachmentCard(
+                                title: 'مقطع فيديو',
+                                icon: Icons.videocam_rounded,
+                                url: explanationVideoUrlController.text,
+                                fileType: 'video',
+                                color: const Color(0xFFF59E0B),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            SizedBox(
+                              width:
+                                  (MediaQuery.of(context).size.width - 48 - 12) /
+                                  2,
+                              child: _buildAttachmentCard(
+                                title: 'ملف PDF',
+                                icon: Icons.picture_as_pdf_rounded,
+                                url: explanationPdfUrlController.text,
+                                fileType: 'pdf',
+                                color: const Color(0xFFEF4444),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
 
                       const SizedBox(height: 24),
                       Row(
