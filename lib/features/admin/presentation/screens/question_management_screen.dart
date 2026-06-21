@@ -865,7 +865,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       if (_showTranslation) ...[
                         const SizedBox(height: 16),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'ترجمة السؤال (اختياري)',
@@ -998,7 +998,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                         const SizedBox(height: 24),
                       ] else ...[
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'شرح الإجابة (اختياري)',
