@@ -10,7 +10,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'package:flutter/services.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -590,12 +590,35 @@ class _WalletScreenState extends State<WalletScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xFF6E56FF);
     bool isSubmitting = false;
+    bool isLoadingSettings = true;
+    String accountId = '';
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) {
+          if (isLoadingSettings) {
+            FirebaseFirestore.instance.collection('settings').doc('payments').get().then((doc) {
+              if (doc.exists && doc.data() != null) {
+                if (context.mounted) {
+                  setStateDialog(() {
+                    accountId = doc.data()?['shamCashAccountId'] ?? '';
+                    isLoadingSettings = false;
+                  });
+                }
+              } else {
+                if (context.mounted) {
+                  setStateDialog(() => isLoadingSettings = false);
+                }
+              }
+            }).catchError((_) {
+              if (context.mounted) {
+                setStateDialog(() => isLoadingSettings = false);
+              }
+            });
+          }
+
           return AlertDialog(
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -607,47 +630,88 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'يرجى تحويل مبلغ ${intl.NumberFormat('#,###').format(amount)} ل.س إلى حساب شام كاش الموضح بالصورة أدناه:',
-                    style: GoogleFonts.tajawal(
-                      color: isDark ? Colors.white70 : AppColors.textSecondary,
-                      fontSize: 14,
+            content: isLoadingSettings
+                ? const SizedBox(
+                    height: 100,
+                    child: Center(
+                      child: CircularProgressIndicator(color: primaryColor),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/images/photo_2026-06-21_11-53-13.jpg',
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          padding: const EdgeInsets.all(16),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'يرجى تحويل مبلغ ${intl.NumberFormat('#,###').format(amount)} ل.س إلى حساب شام كاش الموضح أدناه:',
+                          style: GoogleFonts.tajawal(
+                            color: isDark ? Colors.white70 : AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? Colors.white10 : Colors.black12,
+                            ),
                           ),
-                          child: Text(
-                            'خطأ في تحميل الصورة، يرجى التواصل مع الدعم الفني.',
-                            style: GoogleFonts.tajawal(color: Colors.red),
-                            textAlign: TextAlign.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'رقم الحساب',
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 11,
+                                        color: isDark ? Colors.white38 : Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      accountId.isNotEmpty ? accountId : 'لم يتم تحديد حساب الدفع',
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (accountId.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.copy_rounded, color: primaryColor),
+                                  tooltip: 'نسخ رقم الحساب',
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(text: accountId));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'تم نسخ رقم الحساب بنجاح',
+                                          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 16),
+                        if (isSubmitting)
+                          const CircularProgressIndicator(color: primaryColor)
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  if (isSubmitting)
-                    const CircularProgressIndicator(color: primaryColor)
-                ],
-              ),
-            ),
             actions: [
               TextButton(
                 onPressed: isSubmitting ? null : () => Navigator.pop(context),
