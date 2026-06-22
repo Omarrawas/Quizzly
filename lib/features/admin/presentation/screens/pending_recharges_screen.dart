@@ -462,7 +462,6 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
         stream: _db
             .collection('pending_recharges')
             .where('status', isEqualTo: 'pending')
-            .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -482,7 +481,18 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
             );
           }
 
-          final docs = snapshot.data?.docs ?? [];
+          // Sort documents in-memory by timestamp descending to avoid requiring a composite index
+          final List<QueryDocumentSnapshot> docs = List.from(snapshot.data?.docs ?? []);
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>?;
+            final bData = b.data() as Map<String, dynamic>?;
+            final aTime = (aData?['timestamp'] as Timestamp?)?.toDate();
+            final bTime = (bData?['timestamp'] as Timestamp?)?.toDate();
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+          });
 
           if (docs.isEmpty) {
             return Center(

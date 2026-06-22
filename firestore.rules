@@ -134,11 +134,19 @@ service cloud.firestore {
     
     // 6. Logs & Audits
     match /credit_logs/{id} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && (request.resource.data.userId == request.auth.uid || isAdmin());
       // Allow admin to list all logs; users can only read their own
       allow get: if (request.auth != null && resource.data.userId == request.auth.uid) || isAdmin();
       allow list: if isAdmin();
     }
+
+    // Pending Recharges (Sham Cash)
+    match /pending_recharges/{id} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
 
     // 7. User Activity
     match /quiz_attempts/{id} {
