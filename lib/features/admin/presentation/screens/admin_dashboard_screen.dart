@@ -12,6 +12,7 @@ import 'package:quizzly/features/admin/presentation/screens/send_notification_sc
 import 'package:quizzly/features/admin/presentation/screens/manage_socials_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/manage_sales_locations_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/ai_settings_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/pending_recharges_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -116,7 +117,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         scrolledUnderElevation: 0,
         title: Text(
           'لوحة تحكم الأدمن',
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
             fontWeight: FontWeight.bold,
             color: isDark ? Colors.white : AppColors.textPrimary,
           ),
@@ -157,7 +158,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   icon: const Icon(Icons.analytics_outlined, size: 16),
                   label: Text(
                     'تحليلات مفصلة',
-                    style: GoogleFonts.cairo(fontSize: 12),
+                    style: GoogleFonts.tajawal(fontSize: 12),
                   ),
                 ),
               ],
@@ -212,7 +213,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'الأموال المحصلة لهذا الشهر',
-                                style: GoogleFonts.cairo(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.tajawal(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -335,6 +336,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 );
               },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.pending_actions_rounded,
+              title: 'طلبات الشحن المعلقة',
+              subtitle: 'مراجعة وقبول أو رفض طلبات شحن شام كاش',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PendingRechargesScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.payment_rounded,
+              title: 'إعدادات بوابة شام كاش',
+              subtitle: 'تحديث مفتاح API ومعرف حساب شام كاش',
+              onTap: () => _showApiSettingsDialog(context),
               isDark: isDark,
             ),
             _buildActionTile(
@@ -486,7 +508,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildSectionTitle(String title, bool isDark) {
     return Text(
       title,
-      style: GoogleFonts.cairo(
+      style: GoogleFonts.tajawal(
         fontSize: 18,
         fontWeight: FontWeight.bold,
         color: isDark ? Colors.white : AppColors.textPrimary,
@@ -523,7 +545,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           Text(
             label,
-            style: GoogleFonts.cairo(
+            style: GoogleFonts.tajawal(
               fontSize: 10,
               fontWeight: FontWeight.w600,
               color: color.withValues(alpha: 0.8),
@@ -564,7 +586,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
         title: Text(
           title,
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
             fontSize: 15,
             fontWeight: FontWeight.bold,
             color: isDark ? Colors.white : AppColors.textPrimary,
@@ -572,7 +594,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
             fontSize: 12,
             color: AppColors.textSecondary,
           ),
@@ -596,7 +618,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
         Text(
           label,
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
             fontSize: 10,
             color: AppColors.textSecondary,
           ),
@@ -638,4 +660,143 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ],
     );
   }
+
+  void _showApiSettingsDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokenController = TextEditingController();
+    final accountIdController = TextEditingController();
+    bool isLoading = true;
+    const primaryColor = Color(0xFF6E56FF);
+    final db = FirebaseFirestore.instance;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          if (isLoading) {
+            db.collection('settings').doc('payments').get().then((doc) {
+              if (doc.exists && doc.data() != null) {
+                final data = doc.data()!;
+                tokenController.text = data['shamCashToken'] ?? '';
+                accountIdController.text = data['shamCashAccountId'] ?? '';
+              }
+              if (context.mounted) {
+                setStateDialog(() {
+                  isLoading = false;
+                });
+              }
+            }).catchError((e) {
+              if (context.mounted) {
+                setStateDialog(() {
+                  isLoading = false;
+                });
+              }
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'إعدادات شام كاش API',
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: isLoading
+                ? const SizedBox(
+                    height: 100,
+                    child: Center(
+                      child: CircularProgressIndicator(color: primaryColor),
+                    ),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: tokenController,
+                        obscureText: true,
+                        style: GoogleFonts.tajawal(color: isDark ? Colors.white : AppColors.textPrimary),
+                        decoration: InputDecoration(
+                          labelText: 'API Token',
+                          labelStyle: GoogleFonts.tajawal(),
+                          hintText: 'أدخل sc_token...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: accountIdController,
+                        style: GoogleFonts.tajawal(color: isDark ? Colors.white : AppColors.textPrimary),
+                        decoration: InputDecoration(
+                          labelText: 'Account ID',
+                          labelStyle: GoogleFonts.tajawal(),
+                          hintText: 'أدخل معرف الحساب...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'إلغاء',
+                  style: GoogleFonts.tajawal(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        try {
+                          await db.collection('settings').doc('payments').set({
+                            'shamCashToken': tokenController.text.trim(),
+                            'shamCashAccountId': accountIdController.text.trim(),
+                            'updatedAt': FieldValue.serverTimestamp(),
+                          }, SetOptions(merge: true));
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'تم حفظ إعدادات الـ API بنجاح.',
+                                  style: GoogleFonts.tajawal(),
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('فشل الحفظ: $e', style: GoogleFonts.tajawal()),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  'حفظ',
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
+

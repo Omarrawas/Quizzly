@@ -8,6 +8,9 @@ import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -49,7 +52,7 @@ class _WalletScreenState extends State<WalletScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString(), style: GoogleFonts.cairo()),
+            content: Text(e.toString(), style: GoogleFonts.tajawal()),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -72,18 +75,18 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 16),
             Text(
               'تم شحن الرصيد بنجاح!',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 8),
             Text(
               'تمت إضافة $amount ل.س إلى محفظتك.',
-              style: GoogleFonts.cairo(),
+              style: GoogleFonts.tajawal(),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
               'رصيدك الحالي: $newBalance ل.س',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -95,7 +98,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: Text('ممتاز', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                child: Text('ممتاز', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -112,7 +115,7 @@ class _WalletScreenState extends State<WalletScreen> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text('محفظتي', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('محفظتي', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: userId == null
@@ -139,7 +142,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       // History Section
                       Text(
                         'سجل العمليات',
-                        style: GoogleFonts.cairo(
+                        style: GoogleFonts.tajawal(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: isDark ? Colors.white : AppColors.textPrimary,
@@ -178,7 +181,7 @@ class _WalletScreenState extends State<WalletScreen> {
         children: [
           Text(
             'الرصيد المتوفر',
-            style: GoogleFonts.cairo(color: Colors.white.withValues(alpha: 0.9), fontSize: 16),
+            style: GoogleFonts.tajawal(color: Colors.white.withValues(alpha: 0.9), fontSize: 16),
           ),
           const SizedBox(height: 8),
           Row(
@@ -188,7 +191,7 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               Text(
                 intl.NumberFormat('#,###').format(balance),
-                style: GoogleFonts.cairo(
+                style: GoogleFonts.tajawal(
                   color: Colors.white,
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
@@ -197,7 +200,7 @@ class _WalletScreenState extends State<WalletScreen> {
               const SizedBox(width: 8),
               Text(
                 'ل.س',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 18),
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 18),
               ),
             ],
           ),
@@ -212,7 +215,7 @@ class _WalletScreenState extends State<WalletScreen> {
       children: [
         Text(
           'شحن الرصيد',
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: isDark ? Colors.white : AppColors.textPrimary,
@@ -242,7 +245,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     ),
                     decoration: InputDecoration(
                       hintText: 'أدخل كود الشحن',
-                      hintStyle: GoogleFonts.cairo(
+                      hintStyle: GoogleFonts.tajawal(
                         fontSize: 16,
                         letterSpacing: 0,
                         color: isDark ? Colors.white24 : Colors.grey,
@@ -282,7 +285,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
                           'تفعيل الكود',
-                          style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
               ),
@@ -293,7 +296,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 width: double.infinity,
                 height: 56,
                 child: OutlinedButton.icon(
-                  onPressed: () => _showShamCashOptions(context),
+                  onPressed: () => _showRechargeAmountDialog(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF0EA5E9),
                     side: const BorderSide(color: Color(0xFF0EA5E9), width: 1.5),
@@ -302,7 +305,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   icon: const Icon(Icons.account_balance_wallet_rounded, size: 22),
                   label: Text(
                     'الشراء عبر شام كاش',
-                    style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -339,7 +342,7 @@ class _WalletScreenState extends State<WalletScreen> {
               padding: const EdgeInsets.all(24),
               child: Text(
                 'مسح كود الشحن',
-                style: GoogleFonts.cairo(
+                style: GoogleFonts.tajawal(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -368,7 +371,7 @@ class _WalletScreenState extends State<WalletScreen> {
               child: Text(
                 'وجه الكاميرا نحو الـ QR Code الموجود على البطاقة',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(color: AppColors.textSecondary),
+                style: GoogleFonts.tajawal(color: AppColors.textSecondary),
               ),
             ),
           ],
@@ -402,7 +405,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'لا يوجد سجل عمليات حتى الآن',
-                    style: GoogleFonts.cairo(color: isDark ? Colors.white38 : Colors.grey),
+                    style: GoogleFonts.tajawal(color: isDark ? Colors.white38 : Colors.grey),
                   ),
                 ],
               ),
@@ -452,7 +455,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       children: [
                         Text(
                           description,
-                          style: GoogleFonts.cairo(
+                          style: GoogleFonts.tajawal(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: isDark ? Colors.white : AppColors.textPrimary,
@@ -460,7 +463,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                         Text(
                           intl.DateFormat('yyyy/MM/dd • HH:mm').format(timestamp),
-                          style: GoogleFonts.cairo(
+                          style: GoogleFonts.tajawal(
                             fontSize: 12,
                             color: isDark ? Colors.white38 : Colors.grey,
                           ),
@@ -470,7 +473,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                   Text(
                     '${isCredit ? "+" : "-"}${intl.NumberFormat('#,###').format(amount.abs())}',
-                    style: GoogleFonts.cairo(
+                    style: GoogleFonts.tajawal(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       color: isCredit ? Colors.green : Colors.red,
@@ -485,97 +488,506 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  void _showShamCashOptions(BuildContext context) {
+  void _showRechargeAmountDialog(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    showModalBottomSheet(
+    final amountController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    const primaryColor = Color(0xFF6E56FF);
+
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'شحن الرصيد عبر شام كاش',
+          style: GoogleFonts.tajawal(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
+          textAlign: TextAlign.center,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'الرجاء إدخال كمية الرصيد المراد تعبئتها (ل.س):',
+                style: GoogleFonts.tajawal(
+                  color: isDark ? Colors.white70 : AppColors.textSecondary,
+                  fontSize: 14,
                 ),
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.tajawal(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'مثال: 10000',
+                  hintStyle: GoogleFonts.tajawal(color: Colors.grey),
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'الرجاء إدخال المبلغ';
+                  }
+                  final parsed = int.tryParse(value.trim());
+                  if (parsed == null || parsed <= 0) {
+                    return 'الرجاء إدخال مبلغ صحيح';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.tajawal(color: Colors.red, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'الشراء عبر شام كاش',
-              style: GoogleFonts.cairo(
-                fontSize: 20,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                final amount = int.parse(amountController.text.trim());
+                Navigator.pop(context);
+                _showShamCashPaymentDialog(context, amount);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'موافق',
+              style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showShamCashPaymentDialog(BuildContext context, int amount) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const primaryColor = Color(0xFF6E56FF);
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'تحويل الرصيد',
+              style: GoogleFonts.tajawal(
                 fontWeight: FontWeight.bold,
                 color: isDark ? Colors.white : AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'اختر وسيلة التواصل المفضلة للتواصل مع بوت شام كاش وتفعيل حسابك تلقائياً:',
-              style: GoogleFonts.cairo(
-                fontSize: 14,
-                color: isDark ? Colors.white70 : AppColors.textSecondary,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'يرجى تحويل مبلغ ${intl.NumberFormat('#,###').format(amount)} ل.س إلى حساب شام كاش الموضح بالصورة أدناه:',
+                    style: GoogleFonts.tajawal(
+                      color: isDark ? Colors.white70 : AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/photo_2026-06-21_11-53-13.jpg',
+                      fit: BoxFit.contain,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'خطأ في تحميل الصورة، يرجى التواصل مع الدعم الفني.',
+                            style: GoogleFonts.tajawal(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (isSubmitting)
+                    const CircularProgressIndicator(color: primaryColor)
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                child: Text(
+                  'تراجع',
+                  style: GoogleFonts.tajawal(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setStateDialog(() => isSubmitting = true);
+                        try {
+                          final authService = this.context.read<AuthService>();
+                          final userId = authService.user?.uid;
+                          if (userId == null) throw 'يجب تسجيل الدخول أولاً';
+
+                          // Get user details
+                          String userName = 'طالب';
+                          String userEmail = authService.user?.email ?? '';
+                          String userPhone = authService.user?.phoneNumber ?? '';
+
+                          final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+                          if (userDoc.exists) {
+                            final uData = userDoc.data() ?? {};
+                            userName = uData['name'] ?? uData['email'] ?? 'طالب';
+                          }
+
+                          // 1. Try immediate auto-matching!
+                          final isAutoMatched = await _tryAutoMatchAndCharge(
+                            userId,
+                            userName,
+                            userEmail,
+                            userPhone,
+                            amount,
+                          );
+
+                          if (isAutoMatched) {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                            return;
+                          }
+
+                          // 2. Fallback: Save to pending_recharges if not auto-matched
+                          await FirebaseFirestore.instance.collection('pending_recharges').add({
+                            'userId': userId,
+                            'userName': userName,
+                            'userEmail': userEmail,
+                            'userPhone': userPhone,
+                            'amount': amount,
+                            'status': 'pending',
+                            'timestamp': FieldValue.serverTimestamp(),
+                          });
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            _showPostPaymentInstructionsDialog(context, amount);
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('حدث خطأ: $e', style: GoogleFonts.tajawal()),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setStateDialog(() => isSubmitting = false);
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  'تم الدفع',
+                  style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPostPaymentInstructionsDialog(BuildContext context, int amount) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const primaryColor = Color(0xFF6E56FF);
+    bool isLoadingLinks = true;
+    String whatsappUrl = 'https://wa.me/963955555555';
+    String telegramUrl = 'https://t.me/QuizzlySupportBot';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          // Load links if not loaded
+          if (isLoadingLinks) {
+            FirebaseFirestore.instance.collection('settings').doc('socials').get().then((doc) {
+              if (doc.exists && doc.data() != null) {
+                final data = doc.data()!;
+                if (mounted) {
+                  setStateDialog(() {
+                    whatsappUrl = data['whatsappUrl'] ?? 'https://wa.me/963955555555';
+                    telegramUrl = data['supportBotUrl'] ?? data['telegramUrl'] ?? 'https://t.me/QuizzlySupportBot';
+                    isLoadingLinks = false;
+                  });
+                }
+              } else {
+                if (mounted) {
+                  setStateDialog(() => isLoadingLinks = false);
+                }
+              }
+            }).catchError((e) {
+              if (mounted) {
+                setStateDialog(() => isLoadingLinks = false);
+              }
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'طلب الشحن قيد الانتظار',
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                _launchURL('https://t.me/ShamCashBot');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0088CC),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.pending_actions_rounded,
+                  color: Colors.orange,
+                  size: 64,
                 ),
-                elevation: 0,
-              ),
-              icon: const Icon(Icons.telegram_rounded, size: 24),
-              label: Text(
-                'التواصل عبر بوت تلغرام',
-                style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                _launchURL('https://wa.me/963955555555');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                const SizedBox(height: 16),
+                Text(
+                  'تم تسجيل طلب الشحن بقيمة ${intl.NumberFormat('#,###').format(amount)} ل.س بنجاح.',
+                  style: GoogleFonts.tajawal(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                elevation: 0,
-              ),
-              icon: const Icon(Icons.chat_rounded, size: 24),
-              label: Text(
-                'التواصل عبر واتساب',
-                style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+                const SizedBox(height: 12),
+                Text(
+                  'لتأكيد عملية الشحن وتفعيل الرصيد، يرجى إرسال لقطة شاشة (Screenshot) لمعاملة الدفع في شام كاش إلينا عبر واتساب أو تلغرام. سيبقى طلبك معلقاً حتى يوافق المسؤول.',
+                  style: GoogleFonts.tajawal(
+                    color: isDark ? Colors.white70 : AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                if (isLoadingLinks)
+                  const CircularProgressIndicator(color: primaryColor)
+                else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            String link = whatsappUrl;
+                            final msg = 'مرحباً، قمت بتحويل الرصيد عبر شام كاش وأريد تفعيل طلبي بقيمة $amount ل.س.';
+                            if (!link.contains('?')) {
+                              link = '$link?text=${Uri.encodeComponent(msg)}';
+                            } else {
+                              link = '$link&text=${Uri.encodeComponent(msg)}';
+                            }
+                            _launchURL(link);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF25D366),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          icon: const Icon(Icons.chat_rounded, size: 20),
+                          label: Text(
+                            'واتساب',
+                            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _launchURL(telegramUrl),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0088CC),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          icon: const Icon(Icons.telegram_rounded, size: 20),
+                          label: Text(
+                            'تلغرام',
+                            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'موافق',
+                  style: GoogleFonts.tajawal(color: primaryColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Future<bool> _tryAutoMatchAndCharge(
+    String userId,
+    String userName,
+    String userEmail,
+    String userPhone,
+    int amount,
+  ) async {
+    try {
+      // 1. Get payment settings
+      final settingsDoc = await FirebaseFirestore.instance.collection('settings').doc('payments').get();
+      if (!settingsDoc.exists || settingsDoc.data() == null) {
+        return false;
+      }
+
+      final data = settingsDoc.data()!;
+      final String? token = data['shamCashToken'];
+      final String? accountId = data['shamCashAccountId'];
+
+      if (token == null || token.trim().isEmpty || accountId == null || accountId.trim().isEmpty) {
+        return false;
+      }
+
+      // 2. Fetch recent transactions from Sham Cash API
+      final response = await http.get(
+        Uri.parse('https://api.shamcash-api.com/v1/transactions?account_id=$accountId&limit=50'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        return false;
+      }
+
+      final payload = jsonDecode(response.body);
+      if (payload['status'] != 'success') {
+        return false;
+      }
+
+      final List apiTransactions = payload['data'] ?? [];
+      if (apiTransactions.isEmpty) {
+        return false;
+      }
+
+      // 3. Find a matching, unused transaction
+      for (final tx in apiTransactions) {
+        final txId = tx['id']?.toString() ?? '';
+        final txAmount = (tx['amount'] as num?)?.toInt() ?? 0;
+        final txType = tx['type']?.toString() ?? '';
+
+        if (txId.isNotEmpty && txAmount == amount && txType == 'in') {
+          // Check if this txId was already matched
+          final dupQuery = await FirebaseFirestore.instance
+              .collection('pending_recharges')
+              .where('shamCashTxId', isEqualTo: txId)
+              .get();
+
+          if (dupQuery.docs.isEmpty) {
+            // Unused matching transaction found! Process credit instantly in a transaction
+            final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+            final rechargeRef = FirebaseFirestore.instance.collection('pending_recharges').doc();
+            final logRef = FirebaseFirestore.instance.collection('credit_logs').doc();
+
+            int finalBalance = 0;
+
+            await FirebaseFirestore.instance.runTransaction((transaction) async {
+              final userDoc = await transaction.get(userRef);
+              if (!userDoc.exists) return;
+
+              final currentBalance = (userDoc.data()?['balance'] as num?)?.toInt() ?? 0;
+              finalBalance = currentBalance + amount;
+
+              transaction.update(userRef, {'balance': finalBalance});
+              transaction.set(rechargeRef, {
+                'userId': userId,
+                'userName': userName,
+                'userEmail': userEmail,
+                'userPhone': userPhone,
+                'amount': amount,
+                'status': 'approved',
+                'shamCashTxId': txId,
+                'timestamp': FieldValue.serverTimestamp(),
+                'matchedAt': FieldValue.serverTimestamp(),
+                'updatedAt': FieldValue.serverTimestamp(),
+              });
+              transaction.set(logRef, {
+                'userId': userId,
+                'amount': amount,
+                'type': 'redeem',
+                'description': 'شحن تلقائي شام كاش (معاملة: $txId)',
+                'timestamp': FieldValue.serverTimestamp(),
+              });
+            });
+
+            if (mounted) {
+              _showSuccessDialog(amount, finalBalance);
+            }
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Auto-match error: $e');
+    }
+    return false;
   }
 
   Future<void> _launchURL(String urlString) async {
@@ -590,7 +1002,7 @@ class _WalletScreenState extends State<WalletScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تعذر فتح الرابط: $urlString', style: GoogleFonts.cairo()),
+            content: Text('تعذر فتح الرابط: $urlString', style: GoogleFonts.tajawal()),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -599,3 +1011,4 @@ class _WalletScreenState extends State<WalletScreen> {
     }
   }
 }
+
