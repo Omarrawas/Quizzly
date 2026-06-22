@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
+import 'dart:math';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -567,8 +568,9 @@ class _WalletScreenState extends State<WalletScreen> {
             onPressed: () {
               if (formKey.currentState!.validate()) {
                 final amount = int.parse(amountController.text.trim());
+                final refCode = (Random().nextInt(900000) + 100000).toString();
                 Navigator.pop(context);
-                _showShamCashPaymentDialog(context, amount);
+                _showShamCashPaymentDialog(context, amount, refCode);
               }
             },
             style: ElevatedButton.styleFrom(
@@ -586,7 +588,7 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  void _showShamCashPaymentDialog(BuildContext context, int amount) {
+  void _showShamCashPaymentDialog(BuildContext context, int amount, String refCode) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const primaryColor = Color(0xFF6E56FF);
     bool isSubmitting = false;
@@ -650,6 +652,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
+                        // Account ID Container
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
@@ -706,6 +709,91 @@ class _WalletScreenState extends State<WalletScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        // Reference Code Container
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? Colors.white10 : Colors.black12,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'الكود المرجعي (ملاحظة التحويل)',
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 11,
+                                        color: isDark ? Colors.white38 : Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      refCode,
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF7DFFA2),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.copy_rounded, color: primaryColor),
+                                tooltip: 'نسخ الكود المرجعي',
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: refCode));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'تم نسخ الكود المرجعي بنجاح',
+                                        style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Warning card
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF4C6A).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFFF4C6A).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4C6A), size: 24),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'هام جداً: يجب كتابة أو لصق الكود المرجعي أعلاه في حقل "ملاحظة التحويل" عند الدفع في شام كاش لضمان شحن رصيدك تلقائياً وفورياً.',
+                                  style: GoogleFonts.tajawal(
+                                    fontSize: 12,
+                                    color: const Color(0xFFFF4C6A),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         if (isSubmitting)
                           const CircularProgressIndicator(color: primaryColor)
@@ -748,6 +836,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             userEmail,
                             userPhone,
                             amount,
+                            refCode,
                           );
 
                           if (isAutoMatched) {
@@ -765,6 +854,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             'userPhone': userPhone,
                             'amount': amount,
                             'status': 'pending',
+                            'referenceCode': refCode,
                             'timestamp': FieldValue.serverTimestamp(),
                           });
 
@@ -952,6 +1042,7 @@ class _WalletScreenState extends State<WalletScreen> {
     String userEmail,
     String userPhone,
     int amount,
+    String refCode,
   ) async {
     try {
       // 1. Get payment settings
@@ -996,8 +1087,9 @@ class _WalletScreenState extends State<WalletScreen> {
         final txId = tx['id']?.toString() ?? '';
         final txAmount = (tx['amount'] as num?)?.toInt() ?? 0;
         final txType = tx['type']?.toString() ?? '';
+        final txNote = tx['note']?.toString() ?? '';
 
-        if (txId.isNotEmpty && txAmount == amount && txType == 'in') {
+        if (txId.isNotEmpty && txAmount == amount && txType == 'in' && txNote.contains(refCode)) {
           // Check if this txId was already matched
           final dupQuery = await FirebaseFirestore.instance
               .collection('pending_recharges')
@@ -1028,6 +1120,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 'amount': amount,
                 'status': 'approved',
                 'shamCashTxId': txId,
+                'referenceCode': refCode,
                 'timestamp': FieldValue.serverTimestamp(),
                 'matchedAt': FieldValue.serverTimestamp(),
                 'updatedAt': FieldValue.serverTimestamp(),

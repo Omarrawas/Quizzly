@@ -92,6 +92,7 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
         final reqDocId = req.id;
         final String userId = reqData['userId'] ?? '';
         final int amount = (reqData['amount'] as num?)?.toInt() ?? 0;
+        final String? refCode = reqData['referenceCode']?.toString();
 
         if (userId.isEmpty || amount <= 0) continue;
 
@@ -101,11 +102,22 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
             final txId = tx['id']?.toString() ?? '';
             final txAmount = (tx['amount'] as num?)?.toInt() ?? 0;
             final txType = tx['type']?.toString() ?? '';
+            final txNote = tx['note']?.toString() ?? '';
 
-            return txId.isNotEmpty &&
+            final bool basicMatch = txId.isNotEmpty &&
                 txAmount == amount &&
                 txType == 'in' &&
                 !usedTxIds.contains(txId);
+
+            if (!basicMatch) return false;
+
+            // If request has referenceCode, require txNote to match it
+            if (refCode != null && refCode.trim().isNotEmpty) {
+              return txNote.contains(refCode);
+            }
+
+            // Fallback for backward compatibility
+            return true;
           },
           orElse: () => null,
         );
@@ -605,6 +617,17 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
                           style: GoogleFonts.tajawal(
                             fontSize: 13,
                             color: isDark ? Colors.white70 : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                      if (data['referenceCode'] != null && data['referenceCode'].toString().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'الكود المرجعي: ${data['referenceCode']}',
+                          style: GoogleFonts.tajawal(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFF7DFFA2) : const Color(0xFF6E56FF),
                           ),
                         ),
                       ],
