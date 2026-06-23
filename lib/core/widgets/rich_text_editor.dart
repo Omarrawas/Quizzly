@@ -859,6 +859,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final html = _getCurrentHtml();
     _lastGeneratedHtml = html;
     widget.onContentChanged(html);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   /// Called after a programmatic insert (equation / image) completes to push
@@ -868,6 +871,179 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final html = _getCurrentHtml();
     _lastGeneratedHtml = html;
     widget.onContentChanged(html);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Widget _buildLiveMathPreviewRow(bool isDark) {
+    final plainText = _controller.document.toPlainText();
+    final latexRegex = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true);
+    final matches = latexRegex.allMatches(plainText).toList();
+    
+    if (matches.isEmpty) return const SizedBox.shrink();
+
+    final textColor = isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary;
+    final widgets = <Widget>[];
+    int lastEnd = 0;
+
+    void addTextWords(String text) {
+      // Strip Bidi markers for cleaner word split
+      final cleanText = text
+          .replaceAll('\u200E', '')
+          .replaceAll('\u2066', '')
+          .replaceAll('\u2069', '');
+          
+      final words = cleanText.split(RegExp(r'\s+'));
+      for (final word in words) {
+        if (word.trim().isNotEmpty) {
+          widgets.add(
+            Text(
+              word,
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                fontSize: 14,
+                color: textColor,
+                height: 1.3,
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        addTextWords(plainText.substring(lastEnd, match.start));
+      }
+
+      final String raw = match.group(0)!;
+      final int matchStart = match.start;
+      final int matchLength = match.end - match.start;
+
+      String latex = raw;
+      if (raw.startsWith(r'\(') && raw.endsWith(r'\)')) {
+        latex = raw.substring(2, raw.length - 2);
+      } else if (raw.startsWith(r'\[') && raw.endsWith(r'\]')) {
+        latex = raw.substring(2, raw.length - 2);
+      }
+
+      widgets.add(
+        GestureDetector(
+          onTap: () async {
+            final resultLatex = await showDialog<String>(
+              context: context,
+              builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
+            );
+            if (resultLatex != null) {
+              _isProgrammaticInsert = true;
+              try {
+                final String newText = resultLatex.isEmpty ? '' : '\\($resultLatex\\)';
+                _controller.replaceText(
+                  matchStart,
+                  matchLength,
+                  newText,
+                  TextSelection.collapsed(offset: matchStart + newText.length),
+                );
+              } finally {
+                _isProgrammaticInsert = false;
+                _notifyParentAfterInsert();
+              }
+              if (mounted) {
+                setState(() {});
+              }
+            }
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6E56FF).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: const Color(0xFF6E56FF).withValues(alpha: 0.3),
+                  width: 0.7,
+                ),
+              ),
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: math_fork.Math.tex(
+                  latex,
+                  textStyle: TextStyle(fontSize: 15, color: textColor),
+                  onErrorFallback: (e) => Text(
+                    raw,
+                    style: TextStyle(
+                      color: const Color(0xFFFF4C6A),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < plainText.length) {
+      addTextWords(plainText.substring(lastEnd));
+    }
+
+    final previewBackground = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+    final borderColor = isDark ? Colors.white10 : Colors.black12;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: previewBackground,
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(11),
+        ),
+        border: Border(
+          top: BorderSide(color: borderColor),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.visibility_rounded,
+                color: Color(0xFF6E56FF),
+                size: 14,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'معاينة السؤال (اضغط على أي معادلة لتعديلها):',
+                style: GoogleFonts.tajawal(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF6E56FF),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Directionality(
+            textDirection: TextDirection.rtl,
+            child: Wrap(
+              textDirection: TextDirection.rtl,
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              runSpacing: 8,
+              children: widgets,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildListDropdown() {
@@ -1382,6 +1558,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
         ? const Color(0xFF1E293B)
         : const Color(0xFFF8FAFC);
 
+    final plainText = _controller.document.toPlainText();
+    final hasEquations = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true).hasMatch(plainText);
+
     return Container(
       decoration: BoxDecoration(
         color: editorBackground,
@@ -1550,6 +1729,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
               ),
             ],
           ),
+          if (hasEquations) _buildLiveMathPreviewRow(isDark),
         ],
       ),
     );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'math_parser.dart';
 
 class MathUtils {
   // Matches single or double backslash delimiters: \(...\)  \[...\]  \\(...\\)  \\[...\\] $...$  $$...$$
@@ -119,58 +118,7 @@ class MathUtils {
         return match.group(0)!;
       },
       onNonMatch: (String nonMathPart) {
-        return _processNonLatexSegment(nonMathPart);
-      },
-    );
-  }
-
-  static String _processNonLatexSegment(String input) {
-    final arabicRegex = RegExp(r'([\u0600-\u06FF]+)');
-
-    return input.splitMapJoin(
-      arabicRegex,
-      onMatch: (Match match) {
-        return match.group(0)!;
-      },
-      onNonMatch: (String nonArabicPart) {
-        if (nonArabicPart.trim().isEmpty) return nonArabicPart;
-
-        // Split non-Arabic part by common English words to keep them outside math blocks
-        final englishWordRegex = RegExp(
-          r'\b(?:the|of|and|to|in|is|for|that|this|with|by|from|at|on|an|or|as|be|are|was|were|value|calculate|find|where|show|if|then|given|determine|solve|equation|formula|mass|ratio|constant|temperature|pressure|volume|moles|concentration|reacts|produces|formed|yields|which|what|how|many|each|following|select)\b',
-          caseSensitive: false,
-        );
-
-        return nonArabicPart.splitMapJoin(
-          englishWordRegex,
-          onMatch: (Match match) {
-            return match.group(0)!;
-          },
-          onNonMatch: (String part) {
-            if (part.trim().isEmpty) return part;
-
-            // Trim leading/trailing spaces and common punctuation (like colons, commas) so they stay outside the math block
-            final leadingMatch = RegExp(r'^[\s:!?,;،؛\.]*').firstMatch(part);
-            final leading = leadingMatch?.group(0) ?? '';
-
-            final trailingMatch = RegExp(r'[\s:!?,;،؛\.]*$').firstMatch(part);
-            final trailing = trailingMatch?.group(0) ?? '';
-
-            String trimmedMath = '';
-            if (leading.length < part.length) {
-              final endIdx = part.length - trailing.length;
-              if (leading.length < endIdx) {
-                trimmedMath = part.substring(leading.length, endIdx);
-              }
-            }
-
-            if (trimmedMath.isNotEmpty && isMathExpression(trimmedMath)) {
-              final latex = MathParser.convertToLatex(trimmedMath);
-              return '$leading\\($latex\\)$trailing';
-            }
-            return part;
-          },
-        );
+        return nonMathPart;
       },
     );
   }
