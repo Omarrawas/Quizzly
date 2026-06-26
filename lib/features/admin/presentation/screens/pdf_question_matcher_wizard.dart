@@ -571,7 +571,9 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
 
     // Suggestions exist - show best suggestion or let user pick another
     final bestMatch = _selectedMatch ?? _suggestions.first;
-    final similarity = bestMatch['_similarity'] as double;
+    final similarity = bestMatch['_similarity'] is double
+        ? bestMatch['_similarity'] as double
+        : TextSimilarity.compare(q.text, bestMatch['text'] ?? '');
     final isSelectedInExam = _selectedIds.contains(bestMatch['id']);
 
     Color matchColor;
@@ -652,10 +654,12 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
               ),
               const SizedBox(height: 16),
               // Options comparison if mcq/checkbox
-              if (bestMatch['options'] != null)
+              if (bestMatch['options'] is List)
                 ...((bestMatch['options'] as List).map((o) {
+                  if (o is! Map) return const SizedBox();
                   final opt = Map<String, dynamic>.from(o);
-                  final isCorrect = (bestMatch['correctOptionIds'] as List?)?.contains(opt['id']) ?? false;
+                  final correctIds = bestMatch['correctOptionIds'];
+                  final isCorrect = (correctIds is List) && correctIds.contains(opt['id']);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
