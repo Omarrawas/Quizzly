@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -67,12 +66,14 @@ class PDFParsingService {
     }
 
     final data = doc.data()!;
-    final apiKey = data['geminiKey']?.toString() ?? '';
+    final geminiKey = data['geminiKey']?.toString() ?? '';
     final proxyUrl = data['cloudflareProxyUrl']?.toString() ??
         'https://quizzly-proxy.omar-rawas17.workers.dev';
+    final openRouterKey = data['openRouterKey']?.toString() ?? '';
+    final openRouterModel = data['openRouterModel']?.toString() ?? 'google/gemini-2.0-flash-exp:free';
 
-    if (apiKey.isEmpty) {
-      throw Exception('مفتاح Gemini API Key غير مُعيّن في لوحة التحكم.');
+    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
+      throw Exception('لم يتم تعيين مفتاح Gemini API Key أو OpenRouter API Key في الإعدادات.');
     }
 
     // 2. Prepare Base64 data for the PDF
@@ -100,63 +101,125 @@ CRITICAL REQUIREMENT:
 3. Extract ALL questions from the document.
 ''';
 
-    // 4. Send request to Gemini API (via Cloudflare Proxy)
-    final url = '$proxyUrl/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
+    String? lastError;
 
-    try {
-      final response = await _dio.post(
-        url,
-        data: {
-          "contents": [
-            {
-              "parts": [
-                {
-                  "inlineData": {
-                    "mimeType": "application/pdf",
-                    "data": base64PDF,
-                  }
-                },
-                {"text": prompt}
-              ]
-            }
-          ]
-        },
-      );
+    // 1. Try Gemini via Proxy (if Gemini key exists)
+    if (geminiKey.isNotEmpty) {
+      try {
+        final url = '$proxyUrl/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {
+                    "inlineData": {
+                      "mimeType": "application/pdf",
+                      "data": base64PDF,
+                    }
+                  },
+                  {"text": prompt}
+                ]
+              }
+            ]
+          },
+        );
 
-      final candidates = response.data['candidates'] as List?;
-      if (candidates == null || candidates.isEmpty) {
-        throw Exception('لم يرجع نموذج الذكاء الاصطناعي أي استجابة.');
-      }
-
-      String responseText =
-          candidates[0]['content']['parts'][0]['text']?.toString() ?? '';
-      
-      // Clean markdown code blocks if any
-      responseText = responseText.trim();
-      if (responseText.startsWith('```')) {
-        final lines = responseText.split('\n');
-        if (lines.first.startsWith('```')) {
-          lines.removeAt(0);
+        final candidates = response.data['candidates'] as List?;
+        if (candidates != null && candidates.isNotEmpty) {
+          String responseText = candidates[0]['content']['parts'][0]['text']?.toString() ?? '';
+          return _parseResponseJson(responseText);
+        } else {
+          lastError = 'لم يرجع نموذج Gemini أي استجابة.';
         }
-        if (lines.isNotEmpty && lines.last.startsWith('```')) {
-          lines.removeLast();
-        }
-        responseText = lines.join('\n').trim();
+      } catch (e) {
+        lastError = 'خطأ في Gemini API: ${_getDioErrorMessage(e)}';
+        debugPrint('Gemini parsing failed: $e. Trying fallback to OpenRouter...');
       }
-
-      final decoded = jsonDecode(responseText);
-      if (decoded is! List) {
-        throw Exception('تنسيق الاستجابة المستلمة ليس قائمة JSON صالحة.');
-      }
-
-      return decoded
-          .map((item) => ExtractedQuestion.fromMap(Map<String, dynamic>.from(item)))
-          .toList();
-    } on dio_client.DioException catch (e) {
-      final errorMsg = e.response?.data?['error']?['message'] ?? e.message;
-      throw Exception('خطأ في الاتصال بالذكاء الاصطناعي: $errorMsg');
-    } catch (e) {
-      throw Exception('فشل في معالجة وتحليل ملف الـ PDF: $e');
     }
+
+    // 2. Try OpenRouter (if OpenRouter key exists)
+    if (openRouterKey.isNotEmpty) {
+      try {
+        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": prompt
+                  },
+                  {
+                    "type": "file",
+                    "file": {
+                      "filename": "exam.pdf",
+                      "file_data": "data:application/pdf;base64,$base64PDF"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+        );
+
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          String responseText = choices[0]['message']['content']?.toString() ?? '';
+          return _parseResponseJson(responseText);
+        } else {
+          lastError = lastError != null ? '$lastError | لم يرجع نموذج OpenRouter أي استجابة.' : 'لم يرجع نموذج OpenRouter أي استجابة.';
+        }
+      } catch (e) {
+        final orError = 'خطأ في OpenRouter API: ${_getDioErrorMessage(e)}';
+        lastError = lastError != null ? '$lastError\n$orError' : orError;
+        debugPrint('OpenRouter parsing failed: $e');
+      }
+    }
+
+    throw Exception(lastError ?? 'فشلت معالجة وتحليل ملف الـ PDF عبر جميع المزودين المتاحين.');
+  }
+
+  List<ExtractedQuestion> _parseResponseJson(String responseText) {
+    responseText = responseText.trim();
+    if (responseText.startsWith('```')) {
+      final lines = responseText.split('\n');
+      if (lines.first.startsWith('```')) {
+        lines.removeAt(0);
+      }
+      if (lines.isNotEmpty && lines.last.startsWith('```')) {
+        lines.removeLast();
+      }
+      responseText = lines.join('\n').trim();
+    }
+
+    final decoded = jsonDecode(responseText);
+    if (decoded is! List) {
+      throw Exception('تنسيق الاستجابة المستلمة ليس قائمة JSON صالحة.');
+    }
+
+    return decoded
+        .map((item) => ExtractedQuestion.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  String _getDioErrorMessage(dynamic e) {
+    if (e is dio_client.DioException) {
+      return e.response?.data?['error']?['message'] ?? e.message ?? e.toString();
+    }
+    return e.toString();
   }
 }
