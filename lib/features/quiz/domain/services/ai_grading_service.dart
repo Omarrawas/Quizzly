@@ -131,7 +131,7 @@ class AIGradingService {
 
   Future<String> _callGemini(String q, String ans, String modelAns, String? exp) async {
     final prompt = _buildPrompt(q, ans, modelAns, exp);
-    final url = '$_cloudflareProxyUrl/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiKey';
+    final url = '$_cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$_geminiKey';
     
     final response = await _dio.post(url, data: {
       "contents": [{
@@ -191,7 +191,7 @@ class AIGradingService {
     try {
       if (provider == AIProvider.gemini) {
         if (_geminiKey.isEmpty) return 'Gemini API Key غير مُعيّن';
-        final url = '$_cloudflareProxyUrl/v1beta/models/gemini-1.5-flash:generateContent?key=$_geminiKey';
+        final url = '$_cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$_geminiKey';
         final response = await _dio.post(url, data: {
           "contents": [{"parts": [{"text": "قل 'مرحبا'"}]}]
         });

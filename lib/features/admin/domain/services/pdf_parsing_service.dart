@@ -101,7 +101,7 @@ CRITICAL REQUIREMENT:
     // 1. Try Gemini via Proxy (if Gemini key exists)
     if (geminiKey.isNotEmpty) {
       try {
-        final url = '$proxyUrl/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey';
+        final url = '$proxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
         final response = await _dio.post(
           url,
           data: {
@@ -155,7 +155,7 @@ CRITICAL REQUIREMENT:
     // 2. Try Gemini Direct (if Gemini key exists)
     if (geminiKey.isNotEmpty) {
       try {
-        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey';
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
         final response = await _dio.post(
           url,
           data: {
@@ -209,7 +209,7 @@ CRITICAL REQUIREMENT:
     // 3. Try Firebase AI (Vertex AI in Firebase)
     try {
       final model = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         safetySettings: [
           SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none, null),
           SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none, null),
