@@ -450,17 +450,20 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
 
     final navigator = Navigator.of(context);
     try {
+      String? returnedId;
       if (isEdit) {
         await _dbService.updateDoc(
           DatabaseService.colQuestions,
           widget.questionId!,
           questionData,
         );
+        returnedId = widget.questionId;
       } else {
-        await _dbService.addQuestion(
+        final ref = await _dbService.addQuestion(
           widget.sectionId ?? 'global',
           questionData,
         );
+        returnedId = ref.id;
       }
 
       // After successful save, delete images that were removed in the editor
@@ -472,7 +475,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       }
 
       if (mounted) {
-        navigator.pop();
+        navigator.pop(returnedId);
       }
     } catch (e) {
       if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);

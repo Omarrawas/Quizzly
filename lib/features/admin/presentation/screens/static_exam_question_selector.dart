@@ -8,6 +8,7 @@ import 'package:quizzly/core/widgets/zoomable_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:quizzly/features/admin/domain/services/pdf_parsing_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/pdf_question_matcher_wizard.dart';
+import 'package:quizzly/features/admin/presentation/screens/question_management_screen.dart';
 
 class StaticExamQuestionSelector extends StatefulWidget {
   final String examId;
@@ -245,6 +246,29 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
     }
   }
 
+  void _addNewQuestion() {
+    final selectedLessonName = _selectedTopicId != null ? _getTopicName(_selectedTopicId!) : null;
+    Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuestionManagementScreen(
+          sectionId: widget.sectionId,
+          subjectId: widget.subjectId,
+          lessonId: _selectedTopicId,
+          lessonName: selectedLessonName,
+        ),
+      ),
+    ).then((newQuestionId) {
+      if (newQuestionId != null && mounted) {
+        setState(() {
+          if (!_selectedIds.contains(newQuestionId)) {
+            _selectedIds.add(newQuestionId);
+          }
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -260,6 +284,11 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'إضافة سؤال جديد',
+            onPressed: _addNewQuestion,
+            icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF6E56FF)),
+          ),
           IconButton(
             tooltip: 'استيراد ذكي من PDF',
             onPressed: _startPdfImport,
