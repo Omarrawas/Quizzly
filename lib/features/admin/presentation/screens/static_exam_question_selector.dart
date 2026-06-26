@@ -5,6 +5,9 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/core/widgets/zoomable_image.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:quizzly/features/admin/domain/services/pdf_parsing_service.dart';
+import 'package:quizzly/features/admin/presentation/screens/pdf_question_matcher_wizard.dart';
 
 class StaticExamQuestionSelector extends StatefulWidget {
   final String examId;
@@ -147,6 +150,101 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
     }
   }
 
+  Future<void> _startPdfImport() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
+
+      if (result == null || result.files.single.bytes == null) return;
+
+      final bytes = result.files.single.bytes!;
+
+      if (!mounted) return;
+      
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: AppColors.primaryBlue),
+                  const SizedBox(height: 16),
+                  Text(
+                    'جاري استخراج أسئلة الـ PDF وتفسيرها ذكياً...',
+                    style: GoogleFonts.cairo(
+                      color: Colors.white,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final parsingService = PDFParsingService();
+      final extracted = await parsingService.parsePDF(bytes);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (extracted.isEmpty) {
+        throw Exception('لم يتم العثور على أي أسئلة مستخرجة صالحة.');
+      }
+
+      if (!mounted) return;
+
+      final List<String>? updatedIds = await Navigator.push<List<String>>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PDFQuestionMatcherWizard(
+            extractedQuestions: extracted,
+            subjectId: widget.subjectId,
+            sectionId: widget.sectionId,
+            initialSelectedIds: _selectedIds,
+            examTitle: widget.examTitle,
+          ),
+        ),
+      );
+
+      if (updatedIds != null) {
+        setState(() {
+          _selectedIds = updatedIds;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context); // Safe dismiss of dialog if open
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'حدث خطأ أثناء الاستيراد: ${e.toString().replaceAll('Exception:', '').trim()}',
+              style: GoogleFonts.cairo(),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -162,6 +260,11 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'استيراد ذكي من PDF',
+            onPressed: _startPdfImport,
+            icon: const Icon(Icons.auto_awesome, color: AppColors.primaryBlue),
+          ),
           TextButton(
             onPressed: _saveSelection,
             child: Text(
@@ -504,6 +607,53 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                 height: 80,
                                 fit: BoxFit.contain,
                               ),
+                            ],
+                            if (data['options'] != null && (data['options'] as List).isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              ...((data['options'] as List).map((o) {
+                                final opt = Map<String, dynamic>.from(o);
+                                final optId = opt['id']?.toString() ?? '';
+                                final optText = opt['text']?.toString() ?? '';
+                                final correctOptionIds = (data['correctOptionIds'] as List?)?.map((e) => e.toString()).toList() ?? [];
+                                final isCorrect = correctOptionIds.contains(optId);
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: isCorrect ? const Color(0xFF00E676) : (isDark ? Colors.white12 : Colors.grey[300]),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          optId,
+                                          style: GoogleFonts.tajawal(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: isCorrect ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TexViewWidget(
+                                          text: optText,
+                                          fontSize: 11,
+                                          color: isCorrect
+                                              ? const Color(0xFF00E676)
+                                              : (isSelected
+                                                  ? AppColors.primaryBlue.withValues(alpha: 0.8)
+                                                  : (isDark ? Colors.white60 : Colors.grey[700])),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              })),
                             ],
                             const SizedBox(height: 8),
                             // Topic label
