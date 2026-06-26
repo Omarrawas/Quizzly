@@ -28,7 +28,7 @@ class AIGradingService {
   String _geminiKey = '';
   String _groqKey = '';
   String _openRouterKey = '';
-  String _openRouterModel = 'google/gemini-2.0-flash-exp:free';
+  String _openRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   String _cloudflareProxyUrl = 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
   bool _isInitialized = false;
@@ -43,7 +43,7 @@ class AIGradingService {
         _geminiKey = data['geminiKey'] ?? '';
         _groqKey = data['groqKey'] ?? '';
         _openRouterKey = data['openRouterKey'] ?? '';
-        _openRouterModel = data['openRouterModel'] ?? 'google/gemini-2.0-flash-exp:free';
+        _openRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
         _cloudflareProxyUrl = data['cloudflareProxyUrl'] ?? _cloudflareProxyUrl;
       }
       _isInitialized = true;

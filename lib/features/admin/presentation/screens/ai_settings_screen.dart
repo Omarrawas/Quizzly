@@ -20,7 +20,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _openRouterController = TextEditingController();
   final _proxyController = TextEditingController();
 
-  String _selectedOpenRouterModel = 'google/gemini-2.0-flash-exp:free';
+  String _selectedOpenRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   bool _loading = true;
   bool _saving = false;
   bool _testing = false;
@@ -28,11 +28,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final AIGradingService _aiService = AIGradingService();
 
   static const List<Map<String, String>> _openRouterModels = [
-    {'id': 'google/gemini-2.0-flash-exp:free', 'name': 'Gemini 2.0 Flash', 'tag': 'مجاني'},
-    {'id': 'meta-llama/llama-3.1-8b-instruct:free', 'name': 'Llama 3.1 8B', 'tag': 'مجاني'},
-    {'id': 'mistralai/mistral-7b-instruct:free', 'name': 'Mistral 7B', 'tag': 'مجاني'},
-    {'id': 'qwen/qwen-2-72b-instruct:free', 'name': 'Qwen 2 72B', 'tag': 'مجاني'},
-    {'id': 'deepseek/deepseek-chat:free', 'name': 'DeepSeek Chat', 'tag': 'مجاني'},
+    {'id': 'nvidia/nemotron-3-ultra-550b-a55b:free', 'name': 'Nemotron 3 Ultra 550B', 'tag': 'مجاني'},
+    {'id': 'openai/gpt-oss-120b:free', 'name': 'GPT OSS 120B', 'tag': 'مجاني'},
+    {'id': 'google/gemma-4-31b-it:free', 'name': 'Gemma 4 31B IT', 'tag': 'مجاني'},
+    {'id': 'nvidia/nemotron-nano-12b-v2-vl:free', 'name': 'Nemotron Nano 12B V2', 'tag': 'مجاني'},
+    {'id': 'qwen/qwen3-coder:free', 'name': 'Qwen 3 Coder', 'tag': 'مجاني'},
+    {'id': 'poolside/laguna-m.1:free', 'name': 'Laguna M.1', 'tag': 'مجاني'},
     {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5', 'tag': 'مدفوع'},
     {'id': 'google/gemini-2.0-flash-001', 'name': 'Gemini 2.0 Flash', 'tag': 'مدفوع'},
     {'id': 'anthropic/claude-3-haiku', 'name': 'Claude 3 Haiku', 'tag': 'مدفوع'},
@@ -56,7 +57,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _geminiController.text = data['geminiKey'] ?? '';
         _groqController.text = data['groqKey'] ?? '';
         _openRouterController.text = data['openRouterKey'] ?? '';
-        _selectedOpenRouterModel = data['openRouterModel'] ?? 'google/gemini-2.0-flash-exp:free';
+        _selectedOpenRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
         _proxyController.text = data['cloudflareProxyUrl'] ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
       }
     } catch (e) {

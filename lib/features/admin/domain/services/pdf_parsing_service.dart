@@ -71,7 +71,7 @@ class PDFParsingService {
     final proxyUrl = data['cloudflareProxyUrl']?.toString() ??
         'https://quizzly-proxy.omar-rawas17.workers.dev';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
-    final openRouterModel = data['openRouterModel']?.toString() ?? 'google/gemini-2.0-flash-exp:free';
+    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
 
     final base64PDF = base64Encode(pdfBytes);
 
@@ -288,6 +288,237 @@ CRITICAL REQUIREMENT:
 
     if (errors.isEmpty) {
       throw Exception('فشلت معالجة وتحليل ملف الـ PDF عبر جميع المزودين المتاحين.');
+    }
+    throw Exception(errors.join('\n'));
+  }
+
+  Future<List<ExtractedQuestion>> parseText(String examText) async {
+    // 1. Fetch AI configurations from Firestore
+    final doc = await _firestore.collection('settings').doc('ai_config').get();
+    if (!doc.exists) {
+      throw Exception('لم يتم ضبط إعدادات الذكاء الاصطناعي في لوحة التحكم.');
+    }
+
+    final data = doc.data()!;
+    final geminiKey = data['geminiKey']?.toString() ?? '';
+    final proxyUrl = data['cloudflareProxyUrl']?.toString() ??
+        'https://quizzly-proxy.omar-rawas17.workers.dev';
+    final groqKey = data['groqKey']?.toString() ?? '';
+    final openRouterKey = data['openRouterKey']?.toString() ?? '';
+    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+    final prompt = '''
+Extract all questions from the following exam text.
+Return a raw JSON array matching this schema:
+[
+  {
+    "text": "Question text in Arabic...",
+    "type": "mcq" | "tf" | "checkbox", // Use "mcq" for multiple choice (choice options A, B, C, D), "tf" for True/False (صح/خطأ), "checkbox" for multiple correct answers.
+    "options": [
+      {"id": "A", "text": "Option text..."},
+      {"id": "B", "text": "Option text..."}
+    ],
+    "correctOptionIds": ["A"] // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
+  }
+]
+
+CRITICAL REQUIREMENT:
+1. Ensure all math and chemistry formulas, units, variables, and equations are represented in standard LaTeX format using \$ for inline math or \$\$ for block math. Example: H_2O, pH, 10^{-3}\\text{ sec}^{-1}, [\\text{NaOH}].
+2. Return ONLY a valid JSON array. Do not include markdown code block formatting (like ```json ... ```).
+3. Extract ALL questions from the text.
+
+Exam text:
+$examText
+''';
+
+    final List<String> errors = [];
+
+    // 1. Try Gemini via Proxy
+    if (geminiKey.isNotEmpty) {
+      try {
+        final url = '$proxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt}
+                ]
+              }
+            ],
+            "safetySettings": [
+              {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ]
+          },
+        );
+
+        final candidates = response.data['candidates'] as List?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final firstCandidate = candidates[0] as Map?;
+          final content = firstCandidate?['content'] as Map?;
+          final parts = content?['parts'] as List?;
+          
+          if (parts != null && parts.isNotEmpty) {
+            final firstPart = parts[0] as Map?;
+            final responseText = firstPart?['text']?.toString() ?? '';
+            if (responseText.isNotEmpty) {
+              return _parseResponseJson(responseText);
+            }
+          }
+        }
+      } catch (e) {
+        errors.add('خطأ في Gemini API (عبر البروكسي): ${_getDioErrorMessage(e)}');
+      }
+    }
+
+    // 2. Try Gemini Direct
+    if (geminiKey.isNotEmpty) {
+      try {
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt}
+                ]
+              }
+            ],
+            "safetySettings": [
+              {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ]
+          },
+        );
+
+        final candidates = response.data['candidates'] as List?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final firstCandidate = candidates[0] as Map?;
+          final content = firstCandidate?['content'] as Map?;
+          final parts = content?['parts'] as List?;
+          
+          if (parts != null && parts.isNotEmpty) {
+            final firstPart = parts[0] as Map?;
+            final responseText = firstPart?['text']?.toString() ?? '';
+            if (responseText.isNotEmpty) {
+              return _parseResponseJson(responseText);
+            }
+          }
+        }
+      } catch (e) {
+        errors.add('خطأ في Gemini API (مباشر): ${_getDioErrorMessage(e)}');
+      }
+    }
+
+    // 3. Try Firebase AI (Vertex)
+    try {
+      final model = FirebaseAI.googleAI().generativeModel(
+        model: 'gemini-2.0-flash',
+        safetySettings: [
+          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none, null),
+          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none, null),
+          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none, null),
+          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none, null),
+        ],
+      );
+
+      final response = await model.generateContent([
+        Content.text(prompt)
+      ]);
+
+      final responseText = response.text;
+      if (responseText != null && responseText.isNotEmpty) {
+        return _parseResponseJson(responseText);
+      }
+    } catch (e) {
+      errors.add('خطأ في Firebase AI (Vertex): $e');
+    }
+
+    // 4. Try Groq (llama-3.3-70b-versatile)
+    if (groqKey.isNotEmpty) {
+      try {
+        final url = 'https://api.groq.com/openai/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $groqKey',
+              'Content-Type': 'application/json',
+            },
+          ),
+          data: {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+              {
+                "role": "user",
+                "content": prompt
+              }
+            ]
+          },
+        );
+
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          final responseText = message?['content']?.toString() ?? '';
+          if (responseText.isNotEmpty) {
+            return _parseResponseJson(responseText);
+          }
+        }
+      } catch (e) {
+        errors.add('خطأ في Groq API: ${_getDioErrorMessage(e)}');
+      }
+    }
+
+    // 5. Try OpenRouter
+    if (openRouterKey.isNotEmpty) {
+      try {
+        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {
+                "role": "user",
+                "content": prompt
+              }
+            ]
+          },
+        );
+
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          final responseText = message?['content']?.toString() ?? '';
+          if (responseText.isNotEmpty) {
+            return _parseResponseJson(responseText);
+          }
+        }
+      } catch (e) {
+        errors.add('خطأ في OpenRouter API: ${_getDioErrorMessage(e)}');
+      }
+    }
+
+    if (errors.isEmpty) {
+      throw Exception('فشلت معالجة وتحليل النص عبر جميع المزودين المتاحين.');
     }
     throw Exception(errors.join('\n'));
   }
