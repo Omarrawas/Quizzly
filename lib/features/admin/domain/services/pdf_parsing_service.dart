@@ -73,10 +73,8 @@ class PDFParsingService {
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel = data['openRouterModel']?.toString() ?? 'google/gemini-2.0-flash-exp:free';
 
-    // 2. Prepare Base64 data for the PDF
     final base64PDF = base64Encode(pdfBytes);
 
-    // 3. Construct prompt
     const prompt = '''
 Extract all questions from the attached exam PDF.
 Return a raw JSON array matching this schema:
@@ -98,7 +96,7 @@ CRITICAL REQUIREMENT:
 3. Extract ALL questions from the document.
 ''';
 
-    String? lastError;
+    final List<String> errors = [];
 
     // 1. Try Gemini via Proxy (if Gemini key exists)
     if (geminiKey.isNotEmpty) {
@@ -144,12 +142,12 @@ CRITICAL REQUIREMENT:
           }
           
           final finishReason = firstCandidate?['finishReason']?.toString() ?? 'UNKNOWN';
-          lastError = 'فشل Gemini عبر البروكسي: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason';
+          errors.add('فشل Gemini عبر البروكسي: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason');
         } else {
-          lastError = 'لم يرجع نموذج Gemini عبر البروكسي أي استجابة صالحة.';
+          errors.add('لم يرجع نموذج Gemini عبر البروكسي أي استجابة صالحة.');
         }
       } catch (e) {
-        lastError = 'خطأ في Gemini API (عبر البروكسي): ${_getDioErrorMessage(e)}';
+        errors.add('خطأ في Gemini API (عبر البروكسي): ${_getDioErrorMessage(e)}');
         debugPrint('Gemini via proxy parsing failed: $e. Trying Gemini direct...');
       }
     }
@@ -198,15 +196,12 @@ CRITICAL REQUIREMENT:
           }
           
           final finishReason = firstCandidate?['finishReason']?.toString() ?? 'UNKNOWN';
-          final directError = 'فشل Gemini المباشر: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason';
-          lastError = lastError != null ? '$lastError\n$directError' : directError;
+          errors.add('فشل Gemini المباشر: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason');
         } else {
-          final directError = 'لم يرجع نموذج Gemini المباشر أي استجابة صالحة.';
-          lastError = lastError != null ? '$lastError\n$directError' : directError;
+          errors.add('لم يرجع نموذج Gemini المباشر أي استجابة صالحة.');
         }
       } catch (e) {
-        final directError = 'خطأ في Gemini API المباشر: ${_getDioErrorMessage(e)}';
-        lastError = lastError != null ? '$lastError\n$directError' : directError;
+        errors.add('خطأ في Gemini API المباشر: ${_getDioErrorMessage(e)}');
         debugPrint('Direct Gemini parsing failed: $e. Trying Firebase AI...');
       }
     }
@@ -216,16 +211,16 @@ CRITICAL REQUIREMENT:
       final model = FirebaseAI.googleAI().generativeModel(
         model: 'gemini-1.5-flash',
         safetySettings: [
-          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
-          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
-          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
-          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none, HarmBlockMethod.probability),
+          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none, HarmBlockMethod.probability),
+          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none, HarmBlockMethod.probability),
+          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none, HarmBlockMethod.probability),
         ],
       );
 
       final response = await model.generateContent([
         Content.multi([
-          DataPart('application/pdf', pdfBytes),
+          InlineDataPart('application/pdf', pdfBytes),
           TextPart(prompt),
         ])
       ]);
@@ -234,12 +229,10 @@ CRITICAL REQUIREMENT:
       if (responseText != null && responseText.isNotEmpty) {
         return _parseResponseJson(responseText);
       } else {
-        final fbError = 'لم يرجع نموذج Firebase AI (Vertex) أي استجابة صالحة.';
-        lastError = lastError != null ? '$lastError\n$fbError' : fbError;
+        errors.add('لم يرجع نموذج Firebase AI (Vertex) أي استجابة صالحة.');
       }
     } catch (e) {
-      final fbError = 'خطأ في Firebase AI (Vertex): $e';
-      lastError = lastError != null ? '$lastError\n$fbError' : fbError;
+      errors.add('خطأ في Firebase AI (Vertex): $e');
       debugPrint('Firebase AI (Vertex) parsing failed: $e. Trying OpenRouter...');
     }
 
@@ -286,15 +279,17 @@ CRITICAL REQUIREMENT:
             return _parseResponseJson(responseText);
           }
         }
-        lastError = lastError != null ? '$lastError | لم يرجع نموذج OpenRouter أي استجابة صالحة.' : 'لم يرجع نموذج OpenRouter أي استجابة صالحة.';
+        errors.add('لم يرجع نموذج OpenRouter أي استجابة صالحة.');
       } catch (e) {
-        final orError = 'خطأ في OpenRouter API: ${_getDioErrorMessage(e)}';
-        lastError = lastError != null ? '$lastError\n$orError' : orError;
+        errors.add('خطأ في OpenRouter API: ${_getDioErrorMessage(e)}');
         debugPrint('OpenRouter parsing failed: $e');
       }
     }
 
-    throw Exception(lastError ?? 'فشلت معالجة وتحليل ملف الـ PDF عبر جميع المزودين المتاحين.');
+    if (errors.isEmpty) {
+      throw Exception('فشلت معالجة وتحليل ملف الـ PDF عبر جميع المزودين المتاحين.');
+    }
+    throw Exception(errors.join('\n'));
   }
 
   List<ExtractedQuestion> _parseResponseJson(String responseText) {
