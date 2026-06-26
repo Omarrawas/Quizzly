@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_ai/firebase_ai.dart';
 
 class ExtractedQuestionOption {
   final String id;
@@ -72,10 +73,6 @@ class PDFParsingService {
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel = data['openRouterModel']?.toString() ?? 'google/gemini-2.0-flash-exp:free';
 
-    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
-      throw Exception('لم يتم تعيين مفتاح Gemini API Key أو OpenRouter API Key في الإعدادات.');
-    }
-
     // 2. Prepare Base64 data for the PDF
     final base64PDF = base64Encode(pdfBytes);
 
@@ -124,22 +121,10 @@ CRITICAL REQUIREMENT:
               }
             ],
             "safetySettings": [
-              {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_NONE"
-              },
-              {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_NONE"
-              },
-              {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_NONE"
-              },
-              {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_NONE"
-              }
+              {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
             ]
           },
         );
@@ -159,17 +144,106 @@ CRITICAL REQUIREMENT:
           }
           
           final finishReason = firstCandidate?['finishReason']?.toString() ?? 'UNKNOWN';
-          lastError = 'فشل Gemini: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason';
+          lastError = 'فشل Gemini عبر البروكسي: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason';
         } else {
-          lastError = 'لم يرجع نموذج Gemini أي استجابة صالحة.';
+          lastError = 'لم يرجع نموذج Gemini عبر البروكسي أي استجابة صالحة.';
         }
       } catch (e) {
-        lastError = 'خطأ في Gemini API: ${_getDioErrorMessage(e)}';
-        debugPrint('Gemini parsing failed: $e. Trying fallback to OpenRouter...');
+        lastError = 'خطأ في Gemini API (عبر البروكسي): ${_getDioErrorMessage(e)}';
+        debugPrint('Gemini via proxy parsing failed: $e. Trying Gemini direct...');
       }
     }
 
-    // 2. Try OpenRouter (if OpenRouter key exists)
+    // 2. Try Gemini Direct (if Gemini key exists)
+    if (geminiKey.isNotEmpty) {
+      try {
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {
+                    "inlineData": {
+                      "mimeType": "application/pdf",
+                      "data": base64PDF,
+                    }
+                  },
+                  {"text": prompt}
+                ]
+              }
+            ],
+            "safetySettings": [
+              {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+              {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ]
+          },
+        );
+
+        final candidates = response.data['candidates'] as List?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final firstCandidate = candidates[0] as Map?;
+          final content = firstCandidate?['content'] as Map?;
+          final parts = content?['parts'] as List?;
+          
+          if (parts != null && parts.isNotEmpty) {
+            final firstPart = parts[0] as Map?;
+            final responseText = firstPart?['text']?.toString() ?? '';
+            if (responseText.isNotEmpty) {
+              return _parseResponseJson(responseText);
+            }
+          }
+          
+          final finishReason = firstCandidate?['finishReason']?.toString() ?? 'UNKNOWN';
+          final directError = 'فشل Gemini المباشر: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason';
+          lastError = lastError != null ? '$lastError\n$directError' : directError;
+        } else {
+          final directError = 'لم يرجع نموذج Gemini المباشر أي استجابة صالحة.';
+          lastError = lastError != null ? '$lastError\n$directError' : directError;
+        }
+      } catch (e) {
+        final directError = 'خطأ في Gemini API المباشر: ${_getDioErrorMessage(e)}';
+        lastError = lastError != null ? '$lastError\n$directError' : directError;
+        debugPrint('Direct Gemini parsing failed: $e. Trying Firebase AI...');
+      }
+    }
+
+    // 3. Try Firebase AI (Vertex AI in Firebase)
+    try {
+      final model = FirebaseAI.googleAI().generativeModel(
+        model: 'gemini-1.5-flash',
+        safetySettings: [
+          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
+          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+        ],
+      );
+
+      final response = await model.generateContent([
+        Content.multi([
+          DataPart('application/pdf', pdfBytes),
+          TextPart(prompt),
+        ])
+      ]);
+
+      final responseText = response.text;
+      if (responseText != null && responseText.isNotEmpty) {
+        return _parseResponseJson(responseText);
+      } else {
+        final fbError = 'لم يرجع نموذج Firebase AI (Vertex) أي استجابة صالحة.';
+        lastError = lastError != null ? '$lastError\n$fbError' : fbError;
+      }
+    } catch (e) {
+      final fbError = 'خطأ في Firebase AI (Vertex): $e';
+      lastError = lastError != null ? '$lastError\n$fbError' : fbError;
+      debugPrint('Firebase AI (Vertex) parsing failed: $e. Trying OpenRouter...');
+    }
+
+    // 4. Try OpenRouter (if OpenRouter key exists)
     if (openRouterKey.isNotEmpty) {
       try {
         final url = 'https://openrouter.ai/api/v1/chat/completions';
@@ -189,10 +263,7 @@ CRITICAL REQUIREMENT:
               {
                 "role": "user",
                 "content": [
-                  {
-                    "type": "text",
-                    "text": prompt
-                  },
+                  {"type": "text", "text": prompt},
                   {
                     "type": "file",
                     "file": {

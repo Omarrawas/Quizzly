@@ -79,6 +79,7 @@ dependencies:
   google_generative_ai: ^0.4.7
   http: ^1.6.0
   image: ^4.3.0
+  firebase_ai: ^3.13.1
 
 dev_dependencies:
   flutter_test:
