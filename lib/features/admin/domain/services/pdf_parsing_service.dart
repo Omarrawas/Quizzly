@@ -251,7 +251,11 @@ CRITICAL REQUIREMENT:
 
   String _getDioErrorMessage(dynamic e) {
     if (e is dio_client.DioException) {
-      return e.response?.data?['error']?['message'] ?? e.message ?? e.toString();
+      final data = e.response?.data;
+      if (data is Map) {
+        return data['error']?['message']?.toString() ?? e.message ?? e.toString();
+      }
+      return data?.toString() ?? e.message ?? e.toString();
     }
     return e.toString();
   }

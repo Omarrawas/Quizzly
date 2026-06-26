@@ -220,7 +220,12 @@ class AIGradingService {
         return response.data['choices'][0]['message']['content'];
       }
     } on dio_client.DioException catch (e) {
-      final msg = e.response?.data?['error']?['message'] ?? e.message;
+      final data = e.response?.data;
+      String? msg;
+      if (data is Map) {
+        msg = data['error']?['message']?.toString();
+      }
+      msg ??= e.message ?? e.toString();
       return 'خطأ: $msg';
     } catch (e) {
       return 'خطأ: $e';
