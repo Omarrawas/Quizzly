@@ -122,16 +122,46 @@ CRITICAL REQUIREMENT:
                   {"text": prompt}
                 ]
               }
+            ],
+            "safetySettings": [
+              {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE"
+              },
+              {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE"
+              },
+              {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE"
+              },
+              {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE"
+              }
             ]
           },
         );
 
         final candidates = response.data['candidates'] as List?;
         if (candidates != null && candidates.isNotEmpty) {
-          String responseText = candidates[0]['content']['parts'][0]['text']?.toString() ?? '';
-          return _parseResponseJson(responseText);
+          final firstCandidate = candidates[0] as Map?;
+          final content = firstCandidate?['content'] as Map?;
+          final parts = content?['parts'] as List?;
+          
+          if (parts != null && parts.isNotEmpty) {
+            final firstPart = parts[0] as Map?;
+            final responseText = firstPart?['text']?.toString() ?? '';
+            if (responseText.isNotEmpty) {
+              return _parseResponseJson(responseText);
+            }
+          }
+          
+          final finishReason = firstCandidate?['finishReason']?.toString() ?? 'UNKNOWN';
+          lastError = 'فشل Gemini: تم حظر الاستجابة أو إنهاؤها بسبب: $finishReason';
         } else {
-          lastError = 'لم يرجع نموذج Gemini أي استجابة.';
+          lastError = 'لم يرجع نموذج Gemini أي استجابة صالحة.';
         }
       } catch (e) {
         lastError = 'خطأ في Gemini API: ${_getDioErrorMessage(e)}';
@@ -178,11 +208,14 @@ CRITICAL REQUIREMENT:
 
         final choices = response.data['choices'] as List?;
         if (choices != null && choices.isNotEmpty) {
-          String responseText = choices[0]['message']['content']?.toString() ?? '';
-          return _parseResponseJson(responseText);
-        } else {
-          lastError = lastError != null ? '$lastError | لم يرجع نموذج OpenRouter أي استجابة.' : 'لم يرجع نموذج OpenRouter أي استجابة.';
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          final responseText = message?['content']?.toString() ?? '';
+          if (responseText.isNotEmpty) {
+            return _parseResponseJson(responseText);
+          }
         }
+        lastError = lastError != null ? '$lastError | لم يرجع نموذج OpenRouter أي استجابة صالحة.' : 'لم يرجع نموذج OpenRouter أي استجابة صالحة.';
       } catch (e) {
         final orError = 'خطأ في OpenRouter API: ${_getDioErrorMessage(e)}';
         lastError = lastError != null ? '$lastError\n$orError' : orError;
