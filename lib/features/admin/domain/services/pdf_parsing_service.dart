@@ -211,10 +211,10 @@ CRITICAL REQUIREMENT:
       final model = FirebaseAI.googleAI().generativeModel(
         model: 'gemini-1.5-flash',
         safetySettings: [
-          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none, HarmBlockMethod.probability),
-          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none, HarmBlockMethod.probability),
-          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none, HarmBlockMethod.probability),
-          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none, HarmBlockMethod.probability),
+          SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none, null),
+          SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none, null),
+          SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none, null),
+          SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none, null),
         ],
       );
 
