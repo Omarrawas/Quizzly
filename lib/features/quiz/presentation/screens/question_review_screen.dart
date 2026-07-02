@@ -404,7 +404,7 @@ class _AIGradingLoadingWidgetState extends State<_AIGradingLoadingWidget> with S
                     style: GoogleFonts.tajawal(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: widget.isDark ? Colors.white90 : Colors.black87,
+                      color: widget.isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
