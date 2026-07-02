@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quizzly/features/quiz/domain/services/ai_grading_service.dart';
 
 class ExtractedQuestionOption {
   final String id;
@@ -55,10 +56,24 @@ class ExtractedQuestion {
 }
 
 class PDFParsingService {
-  final dio_client.Dio _dio = dio_client.Dio();
+  // Singleton pattern implementation
+  static final PDFParsingService _instance = PDFParsingService._internal();
+
+  factory PDFParsingService() {
+    return _instance;
+  }
+
+  PDFParsingService._internal();
+
+  final dio_client.Dio _dio = dio_client.Dio(
+    dio_client.BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 25),
+    ),
+  );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<List<ExtractedQuestion>> parsePDF(Uint8List pdfBytes) async {
+  Future<List<ExtractedQuestion>> parsePDF(Uint8List pdfBytes, {int retryCount = 0}) async {
     // 1. Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -66,11 +81,27 @@ class PDFParsingService {
     }
 
     final data = doc.data()!;
+    final geminiKey = data['geminiKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    final cloudflareProxyUrl = data['cloudflareProxyUrl']?.toString() ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
-    if (openRouterKey.isEmpty) {
-      throw Exception('يرجى ضبط مفتاح OpenRouter API في لوحة التحكم أولاً.');
+    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
+      throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
+    }
+
+    AIProvider provider;
+    if (retryCount == 0) {
+      provider = geminiKey.isNotEmpty ? AIProvider.gemini : AIProvider.openRouter;
+    } else if (retryCount == 1) {
+      provider = AIProvider.openRouter;
+    } else {
+      throw Exception('فشلت جميع محاولات قراءة الـ PDF بالذكاء الاصطناعي.');
+    }
+
+    if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
+        (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
+      return parsePDF(pdfBytes, retryCount: retryCount + 1);
     }
 
     final base64PDF = base64Encode(pdfBytes);
@@ -97,53 +128,79 @@ CRITICAL REQUIREMENT:
 ''';
 
     try {
-      final url = 'https://openrouter.ai/api/v1/chat/completions';
-      final response = await _dio.post(
-        url,
-        options: dio_client.Options(
-          headers: {
-            'Authorization': 'Bearer $openRouterKey',
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://github.com/Quizzly',
-            'X-Title': 'Quizzly Admin App',
-          },
-        ),
-        data: {
-          "model": openRouterModel,
-          "messages": [
+      String responseText = '';
+      if (provider == AIProvider.gemini) {
+        final url = '$cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(url, data: {
+          "contents": [
             {
-              "role": "user",
-              "content": [
-                {"type": "text", "text": prompt},
+              "parts": [
+                {"text": prompt},
                 {
-                  "type": "file",
-                  "file": {
-                    "filename": "exam.pdf",
-                    "file_data": "data:application/pdf;base64,$base64PDF"
+                  "inlineData": {
+                    "mimeType": "application/pdf",
+                    "data": base64PDF
                   }
                 }
               ]
             }
-          ]
-        },
-      );
+          ],
+          "generationConfig": {
+            "responseMimeType": "application/json"
+          }
+        });
+        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.openRouter) {
+        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {"type": "text", "text": prompt},
+                  {
+                    "type": "file",
+                    "file": {
+                      "filename": "exam.pdf",
+                      "file_data": "data:application/pdf;base64,$base64PDF"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+        );
 
-      final choices = response.data['choices'] as List?;
-      if (choices != null && choices.isNotEmpty) {
-        final firstChoice = choices[0] as Map?;
-        final message = firstChoice?['message'] as Map?;
-        final responseText = message?['content']?.toString() ?? '';
-        if (responseText.isNotEmpty) {
-          return _parseResponseJson(responseText);
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          responseText = message?['content']?.toString() ?? '';
         }
       }
-      throw Exception('لم يرجع نموذج OpenRouter أي استجابة صالحة.');
+
+      if (responseText.isNotEmpty) {
+        return _parseResponseJson(responseText);
+      }
+      throw Exception('لم يرجع نموذج ${provider.name} أي استجابة صالحة.');
     } catch (e) {
-      throw Exception('خطأ في OpenRouter API: ${_getDioErrorMessage(e)}');
+      debugPrint('Error parsing PDF with ${provider.name}: $e');
+      return parsePDF(pdfBytes, retryCount: retryCount + 1);
     }
   }
 
-  Future<List<ExtractedQuestion>> parseText(String examText) async {
+  Future<List<ExtractedQuestion>> parseText(String examText, {int retryCount = 0}) async {
     // 1. Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -151,11 +208,31 @@ CRITICAL REQUIREMENT:
     }
 
     final data = doc.data()!;
+    final geminiKey = data['geminiKey']?.toString() ?? '';
+    final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    final cloudflareProxyUrl = data['cloudflareProxyUrl']?.toString() ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
-    if (openRouterKey.isEmpty) {
-      throw Exception('يرجى ضبط مفتاح OpenRouter API في لوحة التحكم أولاً.');
+    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
+      throw Exception('لم يتم ضبط مفاتيح الذكاء الاصطناعي في لوحة التحكم.');
+    }
+
+    AIProvider provider;
+    if (retryCount == 0) {
+      provider = geminiKey.isNotEmpty ? AIProvider.gemini : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+    } else if (retryCount == 1) {
+      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty) ? AIProvider.groq : AIProvider.openRouter;
+    } else if (retryCount == 2) {
+      provider = AIProvider.openRouter;
+    } else {
+      throw Exception('فشلت جميع محاولات استخراج الأسئلة بالذكاء الاصطناعي.');
+    }
+
+    if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
+        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
+      return parseText(examText, retryCount: retryCount + 1);
     }
 
     final prompt = '''
@@ -183,40 +260,56 @@ $examText
 ''';
 
     try {
-      final url = 'https://openrouter.ai/api/v1/chat/completions';
-      final response = await _dio.post(
-        url,
-        options: dio_client.Options(
-          headers: {
-            'Authorization': 'Bearer $openRouterKey',
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://github.com/Quizzly',
-            'X-Title': 'Quizzly Admin App',
+      String responseText = '';
+      if (provider == AIProvider.gemini) {
+        final url = '$cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(url, data: {
+          "contents": [{
+            "parts": [{"text": prompt}]
+          }],
+          "generationConfig": {
+            "responseMimeType": "application/json"
+          }
+        });
+        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.groq) {
+        final response = await _dio.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          options: dio_client.Options(headers: {'Authorization': 'Bearer $groqKey'}),
+          data: {
+            "model": "llama3-8b-8192",
+            "response_format": {"type": "json_object"},
+            "messages": [
+              {"role": "user", "content": prompt}
+            ]
           },
-        ),
-        data: {
-          "model": openRouterModel,
-          "messages": [
-            {
-              "role": "user",
-              "content": prompt
-            }
-          ]
-        },
-      );
-
-      final choices = response.data['choices'] as List?;
-      if (choices != null && choices.isNotEmpty) {
-        final firstChoice = choices[0] as Map?;
-        final message = firstChoice?['message'] as Map?;
-        final responseText = message?['content']?.toString() ?? '';
-        if (responseText.isNotEmpty) {
-          return _parseResponseJson(responseText);
-        }
+        );
+        responseText = response.data['choices'][0]['message']['content'];
+      } else if (provider == AIProvider.openRouter) {
+        final response = await _dio.post(
+          'https://openrouter.ai/api/v1/chat/completions',
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {"role": "user", "content": prompt}
+            ]
+          },
+        );
+        responseText = response.data['choices'][0]['message']['content'];
       }
-      throw Exception('لم يرجع نموذج OpenRouter أي استجابة صالحة.');
+
+      return _parseResponseJson(responseText);
     } catch (e) {
-      throw Exception('خطأ في OpenRouter API: ${_getDioErrorMessage(e)}');
+      debugPrint('Error extracting text with ${provider.name}: $e');
+      return parseText(examText, retryCount: retryCount + 1);
     }
   }
 
@@ -241,16 +334,5 @@ $examText
     return decoded
         .map((item) => ExtractedQuestion.fromMap(Map<String, dynamic>.from(item)))
         .toList();
-  }
-
-  String _getDioErrorMessage(dynamic e) {
-    if (e is dio_client.DioException) {
-      final data = e.response?.data;
-      if (data is Map) {
-        return data['error']?['message']?.toString() ?? e.message ?? e.toString();
-      }
-      return data?.toString() ?? e.message ?? e.toString();
-    }
-    return e.toString();
   }
 }

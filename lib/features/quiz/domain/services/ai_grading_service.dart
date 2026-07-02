@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart' as dio_client;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -21,7 +22,21 @@ class AIGradingResult {
 enum AIProvider { gemini, groq, openRouter }
 
 class AIGradingService {
-  final dio_client.Dio _dio = dio_client.Dio();
+  // Singleton pattern implementation
+  static final AIGradingService _instance = AIGradingService._internal();
+
+  factory AIGradingService() {
+    return _instance;
+  }
+
+  AIGradingService._internal();
+
+  final dio_client.Dio _dio = dio_client.Dio(
+    dio_client.BaseOptions(
+      connectTimeout: const Duration(seconds: 6),
+      receiveTimeout: const Duration(seconds: 10),
+    ),
+  );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // الإعدادات الافتراضية (سيتم تجاوزها من Firestore إذا وجدت)
@@ -136,7 +151,10 @@ class AIGradingService {
     final response = await _dio.post(url, data: {
       "contents": [{
         "parts": [{"text": prompt}]
-      }]
+      }],
+      "generationConfig": {
+        "responseMimeType": "application/json"
+      }
     });
 
     return response.data['candidates'][0]['content']['parts'][0]['text'];
@@ -157,8 +175,9 @@ class AIGradingService {
       options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
       data: {
         "model": model,
+        "response_format": {"type": "json_object"},
         "messages": [
-          {"role": "system", "content": "أنت مصحح أكاديمي خبير باللغة العربية."},
+          {"role": "system", "content": "أنت مصحح أكاديمي خبير باللغة العربية. يجب أن ترجع النتيجة بصيغة JSON فقط."},
           {"role": "user", "content": prompt}
         ]
       },
@@ -169,15 +188,17 @@ class AIGradingService {
 
   String _buildPrompt(String q, String ans, String modelAns, String? exp) {
     return '''
-قم بتقييم إجابة الطالب الأكاديمية:
+قم بتقييم إجابة الطالب الأكاديمية بناءً على المعطيات التالية:
 السؤال: "$q"
 الإجابة النموذجية: "$modelAns"
 توضيح: "${exp ?? ''}"
 إجابة الطالب: "$ans"
 
-المطلوب بدقة:
-الدرجة: [الرقم]/10
-التعليق: [نص التعليق بالعربية]
+المطلوب بدقة هو إرجاع النتيجة ككائن JSON صالح ومكتمل يحتوي على المفاتيح التالية باللغة العربية:
+{
+  "score": [الدرجة المستحقة كرقم عشري أو صحيح من 10 مثل 8.5 أو 9],
+  "feedback": "[نص التقييم والتعليق الأكاديمي المختصر والمفيد باللغة العربية]"
+}
 ''';
   }
 
@@ -185,22 +206,25 @@ class AIGradingService {
   Future<String?> testProvider({
     required AIProvider provider,
     String? model,
+    String? apiKey,
   }) async {
     await _initialize();
 
     try {
       if (provider == AIProvider.gemini) {
-        if (_geminiKey.isEmpty) return 'Gemini API Key غير مُعيّن';
-        final url = '$_cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$_geminiKey';
+        final key = apiKey?.trim() ?? _geminiKey;
+        if (key.isEmpty) return 'Gemini API Key غير مُعيّن';
+        final url = '$_cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$key';
         final response = await _dio.post(url, data: {
           "contents": [{"parts": [{"text": "قل 'مرحبا'"}]}]
         });
         return response.data['candidates'][0]['content']['parts'][0]['text'];
       } else if (provider == AIProvider.groq) {
-        if (_groqKey.isEmpty) return 'Groq API Key غير مُعيّن';
+        final key = apiKey?.trim() ?? _groqKey;
+        if (key.isEmpty) return 'Groq API Key غير مُعيّن';
         final response = await _dio.post(
           'https://api.groq.com/openai/v1/chat/completions',
-          options: dio_client.Options(headers: {'Authorization': 'Bearer $_groqKey'}),
+          options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
           data: {
             "model": model ?? 'llama3-8b-8192',
             "messages": [{"role": "user", "content": "قل 'مرحبا'"}]
@@ -208,10 +232,11 @@ class AIGradingService {
         );
         return response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
-        if (_openRouterKey.isEmpty) return 'OpenRouter API Key غير مُعيّن';
+        final key = apiKey?.trim() ?? _openRouterKey;
+        if (key.isEmpty) return 'OpenRouter API Key غير مُعيّن';
         final response = await _dio.post(
           'https://openrouter.ai/api/v1/chat/completions',
-          options: dio_client.Options(headers: {'Authorization': 'Bearer $_openRouterKey'}),
+          options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
           data: {
             "model": model ?? _openRouterModel,
             "messages": [{"role": "user", "content": "قل 'مرحبا'"}]
@@ -235,15 +260,39 @@ class AIGradingService {
 
   AIGradingResult _parseResponse(String text) {
     try {
-      final scoreMatch = RegExp(r'الدرجة:\s*([\d.]+)/10').firstMatch(text);
-      final feedbackMatch = RegExp(r'التعليق:\s*(.*)', dotAll: true).firstMatch(text);
+      // تنظيف الكتل البرمجية إذا وجدت (مثل ```json ... ```)
+      String cleaned = text.trim();
+      if (cleaned.startsWith('```')) {
+        final lines = cleaned.split('\n');
+        if (lines.first.startsWith('```')) {
+          lines.removeAt(0);
+        }
+        if (lines.last.startsWith('```')) {
+          lines.removeLast();
+        }
+        cleaned = lines.join('\n').trim();
+      }
 
-      final score = double.tryParse(scoreMatch?.group(1) ?? '0') ?? 0;
-      final feedback = feedbackMatch?.group(1)?.trim() ?? 'تم التقييم بنجاح';
+      final data = jsonDecode(cleaned);
+      final score = double.tryParse(data['score']?.toString() ?? '0') ?? 0;
+      final feedback = data['feedback']?.toString() ?? 'تم التقييم بنجاح';
 
       return AIGradingResult(score: score, feedback: feedback);
     } catch (e) {
-      return AIGradingResult.error('فشل في تحليل النتيجة: $text');
+      debugPrint('JSON parsing failed, falling back to Regex: $e');
+      try {
+        final scoreMatch = RegExp(r'"score":\s*([\d.]+)').firstMatch(text) ?? 
+                           RegExp(r'الدرجة:\s*([\d.]+)/10').firstMatch(text);
+        final feedbackMatch = RegExp(r'"feedback":\s*"(.*?)"', dotAll: true).firstMatch(text) ?? 
+                              RegExp(r'التعليق:\s*(.*)', dotAll: true).firstMatch(text);
+
+        final score = double.tryParse(scoreMatch?.group(1) ?? '0') ?? 0;
+        final feedback = feedbackMatch?.group(1)?.trim() ?? 'تم التقييم بنجاح';
+
+        return AIGradingResult(score: score, feedback: feedback);
+      } catch (innerException) {
+        return AIGradingResult.error('فشل في تحليل النتيجة: $text');
+      }
     }
   }
 }

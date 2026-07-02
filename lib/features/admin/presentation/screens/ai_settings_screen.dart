@@ -23,7 +23,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   String _selectedOpenRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   bool _loading = true;
   bool _saving = false;
-  bool _testing = false;
+  AIProvider? _testingProvider;
 
   final AIGradingService _aiService = AIGradingService();
 
@@ -100,25 +100,50 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     }
   }
 
-  Future<void> _testOpenRouter() async {
-    if (_openRouterController.text.trim().isEmpty) {
+  Future<void> _testProvider(AIProvider provider) async {
+    if (_testingProvider != null) return;
+
+    String apiKey = '';
+    String? model;
+    String name = '';
+
+    if (provider == AIProvider.gemini) {
+      apiKey = _geminiController.text.trim();
+      name = 'Gemini';
+    } else if (provider == AIProvider.groq) {
+      apiKey = _groqController.text.trim();
+      name = 'Groq';
+    } else if (provider == AIProvider.openRouter) {
+      apiKey = _openRouterController.text.trim();
+      name = 'OpenRouter';
+      model = _selectedOpenRouterModel;
+    }
+
+    if (apiKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل OpenRouter API Key أولاً')),
+        SnackBar(
+          content: Text('الرجاء إدخال مفتاح $name أولاً', style: GoogleFonts.tajawal()),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
 
-    setState(() => _testing = true);
+    setState(() => _testingProvider = provider);
     try {
       final result = await _aiService.testProvider(
-        provider: AIProvider.openRouter,
-        model: _selectedOpenRouterModel,
+        provider: provider,
+        model: model,
+        apiKey: apiKey,
       );
       if (mounted) {
-        final isError = result != null && result.startsWith('خطأ');
+        final isError = result != null && (result.startsWith('خطأ') || result.contains('Error') || result.contains('Exception'));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isError ? result : 'الاتصال ناجح! الرد: $result'),
+            content: Text(
+              isError ? 'فشل اختبار $name: $result' : 'اتصال $name ناجح! الرد: $result',
+              style: GoogleFonts.tajawal(),
+            ),
             backgroundColor: isError ? Colors.red : Colors.green,
           ),
         );
@@ -126,11 +151,16 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في الاختبار: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('خطأ في اختبار $name: $e', style: GoogleFonts.tajawal()),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _testing = false);
+      if (mounted) {
+        setState(() => _testingProvider = null);
+      }
     }
   }
 
@@ -163,6 +193,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       label: 'Gemini API Key',
                       hint: 'AIzaSy...',
                       icon: Icons.auto_awesome_rounded,
+                      provider: AIProvider.gemini,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -170,6 +201,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       label: 'Groq API Key',
                       hint: 'gsk_...',
                       icon: Icons.bolt_rounded,
+                      provider: AIProvider.groq,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -177,11 +209,10 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       label: 'OpenRouter API Key',
                       hint: 'sk-or-...',
                       icon: Icons.hub_rounded,
+                      provider: AIProvider.openRouter,
                     ),
                     const SizedBox(height: 12),
                     _buildOpenRouterModelDropdown(),
-                    const SizedBox(height: 8),
-                    _buildTestButton(),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _proxyController,
@@ -243,11 +274,38 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     required String label,
     required String hint,
     required IconData icon,
+    AIProvider? provider,
   }) {
+    final isTestingThis = provider != null && _testingProvider == provider;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 14)),
+            if (provider != null)
+              TextButton.icon(
+                onPressed: _testingProvider != null ? null : () => _testProvider(provider),
+                icon: isTestingThis
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6E56FF)),
+                      )
+                    : const Icon(Icons.play_circle_outline_rounded, size: 16, color: Color(0xFF6E56FF)),
+                label: Text(
+                  isTestingThis ? 'جاري الاختبار...' : 'اختبار الموديل',
+                  style: GoogleFonts.tajawal(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: const Color(0xFF6E56FF),
+                  ),
+                ),
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -328,32 +386,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildTestButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 44,
-      child: OutlinedButton.icon(
-        onPressed: _testing ? null : _testOpenRouter,
-        icon: _testing
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.play_arrow_rounded, size: 20),
-        label: Text(
-          _testing ? 'جاري الاختبار...' : 'اختبار الموديل',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryBlue,
-          side: const BorderSide(color: AppColors.primaryBlue),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
     );
   }
 }

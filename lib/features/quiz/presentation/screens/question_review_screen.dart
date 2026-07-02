@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
@@ -143,7 +144,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('إجابتك:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryBlue)),
+        Text('إجابتك:', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryBlue)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -153,11 +154,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           ),
           child: Text(
             studentAnswer.isEmpty ? '(لم يتم العثور على إجابة)' : studentAnswer,
-            style: GoogleFonts.cairo(fontSize: 14),
+            style: GoogleFonts.tajawal(fontSize: 14),
           ),
         ),
         const SizedBox(height: 16),
-        Text('الإجابة النموذجية:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
+        Text('الإجابة النموذجية:', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -169,15 +170,15 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           child: TexViewWidget(text: q.essayAnswer ?? q.explanation ?? 'غير متوفرة', fontSize: 14),
         ),
         const SizedBox(height: 16),
-        if (aiResult == null)
+        if (isLoading)
+          _AIGradingLoadingWidget(isDark: isDark)
+        else if (aiResult == null)
           ElevatedButton.icon(
-            onPressed: isLoading ? null : () => _handleAIGrade(index, q, studentAnswer),
-            icon: isLoading 
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.auto_awesome, size: 18),
-            label: Text(isLoading ? 'جاري التصحيح...' : 'صحح لي بواسطة الذكاء الاصطناعي'),
+            onPressed: () => _handleAIGrade(index, q, studentAnswer),
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: Text('صحح لي بواسطة الذكاء الاصطناعي', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF6E56FF), // Dark Fintech Primary Color #6E56FF
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -192,28 +193,28 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+        color: const Color(0xFF6E56FF).withValues(alpha: 0.1), // Dark Fintech Primary Color
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+        border: Border.all(color: const Color(0xFF2D2E36)), // Fintech 1px border
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 18),
+              const Icon(Icons.auto_awesome, color: Color(0xFF6E56FF), size: 18),
               const SizedBox(width: 8),
-              Text('تقييم الذكاء الاصطناعي:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: const Color(0xFF6366F1))),
+              Text('تقييم الذكاء الاصطناعي:', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: const Color(0xFF6E56FF))),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: const Color(0xFF6366F1), borderRadius: BorderRadius.circular(8)),
-                child: Text('${result.score}/10', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                decoration: BoxDecoration(color: const Color(0xFF6E56FF), borderRadius: BorderRadius.circular(8)),
+                child: Text('${result.score}/10', style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(result.feedback, style: GoogleFonts.cairo(fontSize: 13, height: 1.5)),
+          Text(result.feedback, style: GoogleFonts.tajawal(fontSize: 13, height: 1.5)),
         ],
       ),
     );
@@ -310,6 +311,116 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           PdfExplanationViewer(pdfUrl: question.explanationPdfUrl!),
         ],
       ],
+    );
+  }
+}
+
+class _AIGradingLoadingWidget extends StatefulWidget {
+  final bool isDark;
+  const _AIGradingLoadingWidget({required this.isDark});
+
+  @override
+  State<_AIGradingLoadingWidget> createState() => _AIGradingLoadingWidgetState();
+}
+
+class _AIGradingLoadingWidgetState extends State<_AIGradingLoadingWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late DateTime _startTime;
+  int _elapsedSeconds = 0;
+  Timer? _timer;
+
+  final List<String> _loadingMessages = [
+    'جاري الاتصال بخادم الذكاء الاصطناعي...',
+    'جاري فحص السؤال ومطابقته بالإجابة النموذجية...',
+    'الذكاء الاصطناعي يحلل نقاط القوة والضعف في إجابتك...',
+    'جاري تقييم الدرجة وكتابة تعليق تفصيلي...',
+    'أوشكنا على الانتهاء، جاري استلام التقييم...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startTime = DateTime.now();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _elapsedSeconds = DateTime.now().difference(_startTime).inSeconds;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _getMessage() {
+    if (_elapsedSeconds < 2) return _loadingMessages[0];
+    if (_elapsedSeconds < 5) return _loadingMessages[1];
+    if (_elapsedSeconds < 8) return _loadingMessages[2];
+    if (_elapsedSeconds < 12) return _loadingMessages[3];
+    return _loadingMessages[4];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = widget.isDark ? const Color(0xFF222329) : Colors.grey.shade50;
+    final primaryColor = const Color(0xFF6E56FF); // Dark Fintech primary color
+
+    return FadeTransition(
+      opacity: _pulseController.drive(Tween<double>(begin: 0.6, end: 1.0)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2D2E36)), // Fintech 1px border
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _getMessage(),
+                    style: GoogleFonts.tajawal(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: widget.isDark ? Colors.white90 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'الوقت المنقضي: $_elapsedSeconds ثانية',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 11,
+                      color: widget.isDark ? Colors.white38 : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
