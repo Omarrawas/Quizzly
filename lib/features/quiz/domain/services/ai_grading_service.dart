@@ -258,17 +258,13 @@ class AIGradingService {
 
   AIGradingResult _parseResponse(String text) {
     try {
-      // تنظيف الكتل البرمجية إذا وجدت (مثل ```json ... ```)
       String cleaned = text.trim();
-      if (cleaned.startsWith('```')) {
-        final lines = cleaned.split('\n');
-        if (lines.first.startsWith('```')) {
-          lines.removeAt(0);
-        }
-        if (lines.last.startsWith('```')) {
-          lines.removeLast();
-        }
-        cleaned = lines.join('\n').trim();
+      
+      // Extract JSON block robustly by finding outer-most braces
+      int firstBrace = cleaned.indexOf('{');
+      int lastBrace = cleaned.lastIndexOf('}');
+      if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
       }
 
       final data = jsonDecode(cleaned);

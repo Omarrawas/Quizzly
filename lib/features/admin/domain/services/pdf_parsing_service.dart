@@ -313,18 +313,33 @@ $examText
 
   List<ExtractedQuestion> _parseResponseJson(String responseText) {
     responseText = responseText.trim();
-    if (responseText.startsWith('```')) {
-      final lines = responseText.split('\n');
-      if (lines.first.startsWith('```')) {
-        lines.removeAt(0);
-      }
-      if (lines.isNotEmpty && lines.last.startsWith('```')) {
-        lines.removeLast();
-      }
-      responseText = lines.join('\n').trim();
+    
+    // Extract JSON block robustly by finding the outer-most brackets/braces
+    int firstBracket = responseText.indexOf('[');
+    int lastBracket = responseText.lastIndexOf(']');
+    
+    // If no list brackets found, check for object braces
+    if (firstBracket == -1 || lastBracket == -1 || lastBracket < firstBracket) {
+      firstBracket = responseText.indexOf('{');
+      lastBracket = responseText.lastIndexOf('}');
+    }
+    
+    if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
+      responseText = responseText.substring(firstBracket, lastBracket + 1);
     }
 
-    final decoded = jsonDecode(responseText);
+    var decoded = jsonDecode(responseText);
+    if (decoded is Map) {
+      // Find the first list value in the map (e.g. "questions" list)
+      final listKey = decoded.keys.firstWhere(
+        (key) => decoded[key] is List,
+        orElse: () => '',
+      );
+      if (listKey.isNotEmpty) {
+        decoded = decoded[listKey];
+      }
+    }
+
     if (decoded is! List) {
       throw Exception('تنسيق الاستجابة المستلمة ليس قائمة JSON صالحة.');
     }
