@@ -67,8 +67,8 @@ class PDFParsingService {
 
   final dio_client.Dio _dio = dio_client.Dio(
     dio_client.BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 25),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 90),
     ),
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -287,7 +287,7 @@ $examText
           'https://api.groq.com/openai/v1/chat/completions',
           options: dio_client.Options(headers: {'Authorization': 'Bearer $groqKey'}),
           data: {
-            "model": "llama3-8b-8192",
+            "model": "llama-3.1-8b-instant",
             "response_format": {"type": "json_object"},
             "messages": [
               {"role": "user", "content": prompt}

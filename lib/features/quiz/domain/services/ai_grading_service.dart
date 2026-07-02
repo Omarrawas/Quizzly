@@ -33,8 +33,8 @@ class AIGradingService {
 
   final dio_client.Dio _dio = dio_client.Dio(
     dio_client.BaseOptions(
-      connectTimeout: const Duration(seconds: 6),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
     ),
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -112,7 +112,7 @@ class AIGradingService {
         responseText = await _callOpenAICompatible(
           url: 'https://api.groq.com/openai/v1/chat/completions',
           key: _groqKey,
-          model: 'llama3-8b-8192',
+          model: 'llama-3.1-8b-instant',
           question: question,
           studentAnswer: studentAnswer,
           modelAnswer: modelAnswer,
