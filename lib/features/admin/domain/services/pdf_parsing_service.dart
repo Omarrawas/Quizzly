@@ -73,7 +73,8 @@ class PDFParsingService {
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<List<ExtractedQuestion>> parsePDF(Uint8List pdfBytes, {int retryCount = 0}) async {
+  Future<List<ExtractedQuestion>> parsePDF(Uint8List pdfBytes, {int retryCount = 0, List<String>? errors}) async {
+    final currentErrors = errors ?? [];
     // 1. Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -95,12 +96,13 @@ class PDFParsingService {
     } else if (retryCount == 1) {
       provider = AIProvider.openRouter;
     } else {
-      throw Exception('فشلت جميع محاولات قراءة الـ PDF بالذكاء الاصطناعي.');
+      throw Exception('فشلت جميع محاولات قراءة الـ PDF بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}');
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
-      return parsePDF(pdfBytes, retryCount: retryCount + 1);
+      currentErrors.add('${provider.name}: مفتاح API فارغ');
+      return parsePDF(pdfBytes, retryCount: retryCount + 1, errors: currentErrors);
     }
 
     final base64PDF = base64Encode(pdfBytes);
@@ -194,12 +196,21 @@ CRITICAL REQUIREMENT:
       }
       throw Exception('لم يرجع نموذج ${provider.name} أي استجابة صالحة.');
     } catch (e) {
-      debugPrint('Error parsing PDF with ${provider.name}: $e');
-      return parsePDF(pdfBytes, retryCount: retryCount + 1);
+      String errMsg = e.toString();
+      if (e is dio_client.DioException) {
+        final resp = e.response;
+        if (resp != null) {
+          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+        }
+      }
+      debugPrint('Error parsing PDF with ${provider.name}: $errMsg');
+      currentErrors.add('${provider.name}: $errMsg');
+      return parsePDF(pdfBytes, retryCount: retryCount + 1, errors: currentErrors);
     }
   }
 
-  Future<List<ExtractedQuestion>> parseText(String examText, {int retryCount = 0}) async {
+  Future<List<ExtractedQuestion>> parseText(String examText, {int retryCount = 0, List<String>? errors}) async {
+    final currentErrors = errors ?? [];
     // 1. Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -224,13 +235,14 @@ CRITICAL REQUIREMENT:
     } else if (retryCount == 2) {
       provider = AIProvider.openRouter;
     } else {
-      throw Exception('فشلت جميع محاولات استخراج الأسئلة بالذكاء الاصطناعي.');
+      throw Exception('فشلت جميع محاولات استخراج الأسئلة بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}');
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
         (provider == AIProvider.groq && groqKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
-      return parseText(examText, retryCount: retryCount + 1);
+      currentErrors.add('${provider.name}: مفتاح API فارغ');
+      return parseText(examText, retryCount: retryCount + 1, errors: currentErrors);
     }
 
     final prompt = '''
@@ -306,26 +318,41 @@ $examText
 
       return _parseResponseJson(responseText);
     } catch (e) {
-      debugPrint('Error extracting text with ${provider.name}: $e');
-      return parseText(examText, retryCount: retryCount + 1);
+      String errMsg = e.toString();
+      if (e is dio_client.DioException) {
+        final resp = e.response;
+        if (resp != null) {
+          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+        }
+      }
+      debugPrint('Error extracting text with ${provider.name}: $errMsg');
+      currentErrors.add('${provider.name}: $errMsg');
+      return parseText(examText, retryCount: retryCount + 1, errors: currentErrors);
     }
   }
 
   List<ExtractedQuestion> _parseResponseJson(String responseText) {
     responseText = responseText.trim();
     
-    // Extract JSON block robustly by finding the outer-most brackets/braces
+    // Extract JSON block robustly by finding the outer-most list or object boundary
     int firstBracket = responseText.indexOf('[');
-    int lastBracket = responseText.lastIndexOf(']');
+    int firstBrace = responseText.indexOf('{');
     
-    // If no list brackets found, check for object braces
-    if (firstBracket == -1 || lastBracket == -1 || lastBracket < firstBracket) {
-      firstBracket = responseText.indexOf('{');
-      lastBracket = responseText.lastIndexOf('}');
+    int startIdx = -1;
+    int endIdx = -1;
+    
+    if (firstBracket != -1 && (firstBrace == -1 || firstBracket < firstBrace)) {
+      // Outer-most structure is a List
+      startIdx = firstBracket;
+      endIdx = responseText.lastIndexOf(']');
+    } else if (firstBrace != -1 && (firstBracket == -1 || firstBrace < firstBracket)) {
+      // Outer-most structure is an Object
+      startIdx = firstBrace;
+      endIdx = responseText.lastIndexOf('}');
     }
     
-    if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
-      responseText = responseText.substring(firstBracket, lastBracket + 1);
+    if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+      responseText = responseText.substring(startIdx, endIdx + 1);
     }
 
     var decoded = jsonDecode(responseText);
