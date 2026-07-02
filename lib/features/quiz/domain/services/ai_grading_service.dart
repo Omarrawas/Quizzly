@@ -44,7 +44,6 @@ class AIGradingService {
   String _groqKey = '';
   String _openRouterKey = '';
   String _openRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
-  String _cloudflareProxyUrl = 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
   bool _isInitialized = false;
 
@@ -59,7 +58,6 @@ class AIGradingService {
         _groqKey = data['groqKey'] ?? '';
         _openRouterKey = data['openRouterKey'] ?? '';
         _openRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
-        _cloudflareProxyUrl = data['cloudflareProxyUrl'] ?? _cloudflareProxyUrl;
       }
       _isInitialized = true;
     } catch (e) {
@@ -146,7 +144,7 @@ class AIGradingService {
 
   Future<String> _callGemini(String q, String ans, String modelAns, String? exp) async {
     final prompt = _buildPrompt(q, ans, modelAns, exp);
-    final url = '$_cloudflareProxyUrl/v1beta/models/gemini-3.5-flash:generateContent?key=$_geminiKey';
+    final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$_geminiKey';
     
     final response = await _dio.post(url, data: {
       "contents": [{
@@ -214,7 +212,7 @@ class AIGradingService {
       if (provider == AIProvider.gemini) {
         final key = apiKey?.trim() ?? _geminiKey;
         if (key.isEmpty) return 'Gemini API Key غير مُعيّن';
-        final url = '$_cloudflareProxyUrl/v1beta/models/gemini-3.5-flash:generateContent?key=$key';
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$key';
         final response = await _dio.post(url, data: {
           "contents": [{"parts": [{"text": "قل 'مرحبا'"}]}]
         });

@@ -84,7 +84,6 @@ class PDFParsingService {
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
-    final cloudflareProxyUrl = data['cloudflareProxyUrl']?.toString() ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
     if (geminiKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
@@ -130,7 +129,7 @@ CRITICAL REQUIREMENT:
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = '$cloudflareProxyUrl/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
         final response = await _dio.post(url, data: {
           "contents": [
             {
@@ -212,7 +211,6 @@ CRITICAL REQUIREMENT:
     final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
-    final cloudflareProxyUrl = data['cloudflareProxyUrl']?.toString() ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
 
     if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception('لم يتم ضبط مفاتيح الذكاء الاصطناعي في لوحة التحكم.');
@@ -262,7 +260,7 @@ $examText
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = '$cloudflareProxyUrl/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
         final response = await _dio.post(url, data: {
           "contents": [{
             "parts": [{"text": prompt}]

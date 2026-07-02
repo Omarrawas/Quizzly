@@ -18,7 +18,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _geminiController = TextEditingController();
   final _groqController = TextEditingController();
   final _openRouterController = TextEditingController();
-  final _proxyController = TextEditingController();
 
   String _selectedOpenRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   bool _loading = true;
@@ -60,7 +59,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _groqController.text = data['groqKey'] ?? '';
         _openRouterController.text = data['openRouterKey'] ?? '';
         _selectedOpenRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
-        _proxyController.text = data['cloudflareProxyUrl'] ?? 'https://quizzly-proxy.omar-rawas17.workers.dev';
       }
     } catch (e) {
       if (mounted) {
@@ -83,7 +81,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         'groqKey': _groqController.text.trim(),
         'openRouterKey': _openRouterController.text.trim(),
         'openRouterModel': _selectedOpenRouterModel,
-        'cloudflareProxyUrl': _proxyController.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       if (mounted) {
@@ -215,13 +212,6 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildOpenRouterModelDropdown(),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _proxyController,
-                      label: 'Cloudflare Proxy URL',
-                      hint: 'https://...',
-                      icon: Icons.lan_rounded,
-                    ),
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
