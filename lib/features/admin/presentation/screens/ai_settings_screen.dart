@@ -34,6 +34,8 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     {'id': 'nvidia/nemotron-nano-12b-v2-vl:free', 'name': 'Nemotron Nano 12B V2', 'tag': 'مجاني'},
     {'id': 'qwen/qwen3-coder:free', 'name': 'Qwen 3 Coder', 'tag': 'مجاني'},
     {'id': 'poolside/laguna-m.1:free', 'name': 'Laguna M.1', 'tag': 'مجاني'},
+    {'id': 'google/gemini-3.5-flash', 'name': 'Gemini 3.5 Flash', 'tag': 'مدفوع'},
+    {'id': 'google/gemini-3.1-flash-lite', 'name': 'Gemini 3.1 Flash Lite', 'tag': 'مدفوع'},
     {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5', 'tag': 'مدفوع'},
     {'id': 'google/gemini-2.0-flash-001', 'name': 'Gemini 2.0 Flash', 'tag': 'مدفوع'},
     {'id': 'anthropic/claude-3-haiku', 'name': 'Claude 3 Haiku', 'tag': 'مدفوع'},

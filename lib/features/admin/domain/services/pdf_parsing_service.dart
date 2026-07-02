@@ -130,7 +130,7 @@ CRITICAL REQUIREMENT:
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = '$cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
+        final url = '$cloudflareProxyUrl/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
         final response = await _dio.post(url, data: {
           "contents": [
             {
@@ -262,7 +262,7 @@ $examText
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = '$cloudflareProxyUrl/v1beta/models/gemini-2.0-flash:generateContent?key=$geminiKey';
+        final url = '$cloudflareProxyUrl/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
         final response = await _dio.post(url, data: {
           "contents": [{
             "parts": [{"text": prompt}]
