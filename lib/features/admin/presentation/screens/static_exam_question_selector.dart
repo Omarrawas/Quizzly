@@ -37,6 +37,12 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
   // Topic filter: null = show all
   String? _selectedTopicId;
 
+  // Filters State
+  bool _isFilterVisible = false;
+  String _repetitionFilter = 'all'; // 'all', 'high', 'medium', 'low', 'none'
+  List<String> _availableExams = [];
+  String _selectedExamFilter = 'all'; // 'all' or specific exam title
+
   // Topic hierarchy: chapters → lessons
   List<Map<String, dynamic>> _chapters = [];
   Map<String, List<Map<String, dynamic>>> _lessonsByChapter = {};
@@ -47,6 +53,31 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
     super.initState();
     _selectedIds = List.from(widget.initialSelectedIds);
     _loadTopics();
+    _loadAvailableExams();
+  }
+
+  void _loadAvailableExams() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colExams)
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      
+      final exams = snap.docs
+          .map((d) => (d.data()['title'] ?? '').toString())
+          .where((t) => t.isNotEmpty)
+          .toSet()
+          .toList();
+      
+      exams.sort();
+      if (mounted) {
+        setState(() {
+          _availableExams = exams;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading exams for filter: $e');
+    }
   }
 
   Future<void> _loadTopics() async {
@@ -492,6 +523,15 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
         ),
         actions: [
           IconButton(
+            icon: Icon(_isFilterVisible ? Icons.filter_alt_off_rounded : Icons.filter_alt_rounded),
+            tooltip: _isFilterVisible ? 'إغلاق الفلاتر' : 'الفلاتر',
+            onPressed: () {
+              setState(() {
+                _isFilterVisible = !_isFilterVisible;
+              });
+            },
+          ),
+          IconButton(
             tooltip: 'إضافة سؤال جديد',
             onPressed: _addNewQuestion,
             icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF6E56FF)),
@@ -548,8 +588,149 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
         children: [
           _buildSearchBar(isDark),
           _buildTopicClassifier(isDark),
+          _buildSearchAndFilter(isDark),
           Expanded(child: _buildQuestionsList(isDark)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter(bool isDark) {
+    if (!_isFilterVisible) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        // Repetition Filter
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'تكرار الأسئلة',
+                style: GoogleFonts.tajawal(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white54 : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildRepetitionChip('الكل', 'all', isDark),
+                    const SizedBox(width: 8),
+                    _buildRepetitionChip('مكرر جداً (4+)', 'high', isDark, activeColor: Colors.purple),
+                    const SizedBox(width: 8),
+                    _buildRepetitionChip('مكرر بشكل متوسط (3)', 'medium', isDark, activeColor: Colors.orange),
+                    const SizedBox(width: 8),
+                    _buildRepetitionChip('مكرر (2)', 'low', isDark, activeColor: Colors.red),
+                    const SizedBox(width: 8),
+                    _buildRepetitionChip('غير مكرر', 'none', isDark, activeColor: Colors.grey),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Exams/Doras Filter
+        if (_availableExams.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'تصفية حسب الدورة',
+                  style: GoogleFonts.tajawal(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white54 : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildFilterChip(
+                        label: 'الكل',
+                        isSelected: _selectedExamFilter == 'all',
+                        onSelected: () => setState(() => _selectedExamFilter = 'all'),
+                        isDark: isDark,
+                      ),
+                      ..._availableExams.map((exam) {
+                        return _buildFilterChip(
+                          label: exam,
+                          isSelected: _selectedExamFilter == exam,
+                          onSelected: () => setState(() => _selectedExamFilter = exam),
+                          isDark: isDark,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const Divider(height: 1),
+      ],
+    );
+  }
+
+  Widget _buildRepetitionChip(String label, String value, bool isDark, {Color? activeColor}) {
+    bool isSelected = _repetitionFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _repetitionFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? (activeColor ?? const Color(0xFF6E56FF)) 
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.tajawal(
+            fontSize: 12,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+    required bool isDark,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(
+          label,
+          style: GoogleFonts.tajawal(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+          ),
+        ),
+        selected: isSelected,
+        onSelected: (_) => onSelected(),
+        selectedColor: const Color(0xFF6E56FF),
+        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200],
+        checkmarkColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: BorderSide.none,
       ),
     );
   }
@@ -563,7 +744,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
         onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
         decoration: InputDecoration(
           hintText: 'بحث في نص السؤال...',
-          hintStyle: GoogleFonts.cairo(fontSize: 14),
+          hintStyle: GoogleFonts.tajawal(fontSize: 14),
           prefixIcon: const Icon(Icons.search_rounded),
           isDense: true,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -739,17 +920,38 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
 
         var docs = snapshot.data?.docs ?? [];
 
-        if (_searchQuery.isNotEmpty) {
-          docs = docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+        // Filter docs
+        docs = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          
+          // Search Filter
+          if (_searchQuery.isNotEmpty) {
             final text = _stripHtml(data['text']?.toString() ?? '').toLowerCase();
-            return text.contains(_searchQuery);
-          }).toList();
-        }
+            if (!text.contains(_searchQuery)) return false;
+          }
+
+          // Repetition Filter
+          if (_repetitionFilter != 'all') {
+            final examTags = (data['examTags'] as List?) ?? [];
+            final count = examTags.length;
+            if (_repetitionFilter == 'high' && count < 4) return false;
+            if (_repetitionFilter == 'medium' && count != 3) return false;
+            if (_repetitionFilter == 'low' && count != 2) return false;
+            if (_repetitionFilter == 'none' && count > 1) return false;
+          }
+
+          // Exam/Dora Filter
+          if (_selectedExamFilter != 'all') {
+            final examTags = (data['examTags'] as List?) ?? [];
+            if (!examTags.contains(_selectedExamFilter)) return false;
+          }
+
+          return true;
+        }).toList();
 
         if (docs.isEmpty) {
           return Center(
-            child: Text('لا توجد أسئلة تطابق البحث', style: GoogleFonts.cairo()),
+            child: Text('لا توجد أسئلة تطابق البحث أو الفلاتر', style: GoogleFonts.tajawal()),
           );
         }
 
@@ -852,7 +1054,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                   ),
                                   child: Text(
                                     typeStr,
-                                    style: GoogleFonts.cairo(
+                                    style: GoogleFonts.tajawal(
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       color: typeColor,
@@ -938,7 +1140,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                     Expanded(
                                       child: Text(
                                         topicLabel,
-                                        style: GoogleFonts.cairo(
+                                        style: GoogleFonts.tajawal(
                                           fontSize: 10,
                                           color: AppColors.primaryBlue,
                                           fontWeight: FontWeight.bold,
@@ -964,31 +1166,48 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                   ),
                                   child: Text(
                                     diffLabel,
-                                    style: GoogleFonts.cairo(
+                                    style: GoogleFonts.tajawal(
                                         fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue),
                                   ),
                                 ),
                                 // Repeated badge
                                 if (isRepeated)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.repeat_rounded, size: 9, color: Colors.red),
-                                        const SizedBox(width: 3),
-                                        Text('مكرر',
-                                            style: GoogleFonts.cairo(
+                                  Builder(
+                                    builder: (context) {
+                                      final count = examTags.length;
+                                      String label = 'مكرر';
+                                      Color color = Colors.red;
+                                      if (count >= 4) {
+                                        label = 'مكرر جداً';
+                                        color = Colors.purple;
+                                      } else if (count == 3) {
+                                        label = 'مكرر بشكل متوسط';
+                                        color = Colors.orange;
+                                      }
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: color.withValues(alpha: 0.08),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: color.withValues(alpha: 0.3)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.repeat_rounded, size: 9, color: color),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              label,
+                                              style: GoogleFonts.tajawal(
                                                 fontSize: 9,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.red[800])),
-                                      ],
-                                    ),
+                                                color: color,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 // Exam tags
                                 ...examTags.map((tag) => Container(
@@ -1005,7 +1224,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
                                       const SizedBox(width: 3),
                                       Text(
                                         tag.toString(),
-                                        style: GoogleFonts.cairo(
+                                        style: GoogleFonts.tajawal(
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.orange[800]),
@@ -1029,3 +1248,4 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
     );
   }
 }
+

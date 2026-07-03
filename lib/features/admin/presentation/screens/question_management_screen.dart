@@ -306,7 +306,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                   color: AppColors.primaryBlue,
                 ),
               ),
-              if (action != null) action,
+              action ?? const SizedBox.shrink(),
             ],
           ),
           const SizedBox(height: 16),

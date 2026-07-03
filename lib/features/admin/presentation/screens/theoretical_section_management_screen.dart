@@ -45,6 +45,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   String? _selectedLessonId;
   String _statusFilter = 'all'; // 'all', 'active', 'inactive'
   
+  // New Filters State
+  String _repetitionFilter = 'all'; // 'all', 'high', 'medium', 'low', 'none'
+  List<String> _availableExams = [];
+  String _selectedExamFilter = 'all'; // 'all' or specific exam title
+  
   // Selection Mode State
   final Set<String> _selectedQuestionIds = {};
   bool get _isSelectionMode => _selectedQuestionIds.isNotEmpty;
@@ -62,6 +67,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   void initState() {
     super.initState();
     _loadTopics();
+    _loadAvailableExams();
     _initQuestionsStream();
   }
 
@@ -71,7 +77,32 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     if (widget.subjectId != oldWidget.subjectId ||
         widget.lessonId != oldWidget.lessonId ||
         widget.sectionId != oldWidget.sectionId) {
+      _loadAvailableExams();
       _initQuestionsStream();
+    }
+  }
+
+  void _loadAvailableExams() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(DatabaseService.colExams)
+          .where('subjectId', isEqualTo: widget.subjectId)
+          .get();
+      
+      final exams = snap.docs
+          .map((d) => (d.data()['title'] ?? '').toString())
+          .where((t) => t.isNotEmpty)
+          .toSet()
+          .toList();
+      
+      exams.sort();
+      if (mounted) {
+        setState(() {
+          _availableExams = exams;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading exams for filter: $e');
     }
   }
 
@@ -176,7 +207,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           _isSelectionMode 
               ? '${_selectedQuestionIds.length} مختار' 
               : (widget.lessonName != null ? 'أسئلة: ${widget.lessonName}' : (widget.sectionName ?? 'بنك الأسئلة')),
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
         ),
         actions: _isSelectionMode ? [
           TextButton(
@@ -191,7 +222,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             },
             child: Text(
               _selectedQuestionIds.length == _currentVisibleQuestionIds.length ? 'إلغاء الكل' : 'تحديد الكل',
-              style: GoogleFonts.cairo(color: isDark ? Colors.white : AppColors.primaryBlue, fontWeight: FontWeight.bold),
+              style: GoogleFonts.tajawal(color: isDark ? Colors.white : AppColors.primaryBlue, fontWeight: FontWeight.bold),
             ),
           ),
           IconButton(
@@ -266,7 +297,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         onPressed: () => _showAddQuestionDialog(context),
         backgroundColor: AppColors.primaryBlue,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text('إضافة سؤال', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text('إضافة سؤال', style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -311,11 +342,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
-                style: GoogleFonts.cairo(fontSize: 14),
+                style: GoogleFonts.tajawal(fontSize: 14),
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'ابحث عن سؤال...',
-                  hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 14),
+                  hintStyle: GoogleFonts.tajawal(color: Colors.grey, fontSize: 14),
                   prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBlue),
                   suffixIcon: _searchQuery.isNotEmpty 
                     ? IconButton(
@@ -412,6 +443,84 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
               ),
             ),
           ),
+
+          // Repetition Filter
+          if (_isFilterVisible)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'تكرار الأسئلة',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white54 : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildRepetitionChip('الكل', 'all', isDark),
+                        const SizedBox(width: 8),
+                        _buildRepetitionChip('مكرر جداً (4+)', 'high', isDark, activeColor: Colors.purple),
+                        const SizedBox(width: 8),
+                        _buildRepetitionChip('مكرر بشكل متوسط (3)', 'medium', isDark, activeColor: Colors.orange),
+                        const SizedBox(width: 8),
+                        _buildRepetitionChip('مكرر (2)', 'low', isDark, activeColor: Colors.red),
+                        const SizedBox(width: 8),
+                        _buildRepetitionChip('غير مكرر', 'none', isDark, activeColor: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Exams/Doras Filter
+          if (_isFilterVisible && _availableExams.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'تصفية حسب الدورة',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white54 : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _buildFilterChip(
+                          label: 'الكل',
+                          isSelected: _selectedExamFilter == 'all',
+                          onSelected: () => setState(() => _selectedExamFilter = 'all'),
+                          isDark: isDark,
+                        ),
+                        ..._availableExams.map((exam) {
+                          return _buildFilterChip(
+                            label: exam,
+                            isSelected: _selectedExamFilter == exam,
+                            onSelected: () => setState(() => _selectedExamFilter = exam),
+                            isDark: isDark,
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           
           const Divider(height: 1),
         ],
@@ -434,7 +543,32 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         ),
         child: Text(
           label,
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
+            fontSize: 12,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRepetitionChip(String label, String value, bool isDark, {Color? activeColor}) {
+    bool isSelected = _repetitionFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _repetitionFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? (activeColor ?? const Color(0xFF6E56FF)) 
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.tajawal(
             fontSize: 12,
             color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -451,13 +585,13 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     required bool isDark,
     bool isSecondary = false,
   }) {
-    final activeColor = isSecondary ? Colors.teal : AppColors.primaryBlue;
+    final activeColor = isSecondary ? Colors.teal : const Color(0xFF6E56FF);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         label: Text(
           label,
-          style: GoogleFonts.cairo(
+          style: GoogleFonts.tajawal(
             fontSize: isSecondary ? 11 : 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
@@ -495,7 +629,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   ),
                   child: Text(
                     entry.value,
-                    style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                    style: GoogleFonts.tajawal(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
                   ),
                 ),
               ],
@@ -560,6 +694,22 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             if (_statusFilter == 'inactive' && isEnabled) return false;
           }
 
+          // Repetition Filter
+          if (_repetitionFilter != 'all') {
+            final examTags = (data['examTags'] as List?) ?? [];
+            final count = examTags.length;
+            if (_repetitionFilter == 'high' && count < 4) return false;
+            if (_repetitionFilter == 'medium' && count != 3) return false;
+            if (_repetitionFilter == 'low' && count != 2) return false;
+            if (_repetitionFilter == 'none' && count > 1) return false;
+          }
+
+          // Exam/Dora Filter
+          if (_selectedExamFilter != 'all') {
+            final examTags = (data['examTags'] as List?) ?? [];
+            if (!examTags.contains(_selectedExamFilter)) return false;
+          }
+
           return true;
         }).toList();
 
@@ -620,7 +770,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                   const SizedBox(width: 12),
                   Text(
                     chapter,
-                    style: GoogleFonts.cairo(
+                    style: GoogleFonts.tajawal(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white : Colors.black87,
@@ -635,7 +785,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                     ),
                     child: Text(
                       '${questionsInChapter.length} سؤال',
-                      style: GoogleFonts.cairo(
+                      style: GoogleFonts.tajawal(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryBlue,
@@ -753,7 +903,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                       color: typeColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(typeStr, style: GoogleFonts.cairo(color: typeColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(typeStr, style: GoogleFonts.tajawal(color: typeColor, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 8),
                   // Status Badge
@@ -776,7 +926,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                         const SizedBox(width: 4),
                         Text(
                           (data['isEnabled'] ?? true) ? 'مفعل' : 'معطل',
-                          style: GoogleFonts.cairo(
+                          style: GoogleFonts.tajawal(
                             color: (data['isEnabled'] ?? true) ? Colors.green : Colors.red,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
@@ -809,7 +959,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               _getTopicLabel(data['topicIds']),
-                              style: GoogleFonts.cairo(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.tajawal(fontSize: 10, color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -822,24 +972,38 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                               runSpacing: 4,
                               children: [
                                 if ((data['examTags'] as List).length > 1)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.repeat_rounded, size: 10, color: Colors.red),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'مكرر',
-                                          style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.red[800]),
+                                  Builder(
+                                    builder: (context) {
+                                      final count = (data['examTags'] as List).length;
+                                      String label = 'مكرر';
+                                      Color color = Colors.red;
+                                      if (count >= 4) {
+                                        label = 'مكرر جداً';
+                                        color = Colors.purple;
+                                      } else if (count == 3) {
+                                        label = 'مكرر بشكل متوسط';
+                                        color = Colors.orange;
+                                      }
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: color.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: color.withValues(alpha: 0.3)),
                                         ),
-                                      ],
-                                    ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.repeat_rounded, size: 10, color: color),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              label,
+                                              style: GoogleFonts.tajawal(fontSize: 9, fontWeight: FontWeight.bold, color: color),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ...(data['examTags'] as List).map((tag) => Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -855,7 +1019,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                                       const SizedBox(width: 4),
                                       Text(
                                         tag.toString(),
-                                        style: GoogleFonts.cairo(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
+                                        style: GoogleFonts.tajawal(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange[800]),
                                       ),
                                     ],
                                   ),
@@ -877,7 +1041,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                       const Divider(),
                       const SizedBox(height: 10),
                       if (data['options'] != null) ...[
-                        Text('الخيارات:', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 12)),
+                        Text('الخيارات:', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 12)),
                         const SizedBox(height: 8),
                         ...(data['options'] as List).map((opt) {
                           final isCorrect = (data['correctOptionIds'] as List?)?.contains(opt['id']) ?? (opt['id'] == data['correctOptionId']);
@@ -912,13 +1076,13 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                         children: [
                           TextButton.icon(
                             icon: const Icon(Icons.edit_note_rounded, size: 20),
-                            label: Text('تعديل', style: GoogleFonts.cairo()),
+                            label: Text('تعديل', style: GoogleFonts.tajawal()),
                             onPressed: () => _showEditQuestionDialog(id, data),
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
                             icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
-                            label: Text('حذف', style: GoogleFonts.cairo(color: Colors.red)),
+                            label: Text('حذف', style: GoogleFonts.tajawal(color: Colors.red)),
                             onPressed: () => _confirmDelete(id, questionText),
                           ),
                         ],
@@ -956,7 +1120,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(label, style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: GoogleFonts.tajawal(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
@@ -997,8 +1161,8 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تأكيد الحذف', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
-        content: Text('هل أنت متأكد من حذف هذا السؤال؟\n${text.substring(0, text.length > 50 ? 50 : text.length)}...', style: GoogleFonts.cairo()),
+        title: Text('تأكيد الحذف', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text('هل أنت متأكد من حذف هذا السؤال؟\n${text.substring(0, text.length > 50 ? 50 : text.length)}...', style: GoogleFonts.tajawal()),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
           TextButton(
@@ -1025,13 +1189,13 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('اختر صيغة التصدير', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('اختر صيغة التصدير', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.table_view_rounded, color: Colors.green),
-              title: Text('Excel (.xlsx)', style: GoogleFonts.cairo()),
+              title: Text('Excel (.xlsx)', style: GoogleFonts.tajawal()),
               onTap: () {
                 Navigator.pop(context);
                 _exportQuestions(isExcel: true);
@@ -1039,7 +1203,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             ),
             ListTile(
               leading: const Icon(Icons.code_rounded, color: Colors.blue),
-              title: Text('JSON (.json)', style: GoogleFonts.cairo()),
+              title: Text('JSON (.json)', style: GoogleFonts.tajawal()),
               onTap: () {
                 Navigator.pop(context);
                 _exportQuestions(isExcel: false);
@@ -1093,7 +1257,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   void _showStatusSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
+        content: Text(message, style: GoogleFonts.tajawal(fontSize: 13, fontWeight: FontWeight.bold)),
         backgroundColor: isError ? Colors.red : Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1117,7 +1281,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             const SizedBox(height: 16),
             Text(
               message,
-              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary, fontSize: 13),
+              style: GoogleFonts.tajawal(color: isError ? Colors.red : AppColors.textSecondary, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1133,10 +1297,10 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تأكيد الحذف الجماعي', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
-        content: Text('هل أنت متأكد من حذف ${_selectedQuestionIds.length} سؤال ؟ لا يمكن التراجع عن هذه العملية.', style: GoogleFonts.cairo()),
+        title: Text('تأكيد الحذف الجماعي', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text('هل أنت متأكد من حذف ${_selectedQuestionIds.length} سؤال ؟ لا يمكن التراجع عن هذه العملية.', style: GoogleFonts.tajawal()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.tajawal())),
           TextButton(
             onPressed: () async {
               final navigator = Navigator.of(context);
@@ -1156,7 +1320,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                 if (mounted) _showStatusSnackBar('فشل الحذف الجماعي: $e', isError: true);
               }
             },
-            child: Text('حذف الكل', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text('حذف الكل', style: GoogleFonts.tajawal(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1187,3 +1351,4 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
   }
 
 }
+

@@ -90,6 +90,15 @@ class QuizQuestion {
   final String? reviewFeedback;
   final bool isRepeated; // If belongs to > 1 exam
 
+  int get repetitionCount => examTags.length;
+  
+  String get repetitionLabel {
+    if (repetitionCount >= 4) return 'مكرر جداً';
+    if (repetitionCount == 3) return 'مكرر بشكل متوسط';
+    if (repetitionCount == 2) return 'مكرر';
+    return '';
+  }
+
   const QuizQuestion({
     required this.number,
     required this.text,
