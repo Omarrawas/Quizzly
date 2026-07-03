@@ -200,10 +200,10 @@ Return a raw JSON array matching this schema:
 $topicsPromptContext
 
 CRITICAL REQUIREMENT:
-1. Ensure all math and chemistry formulas, units, variables, and equations are represented in standard LaTeX format using \$ for inline math or \$\$ for block math. Example: H_2O, pH, 10^{-3}\\text{ sec}^{-1}, [\\text{NaOH}].
-2. Return ONLY a valid JSON array. Do not include markdown code block formatting (like ```json ... ```).
+1. Represent actual mathematical/chemical equations, formulas, variables, and reactions in LaTeX using \$ for inline or \$\$ for block math.
+2. DO NOT wrap plain text, English words, names, or simple units (e.g. Joule, Joul, Volt, Ampere, Ohm, Kelvin, Watt, m, kg, sec, mol) in LaTeX delimiters (\$...\$ or \\text{...}). They must be returned as plain text so they render in standard clean fonts.
 3. Extract ALL questions from the document.
-4. SOLVE each question scientifically using your own logical reasoning to guarantee "correctOptionIds" are correct.
+4. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
 5. Generate a detailed, step-by-step explanation/solution in Arabic for each question and put it in the "explanation" field.
 6. Match each question with the correct topic ID(s) from the available topics list provided above, and include it in the "topicIds" array. If no topic matches, leave it empty.
 ''';
@@ -363,14 +363,17 @@ Return a raw JSON array matching this schema:
       {"id": "A", "text": "Option text..."},
       {"id": "B", "text": "Option text..."}
     ],
-    "correctOptionIds": ["A"] // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
+    "correctOptionIds": ["A"], // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
+    "explanation": "Detailed step-by-step solution or explanation of how to solve the question in Arabic..."
   }
 ]
 
 CRITICAL REQUIREMENT:
-1. Ensure all math and chemistry formulas, units, variables, and equations are represented in standard LaTeX format using \$ for inline math or \$\$ for block math. Example: H_2O, pH, 10^{-3}\\text{ sec}^{-1}, [\\text{NaOH}].
-2. Return ONLY a valid JSON array. Do not include markdown code block formatting (like ```json ... ```).
+1. Represent actual mathematical/chemical equations, formulas, variables, and reactions in LaTeX using \$ for inline or \$\$ for block math.
+2. DO NOT wrap plain text, English words, names, or simple units (e.g. Joule, Joul, Volt, Ampere, Ohm, Kelvin, Watt, m, kg, sec, mol) in LaTeX delimiters (\$...\$ or \\text{...}). They must be returned as plain text so they render in standard clean fonts.
 3. Extract ALL questions from the text.
+4. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
+5. Generate a detailed, step-by-step explanation/solution in Arabic for each question and put it in the "explanation" field.
 
 Exam text:
 $examText
