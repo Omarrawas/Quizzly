@@ -44,16 +44,19 @@ class ExtractedQuestion {
   factory ExtractedQuestion.fromMap(Map<String, dynamic> map) {
     final optsList = (map['options'] as List?) ?? [];
     final options = optsList
-        .map((o) => ExtractedQuestionOption.fromMap(Map<String, dynamic>.from(o)))
+        .map(
+          (o) => ExtractedQuestionOption.fromMap(Map<String, dynamic>.from(o)),
+        )
         .toList();
 
-    final correctIds = (map['correctOptionIds'] as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
+    final correctIds =
+        (map['correctOptionIds'] as List?)?.map((e) => e.toString()).toList() ??
         [];
 
     final tIds = (map['topicIds'] as List?)?.map((e) => e.toString()).toList();
-    final tNames = (map['topicNames'] as List?)?.map((e) => e.toString()).toList();
+    final tNames = (map['topicNames'] as List?)
+        ?.map((e) => e.toString())
+        .toList();
 
     return ExtractedQuestion(
       text: map['text']?.toString() ?? '',
@@ -80,7 +83,7 @@ class PDFParsingService {
   final dio_client.Dio _dio = dio_client.Dio(
     dio_client.BaseOptions(
       connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 90),
+      receiveTimeout: const Duration(seconds: 150),
     ),
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -93,26 +96,35 @@ class PDFParsingService {
     List<String>? errors,
   }) async {
     final currentErrors = errors ?? [];
-    
+
     // Load available topics context if subjectId is provided
     String topicsPromptContext = '';
     if (subjectId != null) {
       try {
-        final snapshot = await _firestore.collection('topics')
+        final snapshot = await _firestore
+            .collection('topics')
             .where('subjectId', isEqualTo: subjectId)
             .get();
         final docs = snapshot.docs;
-        final nameMap = {for (var doc in docs) doc.id: doc.data()['name'] ?? ''};
-        final lessons = docs.where((doc) => doc.data()['type'] == 'lesson').toList();
-        
+        final nameMap = {
+          for (var doc in docs) doc.id: doc.data()['name'] ?? '',
+        };
+        final lessons = docs
+            .where((doc) => doc.data()['type'] == 'lesson')
+            .toList();
+
         if (lessons.isNotEmpty) {
           final buffer = StringBuffer();
-          buffer.writeln('\nAvailable Topics/Lessons (Use these exact IDs in "topicIds" if the question is related):');
+          buffer.writeln(
+            '\nAvailable Topics/Lessons (Use these exact IDs in "topicIds" if the question is related):',
+          );
           for (var doc in lessons) {
             final data = doc.data();
             final parentId = data['parentId'];
             final parentName = parentId != null ? nameMap[parentId] : null;
-            final fullName = parentName != null ? '$parentName - ${data['name']}' : data['name'];
+            final fullName = parentName != null
+                ? '$parentName - ${data['name']}'
+                : data['name'];
             buffer.writeln('- ID: "${doc.id}", Name: "$fullName"');
           }
           topicsPromptContext = buffer.toString();
@@ -131,30 +143,45 @@ class PDFParsingService {
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
-    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    final openRouterModel =
+        data['openRouterModel']?.toString() ??
+        'nvidia/nemotron-3-ultra-550b-a55b:free';
 
     if (geminiKey.isEmpty && openRouterKey.isEmpty) {
-      throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
+      throw Exception(
+        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.',
+      );
     }
 
     AIProvider provider;
     if (retryCount == 0) {
-      provider = geminiKey.isNotEmpty ? AIProvider.gemini : AIProvider.openRouter;
+      provider = geminiKey.isNotEmpty
+          ? AIProvider.gemini
+          : AIProvider.openRouter;
     } else if (retryCount == 1) {
       provider = AIProvider.openRouter;
     } else {
-      throw Exception('فشلت جميع محاولات قراءة الـ PDF بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}');
+      throw Exception(
+        'فشلت جميع محاولات قراءة الـ PDF بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
+      );
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
-      return parsePDF(pdfBytes, subjectId: subjectId, sectionId: sectionId, retryCount: retryCount + 1, errors: currentErrors);
+      return parsePDF(
+        pdfBytes,
+        subjectId: subjectId,
+        sectionId: sectionId,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
     }
 
     final base64PDF = base64Encode(pdfBytes);
 
-    final prompt = '''
+    final prompt =
+        '''
 Extract all questions from the attached exam PDF.
 Return a raw JSON array matching this schema:
 [
@@ -184,26 +211,29 @@ CRITICAL REQUIREMENT:
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
-        final response = await _dio.post(url, data: {
-          "contents": [
-            {
-              "parts": [
-                {"text": prompt},
-                {
-                  "inlineData": {
-                    "mimeType": "application/pdf",
-                    "data": base64PDF
-                  }
-                }
-              ]
-            }
-          ],
-          "generationConfig": {
-            "responseMimeType": "application/json"
-          }
-        });
-        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+        final url =
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt},
+                  {
+                    "inlineData": {
+                      "mimeType": "application/pdf",
+                      "data": base64PDF,
+                    },
+                  },
+                ],
+              },
+            ],
+            "generationConfig": {"responseMimeType": "application/json"},
+          },
+        );
+        responseText =
+            response.data['candidates'][0]['content']['parts'][0]['text'];
       } else if (provider == AIProvider.openRouter) {
         final url = 'https://openrouter.ai/api/v1/chat/completions';
         final response = await _dio.post(
@@ -227,12 +257,12 @@ CRITICAL REQUIREMENT:
                     "type": "file",
                     "file": {
                       "filename": "exam.pdf",
-                      "file_data": "data:application/pdf;base64,$base64PDF"
-                    }
-                  }
-                ]
-              }
-            ]
+                      "file_data": "data:application/pdf;base64,$base64PDF",
+                    },
+                  },
+                ],
+              },
+            ],
           },
         );
 
@@ -253,16 +283,27 @@ CRITICAL REQUIREMENT:
       if (e is dio_client.DioException) {
         final resp = e.response;
         if (resp != null) {
-          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+          errMsg =
+              'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
       debugPrint('Error parsing PDF with ${provider.name}: $errMsg');
       currentErrors.add('${provider.name}: $errMsg');
-      return parsePDF(pdfBytes, subjectId: subjectId, sectionId: sectionId, retryCount: retryCount + 1, errors: currentErrors);
+      return parsePDF(
+        pdfBytes,
+        subjectId: subjectId,
+        sectionId: sectionId,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
     }
   }
 
-  Future<List<ExtractedQuestion>> parseText(String examText, {int retryCount = 0, List<String>? errors}) async {
+  Future<List<ExtractedQuestion>> parseText(
+    String examText, {
+    int retryCount = 0,
+    List<String>? errors,
+  }) async {
     final currentErrors = errors ?? [];
     // 1. Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
@@ -274,7 +315,9 @@ CRITICAL REQUIREMENT:
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
-    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    final openRouterModel =
+        data['openRouterModel']?.toString() ??
+        'nvidia/nemotron-3-ultra-550b-a55b:free';
 
     if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception('لم يتم ضبط مفاتيح الذكاء الاصطناعي في لوحة التحكم.');
@@ -282,23 +325,34 @@ CRITICAL REQUIREMENT:
 
     AIProvider provider;
     if (retryCount == 0) {
-      provider = geminiKey.isNotEmpty ? AIProvider.gemini : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+      provider = geminiKey.isNotEmpty
+          ? AIProvider.gemini
+          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
     } else if (retryCount == 1) {
-      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty) ? AIProvider.groq : AIProvider.openRouter;
+      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
+          ? AIProvider.groq
+          : AIProvider.openRouter;
     } else if (retryCount == 2) {
       provider = AIProvider.openRouter;
     } else {
-      throw Exception('فشلت جميع محاولات استخراج الأسئلة بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}');
+      throw Exception(
+        'فشلت جميع محاولات استخراج الأسئلة بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
+      );
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
         (provider == AIProvider.groq && groqKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
-      return parseText(examText, retryCount: retryCount + 1, errors: currentErrors);
+      return parseText(
+        examText,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
     }
 
-    final prompt = '''
+    final prompt =
+        '''
 Extract all questions from the following exam text.
 Return a raw JSON array matching this schema:
 [
@@ -325,26 +379,35 @@ $examText
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
-        final response = await _dio.post(url, data: {
-          "contents": [{
-            "parts": [{"text": prompt}]
-          }],
-          "generationConfig": {
-            "responseMimeType": "application/json"
-          }
-        });
-        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+        final url =
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt},
+                ],
+              },
+            ],
+            "generationConfig": {"responseMimeType": "application/json"},
+          },
+        );
+        responseText =
+            response.data['candidates'][0]['content']['parts'][0]['text'];
       } else if (provider == AIProvider.groq) {
         final response = await _dio.post(
           'https://api.groq.com/openai/v1/chat/completions',
-          options: dio_client.Options(headers: {'Authorization': 'Bearer $groqKey'}),
+          options: dio_client.Options(
+            headers: {'Authorization': 'Bearer $groqKey'},
+          ),
           data: {
             "model": "llama-3.1-8b-instant",
             "response_format": {"type": "json_object"},
             "messages": [
-              {"role": "user", "content": prompt}
-            ]
+              {"role": "user", "content": prompt},
+            ],
           },
         );
         responseText = response.data['choices'][0]['message']['content'];
@@ -362,8 +425,8 @@ $examText
           data: {
             "model": openRouterModel,
             "messages": [
-              {"role": "user", "content": prompt}
-            ]
+              {"role": "user", "content": prompt},
+            ],
           },
         );
         responseText = response.data['choices'][0]['message']['content'];
@@ -375,36 +438,42 @@ $examText
       if (e is dio_client.DioException) {
         final resp = e.response;
         if (resp != null) {
-          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+          errMsg =
+              'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
       debugPrint('Error extracting text with ${provider.name}: $errMsg');
       currentErrors.add('${provider.name}: $errMsg');
-      return parseText(examText, retryCount: retryCount + 1, errors: currentErrors);
+      return parseText(
+        examText,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
     }
   }
 
   List<ExtractedQuestion> _parseResponseJson(String responseText) {
     responseText = responseText.trim();
     responseText = _escapeRawBackslashes(responseText);
-    
+
     // Extract JSON block robustly by finding the outer-most list or object boundary
     int firstBracket = responseText.indexOf('[');
     int firstBrace = responseText.indexOf('{');
-    
+
     int startIdx = -1;
     int endIdx = -1;
-    
+
     if (firstBracket != -1 && (firstBrace == -1 || firstBracket < firstBrace)) {
       // Outer-most structure is a List
       startIdx = firstBracket;
       endIdx = responseText.lastIndexOf(']');
-    } else if (firstBrace != -1 && (firstBracket == -1 || firstBrace < firstBracket)) {
+    } else if (firstBrace != -1 &&
+        (firstBracket == -1 || firstBrace < firstBracket)) {
       // Outer-most structure is an Object
       startIdx = firstBrace;
       endIdx = responseText.lastIndexOf('}');
     }
-    
+
     if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
       responseText = responseText.substring(startIdx, endIdx + 1);
     }
@@ -426,11 +495,16 @@ $examText
     }
 
     return decoded
-        .map((item) => ExtractedQuestion.fromMap(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => ExtractedQuestion.fromMap(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
-  Future<String> solveQuestionWithAI(String questionText, List<String> options) async {
+  Future<String> solveQuestionWithAI(
+    String questionText,
+    List<String> options,
+  ) async {
     // Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -440,16 +514,25 @@ $examText
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
-    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    final openRouterModel =
+        data['openRouterModel']?.toString() ??
+        'nvidia/nemotron-3-ultra-550b-a55b:free';
 
     if (geminiKey.isEmpty && openRouterKey.isEmpty) {
-      throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
+      throw Exception(
+        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.',
+      );
     }
 
-    final provider = geminiKey.isNotEmpty ? AIProvider.gemini : AIProvider.openRouter;
-    final optionsPrompt = options.isNotEmpty ? '\nالخيارات:\n${options.map((opt) => "- $opt").join('\n')}' : '';
+    final provider = geminiKey.isNotEmpty
+        ? AIProvider.gemini
+        : AIProvider.openRouter;
+    final optionsPrompt = options.isNotEmpty
+        ? '\nالخيارات:\n${options.map((opt) => "- $opt").join('\n')}'
+        : '';
 
-    final prompt = '''
+    final prompt =
+        '''
 حل هذا السؤال بالتفصيل واكتب شرحًا علميًا دقيقًا ومبسطًا لطريقة الحل باللغة العربية.
 نص السؤال:
 $questionText
@@ -464,17 +547,22 @@ $optionsPrompt
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
-        final response = await _dio.post(url, data: {
-          "contents": [
-            {
-              "parts": [
-                {"text": prompt}
-              ]
-            }
-          ]
-        });
-        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+        final url =
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt},
+                ],
+              },
+            ],
+          },
+        );
+        responseText =
+            response.data['candidates'][0]['content']['parts'][0]['text'];
       } else if (provider == AIProvider.openRouter) {
         final url = 'https://openrouter.ai/api/v1/chat/completions';
         final response = await _dio.post(
@@ -490,11 +578,8 @@ $optionsPrompt
           data: {
             "model": openRouterModel,
             "messages": [
-              {
-                "role": "user",
-                "content": prompt
-              }
-            ]
+              {"role": "user", "content": prompt},
+            ],
           },
         );
 
@@ -512,14 +597,18 @@ $optionsPrompt
       if (e is dio_client.DioException) {
         final resp = e.response;
         if (resp != null) {
-          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+          errMsg =
+              'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
       throw Exception('فشل جلب الحل بالذكاء الاصطناعي: $errMsg');
     }
   }
 
-  Future<List<String>> generateOptionsWithAI(String questionText, String correctAnswer) async {
+  Future<List<String>> generateOptionsWithAI(
+    String questionText,
+    String correctAnswer,
+  ) async {
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
       throw Exception('لم يتم ضبط إعدادات الذكاء الاصطناعي في لوحة التحكم.');
@@ -528,15 +617,22 @@ $optionsPrompt
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
-    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+    final openRouterModel =
+        data['openRouterModel']?.toString() ??
+        'nvidia/nemotron-3-ultra-550b-a55b:free';
 
     if (geminiKey.isEmpty && openRouterKey.isEmpty) {
-      throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
+      throw Exception(
+        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.',
+      );
     }
 
-    final provider = geminiKey.isNotEmpty ? AIProvider.gemini : AIProvider.openRouter;
+    final provider = geminiKey.isNotEmpty
+        ? AIProvider.gemini
+        : AIProvider.openRouter;
 
-    final prompt = '''
+    final prompt =
+        '''
 أنت مصمم أسئلة تعليمية خبير باللغة العربية.
 قم بتوليد 3 خيارات خاطئة ذكية ومقنعة (Distractors) للسؤال التالي، بناءً على الإجابة الصحيحة المعطاة.
 السؤال:
@@ -557,20 +653,23 @@ $correctAnswer
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
-        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
-        final response = await _dio.post(url, data: {
-          "contents": [
-            {
-              "parts": [
-                {"text": prompt}
-              ]
-            }
-          ],
-          "generationConfig": {
-            "responseMimeType": "application/json"
-          }
-        });
-        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+        final url =
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt},
+                ],
+              },
+            ],
+            "generationConfig": {"responseMimeType": "application/json"},
+          },
+        );
+        responseText =
+            response.data['candidates'][0]['content']['parts'][0]['text'];
       } else if (provider == AIProvider.openRouter) {
         final url = 'https://openrouter.ai/api/v1/chat/completions';
         final response = await _dio.post(
@@ -586,11 +685,8 @@ $correctAnswer
           data: {
             "model": openRouterModel,
             "messages": [
-              {
-                "role": "user",
-                "content": prompt
-              }
-            ]
+              {"role": "user", "content": prompt},
+            ],
           },
         );
 
@@ -605,7 +701,9 @@ $correctAnswer
       responseText = responseText.trim();
       int firstBracket = responseText.indexOf('[');
       int lastBracket = responseText.lastIndexOf(']');
-      if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
+      if (firstBracket != -1 &&
+          lastBracket != -1 &&
+          lastBracket > firstBracket) {
         responseText = responseText.substring(firstBracket, lastBracket + 1);
       }
 
@@ -619,7 +717,8 @@ $correctAnswer
       if (e is dio_client.DioException) {
         final resp = e.response;
         if (resp != null) {
-          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+          errMsg =
+              'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
       throw Exception('فشل توليد الخيارات بالذكاء الاصطناعي: $errMsg');
