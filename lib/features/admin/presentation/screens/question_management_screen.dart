@@ -1116,54 +1116,75 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (_isSolvingWithAI)
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12),
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: _primaryFintechColor),
-                                    ),
-                                  )
-                                else
-                                  TextButton.icon(
-                                    onPressed: _solveQuestion,
-                                    icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: _primaryFintechColor),
-                                    label: Text(
-                                      'حل بالذكاء الصناعي',
-                                      style: GoogleFonts.tajawal(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: _primaryFintechColor,
-                                      ),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    ),
-                                  ),
-                                const SizedBox(width: 4),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                                  tooltip: 'حذف الشرح والمرفقات',
-                                  onPressed: () {
-                                    setState(() {
-                                      _showExplanation = false;
-                                      explanationController.clear();
-                                      explanationImageUrlController.clear();
-                                      explanationAudioUrlController.clear();
-                                      explanationPdfUrlController.clear();
-                                      explanationVideoUrlController.clear();
-                                    });
-                                  },
-                                ),
-                              ],
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                              tooltip: 'حذف الشرح والمرفقات',
+                              onPressed: () {
+                                setState(() {
+                                  _showExplanation = false;
+                                  explanationController.clear();
+                                  explanationImageUrlController.clear();
+                                  explanationAudioUrlController.clear();
+                                  explanationPdfUrlController.clear();
+                                  explanationVideoUrlController.clear();
+                                });
+                              },
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
+                        // AI Solver Bar
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isDark ? Colors.white10 : Colors.grey[300]!),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.auto_awesome_rounded, size: 16, color: _primaryFintechColor),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'شرح وتوليد الحل تلقائياً بالذكاء الاصطناعي',
+                                    style: GoogleFonts.tajawal(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.white70 : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (_isSolvingWithAI)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: _primaryFintechColor),
+                                )
+                              else
+                                ElevatedButton.icon(
+                                  onPressed: _solveQuestion,
+                                  icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.white),
+                                  label: Text(
+                                    'حل بالذكاء الصناعي',
+                                    style: GoogleFonts.tajawal(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _primaryFintechColor,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         RichTextEditor(
                           initialHtml: explanationController.text,
                           placeholder: 'اكتب الشرح هنا...',

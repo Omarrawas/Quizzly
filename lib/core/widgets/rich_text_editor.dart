@@ -1573,8 +1573,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
       child: Column(
         children: [
           // ═══ TOP TOOLBAR ═══
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          if (_isFocused)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             decoration: BoxDecoration(
               color: toolbarBackground,
               borderRadius: const BorderRadius.vertical(
