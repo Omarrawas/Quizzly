@@ -95,6 +95,19 @@ class _QuestionPreviewEditDialogState extends State<QuestionPreviewEditDialog> {
 
             return {'id': doc.id, 'name': fullName};
           }).toList();
+          
+          _selectedTopicNames = _selectedTopicIds.map((id) {
+            final lesson = _availableLessons.firstWhere(
+              (l) => l['id'] == id,
+              orElse: () => <String, dynamic>{},
+            );
+            return lesson['name']?.toString() ?? 'موضوع غير معروف';
+          }).where((name) => name != 'موضوع غير معروف').toList();
+
+          _selectedTopicIds = _selectedTopicIds.where((id) {
+            return _availableLessons.any((l) => l['id'] == id);
+          }).toList();
+
           _isLoadingTopics = false;
         });
       }

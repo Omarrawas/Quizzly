@@ -12,6 +12,12 @@ class TextSimilarity {
         .toLowerCase()
         .trim();
 
+    // Strip LaTeX math commands & symbols to compare actual text/values
+    normalized = normalized
+        .replaceAll(RegExp(r'\\[a-zA-Z]+'), ' ') // Remove LaTeX commands like \text, \rightleftharpoons, \frac
+        .replaceAll(RegExp(r'\\[()\[\]]'), ' ') // Remove \(, \), \[, \]
+        .replaceAll(RegExp(r'[{}_^$()\]\[+\-=<>]'), ' '); // Remove math characters, subscript/superscript brackets
+
     // Remove Arabic diacritics (harakat)
     final diacritics = RegExp(r'[\u064B-\u0652\u0670]');
     normalized = normalized.replaceAll(diacritics, '');
@@ -25,11 +31,11 @@ class TextSimilarity {
     // Replace multiple spaces with a single space
     normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
 
-    return normalized;
+    return normalized.trim();
   }
 
-  /// Calculates string similarity using a hybrid of character bigrams and word-level Dice coefficient.
-  /// This ensures better matching for full words of the question.
+  /// Calculates string similarity using a hybrid of character bigrams and word-level Jaccard coefficient.
+  /// This ensures better matching for full words of the question, penalizing missing words strictly.
   static double compare(String str1, String str2) {
     final s1 = normalizeString(str1);
     final s2 = normalizeString(str2);
@@ -37,22 +43,32 @@ class TextSimilarity {
     if (s1 == s2) return 1.0;
     if (s1.isEmpty || s2.isEmpty) return 0.0;
 
-    // 1. Calculate word-level similarity
     final words1 = s1.split(' ').where((w) => w.isNotEmpty).toList();
     final words2 = s2.split(' ').where((w) => w.isNotEmpty).toList();
 
     if (words1.isEmpty || words2.isEmpty) return 0.0;
 
+    // Filter Arabic stop words to get core content words
+    final stopWords = {
+      'من', 'في', 'على', 'إلى', 'عن', 'ما', 'هل', 'هو', 'هي', 'أن', 'إن', 'فإن',
+      'عند', 'ثم', 'أو', 'مع', 'حتى', 'إذا', 'هذا', 'هذه', 'ذلك', 'تلك', 'التي', 'الذي'
+    };
+    final content1 = words1.where((w) => !stopWords.contains(w)).toList();
+    final content2 = words2.where((w) => !stopWords.contains(w)).toList();
+
+    final finalWords1 = content1.isNotEmpty ? content1 : words1;
+    final finalWords2 = content2.isNotEmpty ? content2 : words2;
+
     int wordMatches = 0;
     final usedIndices = <int>{};
     
-    for (var w1 in words1) {
+    for (var w1 in finalWords1) {
       double bestMatchSim = 0.0;
       int bestMatchIdx = -1;
       
-      for (int j = 0; j < words2.length; j++) {
+      for (int j = 0; j < finalWords2.length; j++) {
         if (usedIndices.contains(j)) continue;
-        final w2 = words2[j];
+        final w2 = finalWords2[j];
         
         if (w1 == w2) {
           bestMatchSim = 1.0;
@@ -60,7 +76,6 @@ class TextSimilarity {
           break;
         }
         
-        // Check character-level similarity between individual words to allow minor typos
         final sim = _getBigramSimilarity(w1, w2);
         if (sim > bestMatchSim) {
           bestMatchSim = sim;
@@ -68,8 +83,8 @@ class TextSimilarity {
         }
       }
       
-      // If the word has a high similarity match (>= 0.75), count it as matched
-      if (bestMatchSim >= 0.75) {
+      // Strict threshold of 0.8 for a word match
+      if (bestMatchSim >= 0.8) {
         wordMatches++;
         if (bestMatchIdx != -1) {
           usedIndices.add(bestMatchIdx);
@@ -77,14 +92,14 @@ class TextSimilarity {
       }
     }
 
-    // Word Dice coefficient: 2 * matches / (len1 + len2)
-    final wordDice = (2.0 * wordMatches) / (words1.length + words2.length);
+    // Jaccard similarity: matches / (len1 + len2 - matches)
+    final wordJaccard = wordMatches / (finalWords1.length + finalWords2.length - wordMatches);
 
-    // 2. Calculate full string character bigram similarity
+    // Character bigram similarity
     final charDice = _getBigramSimilarity(s1, s2);
 
-    // Hybrid similarity: 75% word-level, 25% character-level bigrams
-    return (0.75 * wordDice) + (0.25 * charDice);
+    // Hybrid: 85% word Jaccard (strict word overlap), 15% character bigram (minor typos)
+    return (0.85 * wordJaccard) + (0.15 * charDice);
   }
 
   static double _getBigramSimilarity(String s1, String s2) {

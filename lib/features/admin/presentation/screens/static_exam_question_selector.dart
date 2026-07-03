@@ -203,7 +203,11 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
       );
 
       final parsingService = PDFParsingService();
-      final extracted = await parsingService.parsePDF(bytes);
+      final extracted = await parsingService.parsePDF(
+        bytes,
+        subjectId: widget.subjectId,
+        sectionId: widget.sectionId,
+      );
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog

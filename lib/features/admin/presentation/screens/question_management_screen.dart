@@ -57,6 +57,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   bool _showTranslation = false;
   bool _showExplanation = false;
   bool _isSolvingWithAI = false;
+  bool _isGeneratingOptions = false;
 
   // Primary fintech color
   static const Color _primaryFintechColor = Color(0xFF6E56FF);
@@ -270,7 +271,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     );
   }
 
-  Widget _buildSection({required String title, required Widget child}) {
+  Widget _buildSection({required String title, required Widget child, Widget? action}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -294,13 +295,19 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.cairo(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryBlue,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.cairo(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+              if (action != null) action,
+            ],
           ),
           const SizedBox(height: 16),
           child,
@@ -494,7 +501,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
     setState(() => _isSolvingWithAI = true);
 
     try {
-      final optionsList = optionControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+      final optionsList = options.map((o) => (o['text'] ?? '').trim()).where((t) => t.isNotEmpty).toList();
       final solution = await PDFParsingService().solveQuestionWithAI(text, optionsList);
       
       setState(() {
@@ -504,6 +511,53 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       _showStatusSnackBar('تم توليد حل السؤال بنجاح!', isError: false);
     } catch (e) {
       setState(() => _isSolvingWithAI = false);
+      _showStatusSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
+    }
+  }
+
+  Future<void> _generateOptions() async {
+    final text = textController.text.trim();
+    if (text.isEmpty) {
+      _showStatusSnackBar('يرجى كتابة نص السؤال أولاً ليتمكن الذكاء الاصطناعي من توليد الخيارات', isError: true);
+      return;
+    }
+    if (correctOptionIds.isEmpty) {
+      _showStatusSnackBar('يرجى تحديد الإجابة الصحيحة أولاً ليتمكن النظام من توليد الخيارات البديلة لها', isError: true);
+      return;
+    }
+
+    final correctOpt = options.firstWhere((o) => o['id'] == correctOptionIds.first, orElse: () => {});
+    final correctAnswer = (correctOpt['text'] ?? '').trim();
+    if (correctAnswer.isEmpty) {
+      _showStatusSnackBar('يرجى كتابة نص الإجابة الصحيحة أولاً لتوليد خيارات مشابهة لها', isError: true);
+      return;
+    }
+
+    setState(() => _isGeneratingOptions = true);
+
+    try {
+      final wrongOptions = await PDFParsingService().generateOptionsWithAI(text, correctAnswer);
+      
+      setState(() {
+        final correctId = correctOptionIds.first;
+        
+        options = [{'id': correctId, 'text': correctAnswer}];
+        for (var c in optionControllers) {
+          c.dispose();
+        }
+        optionControllers = [TextEditingController(text: correctAnswer)];
+        
+        for (int i = 0; i < wrongOptions.length; i++) {
+          final newId = (DateTime.now().millisecondsSinceEpoch + i + 1).toString();
+          options.add({'id': newId, 'text': wrongOptions[i]});
+          optionControllers.add(TextEditingController(text: wrongOptions[i]));
+        }
+        
+        _isGeneratingOptions = false;
+      });
+      _showStatusSnackBar('تم توليد الخيارات البديلة بنجاح!', isError: false);
+    } catch (e) {
+      setState(() => _isGeneratingOptions = false);
       _showStatusSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
     }
   }
@@ -959,6 +1013,32 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                 if (selectedTypeId != 'essay')
                   _buildSection(
                     title: 'الخيارات والإجابة',
+                    action: (selectedTypeId == 'mcq' || selectedTypeId == 'checkbox')
+                        ? (_isGeneratingOptions
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: _primaryFintechColor),
+                                ),
+                              )
+                            : TextButton.icon(
+                                onPressed: _generateOptions,
+                                icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: _primaryFintechColor),
+                                label: Text(
+                                  'توليد الخيارات بالذكاء الاصطناعي',
+                                  style: GoogleFonts.tajawal(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _primaryFintechColor,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                ),
+                              ))
+                        : null,
                     child: selectedTypeId == 'checkbox'
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

@@ -85,8 +85,43 @@ class PDFParsingService {
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<List<ExtractedQuestion>> parsePDF(Uint8List pdfBytes, {int retryCount = 0, List<String>? errors}) async {
+  Future<List<ExtractedQuestion>> parsePDF(
+    Uint8List pdfBytes, {
+    String? subjectId,
+    String? sectionId,
+    int retryCount = 0,
+    List<String>? errors,
+  }) async {
     final currentErrors = errors ?? [];
+    
+    // Load available topics context if subjectId is provided
+    String topicsPromptContext = '';
+    if (subjectId != null) {
+      try {
+        final snapshot = await _firestore.collection('topics')
+            .where('subjectId', isEqualTo: subjectId)
+            .get();
+        final docs = snapshot.docs;
+        final nameMap = {for (var doc in docs) doc.id: doc.data()['name'] ?? ''};
+        final lessons = docs.where((doc) => doc.data()['type'] == 'lesson').toList();
+        
+        if (lessons.isNotEmpty) {
+          final buffer = StringBuffer();
+          buffer.writeln('\nAvailable Topics/Lessons (Use these exact IDs in "topicIds" if the question is related):');
+          for (var doc in lessons) {
+            final data = doc.data();
+            final parentId = data['parentId'];
+            final parentName = parentId != null ? nameMap[parentId] : null;
+            final fullName = parentName != null ? '$parentName - ${data['name']}' : data['name'];
+            buffer.writeln('- ID: "${doc.id}", Name: "$fullName"');
+          }
+          topicsPromptContext = buffer.toString();
+        }
+      } catch (e) {
+        debugPrint('Error loading topics context for parsePDF: $e');
+      }
+    }
+
     // 1. Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -114,12 +149,12 @@ class PDFParsingService {
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
-      return parsePDF(pdfBytes, retryCount: retryCount + 1, errors: currentErrors);
+      return parsePDF(pdfBytes, subjectId: subjectId, sectionId: sectionId, retryCount: retryCount + 1, errors: currentErrors);
     }
 
     final base64PDF = base64Encode(pdfBytes);
 
-    const prompt = '''
+    final prompt = '''
 Extract all questions from the attached exam PDF.
 Return a raw JSON array matching this schema:
 [
@@ -131,9 +166,11 @@ Return a raw JSON array matching this schema:
       {"id": "B", "text": "Option text..."}
     ],
     "correctOptionIds": ["A"], // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
-    "explanation": "Detailed step-by-step solution or explanation of how to solve the question in Arabic..."
+    "explanation": "Detailed step-by-step solution or explanation of how to solve the question in Arabic...",
+    "topicIds": [] // Select relevant topic ID(s) from the list below if applicable.
   }
 ]
+$topicsPromptContext
 
 CRITICAL REQUIREMENT:
 1. Ensure all math and chemistry formulas, units, variables, and equations are represented in standard LaTeX format using \$ for inline math or \$\$ for block math. Example: H_2O, pH, 10^{-3}\\text{ sec}^{-1}, [\\text{NaOH}].
@@ -141,6 +178,7 @@ CRITICAL REQUIREMENT:
 3. Extract ALL questions from the document.
 4. SOLVE each question scientifically using your own logical reasoning to guarantee "correctOptionIds" are correct.
 5. Generate a detailed, step-by-step explanation/solution in Arabic for each question and put it in the "explanation" field.
+6. Match each question with the correct topic ID(s) from the available topics list provided above, and include it in the "topicIds" array. If no topic matches, leave it empty.
 ''';
 
     try {
@@ -220,7 +258,7 @@ CRITICAL REQUIREMENT:
       }
       debugPrint('Error parsing PDF with ${provider.name}: $errMsg');
       currentErrors.add('${provider.name}: $errMsg');
-      return parsePDF(pdfBytes, retryCount: retryCount + 1, errors: currentErrors);
+      return parsePDF(pdfBytes, subjectId: subjectId, sectionId: sectionId, retryCount: retryCount + 1, errors: currentErrors);
     }
   }
 
@@ -348,6 +386,7 @@ $examText
 
   List<ExtractedQuestion> _parseResponseJson(String responseText) {
     responseText = responseText.trim();
+    responseText = _escapeRawBackslashes(responseText);
     
     // Extract JSON block robustly by finding the outer-most list or object boundary
     int firstBracket = responseText.indexOf('[');
@@ -478,5 +517,174 @@ $optionsPrompt
       }
       throw Exception('فشل جلب الحل بالذكاء الاصطناعي: $errMsg');
     }
+  }
+
+  Future<List<String>> generateOptionsWithAI(String questionText, String correctAnswer) async {
+    final doc = await _firestore.collection('settings').doc('ai_config').get();
+    if (!doc.exists) {
+      throw Exception('لم يتم ضبط إعدادات الذكاء الاصطناعي في لوحة التحكم.');
+    }
+
+    final data = doc.data()!;
+    final geminiKey = data['geminiKey']?.toString() ?? '';
+    final openRouterKey = data['openRouterKey']?.toString() ?? '';
+    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
+      throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
+    }
+
+    final provider = geminiKey.isNotEmpty ? AIProvider.gemini : AIProvider.openRouter;
+
+    final prompt = '''
+أنت مصمم أسئلة تعليمية خبير باللغة العربية.
+قم بتوليد 3 خيارات خاطئة ذكية ومقنعة (Distractors) للسؤال التالي، بناءً على الإجابة الصحيحة المعطاة.
+السؤال:
+$questionText
+
+الإجابة الصحيحة:
+$correctAnswer
+
+أرجع النتيجة كـ JSON Array مكون من نصوص الخيارات الخاطئة فقط بصيغة:
+[
+  "الخيار الخاطئ الأول",
+  "الخيار الخاطئ الثاني",
+  "الخيار الخاطئ الثالث"
+]
+أرجع القائمة فقط دون أي شرح أو تنسيق markdown. لا تضف كود ```json.
+''';
+
+    try {
+      String responseText = '';
+      if (provider == AIProvider.gemini) {
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(url, data: {
+          "contents": [
+            {
+              "parts": [
+                {"text": prompt}
+              ]
+            }
+          ],
+          "generationConfig": {
+            "responseMimeType": "application/json"
+          }
+        });
+        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.openRouter) {
+        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {
+                "role": "user",
+                "content": prompt
+              }
+            ]
+          },
+        );
+
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          responseText = message?['content']?.toString() ?? '';
+        }
+      }
+
+      responseText = responseText.trim();
+      int firstBracket = responseText.indexOf('[');
+      int lastBracket = responseText.lastIndexOf(']');
+      if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
+        responseText = responseText.substring(firstBracket, lastBracket + 1);
+      }
+
+      final decoded = jsonDecode(responseText);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+      throw Exception('الاستجابة المستلمة ليست قائمة JSON صالحة.');
+    } catch (e) {
+      String errMsg = e.toString();
+      if (e is dio_client.DioException) {
+        final resp = e.response;
+        if (resp != null) {
+          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+        }
+      }
+      throw Exception('فشل توليد الخيارات بالذكاء الاصطناعي: $errMsg');
+    }
+  }
+
+  String _escapeRawBackslashes(String jsonStr) {
+    final sb = StringBuffer();
+    for (int i = 0; i < jsonStr.length; i++) {
+      final char = jsonStr[i];
+      if (char == '\\') {
+        if (i + 1 < jsonStr.length) {
+          final nextChar = jsonStr[i + 1];
+          bool isControl = false;
+          if (nextChar == '"' || nextChar == '\\' || nextChar == '/') {
+            isControl = true;
+          } else if (nextChar == 'n') {
+            isControl = true;
+          } else if (nextChar == 't') {
+            if (i + 2 < jsonStr.length) {
+              final afterNext = jsonStr[i + 2];
+              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
+            } else {
+              isControl = true;
+            }
+          } else if (nextChar == 'r') {
+            if (i + 2 < jsonStr.length) {
+              final afterNext = jsonStr[i + 2];
+              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
+            } else {
+              isControl = true;
+            }
+          } else if (nextChar == 'b') {
+            if (i + 2 < jsonStr.length) {
+              final afterNext = jsonStr[i + 2];
+              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
+            } else {
+              isControl = true;
+            }
+          } else if (nextChar == 'f') {
+            if (i + 2 < jsonStr.length) {
+              final afterNext = jsonStr[i + 2];
+              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
+            } else {
+              isControl = true;
+            }
+          } else if (nextChar == 'u') {
+            if (i + 5 < jsonStr.length) {
+              final hex = jsonStr.substring(i + 2, i + 6);
+              isControl = RegExp(r'^[0-9a-fA-F]{4}$').hasMatch(hex);
+            }
+          }
+
+          if (isControl) {
+            sb.write('\\');
+          } else {
+            sb.write('\\\\');
+          }
+        } else {
+          sb.write('\\\\');
+        }
+      } else {
+        sb.write(char);
+      }
+    }
+    return sb.toString();
   }
 }
