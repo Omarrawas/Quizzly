@@ -3,6 +3,7 @@ import 'package:dio/dio.dart' as dio_client;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:quizzly/features/quiz/domain/services/ai_grading_service.dart';
+import 'package:quizzly/core/utils/math_utils.dart';
 
 String _convertDollarsToParentheses(String text) {
   if (text.isEmpty) return text;
@@ -83,7 +84,7 @@ class ExtractedQuestion {
       correctOptionIds: correctIds,
       topicIds: tIds,
       topicNames: tNames,
-      explanation: map['explanation'] != null ? _convertDollarsToParentheses(map['explanation'].toString()) : null,
+      explanation: map['explanation'] != null ? MathUtils.convertMarkdownToHtml(_convertDollarsToParentheses(map['explanation'].toString())) : null,
     );
   }
 }
@@ -657,7 +658,8 @@ $optionsPrompt
         }
       }
 
-      return _convertDollarsToParentheses(responseText.trim());
+      final convertedText = _convertDollarsToParentheses(responseText.trim());
+      return MathUtils.convertMarkdownToHtml(convertedText);
     } catch (e) {
       String errMsg = e.toString();
       if (e is dio_client.DioException) {

@@ -308,5 +308,123 @@ class MathUtils {
     
     return t;
   }
+
+  /// Converts standard Markdown notation to HTML tags safely, preserving LaTeX equations.
+  static String convertMarkdownToHtml(String md) {
+    if (md.isEmpty) return md;
+
+    final lines = md.split('\n');
+    final htmlBuffer = StringBuffer();
+    bool inList = false;
+
+    for (final line in lines) {
+      final trimmed = line.trim();
+
+      // Handle horizontal rules: --- or ***
+      if (trimmed == '---' || trimmed == '***') {
+        if (inList) {
+          htmlBuffer.write('</ul>');
+          inList = false;
+        }
+        htmlBuffer.write('<hr />');
+        continue;
+      }
+
+      // Handle headers: #, ##, ###, ####
+      if (trimmed.startsWith('#### ')) {
+        if (inList) {
+          htmlBuffer.write('</ul>');
+          inList = false;
+        }
+        var headerText = trimmed.substring(5).trim();
+        headerText = _replaceMarkdownInlineFormatting(headerText);
+        htmlBuffer.write('<h4>$headerText</h4>');
+        continue;
+      }
+      if (trimmed.startsWith('### ')) {
+        if (inList) {
+          htmlBuffer.write('</ul>');
+          inList = false;
+        }
+        var headerText = trimmed.substring(4).trim();
+        headerText = _replaceMarkdownInlineFormatting(headerText);
+        htmlBuffer.write('<h3>$headerText</h3>');
+        continue;
+      }
+      if (trimmed.startsWith('## ')) {
+        if (inList) {
+          htmlBuffer.write('</ul>');
+          inList = false;
+        }
+        var headerText = trimmed.substring(3).trim();
+        headerText = _replaceMarkdownInlineFormatting(headerText);
+        htmlBuffer.write('<h2>$headerText</h2>');
+        continue;
+      }
+
+      // Handle bullet lists: * or -
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+        if (!inList) {
+          htmlBuffer.write('<ul>');
+          inList = true;
+        }
+        var itemText = trimmed.substring(2).trim();
+        itemText = _replaceMarkdownInlineFormatting(itemText);
+        htmlBuffer.write('<li>$itemText</li>');
+        continue;
+      }
+
+      // If it's a blank line, close list if open, and insert break/paragraph
+      if (trimmed.isEmpty) {
+        if (inList) {
+          htmlBuffer.write('</ul>');
+          inList = false;
+        }
+        htmlBuffer.write('<br />');
+        continue;
+      }
+
+      // Normal line
+      if (inList) {
+        htmlBuffer.write('</ul>');
+        inList = false;
+      }
+      final lineText = _replaceMarkdownInlineFormatting(trimmed);
+      htmlBuffer.write('<p>$lineText</p>');
+    }
+
+    if (inList) {
+      htmlBuffer.write('</ul>');
+    }
+
+    return htmlBuffer.toString();
+  }
+
+  static String _replaceMarkdownInlineFormatting(String text) {
+    // Split by latexRegex to avoid formatting inside equations
+    return text.splitMapJoin(
+      latexRegex,
+      onMatch: (m) => m.group(0)!, // return equation as-is
+      onNonMatch: (nonMath) {
+        // Normalize mismatched triple asterisks to double asterisks
+        var processed = nonMath.replaceAll('***', '**');
+
+        // Replace bold **text** with <strong>text</strong>
+        processed = processed.replaceAllMapped(
+          RegExp(r'\*\*(.*?)\*\*'),
+          (m) => '<strong>${m.group(1)}</strong>',
+        );
+
+        // Replace italic *text* with <em>text</em>
+        processed = processed.replaceAllMapped(
+          RegExp(r'\*(.*?)\*'),
+          (m) => '<em>${m.group(1)}</em>',
+        );
+
+        return processed;
+      },
+    );
+  }
 }
+
 
