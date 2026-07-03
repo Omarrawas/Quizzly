@@ -362,6 +362,7 @@ class ExamConfig {
   final bool isFree;
   final DateTime? lastUpdated;
   final DateTime? createdAt;
+  final int order;
 
   const ExamConfig({
     this.id,
@@ -378,6 +379,7 @@ class ExamConfig {
     this.isFree = true,
     this.lastUpdated,
     this.createdAt,
+    this.order = 0,
   });
 
   factory ExamConfig.fromFirestore(DocumentSnapshot doc) {
@@ -397,6 +399,7 @@ class ExamConfig {
       isFree: data['isFree'] ?? true,
       lastUpdated: data['lastUpdated'] != null ? (data['lastUpdated'] as Timestamp).toDate() : null,
       createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
+      order: data['order'] ?? 0,
     );
   }
 
@@ -414,6 +417,7 @@ class ExamConfig {
       'isFree': isFree,
       'lastUpdated': lastUpdated != null ? Timestamp.fromDate(lastUpdated!) : null,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+      'order': order,
       if (type == ExamType.bank && generationRules != null)
         'generationRules': generationRules!.toMap(),
     };

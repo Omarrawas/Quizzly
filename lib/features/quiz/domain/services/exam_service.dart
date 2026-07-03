@@ -11,10 +11,25 @@ class ExamService {
         .collection(DatabaseService.colExams)
         .where('subjectId', isEqualTo: subjectId)
         .snapshots()
-        .map(
-          (snap) =>
-              snap.docs.map((doc) => ExamConfig.fromFirestore(doc)).toList(),
-        );
+        .map((snap) {
+          final exams = snap.docs.map((doc) => ExamConfig.fromFirestore(doc)).toList();
+          exams.sort((a, b) {
+            // Group by section first
+            if (a.sectionId != b.sectionId) {
+              return a.sectionId.compareTo(b.sectionId);
+            }
+            // Sort by order ascending within each section
+            if (a.order != b.order) {
+              return a.order.compareTo(b.order);
+            }
+            // Secondary sort by createdAt descending
+            if (a.createdAt == null && b.createdAt == null) return 0;
+            if (a.createdAt == null) return 1;
+            if (b.createdAt == null) return -1;
+            return b.createdAt!.compareTo(a.createdAt!);
+          });
+          return exams;
+        });
   }
 
   /// Record exam attempt result

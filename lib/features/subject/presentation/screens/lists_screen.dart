@@ -31,7 +31,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
   final ExamGeneratorService _generator = ExamGeneratorService();
   int _selectedFilter = 0;
 
-  final List<String> _filters = ['الكل', 'الدورات الوزارية', 'بنك الأسئلة'];
+  final List<String> _filters = ['الكل', 'الدورات الوزارية', 'الاختبارات'];
 
   int selectedPillar = 0;
 

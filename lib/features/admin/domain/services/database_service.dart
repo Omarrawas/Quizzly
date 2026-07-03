@@ -225,13 +225,17 @@ class DatabaseService {
     return _db.collection(colExams)
         .where('subjectId', isEqualTo: subjectId)
         .where('sectionId', isEqualTo: sectionId)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
   Future<DocumentReference> addExam(Map<String, dynamic> data) async {
+    final count = await _db.collection(colExams)
+        .where('subjectId', isEqualTo: data['subjectId'])
+        .where('sectionId', isEqualTo: data['sectionId'])
+        .count().get();
     return _db.collection(colExams).add({
       ...data,
+      'order': count.count,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

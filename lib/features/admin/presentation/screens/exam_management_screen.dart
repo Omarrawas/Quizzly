@@ -43,7 +43,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
         ),
         title: Text(
           'الاختبارات - ${widget.subjectName}',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -58,7 +58,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
         onPressed: () => _showAddExamDialog(context),
         backgroundColor: AppColors.primaryBlue,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text('إضافة اختبار', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text('إضافة اختبار', style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -83,7 +83,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   ),
                   child: Text(
                     entry.value,
-                    style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                    style: GoogleFonts.tajawal(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
                   ),
                 ),
               ],
@@ -107,23 +107,60 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
           return _emptyState('لا توجد اختبارات حالياً', isDark);
         }
 
-        final docs = snapshot.data!.docs;
-        return ListView.builder(
+        final docs = List<QueryDocumentSnapshot>.from(snapshot.data!.docs);
+        docs.sort((a, b) {
+          final dataA = a.data() as Map<String, dynamic>;
+          final dataB = b.data() as Map<String, dynamic>;
+          final int orderA = dataA['order'] ?? 999999;
+          final int orderB = dataB['order'] ?? 999999;
+          if (orderA != orderB) {
+            return orderA.compareTo(orderB);
+          }
+          final Timestamp? timeA = dataA['createdAt'] as Timestamp?;
+          final Timestamp? timeB = dataB['createdAt'] as Timestamp?;
+          if (timeA == null && timeB == null) return 0;
+          if (timeA == null) return 1;
+          if (timeB == null) return -1;
+          return timeB.compareTo(timeA); // Descending (newest first)
+        });
+
+        return ReorderableListView.builder(
+          buildDefaultDragHandles: false,
           padding: const EdgeInsets.all(16),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final id = docs[index].id;
             final config = ExamConfig.fromFirestore(docs[index]);
-            return _buildExamCard(id, config, isDark);
+            return _buildExamCard(id, config, isDark, index);
+          },
+          onReorder: (oldIndex, newIndex) async {
+            if (newIndex > oldIndex) {
+              newIndex -= 1;
+            }
+            if (oldIndex == newIndex) return;
+
+            final items = List<QueryDocumentSnapshot>.from(docs);
+            final item = items.removeAt(oldIndex);
+            items.insert(newIndex, item);
+
+            final ids = items.map((doc) => doc.id).toList();
+
+            try {
+              await _dbService.updateOrder(DatabaseService.colExams, ids);
+              _showStatusSnackBar('تم تحديث الترتيب بنجاح', isError: false);
+            } catch (e) {
+              _showStatusSnackBar('فشل تحديث الترتيب: $e', isError: true);
+            }
           },
         );
       },
     );
   }
 
-  Widget _buildExamCard(String id, ExamConfig config, bool isDark) {
+  Widget _buildExamCard(String id, ExamConfig config, bool isDark, int index) {
 
     return Container(
+      key: ValueKey(id),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
@@ -143,8 +180,8 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    config.type == ExamType.bank ? 'بنك' : 'دورة',
-                    style: GoogleFonts.cairo(fontSize: 10, fontWeight: FontWeight.bold, color: config.type == ExamType.bank ? Colors.purple : Colors.blue),
+                    config.type == ExamType.bank ? 'اختبار' : 'دورة',
+                    style: GoogleFonts.tajawal(fontSize: 10, fontWeight: FontWeight.bold, color: config.type == ExamType.bank ? Colors.purple : Colors.blue),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -156,7 +193,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   ),
                   child: Text(
                     config.isFree ? 'مجاني' : 'مدفوع',
-                    style: GoogleFonts.cairo(
+                    style: GoogleFonts.tajawal(
                       fontSize: 10, 
                       fontWeight: FontWeight.bold, 
                       color: config.isFree ? Colors.green : Colors.orange[800],
@@ -169,7 +206,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     config.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ],
@@ -180,17 +217,24 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 children: [
                   Icon(Icons.help_outline_rounded, size: 14, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
-                  Text('${config.totalQuestions} سؤال', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+                  Text('${config.totalQuestions} سؤال', style: GoogleFonts.tajawal(fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(width: 16),
                   Icon(Icons.timer_outlined, size: 14, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
-                  Text('${config.durationSeconds ~/ 60} دقيقة', style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary)),
+                  Text('${config.durationSeconds ~/ 60} دقيقة', style: GoogleFonts.tajawal(fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(Icons.drag_handle_rounded, color: Colors.grey),
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_note_rounded, color: AppColors.primaryBlue),
                   onPressed: () => _showAddExamDialog(context, existingConfig: config, examId: id),
@@ -202,7 +246,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
               ],
             ),
           ),
-          if (config.type == ExamType.dora)
+          if (config.type == ExamType.dora || config.type == ExamType.bank)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: SizedBox(
@@ -223,7 +267,12 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     );
                   },
                   icon: const Icon(Icons.playlist_add_check_rounded, size: 18),
-                  label: Text('تحديد أسئلة الدورة (${config.staticQuestionIds.length})', style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    config.type == ExamType.dora 
+                        ? 'تحديد أسئلة الدورة (${config.staticQuestionIds.length})'
+                        : 'تحديد أسئلة الاختبار (${config.staticQuestionIds.length})', 
+                    style: GoogleFonts.tajawal(fontSize: 12, fontWeight: FontWeight.bold)
+                  ),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -250,7 +299,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
             const SizedBox(height: 16),
             SelectableText(
               message,
-              style: GoogleFonts.cairo(color: isError ? Colors.red : AppColors.textSecondary, fontSize: 11),
+              style: GoogleFonts.tajawal(color: isError ? Colors.red : AppColors.textSecondary, fontSize: 11),
               textAlign: TextAlign.center,
             ),
           ],
@@ -262,10 +311,13 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
   void _showStatusSnackBar(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold)),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        content: Text(
+          message, 
+          style: GoogleFonts.tajawal(fontSize: 13, fontWeight: FontWeight.bold, color: isError ? Colors.white : const Color(0xFF18191D))
+        ),
+        backgroundColor: isError ? const Color(0xFFFF4C6A) : const Color(0xFF7DFFA2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       ),
     );
@@ -274,21 +326,22 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
   void _showAddExamDialog(BuildContext context, {ExamConfig? existingConfig, String? examId}) {
     final isEdit = existingConfig != null;
     final titleController = TextEditingController(text: existingConfig?.title);
-    final questionsCountController = TextEditingController(text: existingConfig?.totalQuestions.toString() ?? '20');
-    final durationController = TextEditingController(text: (existingConfig != null ? existingConfig.durationSeconds ~/ 60 : 20).toString());
     final scoreController = TextEditingController(text: existingConfig?.passingScore.toString() ?? '60');
     
-    ExamType selectedType = existingConfig?.type ?? ExamType.bank;
+    ExamType selectedType = existingConfig?.type ?? ExamType.dora;
     bool isFree = existingConfig?.isFree ?? true;
-    List<String> selectedTopics = existingConfig?.generationRules?.topicIds ?? [];
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(isEdit ? 'تعديل الاختبار' : 'إضافة اختبار جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          backgroundColor: const Color(0xFF222329),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            isEdit ? 'تعديل الاختبار' : 'إضافة اختبار جديد', 
+            style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)
+          ),
           content: SizedBox(
             width: MediaQuery.of(context).size.width * 0.9,
             child: SingleChildScrollView(
@@ -298,54 +351,48 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 children: [
                   TextField(
                     controller: titleController,
-                    decoration: InputDecoration(labelText: 'عنوان الاختبار', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: questionsCountController,
-                          keyboardType: TextInputType.number,
-                          onChanged: (v) {
-                            final q = int.tryParse(v) ?? 0;
-                            setDialogState(() {
-                              durationController.text = q.toString(); // 1 minute per question
-                            });
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'عدد الأسئلة', 
-                            labelStyle: GoogleFonts.cairo(), 
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            suffixText: 'سؤال',
-                          ),
-                        ),
+                    style: GoogleFonts.tajawal(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'عنوان الاختبار', 
+                      labelStyle: GoogleFonts.tajawal(color: Colors.white70), 
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2D2E36)),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: durationController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'المدة (دقائق)', 
-                            labelStyle: GoogleFonts.cairo(), 
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            suffixText: 'دقيقة',
-                            helperText: 'يتم حسابها تلقائياً',
-                            helperStyle: GoogleFonts.cairo(fontSize: 10),
-                          ),
-                        ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF6E56FF)),
                       ),
-                    ],
+                      filled: true,
+                      fillColor: const Color(0xFF18191D),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: scoreController,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: 'درجة النجاح المئوية (مثال: 60)', labelStyle: GoogleFonts.cairo(), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                    style: GoogleFonts.tajawal(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'درجة النجاح المئوية (مثال: 60)', 
+                      labelStyle: GoogleFonts.tajawal(color: Colors.white70), 
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2D2E36)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF6E56FF)),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF18191D),
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  Text('نوع الاختبار', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    'نوع الاختبار', 
+                    style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)
+                  ),
+                  const SizedBox(height: 8),
                   RadioGroup<ExamType>(
                     groupValue: selectedType,
                     onChanged: (v) => setDialogState(() => selectedType = v!),
@@ -353,14 +400,16 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                       children: [
                         Expanded(
                           child: RadioListTile<ExamType>(
-                            title: Text('بنك أسئلة', style: GoogleFonts.cairo(fontSize: 12)),
-                            value: ExamType.bank,
+                            title: Text('دورة', style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white)),
+                            value: ExamType.dora,
+                            activeColor: const Color(0xFF6E56FF),
                           ),
                         ),
                         Expanded(
                           child: RadioListTile<ExamType>(
-                            title: Text('دورة', style: GoogleFonts.cairo(fontSize: 12)),
-                            value: ExamType.dora,
+                            title: Text('اختبار', style: GoogleFonts.tajawal(fontSize: 12, color: Colors.white)),
+                            value: ExamType.bank,
+                            activeColor: const Color(0xFF6E56FF),
                           ),
                         ),
                       ],
@@ -368,29 +417,47 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   ),
                   const SizedBox(height: 8),
                   SwitchListTile(
-                    title: Text('اختبار مجاني', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
-                    subtitle: Text('إذا كان مفعلاً، سيتمكن جميع الطلاب من تقديم الاختبار', style: GoogleFonts.cairo(fontSize: 11)),
+                    title: Text(
+                      'اختبار مجاني', 
+                      style: GoogleFonts.tajawal(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)
+                    ),
+                    subtitle: Text(
+                      'إذا كان مفعلاً، سيتمكن جميع الطلاب من تقديم الاختبار', 
+                      style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white54)
+                    ),
                     value: isFree,
-                    activeThumbColor: AppColors.primaryBlue,
-                    activeTrackColor: AppColors.primaryBlue.withValues(alpha: 0.3),
+                    activeThumbColor: const Color(0xFF7DFFA2),
+                    activeTrackColor: const Color(0xFF6E56FF).withValues(alpha: 0.3),
+                    inactiveThumbColor: Colors.grey[400],
+                    inactiveTrackColor: Colors.grey[800],
                     onChanged: (v) => setDialogState(() => isFree = v),
                   ),
-                  if (selectedType == ExamType.bank) ...[
-                    const Divider(),
-                    Text('سيتم توليد الأسئلة تلقائياً من بنك الأسئلة', style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey)),
-                  ],
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء', style: GoogleFonts.cairo())),
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: Text(
+                'إلغاء', 
+                style: GoogleFonts.tajawal(color: Colors.white70, fontWeight: FontWeight.bold)
+              )
+            ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6E56FF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               onPressed: () async {
                 if (titleController.text.trim().isEmpty) return;
                 
-                final int duration = (int.tryParse(durationController.text) ?? 20) * 60;
-                final int totalQ = int.tryParse(questionsCountController.text) ?? 20;
+                final int duration = existingConfig?.durationSeconds ?? 0;
+                final int totalQ = existingConfig?.totalQuestions ?? 0;
                 final double score = double.tryParse(scoreController.text) ?? 60.0;
 
                 final config = ExamConfig(
@@ -404,9 +471,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   subjectId: widget.subjectId,
                   sectionId: widget.sectionId,
                   staticQuestionIds: existingConfig?.staticQuestionIds ?? [],
-                  generationRules: selectedType == ExamType.bank ? GenerationRules(
-                    topicIds: selectedTopics,
-                  ) : null,
+                  generationRules: null,
                   isFree: isFree,
                 );
 
@@ -423,8 +488,8 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     Navigator.pop(context);
                     _showStatusSnackBar(isEdit ? 'تم تحديث الاختبار بنجاح' : 'تمت إضافة الاختبار بنجاح', isError: false);
                     
-                    // Auto-navigate to selection if it's a new dora exam
-                    if (!isEdit && selectedType == ExamType.dora) {
+                    // Auto-navigate to selection if it's a new exam
+                    if (!isEdit && (selectedType == ExamType.dora || selectedType == ExamType.bank)) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -443,7 +508,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                   if (context.mounted) _showStatusSnackBar('فشل العملية: $e', isError: true);
                 }
               },
-              child: Text(isEdit ? 'تحديث' : 'إضافة', style: GoogleFonts.cairo()),
+              child: Text(isEdit ? 'تحديث' : 'إضافة', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -455,11 +520,21 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('تأكيد الحذف', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: Colors.red)),
-        content: Text('هل أنت متأكد من حذف اختبار ($title)؟', style: GoogleFonts.cairo()),
+        backgroundColor: const Color(0xFF222329),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'تأكيد الحذف', 
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, color: const Color(0xFFFF4C6A), fontSize: 18)
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف اختبار ($title)؟', 
+          style: GoogleFonts.tajawal(color: Colors.white70)
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: Text('إلغاء', style: GoogleFonts.tajawal(color: Colors.white70))
+          ),
           TextButton(
             onPressed: () async {
               try {
@@ -472,7 +547,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 if (context.mounted) _showStatusSnackBar('فشل الحذف: $e', isError: true);
               }
             },
-            child: Text('حذف', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text('حذف', style: GoogleFonts.tajawal(color: const Color(0xFFFF4C6A), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
