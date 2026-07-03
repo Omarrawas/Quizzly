@@ -83,7 +83,7 @@ class PDFParsingService {
   final dio_client.Dio _dio = dio_client.Dio(
     dio_client.BaseOptions(
       connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 150),
+      receiveTimeout: const Duration(seconds: 180),
     ),
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -193,7 +193,7 @@ Return a raw JSON array matching this schema:
       {"id": "B", "text": "Option text..."}
     ],
     "correctOptionIds": ["A"], // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
-    "explanation": "Detailed step-by-step solution or explanation of how to solve the question in Arabic...",
+    "explanation": "Brief 1-sentence explanation of the answer in Arabic...",
     "topicIds": [] // Select relevant topic ID(s) from the list below if applicable.
   }
 ]
@@ -204,7 +204,7 @@ CRITICAL REQUIREMENT:
 2. DO NOT wrap plain text, English words, names, or simple units (e.g. Joule, Joul, Volt, Ampere, Ohm, Kelvin, Watt, m, kg, sec, mol) in LaTeX delimiters (\$...\$ or \\text{...}). They must be returned as plain text so they render in standard clean fonts.
 3. Extract ALL questions from the document.
 4. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
-5. Generate a detailed, step-by-step explanation/solution in Arabic for each question and put it in the "explanation" field.
+5. Generate a very brief (1 sentence) explanation in Arabic for each question and put it in the "explanation" field. This keeps the response payload small and fast.
 6. Match each question with the correct topic ID(s) from the available topics list provided above, and include it in the "topicIds" array. If no topic matches, leave it empty.
 ''';
 
@@ -364,7 +364,7 @@ Return a raw JSON array matching this schema:
       {"id": "B", "text": "Option text..."}
     ],
     "correctOptionIds": ["A"], // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
-    "explanation": "Detailed step-by-step solution or explanation of how to solve the question in Arabic..."
+    "explanation": "Brief 1-sentence explanation of the answer in Arabic..."
   }
 ]
 
@@ -373,7 +373,7 @@ CRITICAL REQUIREMENT:
 2. DO NOT wrap plain text, English words, names, or simple units (e.g. Joule, Joul, Volt, Ampere, Ohm, Kelvin, Watt, m, kg, sec, mol) in LaTeX delimiters (\$...\$ or \\text{...}). They must be returned as plain text so they render in standard clean fonts.
 3. Extract ALL questions from the text.
 4. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
-5. Generate a detailed, step-by-step explanation/solution in Arabic for each question and put it in the "explanation" field.
+5. Generate a very brief (1 sentence) explanation in Arabic for each question and put it in the "explanation" field. This keeps the response payload small and fast.
 
 Exam text:
 $examText
