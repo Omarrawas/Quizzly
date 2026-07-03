@@ -571,6 +571,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   bool _isFocused = false;
+  Timer? _focusDebounce;
   final List<String> _deletedImageUrls = [];
   int _previousLength = 1;
   TextSelection _previousSelection = const TextSelection.collapsed(offset: 0);
@@ -617,6 +618,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   @override
   void dispose() {
+    _focusDebounce?.cancel();
     _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
     _controller.removeListener(_onContentChanged);
@@ -647,7 +649,19 @@ class _RichTextEditorState extends State<RichTextEditor> {
   }
 
   void _onFocusChanged() {
-    if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
+    _focusDebounce?.cancel();
+    if (_focusNode.hasFocus) {
+      // Focus gained → show toolbar immediately
+      if (mounted) setState(() => _isFocused = true);
+    } else {
+      // Focus lost → delay hiding toolbar so toolbar-button taps
+      // can complete and re-focus the editor before it disappears
+      _focusDebounce = Timer(const Duration(milliseconds: 150), () {
+        if (mounted && !_focusNode.hasFocus) {
+          setState(() => _isFocused = false);
+        }
+      });
+    }
   }
 
   // Direction helpers removed to let the editor layout handle directionality naturally
@@ -1083,6 +1097,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
             quill.Attribute.clone(quill.Attribute.list, null),
           );
         }
+        _focusNode.requestFocus();
       },
       itemBuilder: (context) => [
         PopupMenuItem(
@@ -1166,6 +1181,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
         } else if (value == 'left') {
           _controller.formatSelection(quill.Attribute.leftAlignment);
         }
+        _focusNode.requestFocus();
       },
       itemBuilder: (context) => [
         PopupMenuItem(
@@ -1243,6 +1259,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
           );
           _controller.formatSelection(quill.Attribute.leftAlignment);
         }
+        _focusNode.requestFocus();
       },
       itemBuilder: (context) => [
         PopupMenuItem(
@@ -1537,7 +1554,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: IconButton(
         tooltip: tooltip,
-        onPressed: onPressed,
+        onPressed: () {
+          onPressed();
+          _focusNode.requestFocus();
+        },
         icon: Icon(icon, size: 18),
         style: IconButton.styleFrom(
           foregroundColor: foreground,
