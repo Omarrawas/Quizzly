@@ -366,41 +366,17 @@ class TexViewWidget extends StatelessWidget {
   }
 
   static bool _isDisplayMath(String token) {
-    return token.startsWith(r'\[') ||
-        token.startsWith('\$\$') ||
-        (token.startsWith(r'\(') == false && token.startsWith('\$') == false);
+    final t = token.trim();
+    // Display math: $$...$$ or \[...\] or \\[...\\]
+    if (t.startsWith(r'$$')) return true;
+    if (t.startsWith(r'\[')) return true;
+    if (t.startsWith(r'\\[')) return true;
+    // Inline math: $...$ or \(...\) or \\(...\\)
+    return false;
   }
 
   static String _stripMathDelimiters(String token) {
-    String t = token.trim();
-    
-    // 1. Force remove any leading/trailing math delimiters
-    if (t.startsWith(r'\\\\[')) t = t.substring(4);
-    if (t.startsWith(r'\\[')) t = t.substring(2);
-    if (t.startsWith(r'\[')) t = t.substring(2);
-    if (t.startsWith(r'\\\\(')) t = t.substring(4);
-    if (t.startsWith(r'\\(')) t = t.substring(2);
-    if (t.startsWith(r'\(')) t = t.substring(2);
-    if (t.startsWith(r'$$')) t = t.substring(2);
-    if (t.startsWith(r'$')) t = t.substring(1);
-
-    if (t.endsWith(r'\\\\]')) t = t.substring(0, t.length - 4);
-    if (t.endsWith(r'\\]')) t = t.substring(0, t.length - 2);
-    if (t.endsWith(r'\]')) t = t.substring(0, t.length - 2);
-    if (t.endsWith(r'\\\\)')) t = t.substring(0, t.length - 4);
-    if (t.endsWith(r'\\)')) t = t.substring(0, t.length - 2);
-    if (t.endsWith(r'\)')) t = t.substring(0, t.length - 2);
-    if (t.endsWith(r'$$')) t = t.substring(0, t.length - 2);
-    if (t.endsWith(r'$')) t = t.substring(0, t.length - 1);
-
-    t = t.trim();
-    
-    // Clean up chemical arrows and common linear notations
-    t = t.replaceAll('->', r' \to ');
-    t = t.replaceAll('<-', r' \gets ');
-    t = t.replaceAll('=>', r' \implies ');
-    t = t.replaceAll('<=', r' \Leftarrow ');
-    
-    return t;
+    return MathUtils.stripMathDelimiters(token);
   }
 }
+

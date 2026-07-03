@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
 class MathUtils {
-  // Matches single or double backslash delimiters: \(...\)  \[...\]  \\(...\\)  \\[...\\] $...$  $$...$$
+  // Matches: $$...$$ | $...$ | \\(...\\) | \\[...\\] | \(...\) | \[...\]
   static final RegExp latexRegex = RegExp(
-    r'(\$\$.*?\$\$|\$.*?\$|\\\(.*?\\\)|\\\[.*?\\\]|\\\\\(.*?\\\\\)|\\\\\[.*?\\\\\])',
+    r'\$\$.*?\$\$'                          // $$...$$ block math
+    r'|\$[^\$\s](?:[^\$]*?[^\$\s])?\$'     // $...$ inline math (no spaces at edges)
+    r'|\\\\\\(.*?\\\\\\)'                  // \\(...\\) double-backslash inline
+    r'|\\\\\\[.*?\\\\\\]'                  // \\[...\\] double-backslash block
+    r'|\\\(.*?\\\)'                         // \(...\) single-backslash inline
+    r'|\\\[.*?\\\]',                        // \[...\] single-backslash block
     dotAll: true,
   );
 
@@ -35,6 +40,11 @@ class MathUtils {
     // 2. Normalize legacy double-backslash delimiters \\( \\) → \( \)
     //    This fixes old data saved with r'\\(' instead of '\\('
     processed = _normalizeLegacyDelimiters(processed);
+
+    // 2b. Convert dollar-sign math delimiters to backslash format
+    //     $$...$$ → \[...\]  and  $...$ → \(...\)
+    processed = _convertDollarDelimiters(processed);
+
 
     // 3. Decode HTML entities for safe parsing
     final decodedRaw = decodeHtmlEntities(processed);
@@ -95,6 +105,27 @@ class MathUtils {
     }
     return result;
   }
+
+  /// Converts $$ ... $$ → \[ ... \] and $ ... $ → \( ... \)
+  /// so all math uses a single backslash-delimiter format.
+  static String _convertDollarDelimiters(String input) {
+    if (!input.contains(r'$')) return input;
+
+    // 1. Block math: $$...$$ → \[...\]
+    var result = input.replaceAllMapped(
+      RegExp(r'\$\$(.*?)\$\$', dotAll: true),
+      (m) => '\\[${m.group(1)}\\]',
+    );
+
+    // 2. Inline math: $...$ → \(...\) — only non-whitespace at edges
+    result = result.replaceAllMapped(
+      RegExp(r'\$([^\$\s](?:[^\$]*?[^\$\s])?)\$'),
+      (m) => '\\(${m.group(1)}\\)',
+    );
+
+    return result;
+  }
+
 
   static String _normalizeColors(String raw) {
     return raw.replaceAllMapped(
@@ -243,4 +274,39 @@ class MathUtils {
   static TextDirection getDirection(String text) {
     return TextDirection.rtl;
   }
+
+  /// Strips all potential math delimiters from a matched token
+  static String stripMathDelimiters(String token) {
+    String t = token.trim();
+    
+    // 1. Force remove any leading/trailing math delimiters
+    if (t.startsWith(r'\\\\[')) t = t.substring(4);
+    if (t.startsWith(r'\\[')) t = t.substring(2);
+    if (t.startsWith(r'\[')) t = t.substring(2);
+    if (t.startsWith(r'\\\\(')) t = t.substring(4);
+    if (t.startsWith(r'\\(')) t = t.substring(2);
+    if (t.startsWith(r'\(')) t = t.substring(2);
+    if (t.startsWith(r'$$')) t = t.substring(2);
+    if (t.startsWith(r'$')) t = t.substring(1);
+
+    if (t.endsWith(r'\\\\]')) t = t.substring(0, t.length - 4);
+    if (t.endsWith(r'\\]')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'\]')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'\\\\)')) t = t.substring(0, t.length - 4);
+    if (t.endsWith(r'\\)')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'\)')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'$$')) t = t.substring(0, t.length - 2);
+    if (t.endsWith(r'$')) t = t.substring(0, t.length - 1);
+
+    t = t.trim();
+    
+    // Clean up chemical arrows and common linear notations
+    t = t.replaceAll('->', r' \to ');
+    t = t.replaceAll('<-', r' \gets ');
+    t = t.replaceAll('=>', r' \implies ');
+    t = t.replaceAll('<=', r' \Leftarrow ');
+    
+    return t;
+  }
 }
+

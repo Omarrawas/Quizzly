@@ -892,7 +892,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   Widget _buildLiveMathPreviewRow(bool isDark) {
     final plainText = _controller.document.toPlainText();
-    final latexRegex = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true);
+    final latexRegex = MathUtils.latexRegex;
     final matches = latexRegex.allMatches(plainText).toList();
     
     if (matches.isEmpty) return const SizedBox.shrink();
@@ -935,12 +935,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
       final int matchStart = match.start;
       final int matchLength = match.end - match.start;
 
-      String latex = raw;
-      if (raw.startsWith(r'\(') && raw.endsWith(r'\)')) {
-        latex = raw.substring(2, raw.length - 2);
-      } else if (raw.startsWith(r'\[') && raw.endsWith(r'\]')) {
-        latex = raw.substring(2, raw.length - 2);
-      }
+      final String latex = MathUtils.stripMathDelimiters(raw);
 
       widgets.add(
         GestureDetector(
@@ -2392,7 +2387,7 @@ class _MathPreviewDialog extends StatelessWidget {
 
   List<Widget> _buildPreviewWidgets(BuildContext context) {
     final textColor = Colors.white.withValues(alpha: 0.92);
-    final latexRegex = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true);
+    final latexRegex = MathUtils.latexRegex;
 
     // Strip Bidi markers (\u200E, \u2066, \u2069) from the plain text so that they
     // do not interfere with text extraction.
@@ -2430,13 +2425,8 @@ class _MathPreviewDialog extends StatelessWidget {
       }
 
       // Extract raw LaTeX between delimiters
-      String raw = match.group(0)!;
-      String latex = raw;
-      if (raw.startsWith(r'\(') && raw.endsWith(r'\)')) {
-        latex = raw.substring(2, raw.length - 2);
-      } else if (raw.startsWith(r'\[') && raw.endsWith(r'\]')) {
-        latex = raw.substring(2, raw.length - 2);
-      }
+      final String raw = match.group(0)!;
+      final String latex = MathUtils.stripMathDelimiters(raw);
 
       widgets.add(
         Padding(
