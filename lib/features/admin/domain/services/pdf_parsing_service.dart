@@ -506,8 +506,12 @@ $examText
 
   Future<String> solveQuestionWithAI(
     String questionText,
-    List<String> options,
-  ) async {
+    List<String> options, {
+    int retryCount = 0,
+    List<String>? errors,
+  }) async {
+    final currentErrors = errors ?? [];
+
     // Fetch AI configurations from Firestore
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
@@ -516,20 +520,47 @@ $examText
 
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
+    final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
         'nvidia/nemotron-3-ultra-550b-a55b:free';
 
-    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
+    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception(
-        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.',
+        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو Groq أو OpenRouter) في لوحة التحكم أولاً.',
       );
     }
 
-    final provider = geminiKey.isNotEmpty
-        ? AIProvider.gemini
-        : AIProvider.openRouter;
+    AIProvider provider;
+    if (retryCount == 0) {
+      provider = geminiKey.isNotEmpty
+          ? AIProvider.gemini
+          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+    } else if (retryCount == 1) {
+      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
+          ? AIProvider.groq
+          : AIProvider.openRouter;
+    } else if (retryCount == 2) {
+      provider = AIProvider.openRouter;
+    } else {
+      throw Exception(
+        'فشلت جميع محاولات حل السؤال بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
+      );
+    }
+
+    if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
+        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
+      currentErrors.add('${provider.name}: مفتاح API فارغ');
+      return solveQuestionWithAI(
+        questionText,
+        options,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
+    }
+
     final optionsPrompt = options.isNotEmpty
         ? '\nالخيارات:\n${options.map((opt) => "- $opt").join('\n')}'
         : '';
@@ -566,6 +597,20 @@ $optionsPrompt
         );
         responseText =
             response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.groq) {
+        final response = await _dio.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          options: dio_client.Options(
+            headers: {'Authorization': 'Bearer $groqKey'},
+          ),
+          data: {
+            "model": "llama-3.1-8b-instant",
+            "messages": [
+              {"role": "user", "content": prompt},
+            ],
+          },
+        );
+        responseText = response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
         final url = 'https://openrouter.ai/api/v1/chat/completions';
         final response = await _dio.post(
@@ -604,14 +649,24 @@ $optionsPrompt
               'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
-      throw Exception('فشل جلب الحل بالذكاء الاصطناعي: $errMsg');
+      currentErrors.add('${provider.name} error: $errMsg');
+      return solveQuestionWithAI(
+        questionText,
+        options,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
     }
   }
 
   Future<List<String>> generateOptionsWithAI(
     String questionText,
-    String correctAnswer,
-  ) async {
+    String correctAnswer, {
+    int retryCount = 0,
+    List<String>? errors,
+  }) async {
+    final currentErrors = errors ?? [];
+
     final doc = await _firestore.collection('settings').doc('ai_config').get();
     if (!doc.exists) {
       throw Exception('لم يتم ضبط إعدادات الذكاء الاصطناعي في لوحة التحكم.');
@@ -619,20 +674,46 @@ $optionsPrompt
 
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
+    final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
         'nvidia/nemotron-3-ultra-550b-a55b:free';
 
-    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
+    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception(
-        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.',
+        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو Groq أو OpenRouter) في لوحة التحكم أولاً.',
       );
     }
 
-    final provider = geminiKey.isNotEmpty
-        ? AIProvider.gemini
-        : AIProvider.openRouter;
+    AIProvider provider;
+    if (retryCount == 0) {
+      provider = geminiKey.isNotEmpty
+          ? AIProvider.gemini
+          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+    } else if (retryCount == 1) {
+      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
+          ? AIProvider.groq
+          : AIProvider.openRouter;
+    } else if (retryCount == 2) {
+      provider = AIProvider.openRouter;
+    } else {
+      throw Exception(
+        'فشلت جميع محاولات توليد الخيارات بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
+      );
+    }
+
+    if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
+        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
+      currentErrors.add('${provider.name}: مفتاح API فارغ');
+      return generateOptionsWithAI(
+        questionText,
+        correctAnswer,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
+    }
 
     final prompt =
         '''
@@ -673,6 +754,21 @@ $correctAnswer
         );
         responseText =
             response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.groq) {
+        final response = await _dio.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          options: dio_client.Options(
+            headers: {'Authorization': 'Bearer $groqKey'},
+          ),
+          data: {
+            "model": "llama-3.1-8b-instant",
+            "response_format": {"type": "json_object"},
+            "messages": [
+              {"role": "user", "content": prompt},
+            ],
+          },
+        );
+        responseText = response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
         final url = 'https://openrouter.ai/api/v1/chat/completions';
         final response = await _dio.post(
@@ -724,7 +820,13 @@ $correctAnswer
               'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
-      throw Exception('فشل توليد الخيارات بالذكاء الاصطناعي: $errMsg');
+      currentErrors.add('${provider.name} error: $errMsg');
+      return generateOptionsWithAI(
+        questionText,
+        correctAnswer,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
     }
   }
 
