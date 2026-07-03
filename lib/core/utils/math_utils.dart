@@ -330,37 +330,20 @@ class MathUtils {
         continue;
       }
 
-      // Handle headers: #, ##, ###, ####
-      if (trimmed.startsWith('#### ')) {
+      // Handle headers: # to ######
+      final headerMatch = RegExp(r'^(#{1,6})\s+(.*)$').firstMatch(trimmed);
+      if (headerMatch != null) {
         if (inList) {
           htmlBuffer.write('</ul>');
           inList = false;
         }
-        var headerText = trimmed.substring(5).trim();
+        final level = headerMatch.group(1)!.length; // 1 to 6
+        var headerText = headerMatch.group(2)!.trim();
         headerText = _replaceMarkdownInlineFormatting(headerText);
-        htmlBuffer.write('<h4>$headerText</h4>');
+        htmlBuffer.write('<h$level>$headerText</h$level>');
         continue;
       }
-      if (trimmed.startsWith('### ')) {
-        if (inList) {
-          htmlBuffer.write('</ul>');
-          inList = false;
-        }
-        var headerText = trimmed.substring(4).trim();
-        headerText = _replaceMarkdownInlineFormatting(headerText);
-        htmlBuffer.write('<h3>$headerText</h3>');
-        continue;
-      }
-      if (trimmed.startsWith('## ')) {
-        if (inList) {
-          htmlBuffer.write('</ul>');
-          inList = false;
-        }
-        var headerText = trimmed.substring(3).trim();
-        headerText = _replaceMarkdownInlineFormatting(headerText);
-        htmlBuffer.write('<h2>$headerText</h2>');
-        continue;
-      }
+
 
       // Handle bullet lists: * or -
       if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
