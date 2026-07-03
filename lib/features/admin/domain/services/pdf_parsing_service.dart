@@ -221,10 +221,11 @@ $topicsPromptContext
 CRITICAL REQUIREMENT:
 1. Represent actual mathematical/chemical equations, formulas, variables, and reactions in LaTeX using \$ for inline or \$\$ for block math.
 2. DO NOT wrap plain text, English words, names, or simple units (e.g. Joule, Joul, Volt, Ampere, Ohm, Kelvin, Watt, m, kg, sec, mol) in LaTeX delimiters (\$...\$ or \\text{...}). They must be returned as plain text so they render in standard clean fonts.
-3. Extract ALL questions from the document.
-4. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
-5. Generate a very brief (1 sentence) explanation in Arabic for each question and put it in the "explanation" field. This keeps the response payload small and fast.
-6. Match each question with the correct topic ID(s) from the available topics list provided above, and include it in the "topicIds" array. If no topic matches, leave it empty.
+3. NEVER write Arabic text/words inside LaTeX math blocks (either directly or inside \text{...}). The math engine does not shape Arabic text correctly (renders them reversed/disconnected). Use standard scientific/English abbreviations (like P for products, R for reactants, or standard variable names) inside LaTeX equations, and explain them in the surrounding Arabic plain text.
+4. Extract ALL questions from the document.
+5. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
+6. Generate a very brief (1 sentence) explanation in Arabic for each question and put it in the "explanation" field. This keeps the response payload small and fast.
+7. Match each question with the correct topic ID(s) from the available topics list provided above, and include it in the "topicIds" array. If no topic matches, leave it empty.
 ''';
 
     try {
@@ -594,7 +595,8 @@ $optionsPrompt
 المتطلبات الهامة:
 1. اكتب الشرح باللغة العربية بشكل منسق ومبسط ليفهمه الطالب.
 2. استخدم تنسيق LaTeX للمعادلات والرموز الرياضية والكيميائية (مثل \$ H_2O \$ أو \$ x^2 \$).
-3. لا تضف أي نصوص ترحيبية أو كود برمجى أو علامات اقتباس، ابدأ مباشرة بكتابة شرح الحل.
+3. يمنع تماماً كتابة كلمات أو نصوص باللغة العربية داخل صيغ معادلات LaTeX (سواء داخل \text{...} أو مباشرة بين علامات الدولار \$). لأن محرك المعادلات لا يعرض الحروف العربية بشكل صحيح ويظهرها مقلوبة ومقطعة. بدلاً من ذلك، استخدم الرموز أو الاختصارات العلمية باللغة الإنجليزية في المعادلات (مثل Products للمواد الناتجة و Reactants للمتفاعلات)، ثم اشرح معاني هذه الرموز باللغة العربية في النص العادي خارج صيغة المعادلة.
+4. لا تضف أي نصوص ترحيبية أو كود برمجى أو علامات اقتباس، ابدأ مباشرة بكتابة شرح الحل.
 ''';
 
     try {
