@@ -7,6 +7,7 @@ import 'package:quizzly/core/services/firebase_storage_service.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/core/widgets/rich_text_editor.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/features/admin/domain/services/pdf_parsing_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
 
 class QuestionManagementScreen extends StatefulWidget {
@@ -55,6 +56,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   // Visibility states for translation and explanation fields
   bool _showTranslation = false;
   bool _showExplanation = false;
+  bool _isSolvingWithAI = false;
 
   // Primary fintech color
   static const Color _primaryFintechColor = Color(0xFF6E56FF);
@@ -479,6 +481,30 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       }
     } catch (e) {
       if (mounted) _showStatusSnackBar('حدث خطأ: $e', isError: true);
+    }
+  }
+
+  Future<void> _solveQuestion() async {
+    final text = textController.text.trim();
+    if (text.isEmpty) {
+      _showStatusSnackBar('يرجى كتابة نص السؤال أولاً ليتمكن الذكاء الاصطناعي من حله', isError: true);
+      return;
+    }
+
+    setState(() => _isSolvingWithAI = true);
+
+    try {
+      final optionsList = optionControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+      final solution = await PDFParsingService().solveQuestionWithAI(text, optionsList);
+      
+      setState(() {
+        explanationController.text = solution;
+        _isSolvingWithAI = false;
+      });
+      _showStatusSnackBar('تم توليد حل السؤال بنجاح!', isError: false);
+    } catch (e) {
+      setState(() => _isSolvingWithAI = false);
+      _showStatusSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
     }
   }
 
@@ -1010,19 +1036,50 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                              tooltip: 'حذف الشرح والمرفقات',
-                              onPressed: () {
-                                setState(() {
-                                  _showExplanation = false;
-                                  explanationController.clear();
-                                  explanationImageUrlController.clear();
-                                  explanationAudioUrlController.clear();
-                                  explanationPdfUrlController.clear();
-                                  explanationVideoUrlController.clear();
-                                });
-                              },
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isSolvingWithAI)
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: _primaryFintechColor),
+                                    ),
+                                  )
+                                else
+                                  TextButton.icon(
+                                    onPressed: _solveQuestion,
+                                    icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: _primaryFintechColor),
+                                    label: Text(
+                                      'حل بالذكاء الصناعي',
+                                      style: GoogleFonts.tajawal(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _primaryFintechColor,
+                                      ),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    ),
+                                  ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                                  tooltip: 'حذف الشرح والمرفقات',
+                                  onPressed: () {
+                                    setState(() {
+                                      _showExplanation = false;
+                                      explanationController.clear();
+                                      explanationImageUrlController.clear();
+                                      explanationAudioUrlController.clear();
+                                      explanationPdfUrlController.clear();
+                                      explanationVideoUrlController.clear();
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),

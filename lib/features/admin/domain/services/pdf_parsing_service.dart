@@ -27,12 +27,18 @@ class ExtractedQuestion {
   final String type; // 'mcq', 'tf', 'checkbox', 'essay'
   final List<ExtractedQuestionOption> options;
   final List<String> correctOptionIds;
+  final List<String>? topicIds;
+  final List<String>? topicNames;
+  final String? explanation;
 
   ExtractedQuestion({
     required this.text,
     required this.type,
     required this.options,
     required this.correctOptionIds,
+    this.topicIds,
+    this.topicNames,
+    this.explanation,
   });
 
   factory ExtractedQuestion.fromMap(Map<String, dynamic> map) {
@@ -46,11 +52,17 @@ class ExtractedQuestion {
             .toList() ??
         [];
 
+    final tIds = (map['topicIds'] as List?)?.map((e) => e.toString()).toList();
+    final tNames = (map['topicNames'] as List?)?.map((e) => e.toString()).toList();
+
     return ExtractedQuestion(
       text: map['text']?.toString() ?? '',
       type: map['type']?.toString() ?? 'mcq',
       options: options,
       correctOptionIds: correctIds,
+      topicIds: tIds,
+      topicNames: tNames,
+      explanation: map['explanation']?.toString(),
     );
   }
 }
@@ -118,7 +130,8 @@ Return a raw JSON array matching this schema:
       {"id": "A", "text": "Option text..."},
       {"id": "B", "text": "Option text..."}
     ],
-    "correctOptionIds": ["A"] // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
+    "correctOptionIds": ["A"], // List containing the ID of correct option(s). For "tf", options must be [{"id": "A", "text": "صح"}, {"id": "B", "text": "خطأ"}].
+    "explanation": "Detailed step-by-step solution or explanation of how to solve the question in Arabic..."
   }
 ]
 
@@ -126,6 +139,8 @@ CRITICAL REQUIREMENT:
 1. Ensure all math and chemistry formulas, units, variables, and equations are represented in standard LaTeX format using \$ for inline math or \$\$ for block math. Example: H_2O, pH, 10^{-3}\\text{ sec}^{-1}, [\\text{NaOH}].
 2. Return ONLY a valid JSON array. Do not include markdown code block formatting (like ```json ... ```).
 3. Extract ALL questions from the document.
+4. SOLVE each question scientifically using your own logical reasoning to guarantee "correctOptionIds" are correct.
+5. Generate a detailed, step-by-step explanation/solution in Arabic for each question and put it in the "explanation" field.
 ''';
 
     try {
@@ -374,5 +389,94 @@ $examText
     return decoded
         .map((item) => ExtractedQuestion.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Future<String> solveQuestionWithAI(String questionText, List<String> options) async {
+    // Fetch AI configurations from Firestore
+    final doc = await _firestore.collection('settings').doc('ai_config').get();
+    if (!doc.exists) {
+      throw Exception('لم يتم ضبط إعدادات الذكاء الاصطناعي في لوحة التحكم.');
+    }
+
+    final data = doc.data()!;
+    final geminiKey = data['geminiKey']?.toString() ?? '';
+    final openRouterKey = data['openRouterKey']?.toString() ?? '';
+    final openRouterModel = data['openRouterModel']?.toString() ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+    if (geminiKey.isEmpty && openRouterKey.isEmpty) {
+      throw Exception('يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter) في لوحة التحكم أولاً.');
+    }
+
+    final provider = geminiKey.isNotEmpty ? AIProvider.gemini : AIProvider.openRouter;
+    final optionsPrompt = options.isNotEmpty ? '\nالخيارات:\n${options.map((opt) => "- $opt").join('\n')}' : '';
+
+    final prompt = '''
+حل هذا السؤال بالتفصيل واكتب شرحًا علميًا دقيقًا ومبسطًا لطريقة الحل باللغة العربية.
+نص السؤال:
+$questionText
+$optionsPrompt
+
+المتطلبات الهامة:
+1. اكتب الشرح باللغة العربية بشكل منسق ومبسط ليفهمه الطالب.
+2. استخدم تنسيق LaTeX للمعادلات والرموز الرياضية والكيميائية (مثل \$ H_2O \$ أو \$ x^2 \$).
+3. لا تضف أي نصوص ترحيبية أو كود برمجى أو علامات اقتباس، ابدأ مباشرة بكتابة شرح الحل.
+''';
+
+    try {
+      String responseText = '';
+      if (provider == AIProvider.gemini) {
+        final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+        final response = await _dio.post(url, data: {
+          "contents": [
+            {
+              "parts": [
+                {"text": prompt}
+              ]
+            }
+          ]
+        });
+        responseText = response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.openRouter) {
+        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {
+                "role": "user",
+                "content": prompt
+              }
+            ]
+          },
+        );
+
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          responseText = message?['content']?.toString() ?? '';
+        }
+      }
+
+      return responseText.trim();
+    } catch (e) {
+      String errMsg = e.toString();
+      if (e is dio_client.DioException) {
+        final resp = e.response;
+        if (resp != null) {
+          errMsg = 'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+        }
+      }
+      throw Exception('فشل جلب الحل بالذكاء الاصطناعي: $errMsg');
+    }
   }
 }

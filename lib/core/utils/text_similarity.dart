@@ -28,12 +28,66 @@ class TextSimilarity {
     return normalized;
   }
 
-  /// Calculates string similarity using Sørensen-Dice coefficient
-  /// Returns a value between 0.0 (completely different) and 1.0 (identical)
+  /// Calculates string similarity using a hybrid of character bigrams and word-level Dice coefficient.
+  /// This ensures better matching for full words of the question.
   static double compare(String str1, String str2) {
     final s1 = normalizeString(str1);
     final s2 = normalizeString(str2);
 
+    if (s1 == s2) return 1.0;
+    if (s1.isEmpty || s2.isEmpty) return 0.0;
+
+    // 1. Calculate word-level similarity
+    final words1 = s1.split(' ').where((w) => w.isNotEmpty).toList();
+    final words2 = s2.split(' ').where((w) => w.isNotEmpty).toList();
+
+    if (words1.isEmpty || words2.isEmpty) return 0.0;
+
+    int wordMatches = 0;
+    final usedIndices = <int>{};
+    
+    for (var w1 in words1) {
+      double bestMatchSim = 0.0;
+      int bestMatchIdx = -1;
+      
+      for (int j = 0; j < words2.length; j++) {
+        if (usedIndices.contains(j)) continue;
+        final w2 = words2[j];
+        
+        if (w1 == w2) {
+          bestMatchSim = 1.0;
+          bestMatchIdx = j;
+          break;
+        }
+        
+        // Check character-level similarity between individual words to allow minor typos
+        final sim = _getBigramSimilarity(w1, w2);
+        if (sim > bestMatchSim) {
+          bestMatchSim = sim;
+          bestMatchIdx = j;
+        }
+      }
+      
+      // If the word has a high similarity match (>= 0.75), count it as matched
+      if (bestMatchSim >= 0.75) {
+        wordMatches++;
+        if (bestMatchIdx != -1) {
+          usedIndices.add(bestMatchIdx);
+        }
+      }
+    }
+
+    // Word Dice coefficient: 2 * matches / (len1 + len2)
+    final wordDice = (2.0 * wordMatches) / (words1.length + words2.length);
+
+    // 2. Calculate full string character bigram similarity
+    final charDice = _getBigramSimilarity(s1, s2);
+
+    // Hybrid similarity: 75% word-level, 25% character-level bigrams
+    return (0.75 * wordDice) + (0.25 * charDice);
+  }
+
+  static double _getBigramSimilarity(String s1, String s2) {
     if (s1 == s2) return 1.0;
     if (s1.isEmpty || s2.isEmpty) return 0.0;
 

@@ -5,6 +5,7 @@ import 'package:quizzly/core/widgets/tex_view_widget.dart';
 import 'package:quizzly/core/utils/text_similarity.dart';
 import 'package:quizzly/features/admin/domain/services/pdf_parsing_service.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
+import 'package:quizzly/features/admin/presentation/widgets/question_preview_edit_dialog.dart';
 
 class PDFQuestionMatcherWizard extends StatefulWidget {
   final List<ExtractedQuestion> extractedQuestions;
@@ -74,6 +75,27 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
     }
   }
 
+  double _compareQuestions(ExtractedQuestion extracted, Map<String, dynamic> dbQ) {
+    final qTextSim = TextSimilarity.compare(extracted.text, dbQ['text'] ?? '');
+    
+    final extOpts = extracted.options.map((o) => o.text.trim()).toList()..sort();
+    final dbOptsList = dbQ['options'] as List?;
+    final dbOpts = dbOptsList != null
+        ? (dbOptsList.map((o) => (o is Map ? (o['text']?.toString() ?? '').trim() : '')).toList()..sort())
+        : <String>[];
+        
+    if (extOpts.isEmpty && dbOpts.isEmpty) {
+      return qTextSim;
+    }
+    
+    final extOptsStr = extOpts.join(' ');
+    final dbOptsStr = dbOpts.join(' ');
+    
+    final optsSim = TextSimilarity.compare(extOptsStr, dbOptsStr);
+    
+    return 0.7 * qTextSim + 0.3 * optsSim;
+  }
+
   void _calculateMatches() {
     if (_dbQuestions.isEmpty || widget.extractedQuestions.isEmpty) return;
 
@@ -82,7 +104,7 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
     // Calculate similarity score for each database question
     final List<Map<String, dynamic>> scored = [];
     for (var dbQ in _dbQuestions) {
-      final sim = TextSimilarity.compare(currentExtracted.text, dbQ['text'] ?? '');
+      final sim = _compareQuestions(currentExtracted, dbQ);
       scored.add({...dbQ, '_similarity': sim});
     }
 
@@ -127,8 +149,8 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
     Navigator.of(context).pop(_selectedIds);
   }
 
-  Future<void> _addAsNewQuestion() async {
-    final extracted = widget.extractedQuestions[_currentIndex];
+  Future<void> _addAsNewQuestion({ExtractedQuestion? customQuestion}) async {
+    final extracted = customQuestion ?? widget.extractedQuestions[_currentIndex];
     setState(() => _isLoadingDb = true);
 
     try {
@@ -148,6 +170,12 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
         'estimatedTime': 60,
         'examTags': [widget.examTitle],
         'isRepeated': false,
+        'topicIds': extracted.topicIds ?? [],
+        'topicNames': extracted.topicNames ?? [],
+        'primaryTopicId': (extracted.topicIds != null && extracted.topicIds!.isNotEmpty)
+            ? extracted.topicIds!.first
+            : 'global',
+        'explanation': extracted.explanation ?? '',
         'analytics': {
           'timesAnswered': 0,
           'correctAnswers': 0,
@@ -184,6 +212,23 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
           SnackBar(content: Text('خطأ أثناء إضافة السؤال: $e', style: GoogleFonts.cairo())),
         );
       }
+    }
+  }
+
+  Future<void> _onAddAsNewQuestionPressed() async {
+    final currentExtracted = widget.extractedQuestions[_currentIndex];
+    final result = await showDialog<ExtractedQuestion>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => QuestionPreviewEditDialog(
+        question: currentExtracted,
+        subjectId: widget.subjectId,
+        sectionId: widget.sectionId,
+      ),
+    );
+
+    if (result != null) {
+      await _addAsNewQuestion(customQuestion: result);
     }
   }
 
@@ -544,7 +589,7 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _addAsNewQuestion,
+                    onPressed: _onAddAsNewQuestionPressed,
                     icon: const Icon(Icons.add_rounded),
                     label: Text('إضافة كسؤال جديد وتحديده', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
@@ -573,7 +618,7 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
     final bestMatch = _selectedMatch ?? _suggestions.first;
     final similarity = bestMatch['_similarity'] is double
         ? bestMatch['_similarity'] as double
-        : TextSimilarity.compare(q.text, bestMatch['text'] ?? '');
+        : _compareQuestions(q, bestMatch);
     final isSelectedInExam = _selectedIds.contains(bestMatch['id']);
 
     Color matchColor;
@@ -739,7 +784,7 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _addAsNewQuestion,
+                      onPressed: _onAddAsNewQuestionPressed,
                       icon: const Icon(Icons.add_rounded),
                       label: Text('تجاهل المطابقة وحفظ كسؤال جديد', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 12)),
                       style: ElevatedButton.styleFrom(
