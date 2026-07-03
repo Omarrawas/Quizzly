@@ -1134,55 +1134,38 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                         ),
                         const SizedBox(height: 8),
                         // AI Solver Bar
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? Colors.white10 : Colors.grey[300]!),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.auto_awesome_rounded, size: 16, color: _primaryFintechColor),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'شرح وتوليد الحل تلقائياً بالذكاء الاصطناعي',
-                                  style: GoogleFonts.tajawal(
-                                    fontSize: 12,
-                                    color: isDark ? Colors.white70 : Colors.black87,
-                                  ),
+                        if (_isSolvingWithAI)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: CircularProgressIndicator(color: _primaryFintechColor),
+                            ),
+                          )
+                        else ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _solveQuestion,
+                              icon: const Icon(Icons.auto_awesome_rounded, size: 18, color: Colors.white),
+                              label: Text(
+                                'حل وتوليد الشرح بالذكاء الاصطناعي',
+                                style: GoogleFonts.tajawal(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              if (_isSolvingWithAI)
-                                const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: _primaryFintechColor),
-                                )
-                              else
-                                ElevatedButton.icon(
-                                  onPressed: _solveQuestion,
-                                  icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.white),
-                                  label: Text(
-                                    'حل بالذكاء الصناعي',
-                                    style: GoogleFonts.tajawal(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _primaryFintechColor,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _primaryFintechColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                            ],
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 12),
+                        ],
                         RichTextEditor(
                           initialHtml: explanationController.text,
                           placeholder: 'اكتب الشرح هنا...',
