@@ -4,6 +4,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:quizzly/features/quiz/domain/services/ai_grading_service.dart';
 
+String _convertDollarsToParentheses(String text) {
+  if (text.isEmpty) return text;
+  
+  // 1. Convert block math: $$ ... $$ -> \[ ... \]
+  String processed = text.replaceAllMapped(
+    RegExp(r'\$\$(.*?)\$\$', dotAll: true),
+    (match) => '\\[${match.group(1)}\\]',
+  );
+
+  // 2. Convert inline math: $ ... $ -> \( ... \)
+  processed = processed.replaceAllMapped(
+    RegExp(r'\$([^\$\s](?:[^\$]*?[^\$\s])?)\$'),
+    (match) => '\\(${match.group(1)}\\)',
+  );
+
+  return processed;
+}
+
 class ExtractedQuestionOption {
   final String id;
   final String text;
@@ -13,7 +31,7 @@ class ExtractedQuestionOption {
   factory ExtractedQuestionOption.fromMap(Map<String, dynamic> map) {
     return ExtractedQuestionOption(
       id: map['id']?.toString() ?? '',
-      text: map['text']?.toString() ?? '',
+      text: _convertDollarsToParentheses(map['text']?.toString() ?? ''),
     );
   }
 
@@ -59,13 +77,13 @@ class ExtractedQuestion {
         .toList();
 
     return ExtractedQuestion(
-      text: map['text']?.toString() ?? '',
+      text: _convertDollarsToParentheses(map['text']?.toString() ?? ''),
       type: map['type']?.toString() ?? 'mcq',
       options: options,
       correctOptionIds: correctIds,
       topicIds: tIds,
       topicNames: tNames,
-      explanation: map['explanation']?.toString(),
+      explanation: map['explanation'] != null ? _convertDollarsToParentheses(map['explanation'].toString()) : null,
     );
   }
 }
@@ -639,7 +657,7 @@ $optionsPrompt
         }
       }
 
-      return responseText.trim();
+      return _convertDollarsToParentheses(responseText.trim());
     } catch (e) {
       String errMsg = e.toString();
       if (e is dio_client.DioException) {
@@ -808,7 +826,7 @@ $correctAnswer
 
       final decoded = jsonDecode(responseText);
       if (decoded is List) {
-        return decoded.map((e) => e.toString()).toList();
+        return decoded.map((e) => _convertDollarsToParentheses(e.toString())).toList();
       }
       throw Exception('الاستجابة المستلمة ليست قائمة JSON صالحة.');
     } catch (e) {
