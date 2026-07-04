@@ -161,6 +161,7 @@ class PDFParsingService {
 
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
+    final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
@@ -232,7 +233,7 @@ CRITICAL REQUIREMENT:
       String responseText = '';
       if (provider == AIProvider.gemini) {
         final url =
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey';
         final response = await _dio.post(
           url,
           data: {
@@ -333,6 +334,7 @@ CRITICAL REQUIREMENT:
 
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
+    final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
     final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
@@ -403,7 +405,7 @@ $examText
       String responseText = '';
       if (provider == AIProvider.gemini) {
         final url =
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey';
         final response = await _dio.post(
           url,
           data: {
@@ -540,6 +542,7 @@ $examText
 
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
+    final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
     final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
@@ -587,23 +590,28 @@ $examText
 
     final prompt =
         '''
-حل هذا السؤال بالتفصيل واكتب شرحًا علميًا دقيقًا ومبسطًا لطريقة الحل باللغة العربية.
+أنت أستاذ جامعي ومساعد أكاديمي خبير في حل المسائل التعليمية والاختبارات المؤتمتة. عندما يرسل لك الطالب مسألة، اتبع القواعد التالية بدقة:
+1. قدم الإجابة النهائية المباشرة أو الخيار الصحيح في أول سطر وبشكل بارز (Bold).
+2. قسم الحل إلى خطوات واضحة ومسلسلة: خطوة 1، خطوة 2، إلى آخره.
+3. إذا كانت المسألة رياضية أو علمية، استخدم لغة واضحة لشرح القوانين والمعادلات المستخدمة.
+4. اشرح باختصار لماذا الخيارات الأخرى خاطئة إذا كانت المسألة خيارات متعددة.
+5. حافظ على لهجة تعليمية مشجعة ومبسطة تناسب طلاب الجامعة.
+6. الشرح حصراً باللغة العربية، ولكن الرموز العلمية والمعادلات تكتب كرموز عالمية (إنجليزية).
+7. يجب أن تكون الإجابات مختصرة ومباشرة وتجنب الإطالة والكتابة الإنشائية الكثيرة الزائدة.
+8. استخدم تنسيق LaTeX للمعادلات والرموز الرياضية والكيميائية (مثل \$ H_2O \$ أو \$ x^2 \$).
+9. يمنع تماماً كتابة كلمات أو نصوص باللغة العربية داخل صيغ معادلات LaTeX (سواء داخل \text{...} أو مباشرة بين علامات الدولار \$). لأن محرك المعادلات لا يعرض الحروف العربية بشكل صحيح ويظهرها مقلوبة ومقطعة. بدلاً من ذلك، استخدم الرموز أو الاختصارات العلمية باللغة الإنجليزية في المعادلات (مثل Products للمواد الناتجة و Reactants للمتفاعلات)، ثم اشرح معاني هذه الرموز باللغة العربية في النص العادي خارج صيغة المعادلة.
+10. لا تضف أي نصوص ترحيبية أو كود برمجى أو علامات اقتباس، ابدأ مباشرة بكتابة شرح الحل.
+
 نص السؤال:
 $questionText
 $optionsPrompt
-
-المتطلبات الهامة:
-1. اكتب الشرح باللغة العربية بشكل منسق ومبسط ليفهمه الطالب.
-2. استخدم تنسيق LaTeX للمعادلات والرموز الرياضية والكيميائية (مثل \$ H_2O \$ أو \$ x^2 \$).
-3. يمنع تماماً كتابة كلمات أو نصوص باللغة العربية داخل صيغ معادلات LaTeX (سواء داخل \text{...} أو مباشرة بين علامات الدولار \$). لأن محرك المعادلات لا يعرض الحروف العربية بشكل صحيح ويظهرها مقلوبة ومقطعة. بدلاً من ذلك، استخدم الرموز أو الاختصارات العلمية باللغة الإنجليزية في المعادلات (مثل Products للمواد الناتجة و Reactants للمتفاعلات)، ثم اشرح معاني هذه الرموز باللغة العربية في النص العادي خارج صيغة المعادلة.
-4. لا تضف أي نصوص ترحيبية أو كود برمجى أو علامات اقتباس، ابدأ مباشرة بكتابة شرح الحل.
 ''';
 
     try {
       String responseText = '';
       if (provider == AIProvider.gemini) {
         final url =
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey';
         final response = await _dio.post(
           url,
           data: {
@@ -696,6 +704,7 @@ $optionsPrompt
 
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
+    final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
     final groqKey = data['groqKey']?.toString() ?? '';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
@@ -760,7 +769,7 @@ $correctAnswer
       String responseText = '';
       if (provider == AIProvider.gemini) {
         final url =
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey';
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey';
         final response = await _dio.post(
           url,
           data: {

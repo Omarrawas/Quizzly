@@ -20,6 +20,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _openRouterController = TextEditingController();
 
   String _selectedOpenRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+  String _selectedGeminiModel = 'gemini-3.5-flash';
   bool _loading = true;
   bool _saving = false;
   AIProvider? _testingProvider;
@@ -44,6 +45,24 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     {'id': 'meta-llama/llama-3.1-70b-instruct', 'name': 'Llama 3.1 70B', 'tag': 'مدفوع'},
   ];
 
+  static const List<Map<String, String>> _geminiModels = [
+    {'id': 'gemini-3.5-flash', 'name': 'Gemini 3.5 Flash', 'tag': 'جديد/افتراضي'},
+    {'id': 'gemini-3.1-pro-preview', 'name': 'Gemini 3.1 Pro Preview (الأعلى دقة)', 'tag': 'جديد/دقيق'},
+    {'id': 'gemini-3.1-flash-lite', 'name': 'Gemini 3.1 Flash Lite', 'tag': 'جديد/اقتصادي'},
+    {'id': 'gemini-3-flash-preview', 'name': 'Gemini 3 Flash Preview', 'tag': 'سريع'},
+    {'id': 'gemini-pro-latest', 'name': 'Gemini Pro Latest (Points to 3.1 Pro)', 'tag': 'دقيق جداً'},
+    {'id': 'gemini-flash-latest', 'name': 'Gemini Flash Latest (Points to 3.5 Flash)', 'tag': 'افتراضي'},
+    {'id': 'gemini-flash-lite-latest', 'name': 'Gemini Flash-Lite Latest (Points to 3.1 Lite)', 'tag': 'اقتصادي'},
+    {'id': 'gemini-2.5-pro', 'name': 'Gemini 2.5 Pro', 'tag': 'تفكير/دقيق'},
+    {'id': 'gemini-2.5-flash', 'name': 'Gemini 2.5 Flash', 'tag': 'متوازن'},
+    {'id': 'gemini-2.5-flash-lite', 'name': 'Gemini 2.5 Flash-Lite', 'tag': 'اقتصادي'},
+    {'id': 'gemini-robotics-er-1.6-preview', 'name': 'Gemini Robotics-ER 1.6 Preview', 'tag': 'تفكير تجريبي'},
+    {'id': 'gemini-3.1-flash-lite-image', 'name': 'Gemini 3.1 Flash Lite Image', 'tag': 'توليد صور'},
+    {'id': 'gemini-3.1-flash-image', 'name': 'Gemini 3.1 Flash Image', 'tag': 'توليد صور'},
+    {'id': 'gemini-3-pro-image', 'name': 'Gemini 3 Pro Image', 'tag': 'توليد صور'},
+    {'id': 'gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image', 'tag': 'توليد صور'},
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +78,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _groqController.text = data['groqKey'] ?? '';
         _openRouterController.text = data['openRouterKey'] ?? '';
         _selectedOpenRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
+        _selectedGeminiModel = data['geminiModel'] ?? 'gemini-3.5-flash';
       }
     } catch (e) {
       if (mounted) {
@@ -78,6 +98,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     try {
       await _firestore.collection('settings').doc('ai_config').set({
         'geminiKey': _geminiController.text.trim(),
+        'geminiModel': _selectedGeminiModel,
         'groqKey': _groqController.text.trim(),
         'openRouterKey': _openRouterController.text.trim(),
         'openRouterModel': _selectedOpenRouterModel,
@@ -109,6 +130,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     if (provider == AIProvider.gemini) {
       apiKey = _geminiController.text.trim();
       name = 'Gemini';
+      model = _selectedGeminiModel;
     } else if (provider == AIProvider.groq) {
       apiKey = _groqController.text.trim();
       name = 'Groq';
@@ -194,6 +216,8 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                       icon: Icons.auto_awesome_rounded,
                       provider: AIProvider.gemini,
                     ),
+                    const SizedBox(height: 12),
+                    _buildGeminiModelDropdown(),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _groqController,
@@ -372,6 +396,71 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedOpenRouterModel = value);
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGeminiModelDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('موديل Google Gemini', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.grey.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.withValues(alpha: 0.2)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedGeminiModel,
+              isExpanded: true,
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              iconEnabledColor: textColor,
+              style: GoogleFonts.inter(fontSize: 13, color: textColor),
+              items: _geminiModels.map((model) {
+                return DropdownMenuItem<String>(
+                  value: model['id'],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          model['name']!,
+                          style: GoogleFonts.tajawal(fontSize: 13, color: textColor),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          model['tag']!,
+                          style: GoogleFonts.cairo(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedGeminiModel = value);
                 }
               },
             ),
