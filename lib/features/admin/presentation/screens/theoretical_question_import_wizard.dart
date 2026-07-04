@@ -12,12 +12,14 @@ class TheoreticalQuestionImportWizard extends StatefulWidget {
   final String sectionId;
   final String? lessonId;
   final String? lessonName;
+  final Map<String, Map<String, dynamic>> topicsMap;
 
   const TheoreticalQuestionImportWizard({
     super.key,
     required this.extractedQuestions,
     required this.subjectId,
     required this.sectionId,
+    required this.topicsMap,
     this.lessonId,
     this.lessonName,
   });
@@ -108,6 +110,20 @@ class _TheoreticalQuestionImportWizardState extends State<TheoreticalQuestionImp
     );
   }
 
+  String _getCompoundTopicName(String topicId) {
+    final topicData = widget.topicsMap[topicId];
+    if (topicData == null) return 'موضوع غير معروف';
+    final name = topicData['name'] ?? '';
+    final parentId = topicData['parentId'];
+    if (parentId != null) {
+      final parentData = widget.topicsMap[parentId];
+      if (parentData != null) {
+        return "${parentData['name']} - $name";
+      }
+    }
+    return name;
+  }
+
   Future<void> _saveAllQuestions() async {
     if (_questions.isEmpty) return;
 
@@ -120,18 +136,14 @@ class _TheoreticalQuestionImportWizardState extends State<TheoreticalQuestionImp
       for (var question in _questions) {
         final docRef = collectionRef.doc();
 
-        // Manage topic assignments based on target lesson
+        // Resolve topic names to compound names
         final List<String> finalTopicIds = List.from(question.topicIds ?? []);
-        final List<String> finalTopicNames = List.from(question.topicNames ?? []);
 
-        if (widget.lessonId != null) {
-          if (!finalTopicIds.contains(widget.lessonId)) {
-            finalTopicIds.add(widget.lessonId!);
-          }
-          if (widget.lessonName != null && !finalTopicNames.contains(widget.lessonName)) {
-            finalTopicNames.add(widget.lessonName!);
-          }
+        if (widget.lessonId != null && !finalTopicIds.contains(widget.lessonId)) {
+          finalTopicIds.add(widget.lessonId!);
         }
+
+        final List<String> finalTopicNames = finalTopicIds.map((id) => _getCompoundTopicName(id)).toList();
 
         final primaryTopic = finalTopicIds.isNotEmpty ? finalTopicIds.first : 'global';
 

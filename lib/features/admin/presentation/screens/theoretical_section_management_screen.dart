@@ -244,6 +244,11 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             onPressed: _deleteSelectedQuestions,
           ),
           IconButton(
+            icon: const Icon(Icons.link_rounded, color: Color(0xFF6E56FF)),
+            tooltip: 'ربط بموضوع',
+            onPressed: _linkSelectedQuestionsToTopic,
+          ),
+          IconButton(
             icon: const Icon(Icons.close_rounded),
             onPressed: () => setState(() => _selectedQuestionIds.clear()),
           ),
@@ -1272,6 +1277,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             extractedQuestions: extracted,
             subjectId: widget.subjectId,
             sectionId: widget.sectionId ?? 'global',
+            topicsMap: _topicsMap,
             lessonId: widget.lessonId,
             lessonName: widget.lessonName,
           ),
@@ -1377,6 +1383,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             extractedQuestions: extracted,
             subjectId: widget.subjectId,
             sectionId: widget.sectionId ?? 'global',
+            topicsMap: _topicsMap,
             lessonId: widget.lessonId,
             lessonName: widget.lessonName,
           ),
@@ -1574,6 +1581,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             extractedQuestions: extracted,
             subjectId: widget.subjectId,
             sectionId: widget.sectionId ?? 'global',
+            topicsMap: _topicsMap,
             lessonId: widget.lessonId,
             lessonName: widget.lessonName,
           ),
@@ -1809,6 +1817,118 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
     } catch (e) {
       if (mounted) _showStatusSnackBar('فشل التحديث: $e', isError: true);
     }
+  }
+
+  void _linkSelectedQuestionsToTopic() {
+    if (_selectedQuestionIds.isEmpty) return;
+
+    // Filter for lessons and sort by name
+    final lessons = _topicsMap.entries
+        .where((entry) => entry.value['type'] == 'lesson')
+        .map((entry) {
+          final id = entry.key;
+          final data = entry.value;
+          final parentId = data['parentId'];
+          final parentName = parentId != null && _topicsMap[parentId] != null ? _topicsMap[parentId]!['name'] : null;
+          final fullName = parentName != null ? '$parentName - ${data['name']}' : data['name'] ?? '';
+          return {'id': id, 'name': fullName};
+        })
+        .toList();
+
+    lessons.sort((a, b) => a['name']!.compareTo(b['name']!));
+
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: const Color(0xFF222329),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF2D2E36)),
+          ),
+          title: Text(
+            'ربط الأسئلة المحددة بموضوع',
+            style: GoogleFonts.tajawal(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          content: Container(
+            width: double.maxFinite,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+            ),
+            child: lessons.isEmpty
+                ? Center(
+                    child: Text(
+                      'لا توجد مواضيع/دروس متاحة',
+                      style: GoogleFonts.tajawal(color: Colors.white30),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: lessons.length,
+                    separatorBuilder: (c, i) => const Divider(color: Color(0xFF2D2E36), height: 1),
+                    itemBuilder: (context, index) {
+                      final lesson = lessons[index];
+                      return ListTile(
+                        title: Text(
+                          lesson['name']!,
+                          style: GoogleFonts.tajawal(color: Colors.white70, fontSize: 13),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context, lesson);
+                        },
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.tajawal(color: Colors.grey, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).then((selectedLesson) async {
+      if (selectedLesson != null) {
+        final lessonId = selectedLesson['id'] as String;
+        final lessonName = selectedLesson['name'] as String;
+
+        try {
+          final batch = FirebaseFirestore.instance.batch();
+          for (var id in _selectedQuestionIds) {
+            batch.update(
+              FirebaseFirestore.instance.collection(DatabaseService.colQuestions).doc(id),
+              {
+                'topicIds': [lessonId],
+                'topicNames': [lessonName],
+                'primaryTopicId': lessonId,
+              },
+            );
+          }
+          await batch.commit();
+
+          if (mounted) {
+            final count = _selectedQuestionIds.length;
+            setState(() {
+              _selectedQuestionIds.clear();
+            });
+            _showStatusSnackBar('تم ربط $count أسئلة بالموضوع "$lessonName" بنجاح', isError: false);
+          }
+        } catch (e) {
+          if (mounted) {
+            _showStatusSnackBar('فشل ربط الأسئلة: $e', isError: true);
+          }
+        }
+      }
+    });
   }
 
 }
