@@ -19,6 +19,8 @@ class AppTheme {
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final textSecondaryColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
 
+    final baseTextTheme = isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -30,22 +32,46 @@ class AppTheme {
         surface: backgroundColor,
         brightness: brightness,
       ),
-      textTheme: GoogleFonts.cairoTextTheme().copyWith(
-        displayLarge: GoogleFonts.cairo(
+      dialogTheme: DialogThemeData(
+        backgroundColor: cardColor,
+        titleTextStyle: GoogleFonts.tajawal(
+          color: textColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: GoogleFonts.tajawal(
+          color: textColor,
+          fontSize: 16,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        labelStyle: GoogleFonts.tajawal(color: textSecondaryColor),
+        hintStyle: GoogleFonts.tajawal(color: textSecondaryColor),
+        prefixIconColor: textSecondaryColor,
+        suffixIconColor: textSecondaryColor,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: cardColor,
+        textStyle: GoogleFonts.tajawal(
+          color: textColor,
+        ),
+      ),
+      textTheme: GoogleFonts.tajawalTextTheme(baseTextTheme).copyWith(
+        displayLarge: GoogleFonts.tajawal(
           color: textColor,
           fontSize: 28,
           fontWeight: FontWeight.bold,
         ),
-        displayMedium: GoogleFonts.cairo(
+        displayMedium: GoogleFonts.tajawal(
           color: textColor,
           fontSize: 24,
           fontWeight: FontWeight.w700,
         ),
-        bodyLarge: GoogleFonts.cairo(
+        bodyLarge: GoogleFonts.tajawal(
           color: textColor,
           fontSize: 16,
         ),
-        bodyMedium: GoogleFonts.cairo(
+        bodyMedium: GoogleFonts.tajawal(
           color: textSecondaryColor,
           fontSize: 14,
         ),
@@ -55,7 +81,7 @@ class AppTheme {
         foregroundColor: textColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: GoogleFonts.cairo(
+        titleTextStyle: GoogleFonts.tajawal(
           fontSize: 19,
           fontWeight: FontWeight.bold,
           color: textColor,
@@ -69,7 +95,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: GoogleFonts.cairo(
+          textStyle: GoogleFonts.tajawal(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -79,7 +105,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
-          textStyle: GoogleFonts.cairo(
+          textStyle: GoogleFonts.tajawal(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
