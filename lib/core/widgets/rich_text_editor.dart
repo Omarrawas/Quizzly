@@ -607,8 +607,6 @@ class _RichTextEditorState extends State<RichTextEditor> {
     return _controller.document.length - 1;
   }
 
-
-
   @override
   void initState() {
     super.initState();
@@ -656,7 +654,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
     } else {
       // Focus lost → delay hiding toolbar so toolbar-button taps
       // can complete and re-focus the editor before it disappears
-      _focusDebounce = Timer(const Duration(milliseconds: 150), () {
+      _focusDebounce = Timer(const Duration(milliseconds: 2000), () {
         if (mounted && !_focusNode.hasFocus) {
           setState(() => _isFocused = false);
         }
@@ -833,8 +831,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
         !_isProgrammaticInsert &&
         _focusNode.hasFocus) {
       final selectionStyle = _controller.getSelectionStyle();
-      final hasRtl = selectionStyle.attributes.containsKey(quill.Attribute.rtl.key);
-      final hasRightAlign = selectionStyle.attributes[quill.Attribute.align.key]?.value == 'right';
+      final hasRtl = selectionStyle.attributes.containsKey(
+        quill.Attribute.rtl.key,
+      );
+      final hasRightAlign =
+          selectionStyle.attributes[quill.Attribute.align.key]?.value ==
+          'right';
       if (!hasRtl || !hasRightAlign) {
         _controller.formatSelection(quill.Attribute.rtl);
         _controller.formatSelection(quill.Attribute.rightAlignment);
@@ -894,10 +896,12 @@ class _RichTextEditorState extends State<RichTextEditor> {
     final plainText = _controller.document.toPlainText();
     final latexRegex = MathUtils.latexRegex;
     final matches = latexRegex.allMatches(plainText).toList();
-    
+
     if (matches.isEmpty) return const SizedBox.shrink();
 
-    final textColor = isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textPrimary;
+    final textColor = isDark
+        ? Colors.white.withValues(alpha: 0.9)
+        : AppColors.textPrimary;
     final widgets = <Widget>[];
     int lastEnd = 0;
 
@@ -907,7 +911,7 @@ class _RichTextEditorState extends State<RichTextEditor> {
           .replaceAll('\u200E', '')
           .replaceAll('\u2066', '')
           .replaceAll('\u2069', '');
-          
+
       final words = cleanText.split(RegExp(r'\s+'));
       for (final word in words) {
         if (word.trim().isNotEmpty) {
@@ -942,12 +946,15 @@ class _RichTextEditorState extends State<RichTextEditor> {
           onTap: () async {
             final resultLatex = await showDialog<String>(
               context: context,
-              builder: (context) => QuizzlyMathEditorProvider(initialLatex: latex),
+              builder: (context) =>
+                  QuizzlyMathEditorProvider(initialLatex: latex),
             );
             if (resultLatex != null) {
               _isProgrammaticInsert = true;
               try {
-                final String newText = resultLatex.isEmpty ? '' : '\\($resultLatex\\)';
+                final String newText = resultLatex.isEmpty
+                    ? ''
+                    : '\\($resultLatex\\)';
                 _controller.replaceText(
                   matchStart,
                   matchLength,
@@ -1002,7 +1009,9 @@ class _RichTextEditorState extends State<RichTextEditor> {
       addTextWords(plainText.substring(lastEnd));
     }
 
-    final previewBackground = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+    final previewBackground = isDark
+        ? const Color(0xFF1E293B)
+        : const Color(0xFFF8FAFC);
     final borderColor = isDark ? Colors.white10 : Colors.black12;
 
     return Container(
@@ -1010,12 +1019,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: previewBackground,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(11),
-        ),
-        border: Border(
-          top: BorderSide(color: borderColor),
-        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(11)),
+        border: Border(top: BorderSide(color: borderColor)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1057,7 +1062,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   Widget _buildListDropdown() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final listValue = _selectionStyle.attributes[quill.Attribute.list.key]?.value;
+    final listValue =
+        _selectionStyle.attributes[quill.Attribute.list.key]?.value;
 
     IconData currentIcon = Icons.format_list_bulleted;
     String currentTooltip = 'قائمة نقطية';
@@ -1099,9 +1105,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'bullet',
           child: Row(
             children: [
-              Icon(Icons.format_list_bulleted, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_list_bulleted,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('قائمة نقطية', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'قائمة نقطية',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1109,9 +1122,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'ordered',
           child: Row(
             children: [
-              Icon(Icons.format_list_numbered, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_list_numbered,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('قائمة مرقّمة', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'قائمة مرقّمة',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1119,9 +1139,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'none',
           child: Row(
             children: [
-              Icon(Icons.format_indent_decrease, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_indent_decrease,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('بدون قائمة', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'بدون قائمة',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1137,7 +1164,11 @@ class _RichTextEditorState extends State<RichTextEditor> {
           children: [
             Icon(currentIcon, size: 18, color: foregroundColor),
             const SizedBox(width: 2),
-            Icon(Icons.arrow_drop_down_rounded, size: 14, color: foregroundColor.withValues(alpha: 0.6)),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 14,
+              color: foregroundColor.withValues(alpha: 0.6),
+            ),
           ],
         ),
       ),
@@ -1146,7 +1177,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   Widget _buildAlignmentDropdown() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final alignValue = _selectionStyle.attributes[quill.Attribute.align.key]?.value;
+    final alignValue =
+        _selectionStyle.attributes[quill.Attribute.align.key]?.value;
 
     IconData currentIcon = Icons.format_align_right;
     String currentTooltip = 'محاذاة يمين';
@@ -1183,9 +1215,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'right',
           child: Row(
             children: [
-              Icon(Icons.format_align_right, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_align_right,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('محاذاة يمين', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'محاذاة يمين',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1193,9 +1232,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'center',
           child: Row(
             children: [
-              Icon(Icons.format_align_center, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_align_center,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('توسيط', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'توسيط',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1203,9 +1249,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'left',
           child: Row(
             children: [
-              Icon(Icons.format_align_left, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_align_left,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('محاذاة يسار', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'محاذاة يسار',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1221,7 +1274,11 @@ class _RichTextEditorState extends State<RichTextEditor> {
           children: [
             Icon(currentIcon, size: 18, color: foregroundColor),
             const SizedBox(width: 2),
-            Icon(Icons.arrow_drop_down_rounded, size: 14, color: foregroundColor.withValues(alpha: 0.6)),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 14,
+              color: foregroundColor.withValues(alpha: 0.6),
+            ),
           ],
         ),
       ),
@@ -1230,10 +1287,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
 
   Widget _buildDirectionDropdown() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasRtl = _selectionStyle.attributes.containsKey(quill.Attribute.rtl.key);
+    final hasRtl = _selectionStyle.attributes.containsKey(
+      quill.Attribute.rtl.key,
+    );
 
-    IconData currentIcon = hasRtl ? Icons.format_textdirection_r_to_l : Icons.format_textdirection_l_to_r;
-    String currentTooltip = hasRtl ? 'من اليمين لليسار (RTL)' : 'من اليسار لليمين (LTR)';
+    IconData currentIcon = hasRtl
+        ? Icons.format_textdirection_r_to_l
+        : Icons.format_textdirection_l_to_r;
+    String currentTooltip = hasRtl
+        ? 'من اليمين لليسار (RTL)'
+        : 'من اليسار لليمين (LTR)';
     final foregroundColor = isDark ? Colors.white : AppColors.textPrimary;
 
     return PopupMenuButton<String>(
@@ -1261,9 +1324,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'rtl',
           child: Row(
             children: [
-              Icon(Icons.format_textdirection_r_to_l, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_textdirection_r_to_l,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('من اليمين لليسار (RTL)', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'من اليمين لليسار (RTL)',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1271,9 +1341,16 @@ class _RichTextEditorState extends State<RichTextEditor> {
           value: 'ltr',
           child: Row(
             children: [
-              Icon(Icons.format_textdirection_l_to_r, size: 18, color: isDark ? Colors.white : Colors.black),
+              Icon(
+                Icons.format_textdirection_l_to_r,
+                size: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
               const SizedBox(width: 8),
-              Text('من اليسار لليمين (LTR)', style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13)),
+              Text(
+                'من اليسار لليمين (LTR)',
+                style: GoogleFonts.tajawal(color: Colors.white, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -1289,7 +1366,11 @@ class _RichTextEditorState extends State<RichTextEditor> {
           children: [
             Icon(currentIcon, size: 18, color: foregroundColor),
             const SizedBox(width: 2),
-            Icon(Icons.arrow_drop_down_rounded, size: 14, color: foregroundColor.withValues(alpha: 0.6)),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 14,
+              color: foregroundColor.withValues(alpha: 0.6),
+            ),
           ],
         ),
       ),
@@ -1574,7 +1655,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
         : const Color(0xFFF8FAFC);
 
     final plainText = _controller.document.toPlainText();
-    final hasEquations = RegExp(r'(\\\(.*?\\\)|\\\[.*?\\\])', dotAll: true).hasMatch(plainText);
+    final hasEquations = RegExp(
+      r'(\\\(.*?\\\)|\\\[.*?\\\])',
+      dotAll: true,
+    ).hasMatch(plainText);
 
     return Container(
       decoration: BoxDecoration(
@@ -1591,102 +1675,105 @@ class _RichTextEditorState extends State<RichTextEditor> {
           if (_isFocused)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            decoration: BoxDecoration(
-              color: toolbarBackground,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(11),
+              decoration: BoxDecoration(
+                color: toolbarBackground,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(11),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.borderLight.withValues(alpha: 0.5),
+                  ),
+                ),
               ),
-              border: Border(
-                bottom: BorderSide(
-                  color: AppColors.borderLight.withValues(alpha: 0.5),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildToolbarButton(
+                      icon: Icons.format_bold,
+                      isSelected: _selectionStyle.attributes.containsKey(
+                        quill.Attribute.bold.key,
+                      ),
+                      onPressed: () => _toggleInlineStyle(quill.Attribute.bold),
+                      tooltip: 'غامق',
+                    ),
+                    _buildToolbarButton(
+                      icon: Icons.format_italic,
+                      isSelected: _selectionStyle.attributes.containsKey(
+                        quill.Attribute.italic.key,
+                      ),
+                      onPressed: () =>
+                          _toggleInlineStyle(quill.Attribute.italic),
+                      tooltip: 'مائل',
+                    ),
+                    _buildToolbarButton(
+                      icon: Icons.format_underline,
+                      isSelected: _selectionStyle.attributes.containsKey(
+                        quill.Attribute.underline.key,
+                      ),
+                      onPressed: () =>
+                          _toggleInlineStyle(quill.Attribute.underline),
+                      tooltip: 'تسطير',
+                    ),
+                    const VerticalDivider(width: 12),
+                    _buildListDropdown(),
+                    const VerticalDivider(width: 12),
+                    _buildAlignmentDropdown(),
+                    const VerticalDivider(width: 8),
+                    _buildDirectionDropdown(),
+                    const VerticalDivider(width: 12),
+                    _buildToolbarButton(
+                      icon: Icons.format_color_text_rounded,
+                      isSelected: _selectionStyle.attributes.containsKey(
+                        quill.Attribute.color.key,
+                      ),
+                      onPressed: () =>
+                          _showColorPickerDialog(isBackground: false),
+                      tooltip: 'لون النص',
+                    ),
+                    _buildToolbarButton(
+                      icon: Icons.border_color_rounded,
+                      isSelected: _selectionStyle.attributes.containsKey(
+                        quill.Attribute.background.key,
+                      ),
+                      onPressed: () =>
+                          _showColorPickerDialog(isBackground: true),
+                      tooltip: 'لون التظليل',
+                    ),
+                    const VerticalDivider(width: 12),
+                    _buildToolbarButton(
+                      icon: Icons.image_rounded,
+                      isSelected: false,
+                      onPressed: _uploadAndInsertImage,
+                      tooltip: 'إضافة صورة',
+                    ),
+                    _buildToolbarButton(
+                      icon: Icons.functions_rounded,
+                      isSelected: false,
+                      onPressed: () async {
+                        final index = _activeInsertionOffset;
+                        final resultLatex = await showDialog<String>(
+                          context: context,
+                          builder: (context) =>
+                              const QuizzlyMathEditorProvider(),
+                        );
+                        if (resultLatex != null && resultLatex.isNotEmpty) {
+                          _insertMathLatex(resultLatex, index);
+                        }
+                      },
+                      tooltip: 'إدراج معادلة',
+                    ),
+                    _buildToolbarButton(
+                      icon: Icons.preview_rounded,
+                      isSelected: false,
+                      onPressed: _showMathPreview,
+                      tooltip: 'معاينة المعادلات',
+                    ),
+                  ],
                 ),
               ),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildToolbarButton(
-                    icon: Icons.format_bold,
-                    isSelected: _selectionStyle.attributes.containsKey(
-                      quill.Attribute.bold.key,
-                    ),
-                    onPressed: () => _toggleInlineStyle(quill.Attribute.bold),
-                    tooltip: 'غامق',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.format_italic,
-                    isSelected: _selectionStyle.attributes.containsKey(
-                      quill.Attribute.italic.key,
-                    ),
-                    onPressed: () => _toggleInlineStyle(quill.Attribute.italic),
-                    tooltip: 'مائل',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.format_underline,
-                    isSelected: _selectionStyle.attributes.containsKey(
-                      quill.Attribute.underline.key,
-                    ),
-                    onPressed: () =>
-                        _toggleInlineStyle(quill.Attribute.underline),
-                    tooltip: 'تسطير',
-                  ),
-                  const VerticalDivider(width: 12),
-                  _buildListDropdown(),
-                  const VerticalDivider(width: 12),
-                  _buildAlignmentDropdown(),
-                  const VerticalDivider(width: 8),
-                  _buildDirectionDropdown(),
-                  const VerticalDivider(width: 12),
-                  _buildToolbarButton(
-                    icon: Icons.format_color_text_rounded,
-                    isSelected: _selectionStyle.attributes.containsKey(
-                      quill.Attribute.color.key,
-                    ),
-                    onPressed: () =>
-                        _showColorPickerDialog(isBackground: false),
-                    tooltip: 'لون النص',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.border_color_rounded,
-                    isSelected: _selectionStyle.attributes.containsKey(
-                      quill.Attribute.background.key,
-                    ),
-                    onPressed: () => _showColorPickerDialog(isBackground: true),
-                    tooltip: 'لون التظليل',
-                  ),
-                  const VerticalDivider(width: 12),
-                  _buildToolbarButton(
-                    icon: Icons.image_rounded,
-                    isSelected: false,
-                    onPressed: _uploadAndInsertImage,
-                    tooltip: 'إضافة صورة',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.functions_rounded,
-                    isSelected: false,
-                    onPressed: () async {
-                      final index = _activeInsertionOffset;
-                      final resultLatex = await showDialog<String>(
-                        context: context,
-                        builder: (context) => const QuizzlyMathEditorProvider(),
-                      );
-                      if (resultLatex != null && resultLatex.isNotEmpty) {
-                        _insertMathLatex(resultLatex, index);
-                      }
-                    },
-                    tooltip: 'إدراج معادلة',
-                  ),
-                  _buildToolbarButton(
-                    icon: Icons.preview_rounded,
-                    isSelected: false,
-                    onPressed: _showMathPreview,
-                    tooltip: 'معاينة المعادلات',
-                  ),
-                ],
-              ),
-            ),
-          ),
 
           // ═══ EDITOR AREA ═══
           Stack(
