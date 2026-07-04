@@ -114,6 +114,24 @@ class PDFParsingService {
     int retryCount = 0,
     List<String>? errors,
   }) async {
+    return parseFile(
+      pdfBytes,
+      extension: 'pdf',
+      subjectId: subjectId,
+      sectionId: sectionId,
+      retryCount: retryCount,
+      errors: errors,
+    );
+  }
+
+  Future<List<ExtractedQuestion>> parseFile(
+    Uint8List fileBytes, {
+    required String extension,
+    String? subjectId,
+    String? sectionId,
+    int retryCount = 0,
+    List<String>? errors,
+  }) async {
     final currentErrors = errors ?? [];
 
     // Load available topics context if subjectId is provided
@@ -149,7 +167,7 @@ class PDFParsingService {
           topicsPromptContext = buffer.toString();
         }
       } catch (e) {
-        debugPrint('Error loading topics context for parsePDF: $e');
+        debugPrint('Error loading topics context for parseFile: $e');
       }
     }
 
@@ -182,15 +200,16 @@ class PDFParsingService {
       provider = AIProvider.openRouter;
     } else {
       throw Exception(
-        'فشلت جميع محاولات قراءة الـ PDF بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
+        'فشلت جميع محاولات قراءة الملف بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
       );
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
-      return parsePDF(
-        pdfBytes,
+      return parseFile(
+        fileBytes,
+        extension: extension,
         subjectId: subjectId,
         sectionId: sectionId,
         retryCount: retryCount + 1,
@@ -198,11 +217,25 @@ class PDFParsingService {
       );
     }
 
-    final base64PDF = base64Encode(pdfBytes);
+    final base64File = base64Encode(fileBytes);
+    
+    String mimeType = 'application/pdf';
+    String filename = 'exam.pdf';
+    String docTypeName = 'PDF';
+    
+    if (extension.toLowerCase() == 'docx') {
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      filename = 'exam.docx';
+      docTypeName = 'Word Document';
+    } else if (extension.toLowerCase() == 'doc') {
+      mimeType = 'application/msword';
+      filename = 'exam.doc';
+      docTypeName = 'Word Document';
+    }
 
     final prompt =
         '''
-Extract all questions from the attached exam PDF.
+Extract all questions from the attached exam $docTypeName.
 Return a raw JSON array matching this schema:
 [
   {
@@ -243,8 +276,8 @@ CRITICAL REQUIREMENT:
                   {"text": prompt},
                   {
                     "inlineData": {
-                      "mimeType": "application/pdf",
-                      "data": base64PDF,
+                      "mimeType": mimeType,
+                      "data": base64File,
                     },
                   },
                 ],
@@ -277,8 +310,8 @@ CRITICAL REQUIREMENT:
                   {
                     "type": "file",
                     "file": {
-                      "filename": "exam.pdf",
-                      "file_data": "data:application/pdf;base64,$base64PDF",
+                      "filename": filename,
+                      "file_data": "data:$mimeType;base64,$base64File",
                     },
                   },
                 ],
@@ -308,10 +341,11 @@ CRITICAL REQUIREMENT:
               'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
         }
       }
-      debugPrint('Error parsing PDF with ${provider.name}: $errMsg');
+      debugPrint('Error parsing file with ${provider.name}: $errMsg');
       currentErrors.add('${provider.name}: $errMsg');
-      return parsePDF(
-        pdfBytes,
+      return parseFile(
+        fileBytes,
+        extension: extension,
         subjectId: subjectId,
         sectionId: sectionId,
         retryCount: retryCount + 1,

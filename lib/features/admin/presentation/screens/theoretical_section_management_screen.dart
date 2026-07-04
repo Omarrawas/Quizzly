@@ -2,6 +2,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/database_service.dart';
 import 'package:quizzly/features/quiz/data/models/quiz_models.dart';
@@ -9,6 +10,8 @@ import 'package:quizzly/features/admin/presentation/screens/bulk_upload_screen.d
 import 'package:quizzly/features/admin/domain/services/bulk_upload_service.dart';
 import 'package:quizzly/features/admin/presentation/screens/question_management_screen.dart';
 import 'package:quizzly/core/widgets/tex_view_widget.dart';
+import 'package:quizzly/features/admin/domain/services/pdf_parsing_service.dart';
+import 'package:quizzly/features/admin/presentation/screens/theoretical_question_import_wizard.dart';
 
 
 class TheoreticalSectionManagementScreen extends StatefulWidget {
@@ -283,6 +286,60 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                 lessonName: widget.lessonName,
               )));
             },
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'استيراد ذكي للأسئلة',
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFF6E56FF)),
+            onSelected: (value) {
+              if (value == 'pdf') {
+                _startPdfImport();
+              } else if (value == 'word') {
+                _startWordImport();
+              } else if (value == 'text') {
+                _startTextImport();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'word',
+                child: Row(
+                  children: [
+                    const Icon(Icons.description_rounded, size: 20, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Text(
+                      'استيراد من ملف Word',
+                      style: GoogleFonts.tajawal(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    const Icon(Icons.picture_as_pdf_rounded, size: 20, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Text(
+                      'استيراد من PDF',
+                      style: GoogleFonts.tajawal(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'text',
+                child: Row(
+                  children: [
+                    const Icon(Icons.text_fields_rounded, size: 20, color: Color(0xFF6E56FF)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'استيراد من نص مكتوب',
+                      style: GoogleFonts.tajawal(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1138,6 +1195,410 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         ),
       ),
     );
+  }
+
+  Future<void> _startPdfImport() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
+
+      if (result == null || result.files.single.bytes == null) return;
+
+      final bytes = result.files.single.bytes!;
+
+      if (!mounted) return;
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF222329) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF2D2E36) : Colors.grey.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'جاري استخراج أسئلة الـ PDF وتفسيرها ذكياً...',
+                    style: GoogleFonts.tajawal(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final parsingService = PDFParsingService();
+      final extracted = await parsingService.parsePDF(
+        bytes,
+        subjectId: widget.subjectId,
+        sectionId: widget.sectionId,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (extracted.isEmpty) {
+        throw Exception('لم يتم العثور على أي أسئلة مستخرجة صالحة.');
+      }
+
+      if (!mounted) return;
+
+      final bool? success = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TheoreticalQuestionImportWizard(
+            extractedQuestions: extracted,
+            subjectId: widget.subjectId,
+            sectionId: widget.sectionId ?? 'global',
+            lessonId: widget.lessonId,
+            lessonName: widget.lessonName,
+          ),
+        ),
+      );
+
+      if (success == true && mounted) {
+        setState(() {}); // Trigger refresh if needed
+      }
+    } catch (e) {
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context); // Safe dismiss of dialog if open
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'حدث خطأ أثناء الاستيراد: ${e.toString().replaceAll('Exception:', '').trim()}',
+              style: GoogleFonts.tajawal(),
+            ),
+            backgroundColor: const Color(0xFFFF4C6A),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _startWordImport() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['docx', 'doc'],
+        withData: true,
+      );
+
+      if (result == null || result.files.single.bytes == null) return;
+
+      final bytes = result.files.single.bytes!;
+      final filename = result.files.single.name;
+      final extension = filename.split('.').last.toLowerCase();
+
+      if (!mounted) return;
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF222329) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF2D2E36) : Colors.grey.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'جاري استخراج أسئلة ملف الـ Word وتفسيرها ذكياً...',
+                    style: GoogleFonts.tajawal(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final parsingService = PDFParsingService();
+      final extracted = await parsingService.parseFile(
+        bytes,
+        extension: extension,
+        subjectId: widget.subjectId,
+        sectionId: widget.sectionId,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (extracted.isEmpty) {
+        throw Exception('لم يتم العثور على أي أسئلة مستخرجة صالحة.');
+      }
+
+      if (!mounted) return;
+
+      final bool? success = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TheoreticalQuestionImportWizard(
+            extractedQuestions: extracted,
+            subjectId: widget.subjectId,
+            sectionId: widget.sectionId ?? 'global',
+            lessonId: widget.lessonId,
+            lessonName: widget.lessonName,
+          ),
+        ),
+      );
+
+      if (success == true && mounted) {
+        setState(() {}); // Trigger refresh if needed
+      }
+    } catch (e) {
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context); // Safe dismiss of dialog if open
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'حدث خطأ أثناء الاستيراد: ${e.toString().replaceAll('Exception:', '').trim()}',
+              style: GoogleFonts.tajawal(),
+            ),
+            backgroundColor: const Color(0xFFFF4C6A),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _startTextImport() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textController = TextEditingController();
+
+    final String? text = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF222329) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isDark ? const Color(0xFF2D2E36) : Colors.grey.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            title: Text(
+              'استيراد ذكي من نص مكتوب',
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'انسخ النص الذي يحتوي على الأسئلة والصقها هنا. سيقوم الذكاء الاصطناعي بتحليل النص واستخراج الأسئلة وتحديد الإجابات الصحيحة.',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: textController,
+                    maxLines: 8,
+                    style: GoogleFonts.tajawal(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'ألصق نص الأسئلة هنا...',
+                      hintStyle: GoogleFonts.tajawal(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[500] : Colors.grey[400],
+                      ),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF18191D) : Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: isDark ? const Color(0xFF2D2E36) : Colors.grey.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF6E56FF),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'إلغاء',
+                  style: GoogleFonts.tajawal(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final enteredText = textController.text.trim();
+                  if (enteredText.isNotEmpty) {
+                    Navigator.pop(context, enteredText);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6E56FF),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'تحليل وتفسير',
+                  style: GoogleFonts.tajawal(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (text == null || text.isEmpty) return;
+
+    if (!mounted) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF222329) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2D2E36) : Colors.grey.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Color(0xFF6E56FF)),
+                const SizedBox(height: 16),
+                Text(
+                  'جاري استخراج الأسئلة وتفسيرها ذكياً...',
+                  style: GoogleFonts.tajawal(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 13,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final parsingService = PDFParsingService();
+      final extracted = await parsingService.parseText(text);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      if (extracted.isEmpty) {
+        throw Exception('لم يتم العثور على أي أسئلة مستخرجة صالحة.');
+      }
+
+      if (!mounted) return;
+
+      final bool? success = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TheoreticalQuestionImportWizard(
+            extractedQuestions: extracted,
+            subjectId: widget.subjectId,
+            sectionId: widget.sectionId ?? 'global',
+            lessonId: widget.lessonId,
+            lessonName: widget.lessonName,
+          ),
+        ),
+      );
+
+      if (success == true && mounted) {
+        setState(() {}); // Trigger refresh if needed
+      }
+    } catch (e) {
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.pop(context); // Safe dismiss of dialog if open
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'حدث خطأ أثناء الاستيراد: ${e.toString().replaceAll('Exception:', '').trim()}',
+              style: GoogleFonts.tajawal(),
+            ),
+            backgroundColor: const Color(0xFFFF4C6A),
+          ),
+        );
+      }
+    }
   }
 
   void _showEditQuestionDialog(String id, Map<String, dynamic> currentData) {
