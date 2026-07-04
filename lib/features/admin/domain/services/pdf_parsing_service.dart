@@ -260,6 +260,7 @@ CRITICAL REQUIREMENT:
 5. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
 6. Generate a very brief (1 sentence) explanation in Arabic for each question and put it in the "explanation" field. This keeps the response payload small and fast.
 7. Match each question with the correct topic ID(s) from the available topics list provided above, and include it in the "topicIds" array. If no topic matches, leave it empty.
+8. STRICT TEXT PRESERVATION: Do NOT modify, paraphrase, rephrase, translate, correct, or rewrite the question text or the option texts under any circumstance. Extract them EXACTLY word-for-word from the source document. Keep all original phrasing, typos, spelling, values, variables, and formatting completely intact. Do not change words or rephrase sentences.
 ''';
 
     try {
@@ -430,6 +431,7 @@ CRITICAL REQUIREMENT:
 3. Extract ALL questions from the text.
 4. SOLVE each question scientifically using precise curriculum-aligned physics/chemistry knowledge to guarantee "correctOptionIds" are completely correct. Double-check all calculation units (e.g., Heat capacity unit is Joule/Kelvin or J/K, not Joule/mol).
 5. Generate a very brief (1 sentence) explanation in Arabic for each question and put it in the "explanation" field. This keeps the response payload small and fast.
+6. STRICT TEXT PRESERVATION: Do NOT modify, paraphrase, rephrase, translate, correct, or rewrite the question text or the option texts under any circumstance. Extract them EXACTLY word-for-word from the source text. Keep all original phrasing, typos, spelling, values, variables, and formatting completely intact. Do not change words or rephrase sentences.
 
 Exam text:
 $examText
