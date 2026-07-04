@@ -16,8 +16,11 @@ class MathUtils {
   static String normalizeMathContent(String raw) {
     if (raw.trim().isEmpty) return raw;
 
+    // 0. Convert chemical \ce{...} commands to standard KaTeX math
+    var processed = _convertCeToMath(raw);
+
     // 1. Fix common thermodynamic and chemical symbols that cause issues
-    var processed = raw
+    processed = processed
         .replaceAll(r'^{\circ}', r'^\circ')
         .replaceAll(r'^{\circ}C', r'^\circ\text{C}')
         .replaceAll(r'\Delta G^{\circ}', r'\Delta G^\circ')
@@ -300,6 +303,9 @@ class MathUtils {
 
     t = t.trim();
     
+    // Convert chemical \ce{...} commands to standard math notation
+    t = _convertCeToMath(t);
+    
     // Clean up chemical arrows and common linear notations
     t = t.replaceAll('->', r' \to ');
     t = t.replaceAll('<-', r' \gets ');
@@ -307,6 +313,49 @@ class MathUtils {
     t = t.replaceAll('<=', r' \Leftarrow ');
     
     return t;
+  }
+
+  /// Converts chemical equation \ce{...} commands to standard KaTeX math syntax
+  static String _convertCeToMath(String text) {
+    var result = text;
+    // 1. Handle common equilibrium and single arrows with condition bracket
+    result = result.replaceAll(RegExp(r'\\ce\{<=>\[.*?\]\}'), r'\rightleftharpoons');
+    result = result.replaceAll(RegExp(r'\\ce\{->\[.*?\]\}'), r'\rightarrow');
+    result = result.replaceAll(r'\ce{<=>}', r'\rightleftharpoons');
+    result = result.replaceAll(r'\ce{->}', r'\rightarrow');
+    result = result.replaceAll(r'\ce{<=}', r'\Leftarrow');
+    result = result.replaceAll(r'\ce{=>}', r'\Rightarrow');
+
+    // 2. Regex for simple chemical formulas, e.g., \ce{NH4+}, \ce{H+}, \ce{OH-}
+    result = result.replaceAllMapped(
+      RegExp(r'\\ce\{([A-Za-z0-9_\+\-\s\(\)]+)\}'),
+      (match) {
+        final content = match.group(1)!;
+        return _formatChemicalFormula(content);
+      },
+    );
+
+    return result;
+  }
+
+  /// Formats simple chemical formulas to standard math mode (subscripts/superscripts)
+  static String _formatChemicalFormula(String content) {
+    var formatted = content.trim();
+    
+    // Convert plus/minus at the end to superscript
+    if (formatted.endsWith('+')) {
+      formatted = '${formatted.substring(0, formatted.length - 1)}^+';
+    } else if (formatted.endsWith('-')) {
+      formatted = '${formatted.substring(0, formatted.length - 1)}^-';
+    }
+
+    // Convert numbers after letters to subscripts
+    formatted = formatted.replaceAllMapped(
+      RegExp(r'([A-Za-z])(\d+)'),
+      (m) => '${m.group(1)}_${m.group(2)}',
+    );
+    
+    return formatted;
   }
 
   /// Converts standard Markdown notation to HTML tags safely, preserving LaTeX equations.
