@@ -801,6 +801,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         });
 
         final List<Widget> listItems = [];
+        int globalIndex = 1;
         
         for (var chapter in sortedChapters) {
           // Sort questions within chapter by lesson order
@@ -866,9 +867,10 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
             listItems.add(
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildQuestionCard(id, data, isDark, key: ValueKey(id)),
+                child: _buildQuestionCard(id, data, isDark, index: globalIndex, key: ValueKey(id)),
               ),
             );
+            globalIndex++;
           }
         }
 
@@ -891,7 +893,7 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
         .trim();
   }
 
-  Widget _buildQuestionCard(String id, Map<String, dynamic> data, bool isDark, {Key? key}) {
+  Widget _buildQuestionCard(String id, Map<String, dynamic> data, bool isDark, {int? index, Key? key}) {
     final String typeStr = data['type'] == 'mcq' 
         ? 'أتمتة' 
         : (data['type'] == 'tf' 
@@ -957,6 +959,18 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                         isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
                         color: isSelected ? AppColors.primaryBlue : Colors.grey,
                         size: 24,
+                      ),
+                    ),
+                  if (index != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(
+                        '$index.',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
                       ),
                     ),
                   Container(
@@ -1136,6 +1150,12 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
+                          TextButton.icon(
+                            icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.primaryBlue),
+                            label: Text('نسخ كجديد', style: GoogleFonts.tajawal(color: AppColors.primaryBlue)),
+                            onPressed: () => _showCopyQuestionDialog(data),
+                          ),
+                          const SizedBox(width: 8),
                           TextButton.icon(
                             icon: const Icon(Icons.edit_note_rounded, size: 20),
                             label: Text('تعديل', style: GoogleFonts.tajawal()),
@@ -1619,6 +1639,22 @@ class _TheoreticalSectionManagementScreenState extends State<TheoreticalSectionM
           lessonId: widget.lessonId,
           lessonName: widget.lessonName,
           questionId: id,
+          currentData: currentData,
+        ),
+      ),
+    );
+  }
+
+  void _showCopyQuestionDialog(Map<String, dynamic> currentData) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuestionManagementScreen(
+          sectionId: widget.sectionId ?? 'global', // Fallback for global bank
+          subjectId: widget.subjectId,
+          lessonId: widget.lessonId,
+          lessonName: widget.lessonName,
+          questionId: null,
           currentData: currentData,
         ),
       ),

@@ -52,6 +52,8 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
   List<Map<String, String>> options = [];
   List<String> correctOptionIds = [];
   List<TextEditingController> optionControllers = [];
+  final Map<String, int> _optionVersions = {};
+  final Map<String, bool> _isFormattingOption = {};
 
   // Visibility states for translation and explanation fields
   bool _showTranslation = false;
@@ -558,6 +560,36 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
       _showStatusSnackBar('تم توليد الخيارات البديلة بنجاح!', isError: false);
     } catch (e) {
       setState(() => _isGeneratingOptions = false);
+      _showStatusSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
+    }
+  }
+
+  Future<void> _formatOptionText(int index) async {
+    final opt = options[index];
+    final text = (opt['text'] ?? '').trim();
+    final cleanText = text.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    if (cleanText.isEmpty) {
+      _showStatusSnackBar('يرجى كتابة نص الخيار أولاً ليتمكن الذكاء الاصطناعي من تنسيقه', isError: true);
+      return;
+    }
+
+    setState(() {
+      _isFormattingOption[opt['id']!] = true;
+    });
+
+    try {
+      final formattedText = await PDFParsingService().formatOptionWithAI(cleanText);
+      
+      setState(() {
+        opt['text'] = formattedText;
+        _optionVersions[opt['id']!] = (_optionVersions[opt['id']!] ?? 0) + 1;
+        _isFormattingOption[opt['id']!] = false;
+      });
+      _showStatusSnackBar('تم تنسيق الخيار بالمعادلات بنجاح!', isError: false);
+    } catch (e) {
+      setState(() {
+        _isFormattingOption[opt['id']!] = false;
+      });
       _showStatusSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
     }
   }
@@ -1483,56 +1515,109 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
               width: isCorrect ? 2 : 1,
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (selectedTypeId == 'checkbox')
-                Checkbox(
-                  value: isCorrect,
-                  activeColor: Colors.green,
-                  onChanged: (v) {
-                    setState(() {
-                      if (v ?? false) {
-                        if (!correctOptionIds.contains(opt['id'])) {
-                          correctOptionIds.add(opt['id'] ?? '');
-                        }
-                      } else {
-                        correctOptionIds.remove(opt['id'] ?? '');
-                      }
-                    });
-                  },
-                )
-              else
-                Radio<String>(
-                  value: opt['id'] ?? '',
-                  activeColor: Colors.green,
-                ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  child: RichTextEditor(
-                    initialHtml: opt['text'],
-                    placeholder: 'الخيار ${index + 1}',
-                    height: 100,
-                    isCompact: true,
-                    onContentChanged: (html) {
-                      opt['text'] = html;
-                    },
-                    onImageDeleted: (url) => _pendingImageDeletions.add(url),
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'الخيار ${index + 1}',
+                      style: GoogleFonts.tajawal(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white60 : Colors.grey.shade700,
+                      ),
+                    ),
+                    _isFormattingOption[opt['id']] == true
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: _primaryFintechColor,
+                            ),
+                          )
+                        : TextButton.icon(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () => _formatOptionText(index),
+                            icon: const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 14,
+                              color: _primaryFintechColor,
+                            ),
+                            label: Text(
+                              'معالجة بالذكاء الاصطناعي',
+                              style: GoogleFonts.tajawal(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _primaryFintechColor,
+                              ),
+                            ),
+                          ),
+                  ],
                 ),
               ),
-              if (options.length > 1 && selectedTypeId != 'tf')
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => setState(() {
-                    options.removeAt(index);
-                    optionControllers.removeAt(index).dispose();
-                    correctOptionIds.remove(opt['id']);
-                  }),
-                ),
+              const Divider(height: 1, thickness: 0.5),
+              Row(
+                children: [
+                  if (selectedTypeId == 'checkbox')
+                    Checkbox(
+                      value: isCorrect,
+                      activeColor: Colors.green,
+                      onChanged: (v) {
+                        setState(() {
+                          if (v ?? false) {
+                            if (!correctOptionIds.contains(opt['id'])) {
+                              correctOptionIds.add(opt['id'] ?? '');
+                            }
+                          } else {
+                            correctOptionIds.remove(opt['id'] ?? '');
+                          }
+                        });
+                      },
+                    )
+                  else
+                    Radio<String>(
+                      value: opt['id'] ?? '',
+                      activeColor: Colors.green,
+                    ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      child: RichTextEditor(
+                        key: ValueKey('${opt['id']}_${_optionVersions[opt['id']] ?? 0}'),
+                        initialHtml: opt['text'],
+                        placeholder: 'الخيار ${index + 1}',
+                        height: 100,
+                        isCompact: true,
+                        onContentChanged: (html) {
+                          opt['text'] = html;
+                        },
+                        onImageDeleted: (url) => _pendingImageDeletions.add(url),
+                      ),
+                    ),
+                  ),
+                  if (options.length > 1 && selectedTypeId != 'tf')
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => setState(() {
+                        options.removeAt(index);
+                        optionControllers.removeAt(index).dispose();
+                        correctOptionIds.remove(opt['id']);
+                      }),
+                    ),
+                ],
+              ),
             ],
           ),
         );

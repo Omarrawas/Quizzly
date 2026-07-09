@@ -958,4 +958,163 @@ $correctAnswer
     }
     return sb.toString();
   }
+
+  Future<String> formatOptionWithAI(
+    String optionText, {
+    int retryCount = 0,
+    List<String>? errors,
+  }) async {
+    final currentErrors = errors ?? [];
+
+    final doc = await _firestore.collection('settings').doc('ai_config').get();
+    if (!doc.exists) {
+      throw Exception('لم يتم ضبط إعدادات الذكاء الاصطناعي في لوحة التحكم.');
+    }
+
+    final data = doc.data()!;
+    final geminiKey = data['geminiKey']?.toString() ?? '';
+    final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
+    final groqKey = data['groqKey']?.toString() ?? '';
+    final openRouterKey = data['openRouterKey']?.toString() ?? '';
+    final openRouterModel =
+        data['openRouterModel']?.toString() ??
+        'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
+      throw Exception(
+        'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو Groq أو OpenRouter) في لوحة التحكم أولاً.',
+      );
+    }
+
+    AIProvider provider;
+    if (retryCount == 0) {
+      provider = geminiKey.isNotEmpty
+          ? AIProvider.gemini
+          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+    } else if (retryCount == 1) {
+      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
+          ? AIProvider.groq
+          : AIProvider.openRouter;
+    } else if (retryCount == 2) {
+      provider = AIProvider.openRouter;
+    } else {
+      throw Exception(
+        'فشلت جميع محاولات تنسيق الخيار بالذكاء الاصطناعي.\nالأخطاء:\n${currentErrors.join('\n')}',
+      );
+    }
+
+    if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
+        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
+      currentErrors.add('${provider.name}: مفتاح API فارغ');
+      return formatOptionWithAI(
+        optionText,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
+    }
+
+    final prompt = '''
+You are an expert LaTeX formula formatter.
+Your task is to take the user's input text (which represents a question option containing mathematical/physical equations, fractions, or symbols) and format it into clean, correct, and professional LaTeX.
+
+Follow these strict formatting rules:
+1. Wrap all mathematical formulas, variables (like x, y, t), numbers, units, and chemical/physical equations in standard LaTeX inline math delimiters \\( ... \\) or block math delimiters \\[ ... \\] (preferably inline delimiters \\( ... \\)).
+2. Convert any slash-based division or fractions (like "1/2", "a/b", "x/y") into LaTeX fraction formatting: \\frac{numerator}{denominator} (e.g. \\frac{1}{2}, \\frac{a}{b}).
+3. Standardize math and Greek symbols:
+   - Convert "w" to \\omega when representing angular frequency.
+   - Convert "o" or "theta" to \\theta when representing angles.
+   - Convert "phi" or "varphi" to \\phi or \\varphi.
+   - Convert standard indicators like "E_p" to E_p or E_{p}.
+   - Convert "^2" to superscript formatting.
+4. Remove any extra "junk" or "extras" such as:
+   - Option labels/letters at the start (e.g., "A- ", "A)", "1.", "- ").
+   - Introductory/conversational text, extra punctuation, or unrelated words.
+   - We ONLY want the clean, formatted option/equation itself.
+5. If the option contains Arabic words or descriptions, keep those Arabic words as plain text outside the LaTeX math blocks. NEVER write Arabic text inside \\( ... \\) or inside \\text{...} within math blocks, as the renderer cannot display Arabic letters inside LaTeX correctly.
+6. Return ONLY the final formatted text/LaTeX. Do NOT wrap the response in markdown code blocks (e.g. do not use ```html or ```latex or ```json), and do not add any comments or notes. Start directly with the formatted text.
+
+Input Text:
+$optionText
+''';
+
+    try {
+      String responseText = '';
+      if (provider == AIProvider.gemini) {
+        final url =
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey';
+        final response = await _dio.post(
+          url,
+          data: {
+            "contents": [
+              {
+                "parts": [
+                  {"text": prompt},
+                ],
+              },
+            ],
+          },
+        );
+        responseText =
+            response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.groq) {
+        final response = await _dio.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          options: dio_client.Options(
+            headers: {'Authorization': 'Bearer $groqKey'},
+          ),
+          data: {
+            "model": "llama-3.1-8b-instant",
+            "messages": [
+              {"role": "user", "content": prompt},
+            ],
+          },
+        );
+        responseText = response.data['choices'][0]['message']['content'];
+      } else if (provider == AIProvider.openRouter) {
+        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final response = await _dio.post(
+          url,
+          options: dio_client.Options(
+            headers: {
+              'Authorization': 'Bearer $openRouterKey',
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://github.com/Quizzly',
+              'X-Title': 'Quizzly Admin App',
+            },
+          ),
+          data: {
+            "model": openRouterModel,
+            "messages": [
+              {"role": "user", "content": prompt},
+            ],
+          },
+        );
+
+        final choices = response.data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final firstChoice = choices[0] as Map?;
+          final message = firstChoice?['message'] as Map?;
+          responseText = message?['content']?.toString() ?? '';
+        }
+      }
+
+      return _convertDollarsToParentheses(responseText.trim());
+    } catch (e) {
+      String errMsg = e.toString();
+      if (e is dio_client.DioException) {
+        final resp = e.response;
+        if (resp != null) {
+          errMsg =
+              'Dio Error (${resp.statusCode}): ${resp.statusMessage ?? ''} ${resp.data ?? ''}';
+        }
+      }
+      currentErrors.add('${provider.name} error: $errMsg');
+      return formatOptionWithAI(
+        optionText,
+        retryCount: retryCount + 1,
+        errors: currentErrors,
+      );
+    }
+  }
 }

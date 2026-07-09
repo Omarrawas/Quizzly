@@ -16,16 +16,27 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _geminiController = TextEditingController();
+  final _bynaraController = TextEditingController();
   final _groqController = TextEditingController();
   final _openRouterController = TextEditingController();
 
   String _selectedOpenRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   String _selectedGeminiModel = 'gemini-3.5-flash';
+  String _selectedBynaraModel = 'mimo-v2.5-free';
   bool _loading = true;
   bool _saving = false;
   AIProvider? _testingProvider;
 
   final AIGradingService _aiService = AIGradingService();
+
+  static const List<Map<String, String>> _bynaraModels = [
+    {'id': 'mimo-v2.5-free', 'name': 'Mimo v2.5 Free', 'tag': 'مجاني'},
+    {'id': 'mimo-v2.5-pro-free', 'name': 'Mimo v2.5 Pro Free', 'tag': 'مجاني'},
+    {'id': 'claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5', 'tag': 'مجاني'},
+    {'id': 'claude-haiku-4.5', 'name': 'Claude Haiku 4.5', 'tag': 'مجاني'},
+    {'id': 'mistral-large', 'name': 'Mistral Large', 'tag': 'مجاني'},
+    {'id': 'mistral-medium-3.5', 'name': 'Mistral Medium 3.5', 'tag': 'مجاني'},
+  ];
 
   static const List<Map<String, String>> _openRouterModels = [
     {'id': 'nvidia/nemotron-3-ultra-550b-a55b:free', 'name': 'Nemotron 3 Ultra 550B', 'tag': 'مجاني'},
@@ -35,7 +46,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     {'id': 'qwen/qwen3-coder:free', 'name': 'Qwen 3 Coder', 'tag': 'مجاني'},
     {'id': 'poolside/laguna-m.1:free', 'name': 'Laguna M.1', 'tag': 'مجاني'},
     {'id': 'google/gemini-3.5-flash', 'name': 'Gemini 3.5 Flash', 'tag': 'مدفوع'},
-    {'id': 'google/gemini-3.1-flash-lite', 'name': 'Gemini 3.1 Flash Lite', 'tag': 'مدفوع'},
+    {'id': 'google/gemini-3.1-flash-lite', 'name': 'Gemini-3.1 Flash Lite', 'tag': 'مدفوع'},
     {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5', 'tag': 'مدفوع'},
     {'id': 'google/gemini-2.0-flash-001', 'name': 'Gemini 2.0 Flash', 'tag': 'مدفوع'},
     {'id': 'anthropic/claude-3-haiku', 'name': 'Claude 3 Haiku', 'tag': 'مدفوع'},
@@ -75,10 +86,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       if (doc.exists) {
         final data = doc.data()!;
         _geminiController.text = data['geminiKey'] ?? '';
+        _bynaraController.text = data['bynaraKey'] ?? '';
         _groqController.text = data['groqKey'] ?? '';
         _openRouterController.text = data['openRouterKey'] ?? '';
         _selectedOpenRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
         _selectedGeminiModel = data['geminiModel'] ?? 'gemini-3.5-flash';
+        _selectedBynaraModel = data['bynaraModel'] ?? 'mimo-v2.5-free';
       }
     } catch (e) {
       if (mounted) {
@@ -99,6 +112,8 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       await _firestore.collection('settings').doc('ai_config').set({
         'geminiKey': _geminiController.text.trim(),
         'geminiModel': _selectedGeminiModel,
+        'bynaraKey': _bynaraController.text.trim(),
+        'bynaraModel': _selectedBynaraModel,
         'groqKey': _groqController.text.trim(),
         'openRouterKey': _openRouterController.text.trim(),
         'openRouterModel': _selectedOpenRouterModel,
@@ -131,6 +146,10 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       apiKey = _geminiController.text.trim();
       name = 'Gemini';
       model = _selectedGeminiModel;
+    } else if (provider == AIProvider.bynara) {
+      apiKey = _bynaraController.text.trim();
+      name = 'Bynara';
+      model = _selectedBynaraModel;
     } else if (provider == AIProvider.groq) {
       apiKey = _groqController.text.trim();
       name = 'Groq';
@@ -218,6 +237,16 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildGeminiModelDropdown(),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _bynaraController,
+                      label: 'Bynara API Key',
+                      hint: 'nara_...',
+                      icon: Icons.rocket_launch_rounded,
+                      provider: AIProvider.bynara,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildBynaraModelDropdown(),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _groqController,
@@ -461,6 +490,71 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedGeminiModel = value);
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBynaraModelDropdown() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('موديل Bynara', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.grey.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.withValues(alpha: 0.2)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedBynaraModel,
+              isExpanded: true,
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              iconEnabledColor: textColor,
+              style: GoogleFonts.inter(fontSize: 13, color: textColor),
+              items: _bynaraModels.map((model) {
+                return DropdownMenuItem<String>(
+                  value: model['id'],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          model['name']!,
+                          style: GoogleFonts.tajawal(fontSize: 13, color: textColor),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          model['tag']!,
+                          style: GoogleFonts.cairo(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedBynaraModel = value);
                 }
               },
             ),

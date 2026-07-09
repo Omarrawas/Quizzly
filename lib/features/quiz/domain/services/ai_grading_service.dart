@@ -19,7 +19,7 @@ class AIGradingResult {
   }
 }
 
-enum AIProvider { gemini, groq, openRouter }
+enum AIProvider { gemini, bynara, groq, openRouter }
 
 class AIGradingService {
   // Singleton pattern implementation
@@ -41,10 +41,12 @@ class AIGradingService {
 
   // الإعدادات الافتراضية (سيتم تجاوزها من Firestore إذا وجدت)
   String _geminiKey = '';
+  String _bynaraKey = '';
   String _groqKey = '';
   String _openRouterKey = '';
   String _openRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   String _geminiModel = 'gemini-3.5-flash';
+  String _bynaraModel = 'mimo-v2.5-free';
 
   bool _isInitialized = false;
 
@@ -57,6 +59,8 @@ class AIGradingService {
         final data = doc.data()!;
         _geminiKey = data['geminiKey'] ?? '';
         _geminiModel = data['geminiModel'] ?? 'gemini-3.5-flash';
+        _bynaraKey = data['bynaraKey'] ?? '';
+        _bynaraModel = data['bynaraModel'] ?? 'mimo-v2.5-free';
         _groqKey = data['groqKey'] ?? '';
         _openRouterKey = data['openRouterKey'] ?? '';
         _openRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
@@ -77,7 +81,7 @@ class AIGradingService {
     await _initialize();
 
     // التحقق من وجود مفاتيح
-    if (_geminiKey.isEmpty && _groqKey.isEmpty && _openRouterKey.isEmpty) {
+    if (_geminiKey.isEmpty && _bynaraKey.isEmpty && _groqKey.isEmpty && _openRouterKey.isEmpty) {
       return AIGradingResult.error('لم يتم ضبط مفاتيح الذكاء الاصطناعي في لوحة التحكم.');
     }
 
@@ -85,8 +89,10 @@ class AIGradingService {
     if (retryCount == 0) {
       provider = AIProvider.gemini;
     } else if (retryCount == 1) {
-      provider = AIProvider.groq;
+      provider = AIProvider.bynara;
     } else if (retryCount == 2) {
+      provider = AIProvider.groq;
+    } else if (retryCount == 3) {
       provider = AIProvider.openRouter;
     } else {
       return AIGradingResult.error('فشلت جميع المحاولات. يرجى التأكد من الاتصال بالإنترنت.');
@@ -94,6 +100,7 @@ class AIGradingService {
 
     // تخطي المزود إذا كان مفتاحه فارغاً
     if ((provider == AIProvider.gemini && _geminiKey.isEmpty) ||
+        (provider == AIProvider.bynara && _bynaraKey.isEmpty) ||
         (provider == AIProvider.groq && _groqKey.isEmpty) ||
         (provider == AIProvider.openRouter && _openRouterKey.isEmpty)) {
       return gradeEssayAnswer(
@@ -110,6 +117,15 @@ class AIGradingService {
       
       if (provider == AIProvider.gemini) {
         responseText = await _callGemini(question, studentAnswer, modelAnswer, explanation);
+      } else if (provider == AIProvider.bynara) {
+        responseText = await _callOpenAICompatible(
+          url: 'https://router.bynara.id/v1/chat/completions',
+          key: _bynaraKey,
+          model: _bynaraModel,
+          question: question,
+          studentAnswer: studentAnswer,
+          modelAnswer: modelAnswer,
+        );
       } else if (provider == AIProvider.groq) {
         responseText = await _callOpenAICompatible(
           url: 'https://api.groq.com/openai/v1/chat/completions',
@@ -220,6 +236,18 @@ class AIGradingService {
           "contents": [{"parts": [{"text": "قل 'مرحبا'"}]}]
         });
         return response.data['candidates'][0]['content']['parts'][0]['text'];
+      } else if (provider == AIProvider.bynara) {
+        final key = apiKey?.trim() ?? _bynaraKey;
+        if (key.isEmpty) return 'Bynara API Key غير مُعيّن';
+        final response = await _dio.post(
+          'https://router.bynara.id/v1/chat/completions',
+          options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
+          data: {
+            "model": model ?? _bynaraModel,
+            "messages": [{"role": "user", "content": "قل 'مرحبا'"}]
+          },
+        );
+        return response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.groq) {
         final key = apiKey?.trim() ?? _groqKey;
         if (key.isEmpty) return 'Groq API Key غير مُعيّن';
