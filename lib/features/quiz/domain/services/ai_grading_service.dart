@@ -44,7 +44,7 @@ class AIGradingService {
   String _bynaraKey = '';
   String _groqKey = '';
   String _openRouterKey = '';
-  String _openRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+  String _openRouterModel = 'openrouter/free';
   String _geminiModel = 'gemini-3.5-flash';
   String _bynaraModel = 'auto/bynara';
 

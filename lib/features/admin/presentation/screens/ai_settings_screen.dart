@@ -31,32 +31,53 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
   static const List<Map<String, String>> _bynaraModels = [
     {'id': 'auto/bynara', 'name': 'Bynara Auto (تحديد تلقائي)', 'tag': 'موصى به'},
-    {'id': 'mimo-v2.5', 'name': 'MiMo v2.5', 'tag': 'مجاني'},
-    {'id': 'mimo-v2.5-pro', 'name': 'MiMo v2.5 Pro', 'tag': 'مجاني'},
-    {'id': 'mimo-v2.5-pro-ultraspeed', 'name': 'MiMo v2.5 Pro Ultraspeed', 'tag': 'مجاني'},
-    {'id': 'mimo-v2.5-hermes', 'name': 'MiMo v2.5 Hermes', 'tag': 'مجاني'},
-    {'id': 'mimo-v2.5-pro-hermes', 'name': 'MiMo v2.5 Pro Hermes', 'tag': 'مجاني'},
-    {'id': 'deepseek-v4-flash', 'name': 'DeepSeek v4 Flash', 'tag': 'مجاني'},
-    {'id': 'deepseek-v4-pro', 'name': 'DeepSeek v4 Pro', 'tag': 'مجاني'},
-    {'id': 'kimi-k2.6', 'name': 'Kimi k2.6', 'tag': 'مجاني'},
-    {'id': 'kimi-k2.7-code', 'name': 'Kimi k2.7 Code', 'tag': 'مجاني'},
-    {'id': 'mistral-large', 'name': 'Mistral Large', 'tag': 'مجاني'},
-    {'id': 'mistral-medium-3-5', 'name': 'Mistral Medium 3.5', 'tag': 'مجاني'},
-    {'id': 'tencent-hy3', 'name': 'Tencent Hunyuan 3', 'tag': 'مجاني'},
-    {'id': 'claude-opus-4.7-plan', 'name': 'Claude Opus 4.7 Plan', 'tag': 'مجاني'},
-    {'id': 'claude-opus-4.8-plan', 'name': 'Claude Opus 4.8 Plan', 'tag': 'مجاني'},
-    {'id': 'claude-sonnet-5-plan', 'name': 'Claude Sonnet 5 Plan', 'tag': 'مجاني'},
-    {'id': 'gpt-5.4', 'name': 'GPT 5.4', 'tag': 'مجاني'},
-    {'id': 'gpt-5.5', 'name': 'GPT 5.5', 'tag': 'مجاني'},
+    {'id': 'mistral-large', 'name': 'Mistral Large (Text)', 'tag': 'مشمول'},
+    {'id': 'mistral-medium-3-5', 'name': 'Mistral Medium 3.5 (Vision)', 'tag': 'مشمول'},
+    {'id': 'tencent-hy3', 'name': 'Tencent Hunyuan 3 (Text)', 'tag': 'مشمول'},
+    {'id': 'mimo-v2.5-hermes', 'name': 'MiMo v2.5 Hermes (Vision)', 'tag': 'PAYG'},
+    {'id': 'mimo-v2.5-pro-hermes', 'name': 'MiMo v2.5 Pro Hermes (Text)', 'tag': 'PAYG'},
+    {'id': 'mimo-v2.5', 'name': 'MiMo v2.5 (Vision)', 'tag': 'PAYG'},
+    {'id': 'mimo-v2.5-pro-ultraspeed', 'name': 'MiMo v2.5 Pro Ultraspeed (Text)', 'tag': 'PAYG'},
+    {'id': 'mimo-v2.5-pro', 'name': 'MiMo v2.5 Pro (Text)', 'tag': 'PAYG'},
+    {'id': 'deepseek-v4-flash', 'name': 'DeepSeek v4 Flash (Text)', 'tag': 'PAYG'},
+    {'id': 'deepseek-v4-pro', 'name': 'DeepSeek v4 Pro (Text)', 'tag': 'PAYG'},
+    {'id': 'kimi-k2.6', 'name': 'Kimi k2.6 (Text)', 'tag': 'PAYG'},
+    {'id': 'kimi-k2.7-code', 'name': 'Kimi k2.7 Code (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-opus-4.7-plan', 'name': 'Claude Opus 4.7 Plan (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-opus-4.8-plan', 'name': 'Claude Opus 4.8 Plan (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-sonnet-5-plan', 'name': 'Claude Sonnet 5 Plan (Vision)', 'tag': 'PAYG'},
+    {'id': 'gpt-5.4', 'name': 'GPT 5.4 (Vision)', 'tag': 'PAYG'},
+    {'id': 'gpt-5.5', 'name': 'GPT 5.5 (Vision)', 'tag': 'PAYG'},
+    {'id': 'gpt-5.6-luna', 'name': 'GPT 5.6 Luna (Vision)', 'tag': 'مجاني'},
+    {'id': 'gpt-5.6-sol', 'name': 'GPT 5.6 Sol (Vision)', 'tag': 'PAYG'},
+    {'id': 'gpt-5.6-terra', 'name': 'GPT 5.6 Terra (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-fable-5', 'name': 'Claude Fable 5 (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-opus-4.7', 'name': 'Claude Opus 4.7 (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-opus-4.8', 'name': 'Claude Opus 4.8 (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-sonnet-5', 'name': 'Claude Sonnet 5 (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-sonnet-5-bynara', 'name': 'Claude Sonnet 5 Bynara (Vision)', 'tag': 'مجاني'},
+    {'id': 'glm-5.2', 'name': 'GLM 5.2 (Text)', 'tag': 'PAYG'},
+    {'id': 'glm-5.2-plan', 'name': 'GLM 5.2 Plan (Text)', 'tag': 'PAYG'},
+    {'id': 'kimi-k2.7-code-free', 'name': 'Kimi k2.7 Code Free (Vision)', 'tag': 'مجاني'},
+    {'id': 'minimax-m3', 'name': 'MiniMax m3 (Vision)', 'tag': 'PAYG'},
+    {'id': 'claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5 (Vision)', 'tag': 'PAYG'},
+    {'id': 'qwen3.7-max', 'name': 'Qwen 3.7 Max (Text)', 'tag': 'PAYG'},
   ];
 
   static const List<Map<String, String>> _openRouterModels = [
-    {'id': 'nvidia/nemotron-3-ultra-550b-a55b:free', 'name': 'Nemotron 3 Ultra 550B', 'tag': 'مجاني'},
-    {'id': 'openai/gpt-oss-120b:free', 'name': 'GPT OSS 120B', 'tag': 'مجاني'},
-    {'id': 'google/gemma-4-31b-it:free', 'name': 'Gemma 4 31B IT', 'tag': 'مجاني'},
-    {'id': 'nvidia/nemotron-nano-12b-v2-vl:free', 'name': 'Nemotron Nano 12B V2', 'tag': 'مجاني'},
-    {'id': 'qwen/qwen3-coder:free', 'name': 'Qwen 3 Coder', 'tag': 'مجاني'},
-    {'id': 'poolside/laguna-m.1:free', 'name': 'Laguna M.1', 'tag': 'مجاني'},
+    {'id': 'openrouter/free', 'name': 'Auto Free Router', 'tag': 'مجاني'},
+    {'id': 'nvidia/nemotron-nano-12b-v2-vl:free', 'name': 'NVIDIA: Nemotron Nano 12B 2 VL', 'tag': 'مجاني'},
+    {'id': 'nvidia/llama-nemotron-embed-vl-1b-v2:free', 'name': 'NVIDIA: Llama Nemotron Embed VL 1B V2', 'tag': 'مجاني'},
+    {'id': 'google/gemma-4-26b-a4b:free', 'name': 'Google: Gemma 4 26B A4B', 'tag': 'مجاني'},
+    {'id': 'liquid/lfm2.5-1.2b-thinking:free', 'name': 'LiquidAI: LFM2.5 1.2B Thinking', 'tag': 'مجاني'},
+    {'id': 'nvidia/nemotron-3.5-content-safety:free', 'name': 'NVIDIA: Nemotron 3.5 Content Safety', 'tag': 'مجاني'},
+    {'id': 'liquid/lfm2.5-1.2b-instruct:free', 'name': 'LiquidAI: LFM2.5 1.2B Instruct', 'tag': 'مجاني'},
+    {'id': 'qwen/qwen3-next-80b-a3b:free', 'name': 'Qwen: Qwen3 Next 80B A3B Instruct', 'tag': 'مجاني'},
+    {'id': 'meta-llama/llama-3.3-70b-instruct:free', 'name': 'Meta: Llama 3.3 70B Instruct', 'tag': 'مجاني'},
+    {'id': 'venice/uncensored:free', 'name': 'Venice: Uncensored', 'tag': 'مجاني'},
+    {'id': 'meta-llama/llama-3.2-3b-instruct:free', 'name': 'Meta: Llama 3.2 3B Instruct', 'tag': 'مجاني'},
+    {'id': 'nousresearch/hermes-3-405b:free', 'name': 'Nous: Hermes 3 405B Instruct', 'tag': 'مجاني'},
+    {'id': 'qwen/qwen3-coder-480b-a35b:free', 'name': 'Qwen: Qwen3 Coder 480B A35B', 'tag': 'مجاني'},
     {'id': 'google/gemini-3.5-flash', 'name': 'Gemini 3.5 Flash', 'tag': 'مدفوع'},
     {'id': 'google/gemini-3.1-flash-lite', 'name': 'Gemini-3.1 Flash Lite', 'tag': 'مدفوع'},
     {'id': 'google/gemini-flash-1.5', 'name': 'Gemini Flash 1.5', 'tag': 'مدفوع'},
@@ -545,20 +566,34 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                           style: GoogleFonts.tajawal(fontSize: 13, color: textColor),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          model['tag']!,
-                          style: GoogleFonts.cairo(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
+                      Builder(
+                        builder: (context) {
+                          Color tagColor;
+                          if (model['tag'] == 'موصى به') {
+                            tagColor = const Color(0xFFCCA07A);
+                          } else if (model['tag'] == 'مشمول') {
+                            tagColor = Colors.teal;
+                          } else if (model['tag'] == 'PAYG') {
+                            tagColor = Colors.blue;
+                          } else {
+                            tagColor = Colors.green;
+                          }
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: tagColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              model['tag']!,
+                              style: GoogleFonts.cairo(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: tagColor,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
