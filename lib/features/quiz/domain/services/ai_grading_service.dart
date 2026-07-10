@@ -46,7 +46,7 @@ class AIGradingService {
   String _openRouterKey = '';
   String _openRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   String _geminiModel = 'gemini-3.5-flash';
-  String _bynaraModel = 'mimo-v2.5-free';
+  String _bynaraModel = 'auto/bynara';
 
   bool _isInitialized = false;
 
@@ -60,7 +60,7 @@ class AIGradingService {
         _geminiKey = data['geminiKey'] ?? '';
         _geminiModel = data['geminiModel'] ?? 'gemini-3.5-flash';
         _bynaraKey = data['bynaraKey'] ?? '';
-        _bynaraModel = data['bynaraModel'] ?? 'mimo-v2.5-free';
+        _bynaraModel = data['bynaraModel'] ?? 'auto/bynara';
         _groqKey = data['groqKey'] ?? '';
         _openRouterKey = data['openRouterKey'] ?? '';
         _openRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';

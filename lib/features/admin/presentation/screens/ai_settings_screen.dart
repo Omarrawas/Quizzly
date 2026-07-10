@@ -22,7 +22,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
 
   String _selectedOpenRouterModel = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   String _selectedGeminiModel = 'gemini-3.5-flash';
-  String _selectedBynaraModel = 'mimo-v2.5-free';
+  String _selectedBynaraModel = 'auto/bynara';
   bool _loading = true;
   bool _saving = false;
   AIProvider? _testingProvider;
@@ -30,12 +30,24 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
   final AIGradingService _aiService = AIGradingService();
 
   static const List<Map<String, String>> _bynaraModels = [
-    {'id': 'mimo-v2.5-free', 'name': 'Mimo v2.5 Free', 'tag': 'مجاني'},
-    {'id': 'mimo-v2.5-pro-free', 'name': 'Mimo v2.5 Pro Free', 'tag': 'مجاني'},
-    {'id': 'claude-sonnet-4.5', 'name': 'Claude Sonnet 4.5', 'tag': 'مجاني'},
-    {'id': 'claude-haiku-4.5', 'name': 'Claude Haiku 4.5', 'tag': 'مجاني'},
+    {'id': 'auto/bynara', 'name': 'Bynara Auto (تحديد تلقائي)', 'tag': 'موصى به'},
+    {'id': 'mimo-v2.5', 'name': 'MiMo v2.5', 'tag': 'مجاني'},
+    {'id': 'mimo-v2.5-pro', 'name': 'MiMo v2.5 Pro', 'tag': 'مجاني'},
+    {'id': 'mimo-v2.5-pro-ultraspeed', 'name': 'MiMo v2.5 Pro Ultraspeed', 'tag': 'مجاني'},
+    {'id': 'mimo-v2.5-hermes', 'name': 'MiMo v2.5 Hermes', 'tag': 'مجاني'},
+    {'id': 'mimo-v2.5-pro-hermes', 'name': 'MiMo v2.5 Pro Hermes', 'tag': 'مجاني'},
+    {'id': 'deepseek-v4-flash', 'name': 'DeepSeek v4 Flash', 'tag': 'مجاني'},
+    {'id': 'deepseek-v4-pro', 'name': 'DeepSeek v4 Pro', 'tag': 'مجاني'},
+    {'id': 'kimi-k2.6', 'name': 'Kimi k2.6', 'tag': 'مجاني'},
+    {'id': 'kimi-k2.7-code', 'name': 'Kimi k2.7 Code', 'tag': 'مجاني'},
     {'id': 'mistral-large', 'name': 'Mistral Large', 'tag': 'مجاني'},
-    {'id': 'mistral-medium-3.5', 'name': 'Mistral Medium 3.5', 'tag': 'مجاني'},
+    {'id': 'mistral-medium-3-5', 'name': 'Mistral Medium 3.5', 'tag': 'مجاني'},
+    {'id': 'tencent-hy3', 'name': 'Tencent Hunyuan 3', 'tag': 'مجاني'},
+    {'id': 'claude-opus-4.7-plan', 'name': 'Claude Opus 4.7 Plan', 'tag': 'مجاني'},
+    {'id': 'claude-opus-4.8-plan', 'name': 'Claude Opus 4.8 Plan', 'tag': 'مجاني'},
+    {'id': 'claude-sonnet-5-plan', 'name': 'Claude Sonnet 5 Plan', 'tag': 'مجاني'},
+    {'id': 'gpt-5.4', 'name': 'GPT 5.4', 'tag': 'مجاني'},
+    {'id': 'gpt-5.5', 'name': 'GPT 5.5', 'tag': 'مجاني'},
   ];
 
   static const List<Map<String, String>> _openRouterModels = [
@@ -91,7 +103,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         _openRouterController.text = data['openRouterKey'] ?? '';
         _selectedOpenRouterModel = data['openRouterModel'] ?? 'nvidia/nemotron-3-ultra-550b-a55b:free';
         _selectedGeminiModel = data['geminiModel'] ?? 'gemini-3.5-flash';
-        _selectedBynaraModel = data['bynaraModel'] ?? 'mimo-v2.5-free';
+        _selectedBynaraModel = data['bynaraModel'] ?? 'auto/bynara';
       }
     } catch (e) {
       if (mounted) {
