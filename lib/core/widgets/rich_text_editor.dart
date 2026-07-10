@@ -1010,8 +1010,8 @@ class _RichTextEditorState extends State<RichTextEditor> {
     }
 
     final previewBackground = isDark
-        ? const Color(0xFF1E293B)
-        : const Color(0xFFF8FAFC);
+        ? const Color(0xFF131A26)
+        : const Color(0xFFE5E2DA);
     final borderColor = isDark ? Colors.white10 : Colors.black12;
 
     return Container(
@@ -1649,10 +1649,10 @@ class _RichTextEditorState extends State<RichTextEditor> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final editorBackground = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final editorBackground = isDark ? const Color(0xFF080C14) : Colors.white;
     final toolbarBackground = isDark
-        ? const Color(0xFF1E293B)
-        : const Color(0xFFF8FAFC);
+        ? const Color(0xFF131A26)
+        : const Color(0xFFE5E2DA);
 
     final plainText = _controller.document.toPlainText();
     final hasEquations = RegExp(

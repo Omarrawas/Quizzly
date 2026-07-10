@@ -118,7 +118,7 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
     final progress = (_currentIndex + 1) / widget.questions.length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark slate for focus
+      backgroundColor: const Color(0xFF080C14), // Dark slate for focus
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -159,7 +159,7 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: const Color(0xFF131A26),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
@@ -240,7 +240,7 @@ class _CramModeSessionScreenState extends State<CramModeSessionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF131A26),
         title: Text(
           'رابط ذهني للحفظ',
           style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold),

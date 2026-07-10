@@ -21,9 +21,9 @@ class _ExperimentGuideScreenState extends State<ExperimentGuideScreen> {
     final steps = widget.item.steps ?? [];
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -74,7 +74,7 @@ class _ExperimentGuideScreenState extends State<ExperimentGuideScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
@@ -133,7 +133,7 @@ class _ExperimentGuideScreenState extends State<ExperimentGuideScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isCompleted 

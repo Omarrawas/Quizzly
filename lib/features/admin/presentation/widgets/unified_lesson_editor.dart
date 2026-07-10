@@ -219,7 +219,7 @@ class _UnifiedLessonEditorSheetState extends State<UnifiedLessonEditorSheet> {
     return Container(
       padding: EdgeInsets.only(bottom: bottomPadding),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Stack(
@@ -395,7 +395,7 @@ class _UnifiedLessonEditorSheetState extends State<UnifiedLessonEditorSheet> {
         hintText: hint,
         hintStyle: GoogleFonts.cairo(fontSize: 13, color: Colors.grey),
         filled: true,
-        fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+        fillColor: isDark ? const Color(0xFF080C14) : Colors.grey[50],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[300]!),
@@ -412,7 +412,7 @@ class _UnifiedLessonEditorSheetState extends State<UnifiedLessonEditorSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+        color: isDark ? const Color(0xFF080C14) : Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey[200]!),
       ),

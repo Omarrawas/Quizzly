@@ -696,7 +696,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           }
 
           return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
               'إعدادات شام كاش API',

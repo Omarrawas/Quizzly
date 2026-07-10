@@ -18,5 +18,19 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/bynara/:path*",
+      "destination": "https://router.bynara.id/:path*"
+    },
+    {
+      "source": "/api/groq/:path*",
+      "destination": "https://api.groq.com/:path*"
+    },
+    {
+      "source": "/api/openrouter/:path*",
+      "destination": "https://openrouter.ai/:path*"
+    }
   ]
 }

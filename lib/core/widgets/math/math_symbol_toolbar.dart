@@ -17,7 +17,7 @@ class MathSymbolToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final background = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final background = isDark ? const Color(0xFF131A26) : Colors.white;
     final borderColor = AppColors.borderLight;
 
     return Container(
@@ -100,7 +100,7 @@ class MathSymbolToolbar extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final surface = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final surface = isDark ? const Color(0xFF131A26) : Colors.white;
     final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
     final textPrimary = isDark ? Colors.white : AppColors.textPrimary;
     final textSecondary = isDark ? Colors.white70 : AppColors.textSecondary;

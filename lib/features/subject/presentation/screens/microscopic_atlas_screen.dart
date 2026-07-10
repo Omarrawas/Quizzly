@@ -207,7 +207,7 @@ class _MicroscopicAtlasScreenState extends State<MicroscopicAtlasScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               border: const Border(top: BorderSide(color: Colors.white10)),
             ),
             child: Column(

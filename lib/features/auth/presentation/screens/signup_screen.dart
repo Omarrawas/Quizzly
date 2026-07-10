@@ -67,7 +67,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF0F172A) : AppColors.background;
+    final backgroundColor = isDark ? const Color(0xFF080C14) : AppColors.background;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final textSecondaryColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
 
@@ -220,7 +220,7 @@ class _SignupScreenState extends State<SignupScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final hintColor = isDark ? Colors.white38 : AppColors.textSecondary;
-    final fillColor = isDark ? const Color(0xFF1E293B) : AppColors.splashBackground;
+    final fillColor = isDark ? const Color(0xFF131A26) : AppColors.splashBackground;
 
     return TextField(
       controller: controller,

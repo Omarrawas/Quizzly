@@ -236,7 +236,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color(0xFF0F172A)
+          ? const Color(0xFF080C14)
           : const Color(0xFFF1F5F9),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -422,7 +422,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
       constraints: const BoxConstraints(minHeight: 350),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: [
@@ -458,7 +458,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
+                  color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFE5E2DA),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -640,7 +640,7 @@ class _ActiveRecallSessionScreenState extends State<ActiveRecallSessionScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         border: isDark
             ? const Border(top: BorderSide(color: Colors.white10))

@@ -12,7 +12,7 @@ class SalesLocationsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text(
           'أماكن بيع أكواد الرصيد',
@@ -179,7 +179,7 @@ class SalesLocationsScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? const Color(0xFF1E293B)
+                            ? const Color(0xFF131A26)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(

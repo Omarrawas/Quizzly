@@ -50,6 +50,45 @@ class AIGradingService {
 
   bool _isInitialized = false;
 
+  String _getApiUrl(AIProvider provider) {
+    if (kIsWeb) {
+      if (Uri.base.host == 'localhost') {
+        switch (provider) {
+          case AIProvider.gemini:
+            return 'https://generativelanguage.googleapis.com';
+          case AIProvider.bynara:
+            return 'https://router.bynara.id';
+          case AIProvider.groq:
+            return 'https://api.groq.com';
+          case AIProvider.openRouter:
+            return 'https://openrouter.ai';
+        }
+      } else {
+        switch (provider) {
+          case AIProvider.gemini:
+            return 'https://generativelanguage.googleapis.com';
+          case AIProvider.bynara:
+            return '/api/bynara';
+          case AIProvider.groq:
+            return '/api/groq';
+          case AIProvider.openRouter:
+            return '/api/openrouter';
+        }
+      }
+    } else {
+      switch (provider) {
+        case AIProvider.gemini:
+          return 'https://generativelanguage.googleapis.com';
+        case AIProvider.bynara:
+          return 'https://router.bynara.id';
+        case AIProvider.groq:
+          return 'https://api.groq.com';
+        case AIProvider.openRouter:
+          return 'https://openrouter.ai';
+      }
+    }
+  }
+
   /// تحميل الإعدادات من Firestore
   Future<void> _initialize() async {
     if (_isInitialized) return;
@@ -119,7 +158,7 @@ class AIGradingService {
         responseText = await _callGemini(question, studentAnswer, modelAnswer, explanation);
       } else if (provider == AIProvider.bynara) {
         responseText = await _callOpenAICompatible(
-          url: 'https://router.bynara.id/v1/chat/completions',
+          url: '${_getApiUrl(AIProvider.bynara)}/v1/chat/completions',
           key: _bynaraKey,
           model: _bynaraModel,
           question: question,
@@ -128,7 +167,7 @@ class AIGradingService {
         );
       } else if (provider == AIProvider.groq) {
         responseText = await _callOpenAICompatible(
-          url: 'https://api.groq.com/openai/v1/chat/completions',
+          url: '${_getApiUrl(AIProvider.groq)}/openai/v1/chat/completions',
           key: _groqKey,
           model: 'llama-3.1-8b-instant',
           question: question,
@@ -137,7 +176,7 @@ class AIGradingService {
         );
       } else if (provider == AIProvider.openRouter) {
         responseText = await _callOpenAICompatible(
-          url: 'https://openrouter.ai/api/v1/chat/completions',
+          url: '${_getApiUrl(AIProvider.openRouter)}/api/v1/chat/completions',
           key: _openRouterKey,
           model: _openRouterModel,
           question: question,
@@ -240,7 +279,7 @@ class AIGradingService {
         final key = apiKey?.trim() ?? _bynaraKey;
         if (key.isEmpty) return 'Bynara API Key غير مُعيّن';
         final response = await _dio.post(
-          'https://router.bynara.id/v1/chat/completions',
+          '${_getApiUrl(AIProvider.bynara)}/v1/chat/completions',
           options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
           data: {
             "model": model ?? _bynaraModel,
@@ -252,7 +291,7 @@ class AIGradingService {
         final key = apiKey?.trim() ?? _groqKey;
         if (key.isEmpty) return 'Groq API Key غير مُعيّن';
         final response = await _dio.post(
-          'https://api.groq.com/openai/v1/chat/completions',
+          '${_getApiUrl(AIProvider.groq)}/openai/v1/chat/completions',
           options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
           data: {
             "model": model ?? 'llama3-8b-8192',
@@ -264,7 +303,7 @@ class AIGradingService {
         final key = apiKey?.trim() ?? _openRouterKey;
         if (key.isEmpty) return 'OpenRouter API Key غير مُعيّن';
         final response = await _dio.post(
-          'https://openrouter.ai/api/v1/chat/completions',
+          '${_getApiUrl(AIProvider.openRouter)}/api/v1/chat/completions',
           options: dio_client.Options(headers: {'Authorization': 'Bearer $key'}),
           data: {
             "model": model ?? _openRouterModel,
@@ -280,8 +319,14 @@ class AIGradingService {
         msg = data['error']?['message']?.toString();
       }
       msg ??= e.message ?? e.toString();
+      if (kIsWeb && (msg.contains('XMLHttpRequest') || msg.toLowerCase().contains('network error') || msg.toLowerCase().contains('failed to fetch') || e.type == dio_client.DioExceptionType.connectionError)) {
+        return 'CORS Error: لا يمكن الاتصال بالخادم من المتصفح مباشرة بسبب سياسة أمان الويب. لتجاوز هذا في التطوير المحلي، يرجى تشغيل المتصفح بدون حماية: \n\nflutter run -d chrome --web-browser-flag "--disable-web-security"';
+      }
       return 'خطأ: $msg';
     } catch (e) {
+      if (kIsWeb && e.toString().contains('XMLHttpRequest')) {
+        return 'CORS Error: لا يمكن الاتصال بالخادم من المتصفح مباشرة بسبب سياسة أمان الويب. لتجاوز هذا في التطوير المحلي، يرجى تشغيل المتصفح بدون حماية: \n\nflutter run -d chrome --web-browser-flag "--disable-web-security"';
+      }
       return 'خطأ: $e';
     }
     return null;

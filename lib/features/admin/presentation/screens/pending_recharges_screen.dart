@@ -224,7 +224,7 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
           }
 
           return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
               'إعدادات شام كاش API',
@@ -548,7 +548,7 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),

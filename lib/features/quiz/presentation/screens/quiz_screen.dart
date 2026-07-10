@@ -342,7 +342,7 @@ class _QuizScreenState extends State<QuizScreen> {
   AppBar _buildAppBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),

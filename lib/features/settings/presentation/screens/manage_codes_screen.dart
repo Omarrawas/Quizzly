@@ -28,9 +28,9 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 1,
         shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
@@ -168,7 +168,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isDark ? Colors.white10 : Colors.grey[100]!,
@@ -369,7 +369,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'حذف التفعيل',
@@ -483,7 +483,7 @@ class _ManageCodesScreenState extends State<ManageCodesScreen> {
           margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isSelected
-                ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                ? (isDark ? const Color(0xFF131A26) : Colors.white)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected

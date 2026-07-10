@@ -125,7 +125,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final contentService = context.read<ContentService>();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text('بياناتي الشخصية', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -444,7 +444,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   horizontal: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  color: isDark ? const Color(0xFF131A26) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: isDark
@@ -513,7 +513,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   horizontal: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  color: isDark ? const Color(0xFF131A26) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: isDark
@@ -621,7 +621,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         labelStyle: GoogleFonts.cairo(color: isDark ? Colors.white60 : Colors.grey),
         prefixIcon: Icon(icon, color: AppColors.primaryBlue),
         filled: true,
-        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        fillColor: isDark ? const Color(0xFF131A26) : Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
@@ -651,7 +651,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
         ),
@@ -703,7 +703,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),

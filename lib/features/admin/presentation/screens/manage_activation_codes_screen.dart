@@ -385,7 +385,7 @@ class _BatchCard extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(

@@ -216,7 +216,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
   AppBar _buildAppBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
@@ -249,7 +249,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: isDark ? Colors.white12 : AppColors.borderLight),
           boxShadow: [
@@ -517,7 +517,7 @@ class _SearchFilterScreenState extends State<SearchFilterScreen> {
         bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),

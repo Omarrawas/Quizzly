@@ -150,7 +150,7 @@ class AppUpdateService {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: AlertDialog(
             backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                ? const Color(0xFF1E293B).withValues(alpha: 0.9) 
+                ? const Color(0xFF131A26).withValues(alpha: 0.9) 
                 : Colors.white.withValues(alpha: 0.9),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             title: Column(

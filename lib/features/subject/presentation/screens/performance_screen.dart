@@ -49,7 +49,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -239,7 +239,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: color.withValues(alpha: 0.1)),
           ),

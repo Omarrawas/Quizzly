@@ -137,7 +137,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Container(
@@ -401,12 +401,34 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
         ],
         FloatingActionButton(
           onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          elevation: 4,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.transparent,
+          elevation: isDark ? 4 : 0,
+          highlightElevation: 0,
           shape: const CircleBorder(),
-          child: Icon(
-            _isFabExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-            color: const Color(0xFFDC2626), // Red for wrong answers
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: isDark ? null : const LinearGradient(
+                colors: [Color(0xFFCB9D80), Color(0xFF9E7E6C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              color: isDark ? const Color(0xFF131A26) : null,
+              shape: BoxShape.circle,
+              boxShadow: [
+                if (!isDark)
+                  BoxShadow(
+                    color: const Color(0xFF9E7E6C).withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+              ],
+            ),
+            child: Icon(
+              _isFabExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+              color: isDark ? const Color(0xFFDC2626) : Colors.white,
+            ),
           ),
         ),
       ],
@@ -427,7 +449,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -443,7 +465,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
@@ -552,11 +574,11 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       floatingActionButton: filteredQuestions.isNotEmpty ? _buildExpandableFab(isDark) : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
         elevation: 0,
         leading: _isSearching
             ? IconButton(
@@ -621,7 +643,7 @@ class _WrongAnswersScreenState extends State<WrongAnswersScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
               boxShadow: [

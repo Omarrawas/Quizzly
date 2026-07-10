@@ -368,7 +368,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final bgColor = isDark ? const Color(0xFF131A26) : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final borderColor = isDark ? Colors.white12 : AppColors.borderLight;
     final accentColor = AppColors.primaryBlue;
@@ -407,7 +407,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
                   width: editorWidth,
                   padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 30),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFFF8FAFC),
+                    color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFFE5E2DA),
                   ),
                   child: Center(
                     child: SingleChildScrollView(
@@ -436,7 +436,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF080C14) : const Color(0xFFF1F5F9),
         border: Border(bottom: BorderSide(color: borderColor)),
       ),
       child: Column(
@@ -732,7 +732,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        color: isDark ? const Color(0xFF080C14) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         border: Border(bottom: BorderSide(color: borderColor)),
       ),
@@ -773,7 +773,7 @@ class _VisualMathEditorState extends State<VisualMathEditor> {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: isDark ? const Color(0xFF0F172A) : Colors.white,
+      color: isDark ? const Color(0xFF080C14) : Colors.white,
       child: Row(
         children: [
           Icon(Icons.info_outline, size: 16, color: accentColor),
@@ -929,7 +929,7 @@ class _VisualMathFieldState extends State<VisualMathField> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: widget.isDark ? const Color(0xFF1E293B) : const Color(0xFFF0F7FF),
+          color: widget.isDark ? const Color(0xFF131A26) : const Color(0xFFF0F7FF),
           border: Border.all(
             color: const Color(0xFF3B82F6).withValues(alpha: 0.5), 
             width: 1.5,

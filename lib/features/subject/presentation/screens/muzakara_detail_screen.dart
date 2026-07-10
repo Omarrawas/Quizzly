@@ -13,7 +13,7 @@ class MuzakaraDetailScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context, isDark),
@@ -42,7 +42,7 @@ class MuzakaraDetailScreen extends StatelessWidget {
       expandedHeight: 120,
       floating: false,
       pinned: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0D9488),
+      backgroundColor: isDark ? const Color(0xFF131A26) : const Color(0xFF0D9488),
       elevation: 0,
       leading: Builder(
         builder: (context) {
@@ -75,7 +75,7 @@ class MuzakaraDetailScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF131A26) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

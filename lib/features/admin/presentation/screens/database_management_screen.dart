@@ -554,7 +554,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               width: double.infinity,
               constraints: const BoxConstraints(maxWidth: 500),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
@@ -725,7 +725,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                                         icon: Icons.person_add_alt_1_rounded,
                                         isDark: isDark,
                                       ),
-                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                                       items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
                                         final data = doc.data() as Map<String, dynamic>;
                                         return DropdownMenuItem<String>(
@@ -794,7 +794,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                                     icon: Icons.link_rounded,
                                     isDark: isDark,
                                   ),
-                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                                   items: [
                                     DropdownMenuItem<String?>(
                                       value: null,
@@ -994,7 +994,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                 width: double.infinity,
                 constraints: const BoxConstraints(maxWidth: 500),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  color: isDark ? const Color(0xFF131A26) : Colors.white,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: SingleChildScrollView(
@@ -1230,7 +1230,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               width: double.infinity,
               constraints: const BoxConstraints(maxWidth: 500),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(28),
               ),
               child: SingleChildScrollView(
@@ -1301,7 +1301,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                                     const SizedBox(height: 12),
                                     DropdownButtonFormField<String>(
                                       decoration: _premiumInputDecoration(label: 'إضافة معلم', icon: Icons.person_add, isDark: isDark),
-                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                                       items: allTeachers.where((doc) => !teacherIds.contains(doc.id)).map((doc) {
                                         final data = doc.data() as Map<String, dynamic>;
                                         return DropdownMenuItem<String>(
@@ -1355,7 +1355,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
                                 return DropdownButtonFormField<String?>(
                                   decoration: _premiumInputDecoration(label: 'ربط بمادة أخرى', icon: Icons.link, isDark: isDark),
-                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                                   items: [
                                     DropdownMenuItem<String?>(value: null, child: Text('لا يوجد ربط', style: GoogleFonts.cairo(fontSize: 13))),
                                     ...masterSubjects.map((doc) {

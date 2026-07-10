@@ -882,7 +882,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                             value: selectedTypeId,
                             isExpanded: true,
                             dropdownColor: isDark
-                                ? const Color(0xFF1E293B)
+                                ? const Color(0xFF131A26)
                                 : Colors.white,
                             onChanged: (val) {
                               setState(() {
@@ -1281,7 +1281,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                             child: DropdownButtonFormField<Difficulty>(
                               initialValue: selectedDifficulty,
                               dropdownColor: isDark
-                                  ? const Color(0xFF1E293B)
+                                  ? const Color(0xFF131A26)
                                   : Colors.white,
                               decoration: InputDecoration(
                                 labelText: 'الصعوبة',

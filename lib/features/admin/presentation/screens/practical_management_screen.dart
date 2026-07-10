@@ -42,10 +42,10 @@ class _PracticalManagementScreenState extends State<PracticalManagementScreen> {
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color(0xFF0F172A)
-          : const Color(0xFFF8FAFC),
+          ? const Color(0xFF080C14)
+          : const Color(0xFFE5E2DA),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         elevation: 0,
         title: Text(
           'إدارة الدروس العملية - ${widget.subjectName}',
@@ -224,7 +224,7 @@ class _LessonAdminCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey[200]!),
         boxShadow: [

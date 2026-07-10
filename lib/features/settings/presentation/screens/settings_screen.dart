@@ -36,7 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final userId = auth.user?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -115,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            color: isDark ? const Color(0xFF131A26) : Colors.white,
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: [
                               BoxShadow(
@@ -149,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     child: CircleAvatar(
                                       radius: 46,
-                                      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                                      backgroundColor: isDark ? const Color(0xFF080C14) : Colors.grey[100],
                                       backgroundImage: profilePicUrl.isNotEmpty
                                           ? CachedNetworkImageProvider(profilePicUrl)
                                           : const CachedNetworkImageProvider(
@@ -227,7 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 padding: const EdgeInsets.all(18),
                                 height: 128,
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  color: isDark ? const Color(0xFF131A26) : Colors.white,
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
                                     color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -291,7 +291,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     const Icon(
                                       Icons.emoji_events_rounded,
-                                      color: Color(0xFF0F172A),
+                                      color: Color(0xFF080C14),
                                       size: 26,
                                     ),
                                     Column(
@@ -302,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           style: GoogleFonts.inter(
                                             fontSize: 26,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF080C14),
                                           ),
                                         ),
                                         Text(
@@ -310,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           style: GoogleFonts.cairo(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A).withValues(alpha: 0.8),
+                                            color: const Color(0xFF080C14).withValues(alpha: 0.8),
                                           ),
                                         ),
                                       ],
@@ -327,7 +327,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            color: isDark ? const Color(0xFF131A26) : Colors.white,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -368,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       child: LinearProgressIndicator(
                                         value: averageScore / 100,
                                         minHeight: 7.5,
-                                        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                        backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFF1F5F9),
                                         valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B93FF)),
                                       ),
                                     ),
@@ -436,7 +436,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               trailing: Switch(
                                 value: isThemeDark,
                                 onChanged: (val) => themeService.toggleTheme(),
-                                activeThumbColor: const Color(0xFF0F172A),
+                                activeThumbColor: const Color(0xFF080C14),
                                 activeTrackColor: const Color(0xFF8B93FF),
                                 inactiveThumbColor: Colors.grey[400],
                                 inactiveTrackColor: Colors.grey[300],
@@ -525,7 +525,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -592,7 +592,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'تسجيل الخروج',
@@ -802,7 +802,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text(
           'إعدادات الدراسة والتطبيق',
@@ -813,7 +813,7 @@ class StudyPreferencesScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
@@ -1040,7 +1040,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -1084,7 +1084,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -1146,7 +1146,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -1199,7 +1199,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
@@ -1257,7 +1257,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
@@ -1455,7 +1455,7 @@ class StudyPreferencesScreen extends StatelessWidget {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
@@ -1523,7 +1523,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'تأكيد الحذف',
@@ -1647,7 +1647,7 @@ class StudyPreferencesScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,

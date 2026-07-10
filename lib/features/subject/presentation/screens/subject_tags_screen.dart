@@ -270,7 +270,7 @@ class _SubjectTagsScreenState extends State<SubjectTagsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: [

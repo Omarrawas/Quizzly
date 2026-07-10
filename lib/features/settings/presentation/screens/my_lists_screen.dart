@@ -67,7 +67,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                   hintText: 'اسم القائمة',
                   hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white54 : null),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                  fillColor: isDark ? const Color(0xFF131A26) : const Color(0xFFE5E2DA),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -142,7 +142,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
                   hintText: 'اسم القائمة',
                   hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white54 : null),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                  fillColor: isDark ? const Color(0xFF131A26) : const Color(0xFFE5E2DA),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -314,7 +314,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
   Widget _buildListCard(UserList list, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         boxShadow: [
@@ -464,7 +464,7 @@ class _MyListsScreenState extends State<MyListsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'حذف القائمة',

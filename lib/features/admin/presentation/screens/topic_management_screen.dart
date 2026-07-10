@@ -410,7 +410,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                     ),
                   ),
                   dropdownColor: isDark
-                      ? const Color(0xFF1E293B)
+                      ? const Color(0xFF131A26)
                       : Colors.white,
                   items: [
                     DropdownMenuItem(
@@ -449,7 +449,7 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
                       ),
                     ),
                     dropdownColor: isDark
-                        ? const Color(0xFF1E293B)
+                        ? const Color(0xFF131A26)
                         : Colors.white,
                     items: [
                       DropdownMenuItem(
@@ -649,7 +649,7 @@ class _ChapterCard extends StatelessWidget {
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.grey[200]!,
         ),
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),

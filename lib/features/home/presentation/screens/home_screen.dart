@@ -333,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ? const Color(0xFF818CF8)
         : const Color(0xFF6366F1); // Lavender / Indigo
     final inactiveColor = isDark ? Colors.white38 : Colors.grey.shade500;
-    final backgroundColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final backgroundColor = isDark ? const Color(0xFF080C14) : Colors.white;
 
     return Container(
       height: 80,
@@ -797,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   elevation: 8,
                   borderRadius: BorderRadius.circular(16),
                   dropdownColor: isDark
-                      ? const Color(0xFF1E293B)
+                      ? const Color(0xFF131A26)
                       : Colors.white,
                   style: GoogleFonts.cairo(
                     fontSize: 16,
@@ -899,7 +899,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+        color: isDark ? const Color(0xFF080C14) : Colors.grey.shade50,
         border: Border(
           bottom: BorderSide(
             color: isDark
@@ -924,7 +924,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
@@ -968,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'newest',
@@ -1013,7 +1013,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
@@ -1311,7 +1311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF1E293B)
+                              ? const Color(0xFF131A26)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
@@ -1397,7 +1397,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   height: 44,
                                   decoration: BoxDecoration(
                                     color: isDark
-                                        ? const Color(0xFF0F172A)
+                                        ? const Color(0xFF080C14)
                                         : Colors.grey[100],
                                     borderRadius: BorderRadius.circular(14),
                                   ),

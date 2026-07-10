@@ -260,7 +260,7 @@ class _CreateTrainingSessionScreenState
 
   AppBar _buildAppBar(bool isDark) {
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
@@ -321,7 +321,7 @@ class _CreateTrainingSessionScreenState
             ),
             filled: true,
             fillColor: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1E293B)
+                ? const Color(0xFF131A26)
                 : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -387,7 +387,7 @@ class _CreateTrainingSessionScreenState
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
       ),
@@ -449,7 +449,7 @@ class _CreateTrainingSessionScreenState
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF080C14) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -559,7 +559,7 @@ class _CreateTrainingSessionScreenState
         bottom: MediaQuery.of(context).padding.bottom + 16,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),

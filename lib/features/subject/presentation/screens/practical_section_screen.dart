@@ -79,7 +79,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -87,9 +87,9 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
 
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -164,7 +164,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
         height: 180,
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white,
+          color: isDark ? const Color(0xFF131A26).withValues(alpha: 0.5) : Colors.white,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
@@ -236,7 +236,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -282,7 +282,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -331,7 +331,7 @@ class _PracticalSectionScreenState extends State<PracticalSectionScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isLocked ? (isDark ? Colors.amber.withValues(alpha: 0.2) : Colors.amber.shade200) : (isDark ? Colors.white10 : Colors.grey[200]!),

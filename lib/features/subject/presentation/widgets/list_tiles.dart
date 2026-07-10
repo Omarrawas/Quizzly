@@ -21,7 +21,7 @@ class ExamListTile extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: isDark ? Border.all(color: Colors.white10) : null,
           boxShadow: [
@@ -103,7 +103,7 @@ class TagListTile extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: isDark ? Border.all(color: Colors.white10) : null,
           boxShadow: [

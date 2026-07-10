@@ -148,7 +148,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0F4FF),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFF0F4FF),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -345,7 +345,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isDark
-                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    ? [const Color(0xFF131A26), const Color(0xFF080C14)]
                     : [Colors.white, const Color(0xFFF1F5F9)],
               ),
               borderRadius: BorderRadius.circular(18),
@@ -418,7 +418,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white.withValues(alpha: 0.6),
+          color: isDark ? const Color(0xFF131A26) : Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(10),
           border: isDark ? Border.all(color: Colors.white10) : null,
         ),
@@ -525,7 +525,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               title: Text(
                 'انتهت محاولاتك اليوم', 
@@ -640,7 +640,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? color : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                color: isSelected ? color : (isDark ? const Color(0xFF131A26) : Colors.white),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isSelected ? color : (isDark ? Colors.white12 : AppColors.borderLight)),
                 boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
@@ -685,7 +685,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
             Container(
               margin: const EdgeInsets.only(bottom: 8, top: 4),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isChapterSelected 
@@ -742,7 +742,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
                       decoration: BoxDecoration(
                         color: isLessonSelected
                             ? AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.08)
-                            : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                            : (isDark ? const Color(0xFF131A26) : Colors.white),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isLessonSelected 
@@ -808,7 +808,7 @@ class _PracticeScreenState extends State<PracticeScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: isDark ? Border.all(color: Colors.white10) : null,
       ),

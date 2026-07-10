@@ -88,7 +88,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+      backgroundColor: isDark ? const Color(0xFF080C14) : Colors.grey[50],
       appBar: AppBar(
         title: Text('إرسال إشعارات', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         centerTitle: true,

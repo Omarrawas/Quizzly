@@ -40,7 +40,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: _buildAppBar(isDark),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +100,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
 
   AppBar _buildAppBar(bool isDark) {
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
       elevation: 0,
       leading: Builder(
         builder: (context) {
@@ -147,7 +147,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           title: Column(
@@ -265,7 +265,7 @@ class _ExamsListScreenState extends State<ExamsListScreen> {
       final String? choice = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'نوع الاختبار', 
@@ -382,7 +382,7 @@ class _PillarOption extends StatelessWidget {
               ? color.withValues(alpha: isDark ? 0.15 : 0.05) 
               : (isLocked 
                   ? (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey[50]) 
-                  : (isDark ? const Color(0xFF1E293B) : Colors.white)),
+                  : (isDark ? const Color(0xFF131A26) : Colors.white)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected 
@@ -533,7 +533,7 @@ class _ExamConfigTileState extends State<_ExamConfigTile> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: widget.isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -710,7 +710,7 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected 
               ? AppColors.primaryBlue 
-              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+              : (isDark ? const Color(0xFF131A26) : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected 

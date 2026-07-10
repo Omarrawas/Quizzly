@@ -331,8 +331,8 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color(0xFF0F172A)
-          : const Color(0xFFF8FAFC),
+          ? const Color(0xFF080C14)
+          : const Color(0xFFE5E2DA),
       appBar: _buildAppBar(isDark),
       body: Column(
         children: [

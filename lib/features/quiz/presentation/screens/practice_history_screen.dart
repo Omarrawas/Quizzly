@@ -24,7 +24,7 @@ class PracticeHistoryScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Column(
           children: [
@@ -46,7 +46,7 @@ class PracticeHistoryScreen extends StatelessWidget {
           ],
         ),
         centerTitle: true,
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
@@ -187,7 +187,7 @@ class _HistorySessionCardState extends State<HistorySessionCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[200]!,
@@ -375,7 +375,7 @@ class _HistorySessionCardState extends State<HistorySessionCard> {
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                color: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
               ),
               child: Column(
@@ -412,7 +412,7 @@ class _HistorySessionCardState extends State<HistorySessionCard> {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          color: isDark ? const Color(0xFF131A26) : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.red.withValues(alpha: 0.2),
@@ -488,7 +488,7 @@ class _HistorySessionCardState extends State<HistorySessionCard> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: widget.isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'حذف الامتحان',

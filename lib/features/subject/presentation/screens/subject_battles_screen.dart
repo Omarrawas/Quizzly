@@ -186,7 +186,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4)),
@@ -223,7 +223,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4)),
@@ -248,7 +248,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
             decoration: InputDecoration(
               hintText: 'أدخل الكود هنا',
               filled: true,
-              fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+              fillColor: isDark ? const Color(0xFF080C14) : Colors.grey[50],
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
@@ -291,7 +291,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
             final b = battles[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: isDark ? const BorderSide(color: Colors.white10) : BorderSide.none,
@@ -399,7 +399,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'تم إنشاء التحدي!', 
@@ -418,7 +418,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : Colors.grey[100], 
+                color: isDark ? const Color(0xFF080C14) : Colors.grey[100], 
                 borderRadius: BorderRadius.circular(12)
               ),
               child: SelectableText(
@@ -532,7 +532,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -699,7 +699,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                                           Container(
                                             margin: const EdgeInsets.only(bottom: 8, top: 4),
                                             decoration: BoxDecoration(
-                                              color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.4) : Colors.grey[100],
+                                              color: isDark ? const Color(0xFF080C14).withValues(alpha: 0.4) : Colors.grey[100],
                                               borderRadius: BorderRadius.circular(14),
                                               border: Border.all(
                                                 color: isChapterSelected 
@@ -753,7 +753,7 @@ class _SubjectBattlesScreenState extends State<SubjectBattlesScreen> with Single
                                                   return Container(
                                                     margin: const EdgeInsets.only(bottom: 6),
                                                     decoration: BoxDecoration(
-                                                      color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.15) : Colors.grey[50],
+                                                      color: isDark ? const Color(0xFF080C14).withValues(alpha: 0.15) : Colors.grey[50],
                                                       borderRadius: BorderRadius.circular(12),
                                                       border: Border.all(
                                                         color: isLessonSelected 

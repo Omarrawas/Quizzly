@@ -13,9 +13,9 @@ class AppTheme {
 
   static ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
-    final primaryColor = AppColors.primaryBlue;
-    final backgroundColor = isDark ? const Color(0xFF0F172A) : AppColors.background;
-    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final primaryColor = isDark ? const Color(0xFFCCA07A) : AppColors.primaryBlue;
+    final backgroundColor = isDark ? const Color(0xFF080C14) : AppColors.background;
+    final cardColor = isDark ? const Color(0xFF131A26) : const Color(0xFFF9F8F6);
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final textSecondaryColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
 
@@ -77,7 +77,7 @@ class AppTheme {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: cardColor,
+        backgroundColor: backgroundColor,
         foregroundColor: textColor,
         elevation: 0,
         scrolledUnderElevation: 0,

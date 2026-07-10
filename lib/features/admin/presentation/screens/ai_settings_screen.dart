@@ -392,7 +392,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.grey.withValues(alpha: 0.05),
+            color: isDark ? const Color(0xFF131A26) : Colors.grey.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.withValues(alpha: 0.2)),
           ),
@@ -400,7 +400,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
             child: DropdownButton<String>(
               value: _selectedOpenRouterModel,
               isExpanded: true,
-              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
               iconEnabledColor: textColor,
               style: GoogleFonts.inter(fontSize: 13, color: textColor),
               items: _openRouterModels.map((model) {
@@ -458,7 +458,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.grey.withValues(alpha: 0.05),
+            color: isDark ? const Color(0xFF131A26) : Colors.grey.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.withValues(alpha: 0.2)),
           ),
@@ -466,7 +466,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
             child: DropdownButton<String>(
               value: _selectedGeminiModel,
               isExpanded: true,
-              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
               iconEnabledColor: textColor,
               style: GoogleFonts.inter(fontSize: 13, color: textColor),
               items: _geminiModels.map((model) {
@@ -523,7 +523,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.grey.withValues(alpha: 0.05),
+            color: isDark ? const Color(0xFF131A26) : Colors.grey.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.withValues(alpha: 0.2)),
           ),
@@ -531,7 +531,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
             child: DropdownButton<String>(
               value: _selectedBynaraModel,
               isExpanded: true,
-              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
               iconEnabledColor: textColor,
               style: GoogleFonts.inter(fontSize: 13, color: textColor),
               items: _bynaraModels.map((model) {

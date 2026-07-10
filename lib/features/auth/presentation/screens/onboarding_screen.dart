@@ -77,7 +77,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final contentService = context.read<ContentService>();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -137,7 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary),
                   prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  fillColor: isDark ? const Color(0xFF131A26) : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -353,7 +353,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   return Card(
                     elevation: 0,
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: isDark ? const Color(0xFF131A26) : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

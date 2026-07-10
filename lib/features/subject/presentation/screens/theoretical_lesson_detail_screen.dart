@@ -49,7 +49,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
     final attachments = data['attachments'] != null ? List<Map<String, dynamic>>.from(data['attachments']) : [];
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context, isDark),
@@ -235,7 +235,7 @@ class _TheoreticalLessonDetailScreenState extends State<TheoreticalLessonDetailS
       expandedHeight: 0,
       pinned: true,
       elevation: 0,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       leading: IconButton(
         icon: Icon(
           isRtl ? Icons.arrow_forward_ios_rounded : Icons.arrow_back_ios_new_rounded, 

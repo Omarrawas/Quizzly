@@ -165,7 +165,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         title: Text(
           'رابط ذهني للحفظ',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
@@ -425,7 +425,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.all(28),
@@ -556,7 +556,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: _buildAppBar(isDark),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -602,7 +602,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
   PreferredSizeWidget _buildAppBar(bool isDark) {
     final total = _correct + _wrong;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.close_rounded),
@@ -697,7 +697,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 10, offset: const Offset(0, 2))],
@@ -815,7 +815,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
         final isCorrect = q.correctOptionIds.contains(option.id);
         final revealed = _answerState != AnswerState.unanswered;
 
-        Color bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+        Color bgColor = isDark ? const Color(0xFF131A26) : Colors.white;
         Color borderColor = isDark ? Colors.white12 : AppColors.borderLight;
         Color textColor = isDark ? Colors.white : AppColors.textPrimary;
         IconData? trailingIcon;
@@ -949,7 +949,7 @@ class _PracticeSessionScreenState extends State<PracticeSessionScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, -4))],
       ),

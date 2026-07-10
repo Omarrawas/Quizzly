@@ -177,7 +177,7 @@ class _AudioExplanationPlayerState extends State<AudioExplanationPlayer> {
                   style: GoogleFonts.cairo(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF131A26),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -288,7 +288,7 @@ class PdfExplanationViewer extends StatelessWidget {
                     style: GoogleFonts.cairo(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      color: isDark ? Colors.white : const Color(0xFF131A26),
                     ),
                   ),
                   const SizedBox(height: 2),

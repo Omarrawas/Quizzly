@@ -399,9 +399,9 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
 
     return Scaffold(
       backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+          isDark ? const Color(0xFF080C14) : const Color(0xFFF1F5F9),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -426,7 +426,7 @@ class _BatchCodesPreviewScreenState extends State<BatchCodesPreviewScreen> {
         children: [
           // ── Filter Bar ──────────────────────────────────
           Container(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
@@ -638,7 +638,7 @@ class _CodeTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: statusColor.withValues(alpha: 0.25), width: 1.2),

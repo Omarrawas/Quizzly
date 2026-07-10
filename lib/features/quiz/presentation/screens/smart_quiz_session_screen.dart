@@ -214,7 +214,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
       builder: (_) => Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
@@ -286,7 +286,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: _buildAppBar(isDark),
       body: _loading
           ? _buildLoadingState(isDark)
@@ -337,7 +337,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
 
   PreferredSizeWidget _buildAppBar(bool isDark) {
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       leading: IconButton(
         icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : AppColors.textPrimary),
@@ -383,7 +383,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: [
@@ -432,7 +432,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
         final isCorrect = q.correctOptionIds.contains(option.id);
         final revealed = _answerState != AnswerState.unanswered;
 
-        Color bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+        Color bgColor = isDark ? const Color(0xFF131A26) : Colors.white;
         Color borderColor = isDark ? Colors.white10 : AppColors.borderLight;
         Color textColor = isDark ? Colors.white : AppColors.textPrimary;
         
@@ -523,7 +523,7 @@ class _SmartQuizSessionScreenState extends State<SmartQuizSessionScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         border: isDark ? const Border(top: BorderSide(color: Colors.white10)) : null,
       ),
       child: SizedBox(

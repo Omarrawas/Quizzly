@@ -170,7 +170,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 )
                               : null,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          fillColor: isDark ? const Color(0xFF131A26) : Colors.white,
                           contentPadding: const EdgeInsets.symmetric(vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -218,7 +218,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            color: isDark ? const Color(0xFF131A26) : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -325,7 +325,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                               child: Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                                 decoration: BoxDecoration(
-                                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                                  color: isDark ? const Color(0xFF080C14) : const Color(0xFFF1F5F9),
                                                   borderRadius: BorderRadius.circular(12),
                                                   border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1)),
                                                 ),
@@ -333,7 +333,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                                   child: DropdownButton<String>(
                                                     isExpanded: true,
                                                     value: (role == 'admin' || role == 'teacher' || role == 'user') ? role : (role == 'super_admin' || role == 'superAdmin' ? 'admin' : 'user'),
-                                                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                                    dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                                                     icon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 20, color: AppColors.primaryBlue),
                                                     style: GoogleFonts.cairo(
                                                       color: isDark ? Colors.white : Colors.black87,

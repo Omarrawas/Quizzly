@@ -190,7 +190,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        backgroundColor: isDark ? const Color(0xFF131A26) : const Color(0xFFF1F5F9),
         body: const Center(child: CircularProgressIndicator(color: Colors.amber)),
       );
     }
@@ -210,7 +210,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
     final progress = (_currentIndex + 1) / _questions.length;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -221,7 +221,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF0F172A).withValues(alpha: 0.05), 
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF080C14).withValues(alpha: 0.05), 
                 borderRadius: BorderRadius.circular(20)
               ),
               child: Row(
@@ -250,7 +250,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF0F172A).withValues(alpha: 0.05), 
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF080C14).withValues(alpha: 0.05), 
                 borderRadius: BorderRadius.circular(20)
               ),
               child: Row(
@@ -287,7 +287,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        color: isDark ? const Color(0xFF131A26) : Colors.white,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)),
                         boxShadow: [
@@ -406,7 +406,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), 
+            backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA), 
             body: const Center(child: CircularProgressIndicator(color: Colors.amber))
           );
         }
@@ -454,7 +454,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
         }
 
         return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
           body: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -466,7 +466,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        color: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Column(
@@ -629,7 +629,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
 
   Widget _buildWaitingScreen(bool isDark) {
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -698,7 +698,7 @@ class _BattleSessionScreenState extends State<BattleSessionScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  color: isDark ? const Color(0xFF131A26) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),

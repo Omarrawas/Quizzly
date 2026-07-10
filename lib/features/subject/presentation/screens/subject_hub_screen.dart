@@ -228,7 +228,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
           margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
               color: isDark
@@ -377,7 +377,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDark
@@ -744,7 +744,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       builder: (context) => Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
@@ -831,7 +831,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -867,7 +867,7 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+                  fillColor: isDark ? const Color(0xFF080C14) : Colors.grey[50],
                 ),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
@@ -1170,9 +1170,9 @@ class _MasteryMapSheet extends StatelessWidget {
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF1E293B)
+            ? const Color(0xFF131A26)
             : const Color(
-                0xFF0F172A,
+                0xFF080C14,
               ), // Keep it dark as it's a premium sheet style
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       ),

@@ -35,9 +35,9 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
     final userId = context.read<AuthService>().user?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
+        backgroundColor: isDark ? const Color(0xFF131A26) : const Color(0xFF080C14),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -125,7 +125,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -144,7 +144,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    color: isDark ? Colors.white : const Color(0xFF080C14),
                   ),
                 ),
                 Text(
@@ -203,7 +203,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
                     style: GoogleFonts.cairo(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      color: isDark ? Colors.white : const Color(0xFF080C14),
                     ),
                   ),
                   Text(
@@ -234,7 +234,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
       ),
@@ -274,7 +274,7 @@ class _MasteryDashboardScreenState extends State<MasteryDashboardScreen> {
           TexViewWidget(
             text: question.text,
             fontSize: 14,
-            color: isDark ? Colors.white : const Color(0xFF0F172A),
+            color: isDark ? Colors.white : const Color(0xFF080C14),
           ),
           const SizedBox(height: 12),
           Row(
@@ -372,7 +372,7 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      color: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
@@ -399,12 +399,12 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isActive 
-              ? (isDark ? Colors.white : const Color(0xFF0F172A)) 
-              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+              ? (isDark ? Colors.white : const Color(0xFF080C14)) 
+              : (isDark ? const Color(0xFF131A26) : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isActive 
-                ? (isDark ? Colors.white : const Color(0xFF0F172A)) 
+                ? (isDark ? Colors.white : const Color(0xFF080C14)) 
                 : (isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.2)),
           ),
         ),
@@ -414,7 +414,7 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
             fontSize: 12,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             color: isActive 
-                ? (isDark ? const Color(0xFF0F172A) : Colors.white) 
+                ? (isDark ? const Color(0xFF080C14) : Colors.white) 
                 : (isDark ? Colors.white60 : Colors.grey[700]),
           ),
         ),

@@ -141,7 +141,7 @@ class _TrainingSessionsScreenState extends State<TrainingSessionsScreen> {
         final session = _sessions[index];
         return Card(
           elevation: 0,
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

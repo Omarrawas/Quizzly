@@ -94,7 +94,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     final authService = context.watch<AuthService>();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       body: CustomScrollView(
         slivers: [
           // 1. Modern Header / App Bar
@@ -103,7 +103,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
             floating: true,
             pinned: true,
             elevation: 0,
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
             centerTitle: true,
             title: Text(
               'تصفح المواد',
@@ -144,7 +144,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                     colors: isDark 
-                      ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                      ? [const Color(0xFF131A26), const Color(0xFF080C14)]
                       : [Colors.white, const Color(0xFFF1F6FF)],
                   ),
                 ),
@@ -161,7 +161,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      color: isDark ? const Color(0xFF131A26) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -399,7 +399,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                   return Card(
                     elevation: 0,
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: isDark ? const Color(0xFF131A26) : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: isDark ? const BorderSide(color: Colors.white10) : BorderSide.none,
@@ -500,7 +500,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'تفعيل مادة / فصل', 
@@ -536,7 +536,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                 hintText: 'ABCD-1234',
                 hintStyle: GoogleFonts.inter(color: isDark ? Colors.white10 : Colors.grey[300]),
                 filled: true,
-                fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey[50],
+                fillColor: isDark ? const Color(0xFF080C14) : Colors.grey[50],
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
@@ -608,7 +608,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         title: Text(
           'خطأ', 
           textAlign: TextAlign.center, 
@@ -660,7 +660,7 @@ class _SemesterCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -679,7 +679,7 @@ class _SemesterCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark 
-                  ? [const Color(0xFF334155), const Color(0xFF1E293B)]
+                  ? [const Color(0xFF334155), const Color(0xFF131A26)]
                   : [AppColors.primaryBlue.withValues(alpha: 0.1), AppColors.primaryBlue.withValues(alpha: 0.02)],
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,

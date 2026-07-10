@@ -94,7 +94,7 @@ class _ActivationStep2SheetState extends State<ActivationStep2Sheet> {
           // Text Field
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: const Color(0xFFE5E2DA),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.borderLight),
             ),
@@ -229,7 +229,7 @@ class _ActivationStep3SheetState extends State<ActivationStep3Sheet> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.primaryBlue.withValues(alpha: 0.06)
-                            : const Color(0xFFF8FAFC),
+                            : const Color(0xFFE5E2DA),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isSelected
@@ -460,7 +460,7 @@ class _MethodCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: const Color(0xFFE5E2DA),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.borderLight),
         ),

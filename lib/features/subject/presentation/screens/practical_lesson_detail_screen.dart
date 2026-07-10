@@ -25,7 +25,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
     final item = widget.item;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -113,7 +113,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white,
+                          color: isDark ? const Color(0xFF131A26).withValues(alpha: 0.5) : Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: isDark ? Colors.white10 : Colors.grey[100]!),
                         ),
@@ -274,7 +274,7 @@ class _PracticalLessonDetailScreenState extends State<PracticalLessonDetailScree
       expandedHeight: 0,
       pinned: true,
       elevation: 0,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       leading: Builder(
         builder: (context) {
           final isRtl = Directionality.of(context) == TextDirection.rtl;

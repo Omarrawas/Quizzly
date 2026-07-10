@@ -76,7 +76,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(isDark),
@@ -92,7 +92,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     return SliverAppBar(
       expandedHeight: 120,
       pinned: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       leading: IconButton(
         icon: Icon(
@@ -116,7 +116,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark
-                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                  ? [const Color(0xFF131A26), const Color(0xFF080C14)]
                   : [Colors.white, const Color(0xFFF1F5F9)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -282,7 +282,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isLocked
@@ -462,7 +462,7 @@ class _TheoreticalLessonListScreenState extends State<TheoreticalLessonListScree
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [

@@ -210,15 +210,42 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        FloatingActionButton(
-          onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
-          backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
-          elevation: 4,
-          shape: const CircleBorder(),
-          child: Icon(
-            _isFabExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-            color: AppColors.primaryBlue,
-          ),
+        Builder(
+          builder: (context) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return FloatingActionButton(
+              onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
+              backgroundColor: isDark ? const Color(0xFF131A26) : Colors.transparent,
+              elevation: isDark ? 4 : 0,
+              highlightElevation: 0,
+              shape: const CircleBorder(),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: isDark ? null : const LinearGradient(
+                    colors: [Color(0xFFCB9D80), Color(0xFF9E7E6C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  color: isDark ? const Color(0xFF131A26) : null,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    if (!isDark)
+                      BoxShadow(
+                        color: const Color(0xFF9E7E6C).withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                  ],
+                ),
+                child: Icon(
+                  _isFabExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                  color: isDark ? Theme.of(context).primaryColor : Colors.white,
+                ),
+              ),
+            );
+          }
         ),
       ],
     );
@@ -340,7 +367,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF8FAFC),
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE5E2DA),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: isSelected ? const Color(0xFF2563EB) : AppColors.borderLight),
         ),
@@ -405,7 +432,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           floatingActionButton: filteredDocs.isNotEmpty ? _buildExpandableFab(filteredDocs) : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
           appBar: AppBar(
-            backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF131A26) : Colors.white,
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
@@ -467,7 +494,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF131A26) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : AppColors.borderLight),
                   boxShadow: [

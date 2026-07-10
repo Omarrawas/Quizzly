@@ -126,7 +126,7 @@ class _ManageSalesLocationsScreenState
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
           surfaceTintColor: Colors.transparent,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -141,7 +141,7 @@ class _ManageSalesLocationsScreenState
           content: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+              color: isDark ? const Color(0xFF080C14) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDark ? Colors.white10 : Colors.black12,
@@ -152,7 +152,7 @@ class _ManageSalesLocationsScreenState
               child: DropdownButton<String>(
                 value: selected,
                 isExpanded: true,
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                 icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: isDark ? Colors.white70 : AppColors.primaryBlue,
@@ -212,7 +212,7 @@ class _ManageSalesLocationsScreenState
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
@@ -290,7 +290,7 @@ class _ManageSalesLocationsScreenState
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
@@ -363,7 +363,7 @@ class _ManageSalesLocationsScreenState
 
     return Scaffold(
       backgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text('إدارة نقاط البيع',
             style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
@@ -455,7 +455,7 @@ class _ManageSalesLocationsScreenState
                               margin: const EdgeInsets.only(bottom: 14),
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? const Color(0xFF1E293B)
+                                    ? const Color(0xFF131A26)
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(

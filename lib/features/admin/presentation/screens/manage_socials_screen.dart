@@ -129,7 +129,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text(
           'ضبط وسائل التواصل',
@@ -277,7 +277,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark ? Colors.white10 : AppColors.borderLight,
@@ -320,7 +320,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
             ),
             prefixIcon: Icon(icon, color: AppColors.primaryBlue, size: 20),
             filled: true,
-            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            fillColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -384,7 +384,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
                 color: isDark ? Colors.white24 : Colors.grey,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              fillColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,

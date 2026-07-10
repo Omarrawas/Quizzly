@@ -147,7 +147,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text('تعديل بيانات المستخدم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -293,7 +293,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      color: isDark ? const Color(0xFF131A26) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                       boxShadow: [
@@ -356,7 +356,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButtonFormField<String>(
                                     initialValue: _selectedRole == 'super_admin' || _selectedRole == 'superAdmin' ? 'admin' : _selectedRole,
-                                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                    dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
                                     style: GoogleFonts.cairo(
                                       color: isDark ? Colors.white : Colors.black87,
                                       fontWeight: FontWeight.bold,
@@ -400,7 +400,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      color: isDark ? const Color(0xFF131A26) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                       boxShadow: [
@@ -596,7 +596,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
         labelStyle: GoogleFonts.cairo(color: isDark ? Colors.white60 : Colors.grey),
         prefixIcon: Icon(icon, color: AppColors.primaryBlue),
         filled: true,
-        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        fillColor: isDark ? const Color(0xFF131A26) : Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
@@ -622,7 +622,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
         ),
@@ -666,7 +666,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
   }) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -834,7 +834,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'تأكيد إلغاء الارتباط',

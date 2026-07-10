@@ -205,7 +205,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -428,7 +428,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Container(
@@ -711,9 +711,9 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     return Scaffold(
       floatingActionButton: _buildExpandableFab(isDark),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF080C14) : Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Row(
@@ -896,7 +896,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isDark ? Colors.white10 : AppColors.borderLight),
                 boxShadow: [
@@ -1029,7 +1029,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight)),
       ),
       child: Column(
@@ -1082,7 +1082,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
                       decoration: BoxDecoration(
                         color: isSelected 
                             ? const Color(0xFFF3E8FF).withValues(alpha: isDark ? 0.2 : 1.0) 
-                            : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC)),
+                            : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E2DA)),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isSelected 
@@ -1268,12 +1268,34 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
         ],
         FloatingActionButton(
           onPressed: () => setState(() => _isFabExpanded = !_isFabExpanded),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          elevation: 4,
+          backgroundColor: isDark ? const Color(0xFF131A26) : Colors.transparent,
+          elevation: isDark ? 4 : 0,
+          highlightElevation: 0,
           shape: const CircleBorder(),
-          child: Icon(
-            _isFabExpanded ? Icons.close : Icons.more_vert,
-            color: AppColors.primaryBlue,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: isDark ? null : const LinearGradient(
+                colors: [Color(0xFFCB9D80), Color(0xFF9E7E6C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              color: isDark ? const Color(0xFF131A26) : null,
+              shape: BoxShape.circle,
+              boxShadow: [
+                if (!isDark)
+                  BoxShadow(
+                    color: const Color(0xFF9E7E6C).withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+              ],
+            ),
+            child: Icon(
+              _isFabExpanded ? Icons.close : Icons.more_vert,
+              color: isDark ? Theme.of(context).primaryColor : Colors.white,
+            ),
           ),
         ),
       ],
@@ -1294,7 +1316,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -1310,7 +1332,7 @@ class _ExamBookModeScreenState extends State<ExamBookModeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(

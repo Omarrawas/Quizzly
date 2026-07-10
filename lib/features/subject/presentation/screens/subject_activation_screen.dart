@@ -224,7 +224,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.grey[100],
+                        color: isDark ? const Color(0xFF131A26) : Colors.grey[100],
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -382,7 +382,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: color.withValues(alpha: 0.1), width: 2),
           boxShadow: [

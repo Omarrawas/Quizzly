@@ -242,7 +242,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
     return SliverAppBar(
       expandedHeight: 100,
       pinned: true,
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF080C14),
       elevation: 0,
       leading: IconButton(
         icon: Icon(
@@ -261,7 +261,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
         background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+              colors: [Color(0xFF080C14), Color(0xFF131A26)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -323,7 +323,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
         padding: const EdgeInsets.all(20),
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: isDark ? Border.all(color: Colors.white10) : null,
             boxShadow: isDark ? [] : [
@@ -359,7 +359,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
           style: GoogleFonts.cairo(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : const Color(0xFF1E293B),
+            color: isDark ? Colors.white : const Color(0xFF131A26),
           ),
         ),
       ),
@@ -433,7 +433,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
                         style: GoogleFonts.cairo(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : const Color(0xFF131A26),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -486,7 +486,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1),
@@ -536,7 +536,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
                           decoration: BoxDecoration(
                             color: Colors.orange,
                             shape: BoxShape.circle,
-                            border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 1.5),
+                            border: Border.all(color: isDark ? const Color(0xFF131A26) : Colors.white, width: 1.5),
                           ),
                         ),
                       ),
@@ -554,7 +554,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
                         style: GoogleFonts.cairo(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : const Color(0xFF131A26),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -629,7 +629,7 @@ class _SubjectExploreScreenState extends State<SubjectExploreScreen> with Single
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('هذا الموضوع مخصص للمشتركين. اشترك الآن لفتحه!', style: GoogleFonts.cairo()),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF080C14),
         behavior: SnackBarBehavior.floating,
       ),
     );

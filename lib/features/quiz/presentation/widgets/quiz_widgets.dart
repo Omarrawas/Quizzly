@@ -51,7 +51,7 @@ class QuizHud extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)),
       ),
       child: Row(
@@ -168,7 +168,7 @@ class QuizExamHeader extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: isDark ? Colors.white10 : Colors.transparent),
         boxShadow: [
@@ -373,31 +373,7 @@ class QuestionCard extends StatelessWidget {
   });
 
   Color _getTagColor(String text, bool isDark) {
-    final List<Color> darkColors = [
-      const Color(0xFF38BDF8), // Sky Blue
-      const Color(0xFFF472B6), // Pink/Rose
-      const Color(0xFF34D399), // Emerald
-      const Color(0xFFFBBF24), // Amber/Yellow
-      const Color(0xFFA78BFA), // Lavender/Purple
-      const Color(0xFFFB923C), // Orange
-      const Color(0xFF2DD4BF), // Teal
-      const Color(0xFFF87171), // Coral Red
-    ];
-
-    final List<Color> lightColors = [
-      const Color(0xFF0284C7), // Deep Sky Blue
-      const Color(0xFFDB2777), // Magenta/Rose
-      const Color(0xFF059669), // Forest Emerald
-      const Color(0xFFD97706), // Amber/Brown
-      const Color(0xFF7C3AED), // Dark Purple
-      const Color(0xFFEA580C), // Dark Orange
-      const Color(0xFF0D9488), // Dark Teal
-      const Color(0xFFDC2626), // Dark Red
-    ];
-
-    final int hash = text.hashCode.abs();
-    final int index = hash % darkColors.length;
-    return isDark ? darkColors[index] : lightColors[index];
+    return isDark ? const Color(0xFFCCA07A) : const Color(0xFF7A9A86);
   }
 
   void _showNoteDialog(BuildContext context) {
@@ -406,7 +382,7 @@ class QuestionCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         title: Text('إضافة ملاحظة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
         content: TextField(
           controller: controller,
@@ -455,7 +431,7 @@ class QuestionCard extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       barrierColor: Colors.black.withValues(alpha: 0.1),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -491,7 +467,7 @@ class QuestionCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -522,18 +498,18 @@ class QuestionCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.35) : Colors.grey.shade200,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E2DA),
           width: 1.5,
         ),
         boxShadow: [
           if (isDark)
             BoxShadow(
-              color: const Color(0xFF38BDF8).withValues(alpha: 0.12),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 16,
-              spreadRadius: 2,
+              offset: const Offset(0, 4),
             )
           else
             BoxShadow(
@@ -828,30 +804,38 @@ class _OptionTile extends StatelessWidget {
     required this.onTap,
   });
 
-  Color get _bgColor {
-    if (showCorrect && isCorrect) return const Color(0xFF16A34A).withValues(alpha: 0.15);
-    if (answerState == AnswerState.unanswered) {
-      return isSelected ? const Color(0xFF38BDF8).withValues(alpha: 0.08) : Colors.transparent;
-    }
-    if (isSelected && answerState == AnswerState.wrong) {
-      return const Color(0xFFDC2626).withValues(alpha: 0.15);
-    }
-    if (isSelected && answerState == AnswerState.correct) {
-      return const Color(0xFF16A34A).withValues(alpha: 0.15);
-    }
-    return Colors.transparent;
-  }
-
-  Color get _radioColor {
-    if (showCorrect && isCorrect) return const Color(0xFF16A34A);
-    if (isSelected) return const Color(0xFF38BDF8);
-    return Colors.grey.withValues(alpha: 0.3);
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isRtl = Directionality.of(context) == TextDirection.rtl;
+
+    final successColor = isDark ? const Color(0xFF10B981) : const Color(0xFF7A9A86);
+    final errorColor = isDark ? const Color(0xFFDC2626) : const Color(0xFFC25E5E);
+    final selectedColor = isDark ? const Color(0xFFCCA07A) : const Color(0xFF8C6652);
+
+    Color getBgColor() {
+      if (showCorrect && isCorrect) return successColor.withValues(alpha: 0.15);
+      if (answerState == AnswerState.unanswered) {
+        return isSelected ? selectedColor.withValues(alpha: 0.08) : Colors.transparent;
+      }
+      if (isSelected && answerState == AnswerState.wrong) {
+        return errorColor.withValues(alpha: 0.15);
+      }
+      if (isSelected && answerState == AnswerState.correct) {
+        return successColor.withValues(alpha: 0.15);
+      }
+      return Colors.transparent;
+    }
+
+    Color getRadioColor() {
+      if (showCorrect && isCorrect) return successColor;
+      if (isSelected) return selectedColor;
+      return isDark ? Colors.white24 : const Color(0xFFC7B1A3);
+    }
+
+    final bgColor = getBgColor();
+    final radioColor = getRadioColor();
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -859,12 +843,12 @@ class _OptionTile extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _bgColor,
+          color: bgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected 
-                ? _radioColor 
-                : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
+                ? radioColor 
+                : (isDark ? const Color(0xFF131A26) : const Color(0xFFC7B1A3)),
             width: 1.5,
           ),
         ),
@@ -877,8 +861,8 @@ class _OptionTile extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: isCheckbox ? BoxShape.rectangle : BoxShape.circle,
                 borderRadius: isCheckbox ? BorderRadius.circular(6) : null,
-                border: Border.all(color: _radioColor, width: 2),
-                color: isSelected ? _radioColor : Colors.transparent,
+                border: Border.all(color: radioColor, width: 2),
+                color: isSelected ? radioColor : Colors.transparent,
               ),
               child: isSelected
                   ? Icon(
@@ -890,11 +874,11 @@ class _OptionTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             if (showCorrect && isCorrect && isRtl) ...[
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+              Icon(Icons.check_circle_rounded, color: successColor, size: 20),
               const SizedBox(width: 8),
             ],
             if (isSelected && answerState == AnswerState.wrong && isRtl) ...[
-              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+              Icon(Icons.cancel_rounded, color: errorColor, size: 20),
               const SizedBox(width: 8),
             ],
             Expanded(
@@ -910,11 +894,11 @@ class _OptionTile extends StatelessWidget {
             ),
             if (showCorrect && isCorrect && !isRtl) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+              Icon(Icons.check_circle_rounded, color: successColor, size: 20),
             ],
             if (isSelected && answerState == AnswerState.wrong && !isRtl) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 20),
+              Icon(Icons.cancel_rounded, color: errorColor, size: 20),
             ],
           ],
         ),
@@ -933,7 +917,7 @@ class _QuestionMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? const Color(0xFF131A26) : Colors.white,
       icon: Icon(
         Icons.more_vert_rounded,
         color: isDark ? Colors.white60 : AppColors.textSecondary,
@@ -1003,7 +987,7 @@ void showNoteDialog(BuildContext context, int questionNumber) {
   showDialog(
     context: context,
     builder: (_) => AlertDialog(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         'إضافة ملاحظة',
@@ -1018,7 +1002,7 @@ void showNoteDialog(BuildContext context, int questionNumber) {
           hintText: 'ملاحظتك...',
           hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary),
           filled: true,
-          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC),
+          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E2DA),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight),
@@ -1068,7 +1052,7 @@ void showReportDialog(BuildContext context, QuizQuestion question) {
         return Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             title: Text(
               'الإبلاغ عن السؤال (#${question.number})',
@@ -1093,7 +1077,7 @@ void showReportDialog(BuildContext context, QuizQuestion question) {
                       hintText: 'اكتب تفاصيل المشكلة هنا...',
                       hintStyle: GoogleFonts.cairo(color: isDark ? Colors.white38 : AppColors.textSecondary),
                       filled: true,
-                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC),
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE5E2DA),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: isDark ? Colors.white10 : AppColors.borderLight),
@@ -1331,7 +1315,7 @@ class _AutoCloseExplanationBottomSheetState extends State<AutoCloseExplanationBo
         maxHeight: MediaQuery.of(context).size.height * 0.45,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -1364,7 +1348,7 @@ class _AutoCloseExplanationBottomSheetState extends State<AutoCloseExplanationBo
                     style: GoogleFonts.cairo(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      color: isDark ? Colors.white : const Color(0xFF131A26),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1419,7 +1403,7 @@ void showExplanationDialog(BuildContext context, QuizQuestion question) {
 
   showModalBottomSheet(
     context: context,
-    backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+    backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
     barrierColor: Colors.black.withValues(alpha: 0.1),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1483,7 +1467,7 @@ class _AutoCloseNoteBottomSheetState extends State<AutoCloseNoteBottomSheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.45,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -1516,7 +1500,7 @@ class _AutoCloseNoteBottomSheetState extends State<AutoCloseNoteBottomSheet> {
                     style: GoogleFonts.cairo(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      color: isDark ? Colors.white : const Color(0xFF131A26),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1624,14 +1608,18 @@ class QuestionBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final noteColor = isDark ? const Color(0xFF10B981) : const Color(0xFF7A9A86);
+    final checkColor = isDark ? const Color(0xFF10B981) : const Color(0xFF7A9A86);
+    final canCheckColor = isDark ? const Color(0xFFCCA07A) : const Color(0xFF8C6652);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+        color: Colors.transparent,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
         border: Border(
           top: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade200,
+            color: isDark ? const Color(0xFF131A26) : const Color(0xFFE5E2DA),
             width: 1,
           ),
         ),
@@ -1657,8 +1645,8 @@ class QuestionBottomBar extends StatelessWidget {
           // 2. Note Button
           _ActionButton(
             icon: hasNote ? Icons.note_alt_rounded : Icons.note_add_outlined,
-            color: hasNote ? const Color(0xFF10B981) : (isDark ? Colors.white60 : AppColors.textSecondary),
-            customBgColor: hasNote ? const Color(0xFF10B981).withValues(alpha: 0.15) : null,
+            color: hasNote ? noteColor : (isDark ? Colors.white60 : AppColors.textSecondary),
+            customBgColor: hasNote ? noteColor.withValues(alpha: 0.15) : null,
             onTap: onNoteTap,
           ),
           
@@ -1666,11 +1654,11 @@ class QuestionBottomBar extends StatelessWidget {
           _ActionButton(
             icon: isChecked ? Icons.check_circle_rounded : Icons.check_circle_outlined,
             color: isChecked 
-                ? const Color(0xFF10B981) 
-                : (canCheck ? const Color(0xFF38BDF8) : (isDark ? Colors.white24 : Colors.grey.shade400)),
+                ? checkColor 
+                : (canCheck ? canCheckColor : (isDark ? Colors.white24 : Colors.grey.shade400)),
             customBgColor: isChecked 
-                ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                : (canCheck ? const Color(0xFF38BDF8).withValues(alpha: 0.15) : null),
+                ? checkColor.withValues(alpha: 0.15)
+                : (canCheck ? canCheckColor.withValues(alpha: 0.15) : null),
             onTap: canCheck ? onCheckTap : null,
           ),
 
@@ -1716,10 +1704,10 @@ class _ActionButton extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: customBgColor ?? (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100),
+            color: customBgColor ?? (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.transparent,
+              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.transparent,
               width: 1,
             ),
           ),

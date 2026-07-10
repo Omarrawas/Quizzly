@@ -441,7 +441,7 @@ class _VideoPlayerControlsState extends State<VideoPlayerControls> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF1E293B),
+          color: Color(0xFF131A26),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(

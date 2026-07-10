@@ -165,7 +165,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
           return Transform.scale(
             scale: val,
             child: AlertDialog(
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: const Color(0xFF131A26),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -249,7 +249,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF131A26),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -324,7 +324,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
 
     if (_checkingReset || userId == null) {
       return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -342,7 +342,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
         }
 
     return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -366,7 +366,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
     return SliverAppBar(
       expandedHeight: 200,
       pinned: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -377,11 +377,11 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
               colors: isDark
                   ? [
                       currentMeta['color'].withValues(alpha: 0.15),
-                      const Color(0xFF0F172A),
+                      const Color(0xFF080C14),
                     ]
                   : [
                       currentMeta['color'].withValues(alpha: 0.1),
-                      const Color(0xFFF8FAFC),
+                      const Color(0xFFE5E2DA),
                     ],
             ),
           ),
@@ -442,7 +442,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.grey[200]!,
@@ -504,7 +504,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
                 color: isSelected
                     ? meta['color'].withValues(alpha: 0.15)
                     : isDark
-                        ? const Color(0xFF1E293B)
+                        ? const Color(0xFF131A26)
                         : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
@@ -631,7 +631,7 @@ class _SubjectLeagueScreenState extends State<SubjectLeagueScreen> {
             return Container(
               margin: const EdgeInsets.symmetric(vertical: 4),
               decoration: BoxDecoration(
-                color: zoneBg ?? (isDark ? const Color(0xFF1E293B) : Colors.white),
+                color: zoneBg ?? (isDark ? const Color(0xFF131A26) : Colors.white),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isMe

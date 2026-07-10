@@ -29,7 +29,7 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         foregroundColor: isDark ? Colors.white : AppColors.textPrimary,
       ),
       body: Column(
@@ -39,7 +39,7 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> {
             margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.grey[200],
+              color: isDark ? const Color(0xFF131A26) : Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -295,7 +295,7 @@ class _ReportCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: isDark ? [] : [

@@ -280,7 +280,7 @@ class _VideoPreviewWidgetState extends State<VideoPreviewWidget>
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: isDark ? Colors.white12 : Colors.black12, width: 1),
           boxShadow: [

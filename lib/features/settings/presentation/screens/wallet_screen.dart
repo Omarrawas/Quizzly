@@ -114,7 +114,7 @@ class _WalletScreenState extends State<WalletScreen> {
     final userId = context.read<AuthService>().user?.uid;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text('محفظتي', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -226,7 +226,7 @@ class _WalletScreenState extends State<WalletScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
           ),
@@ -252,7 +252,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         color: isDark ? Colors.white24 : Colors.grey,
                       ),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      fillColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -431,7 +431,7 @@ class _WalletScreenState extends State<WalletScreen> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: isDark ? const Color(0xFF131A26) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: isDark ? Colors.white10 : Colors.grey[100]!),
               ),
@@ -499,7 +499,7 @@ class _WalletScreenState extends State<WalletScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'شحن الرصيد عبر شام كاش',
@@ -536,7 +536,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   hintText: 'مثال: 10000',
                   hintStyle: GoogleFonts.tajawal(color: Colors.grey),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  fillColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -622,7 +622,7 @@ class _WalletScreenState extends State<WalletScreen> {
           }
 
           return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
               'تحويل الرصيد',
@@ -656,7 +656,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            color: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isDark ? Colors.white10 : Colors.black12,
@@ -714,7 +714,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            color: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isDark ? Colors.white10 : Colors.black12,
@@ -931,7 +931,7 @@ class _WalletScreenState extends State<WalletScreen> {
           }
 
           return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
               'طلب الشحن قيد الانتظار',

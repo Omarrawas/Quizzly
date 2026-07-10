@@ -832,7 +832,7 @@ class _StaticExamQuestionSelectorState extends State<StaticExamQuestionSelector>
             'اختر الفصل أو الدرس للتصفية',
             style: GoogleFonts.tajawal(fontSize: 14),
           ),
-          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          dropdownColor: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           items: items,
           onChanged: (String? value) {

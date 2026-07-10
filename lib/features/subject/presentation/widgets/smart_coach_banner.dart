@@ -29,7 +29,7 @@ class SmartCoachBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.psychology_rounded, color: Color(0xFFDC2626), size: 28),

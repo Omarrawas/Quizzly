@@ -23,7 +23,7 @@ class ReadinessDetailScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF080C14) : const Color(0xFFE5E2DA),
       appBar: AppBar(
         title: Text(
           'تفاصيل الجاهزية', 
@@ -77,7 +77,7 @@ class ReadinessDetailScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
@@ -210,7 +210,7 @@ class ReadinessDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -259,7 +259,7 @@ class ReadinessDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  color: isDark ? const Color(0xFF131A26) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.1)),
                 ),
@@ -272,7 +272,7 @@ class ReadinessDetailScreen extends StatelessWidget {
                       style: GoogleFonts.cairo(
                         fontSize: 16, 
                         fontWeight: FontWeight.bold, 
-                        color: isDark ? Colors.white : const Color(0xFF0F172A)
+                        color: isDark ? Colors.white : const Color(0xFF080C14)
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -304,7 +304,7 @@ class ReadinessDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
