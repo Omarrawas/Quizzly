@@ -262,11 +262,29 @@ class ContentService {
             }
           }
 
+          final subjectActivationType = subjectData['activationType']?.toString() ?? 'free';
+          final price = (subjectData['paidPrice'] as num?)?.toDouble() ??
+                        (subjectData['price'] as num?)?.toDouble() ??
+                        0.0;
+          
+          final isFreeSubject = subjectActivationType == 'free' || price <= 0;
+          final isActivated = docData['isActivated'] == true;
+
+          final displayActivationType = isFreeSubject 
+              ? 'free' 
+              : (isActivated ? (docData['activationType'] ?? subjectActivationType) : subjectActivationType);
+              
+          final displayStatus = isFreeSubject 
+              ? 'active' 
+              : (isActivated ? 'active' : 'locked');
+
           return {
             ...subjectData,
             'id': subjectDoc.id,
             'addedAt': docData['addedAt'] ?? docData['activatedAt'],
-            'activationType': docData['activationType'],
+            'activationType': displayActivationType,
+            'status': displayStatus,
+            'isActivated': isActivated,
             'paidPrice': docData['price'],
             ...hierarchy,
           };

@@ -5,18 +5,21 @@ import 'package:flutter/foundation.dart';
 import 'package:quizzly/features/quiz/domain/services/ai_grading_service.dart';
 import 'package:quizzly/core/utils/math_utils.dart';
 
+final RegExp _blockMathRegex = RegExp(r'\$\$(.*?)\$\$', dotAll: true);
+final RegExp _inlineMathRegex = RegExp(r'\$([^\$\s](?:[^\$]*?[^\$\s])?)\$');
+
 String _convertDollarsToParentheses(String text) {
   if (text.isEmpty) return text;
   
   // 1. Convert block math: $$ ... $$ -> \[ ... \]
   String processed = text.replaceAllMapped(
-    RegExp(r'\$\$(.*?)\$\$', dotAll: true),
+    _blockMathRegex,
     (match) => '\\[${match.group(1)}\\]',
   );
 
   // 2. Convert inline math: $ ... $ -> \( ... \)
   processed = processed.replaceAllMapped(
-    RegExp(r'\$([^\$\s](?:[^\$]*?[^\$\s])?)\$'),
+    _inlineMathRegex,
     (match) => '\\(${match.group(1)}\\)',
   );
 
@@ -106,6 +109,45 @@ class PDFParsingService {
     ),
   );
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String _getApiUrl(AIProvider provider) {
+    if (kIsWeb) {
+      if (Uri.base.host == 'localhost') {
+        switch (provider) {
+          case AIProvider.gemini:
+            return 'https://generativelanguage.googleapis.com';
+          case AIProvider.bynara:
+            return 'https://router.bynara.id';
+          case AIProvider.groq:
+            return 'https://api.groq.com';
+          case AIProvider.openRouter:
+            return 'https://openrouter.ai';
+        }
+      } else {
+        switch (provider) {
+          case AIProvider.gemini:
+            return 'https://generativelanguage.googleapis.com';
+          case AIProvider.bynara:
+            return '/api/bynara';
+          case AIProvider.groq:
+            return '/api/groq';
+          case AIProvider.openRouter:
+            return '/api/openrouter';
+        }
+      }
+    } else {
+      switch (provider) {
+        case AIProvider.gemini:
+          return 'https://generativelanguage.googleapis.com';
+        case AIProvider.bynara:
+          return 'https://router.bynara.id';
+        case AIProvider.groq:
+          return 'https://api.groq.com';
+        case AIProvider.openRouter:
+          return 'https://openrouter.ai';
+      }
+    }
+  }
 
   Future<List<ExtractedQuestion>> parsePDF(
     Uint8List pdfBytes, {
@@ -370,13 +412,14 @@ CRITICAL REQUIREMENT:
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
-    final groqKey = data['groqKey']?.toString() ?? '';
+    final bynaraKey = data['bynaraKey']?.toString() ?? '';
+    final bynaraModel = data['bynaraModel']?.toString() ?? 'auto/bynara';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
         'nvidia/nemotron-3-ultra-550b-a55b:free';
 
-    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
+    if (geminiKey.isEmpty && bynaraKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception('لم يتم ضبط مفاتيح الذكاء الاصطناعي في لوحة التحكم.');
     }
 
@@ -384,10 +427,10 @@ CRITICAL REQUIREMENT:
     if (retryCount == 0) {
       provider = geminiKey.isNotEmpty
           ? AIProvider.gemini
-          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+          : (bynaraKey.isNotEmpty ? AIProvider.bynara : AIProvider.openRouter);
     } else if (retryCount == 1) {
-      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
-          ? AIProvider.groq
+      provider = (geminiKey.isNotEmpty && bynaraKey.isNotEmpty)
+          ? AIProvider.bynara
           : AIProvider.openRouter;
     } else if (retryCount == 2) {
       provider = AIProvider.openRouter;
@@ -398,7 +441,7 @@ CRITICAL REQUIREMENT:
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
-        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.bynara && bynaraKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
       return parseText(
@@ -457,15 +500,14 @@ $examText
         );
         responseText =
             response.data['candidates'][0]['content']['parts'][0]['text'];
-      } else if (provider == AIProvider.groq) {
+      } else if (provider == AIProvider.bynara) {
         final response = await _dio.post(
-          'https://api.groq.com/openai/v1/chat/completions',
+          '${_getApiUrl(AIProvider.bynara)}/v1/chat/completions',
           options: dio_client.Options(
-            headers: {'Authorization': 'Bearer $groqKey'},
+            headers: {'Authorization': 'Bearer $bynaraKey'},
           ),
           data: {
-            "model": "llama-3.1-8b-instant",
-            "response_format": {"type": "json_object"},
+            "model": bynaraModel,
             "messages": [
               {"role": "user", "content": prompt},
             ],
@@ -474,7 +516,7 @@ $examText
         responseText = response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
         final response = await _dio.post(
-          'https://openrouter.ai/api/v1/chat/completions',
+          '${_getApiUrl(AIProvider.openRouter)}/api/v1/chat/completions',
           options: dio_client.Options(
             headers: {
               'Authorization': 'Bearer $openRouterKey',
@@ -579,13 +621,14 @@ $examText
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
-    final groqKey = data['groqKey']?.toString() ?? '';
+    final bynaraKey = data['bynaraKey']?.toString() ?? '';
+    final bynaraModel = data['bynaraModel']?.toString() ?? 'auto/bynara';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
         'nvidia/nemotron-3-ultra-550b-a55b:free';
 
-    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
+    if (geminiKey.isEmpty && bynaraKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception(
         'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو Groq أو OpenRouter) في لوحة التحكم أولاً.',
       );
@@ -595,10 +638,10 @@ $examText
     if (retryCount == 0) {
       provider = geminiKey.isNotEmpty
           ? AIProvider.gemini
-          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+          : (bynaraKey.isNotEmpty ? AIProvider.bynara : AIProvider.openRouter);
     } else if (retryCount == 1) {
-      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
-          ? AIProvider.groq
+      provider = (geminiKey.isNotEmpty && bynaraKey.isNotEmpty)
+          ? AIProvider.bynara
           : AIProvider.openRouter;
     } else if (retryCount == 2) {
       provider = AIProvider.openRouter;
@@ -609,7 +652,7 @@ $examText
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
-        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.bynara && bynaraKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
       return solveQuestionWithAI(
@@ -626,7 +669,7 @@ $examText
 
     final prompt =
         '''
-أنت أستاذ جامعي ومساعد أكاديمي خبير في حل المسائل التعليمية والاثباتات والاختبارات المؤتمتة. عندما يرسل لك الطالب مسألة، اتبع القواعد التالية بدقة:
+أنت أستاذ جامعى ومساعد أكاديمى خبير في حل المسائل التعليمية والاثباتات والاختبارات المؤتمتة. عندما يرسل لك الطالب مسألة، اتبع القواعد التالية بدقة:
 1. قدم الإجابة النهائية المباشرة أو الخيار الصحيح في أول سطر وبشكل بارز (Bold).
 2. قسم الحل إلى خطوات واضحة ومسلسلة: خطوة 1، خطوة 2، إلى آخره.
 3. إذا كانت المسألة رياضية أو علمية، استخدم لغة واضحة لشرح القوانين والمعادلات المستخدمة.
@@ -662,14 +705,14 @@ $optionsPrompt
         );
         responseText =
             response.data['candidates'][0]['content']['parts'][0]['text'];
-      } else if (provider == AIProvider.groq) {
+      } else if (provider == AIProvider.bynara) {
         final response = await _dio.post(
-          'https://api.groq.com/openai/v1/chat/completions',
+          '${_getApiUrl(AIProvider.bynara)}/v1/chat/completions',
           options: dio_client.Options(
-            headers: {'Authorization': 'Bearer $groqKey'},
+            headers: {'Authorization': 'Bearer $bynaraKey'},
           ),
           data: {
-            "model": "llama-3.1-8b-instant",
+            "model": bynaraModel,
             "messages": [
               {"role": "user", "content": prompt},
             ],
@@ -677,7 +720,7 @@ $optionsPrompt
         );
         responseText = response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
-        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final url = '${_getApiUrl(AIProvider.openRouter)}/api/v1/chat/completions';
         final response = await _dio.post(
           url,
           options: dio_client.Options(
@@ -741,13 +784,14 @@ $optionsPrompt
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
-    final groqKey = data['groqKey']?.toString() ?? '';
+    final bynaraKey = data['bynaraKey']?.toString() ?? '';
+    final bynaraModel = data['bynaraModel']?.toString() ?? 'auto/bynara';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
         'nvidia/nemotron-3-ultra-550b-a55b:free';
 
-    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
+    if (geminiKey.isEmpty && bynaraKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception(
         'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو Groq أو OpenRouter) في لوحة التحكم أولاً.',
       );
@@ -757,10 +801,10 @@ $optionsPrompt
     if (retryCount == 0) {
       provider = geminiKey.isNotEmpty
           ? AIProvider.gemini
-          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+          : (bynaraKey.isNotEmpty ? AIProvider.bynara : AIProvider.openRouter);
     } else if (retryCount == 1) {
-      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
-          ? AIProvider.groq
+      provider = (geminiKey.isNotEmpty && bynaraKey.isNotEmpty)
+          ? AIProvider.bynara
           : AIProvider.openRouter;
     } else if (retryCount == 2) {
       provider = AIProvider.openRouter;
@@ -771,7 +815,7 @@ $optionsPrompt
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
-        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.bynara && bynaraKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
       return generateOptionsWithAI(
@@ -821,15 +865,14 @@ $correctAnswer
         );
         responseText =
             response.data['candidates'][0]['content']['parts'][0]['text'];
-      } else if (provider == AIProvider.groq) {
+      } else if (provider == AIProvider.bynara) {
         final response = await _dio.post(
-          'https://api.groq.com/openai/v1/chat/completions',
+          '${_getApiUrl(AIProvider.bynara)}/v1/chat/completions',
           options: dio_client.Options(
-            headers: {'Authorization': 'Bearer $groqKey'},
+            headers: {'Authorization': 'Bearer $bynaraKey'},
           ),
           data: {
-            "model": "llama-3.1-8b-instant",
-            "response_format": {"type": "json_object"},
+            "model": bynaraModel,
             "messages": [
               {"role": "user", "content": prompt},
             ],
@@ -837,7 +880,7 @@ $correctAnswer
         );
         responseText = response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
-        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final url = '${_getApiUrl(AIProvider.openRouter)}/api/v1/chat/completions';
         final response = await _dio.post(
           url,
           options: dio_client.Options(
@@ -899,48 +942,30 @@ $correctAnswer
 
   String _escapeRawBackslashes(String jsonStr) {
     final sb = StringBuffer();
-    for (int i = 0; i < jsonStr.length; i++) {
+    final len = jsonStr.length;
+    for (int i = 0; i < len; i++) {
       final char = jsonStr[i];
       if (char == '\\') {
-        if (i + 1 < jsonStr.length) {
+        if (i + 1 < len) {
           final nextChar = jsonStr[i + 1];
           bool isControl = false;
           if (nextChar == '"' || nextChar == '\\' || nextChar == '/') {
             isControl = true;
           } else if (nextChar == 'n') {
             isControl = true;
-          } else if (nextChar == 't') {
-            if (i + 2 < jsonStr.length) {
+          } else if (nextChar == 't' || nextChar == 'r' || nextChar == 'b' || nextChar == 'f') {
+            if (i + 2 < len) {
               final afterNext = jsonStr[i + 2];
-              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
-            } else {
-              isControl = true;
-            }
-          } else if (nextChar == 'r') {
-            if (i + 2 < jsonStr.length) {
-              final afterNext = jsonStr[i + 2];
-              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
-            } else {
-              isControl = true;
-            }
-          } else if (nextChar == 'b') {
-            if (i + 2 < jsonStr.length) {
-              final afterNext = jsonStr[i + 2];
-              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
-            } else {
-              isControl = true;
-            }
-          } else if (nextChar == 'f') {
-            if (i + 2 < jsonStr.length) {
-              final afterNext = jsonStr[i + 2];
-              isControl = !RegExp(r'[a-zA-Z]').hasMatch(afterNext);
+              final code = afterNext.codeUnitAt(0);
+              final isAlpha = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+              isControl = !isAlpha;
             } else {
               isControl = true;
             }
           } else if (nextChar == 'u') {
-            if (i + 5 < jsonStr.length) {
+            if (i + 5 < len) {
               final hex = jsonStr.substring(i + 2, i + 6);
-              isControl = RegExp(r'^[0-9a-fA-F]{4}$').hasMatch(hex);
+              isControl = _isHex4(hex);
             }
           }
 
@@ -959,6 +984,18 @@ $correctAnswer
     return sb.toString();
   }
 
+  bool _isHex4(String str) {
+    if (str.length != 4) return false;
+    for (int i = 0; i < 4; i++) {
+      final code = str.codeUnitAt(i);
+      final isDigit = code >= 48 && code <= 57; // 0-9
+      final isLower = code >= 97 && code <= 102; // a-f
+      final isUpper = code >= 65 && code <= 70; // A-F
+      if (!isDigit && !isLower && !isUpper) return false;
+    }
+    return true;
+  }
+
   Future<String> formatOptionWithAI(
     String optionText, {
     int retryCount = 0,
@@ -974,13 +1011,14 @@ $correctAnswer
     final data = doc.data()!;
     final geminiKey = data['geminiKey']?.toString() ?? '';
     final geminiModel = data['geminiModel']?.toString() ?? 'gemini-3.5-flash';
-    final groqKey = data['groqKey']?.toString() ?? '';
+    final bynaraKey = data['bynaraKey']?.toString() ?? '';
+    final bynaraModel = data['bynaraModel']?.toString() ?? 'auto/bynara';
     final openRouterKey = data['openRouterKey']?.toString() ?? '';
     final openRouterModel =
         data['openRouterModel']?.toString() ??
         'nvidia/nemotron-3-ultra-550b-a55b:free';
 
-    if (geminiKey.isEmpty && groqKey.isEmpty && openRouterKey.isEmpty) {
+    if (geminiKey.isEmpty && bynaraKey.isEmpty && openRouterKey.isEmpty) {
       throw Exception(
         'يرجى ضبط مفاتيح الذكاء الاصطناعي (Gemini أو Groq أو OpenRouter) في لوحة التحكم أولاً.',
       );
@@ -990,10 +1028,10 @@ $correctAnswer
     if (retryCount == 0) {
       provider = geminiKey.isNotEmpty
           ? AIProvider.gemini
-          : (groqKey.isNotEmpty ? AIProvider.groq : AIProvider.openRouter);
+          : (bynaraKey.isNotEmpty ? AIProvider.bynara : AIProvider.openRouter);
     } else if (retryCount == 1) {
-      provider = (geminiKey.isNotEmpty && groqKey.isNotEmpty)
-          ? AIProvider.groq
+      provider = (geminiKey.isNotEmpty && bynaraKey.isNotEmpty)
+          ? AIProvider.bynara
           : AIProvider.openRouter;
     } else if (retryCount == 2) {
       provider = AIProvider.openRouter;
@@ -1004,7 +1042,7 @@ $correctAnswer
     }
 
     if ((provider == AIProvider.gemini && geminiKey.isEmpty) ||
-        (provider == AIProvider.groq && groqKey.isEmpty) ||
+        (provider == AIProvider.bynara && bynaraKey.isEmpty) ||
         (provider == AIProvider.openRouter && openRouterKey.isEmpty)) {
       currentErrors.add('${provider.name}: مفتاح API فارغ');
       return formatOptionWithAI(
@@ -1057,14 +1095,14 @@ $optionText
         );
         responseText =
             response.data['candidates'][0]['content']['parts'][0]['text'];
-      } else if (provider == AIProvider.groq) {
+      } else if (provider == AIProvider.bynara) {
         final response = await _dio.post(
-          'https://api.groq.com/openai/v1/chat/completions',
+          '${_getApiUrl(AIProvider.bynara)}/v1/chat/completions',
           options: dio_client.Options(
-            headers: {'Authorization': 'Bearer $groqKey'},
+            headers: {'Authorization': 'Bearer $bynaraKey'},
           ),
           data: {
-            "model": "llama-3.1-8b-instant",
+            "model": bynaraModel,
             "messages": [
               {"role": "user", "content": prompt},
             ],
@@ -1072,7 +1110,7 @@ $optionText
         );
         responseText = response.data['choices'][0]['message']['content'];
       } else if (provider == AIProvider.openRouter) {
-        final url = 'https://openrouter.ai/api/v1/chat/completions';
+        final url = '${_getApiUrl(AIProvider.openRouter)}/api/v1/chat/completions';
         final response = await _dio.post(
           url,
           options: dio_client.Options(

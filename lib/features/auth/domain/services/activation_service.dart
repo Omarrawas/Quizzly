@@ -6,15 +6,34 @@ class ActivationService {
   /// Checks if a user has activated a specific subject
   Future<bool> isSubjectActivated(String userId, String subjectId) async {
     try {
-      final subjectDoc = await _db
+      // 1. Fetch the subject itself to see if it is free or requires activation
+      final subjectDoc = await _db.collection('subjects').doc(subjectId).get();
+      if (!subjectDoc.exists) return false;
+      
+      final subjectData = subjectDoc.data()!;
+      final subjectActivationType = subjectData['activationType']?.toString() ?? 'free';
+      final price = (subjectData['paidPrice'] as num?)?.toDouble() ??
+                    (subjectData['price'] as num?)?.toDouble() ??
+                    0.0;
+
+      // If the subject itself is free, it is always activated
+      if (subjectActivationType == 'free' || price <= 0) {
+        return true;
+      }
+
+      // 2. Otherwise, check the user's active_subjects document
+      final userSubjectDoc = await _db
           .collection('users')
           .doc(userId)
           .collection('active_subjects')
           .doc(subjectId)
           .get();
       
-      if (!subjectDoc.exists) return false;
-      final data = subjectDoc.data()!;
+      if (!userSubjectDoc.exists) return false;
+      final data = userSubjectDoc.data()!;
+
+      // Must be explicitly activated (isActivated == true)
+      if (data['isActivated'] != true) return false;
 
       // Optional: Check expiration if exists
       if (data.containsKey('expiresAt')) {
@@ -22,7 +41,6 @@ class ActivationService {
         if (DateTime.now().isAfter(expiresAt)) return false;
       }
 
-      // Document exists → subject is activated (covers code, purchase, and admin-grant flows)
       return true;
     } catch (e) {
       return false;

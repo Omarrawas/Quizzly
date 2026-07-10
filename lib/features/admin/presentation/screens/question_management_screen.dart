@@ -1350,9 +1350,9 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                                 selectedTopicIds.removeAt(idx);
                                 selectedTopicNames.removeAt(idx);
                               }),
-                              backgroundColor: AppColors.primaryBlue.withValues(
+                              color: WidgetStatePropertyAll(AppColors.primaryBlue.withValues(
                                 alpha: 0.1,
-                              ),
+                              )),
                               side: BorderSide.none,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -1373,7 +1373,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                               color: AppColors.primaryBlue,
                             ),
                             onPressed: _showTopicSelectionDialog,
-                            backgroundColor: Colors.transparent,
+                            color: const WidgetStatePropertyAll(Colors.transparent),
                             side: const BorderSide(
                               color: AppColors.primaryBlue,
                             ),

@@ -487,7 +487,7 @@ class _QuestionPreviewEditDialogState extends State<QuestionPreviewEditDialog> {
                                       _selectedTopicNames[idx],
                                       style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white),
                                     ),
-                                    backgroundColor: const Color(0xFF18191D),
+                                    color: const WidgetStatePropertyAll(Color(0xFF18191D)),
                                     side: const BorderSide(color: borderColor),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -788,7 +788,7 @@ class _QuestionPreviewEditDialogState extends State<QuestionPreviewEditDialog> {
                                               _selectedTopicIds.removeAt(idx);
                                               _selectedTopicNames.removeAt(idx);
                                             }),
-                                            backgroundColor: primaryColor.withValues(alpha: 0.15),
+                                            color: WidgetStatePropertyAll(primaryColor.withValues(alpha: 0.15)),
                                             side: const BorderSide(color: borderColor),
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(8),
@@ -810,7 +810,7 @@ class _QuestionPreviewEditDialogState extends State<QuestionPreviewEditDialog> {
                                             color: secondaryColor,
                                           ),
                                           onPressed: _showTopicSelectionDialog,
-                                          backgroundColor: Colors.transparent,
+                                          color: const WidgetStatePropertyAll(Colors.transparent),
                                           side: const BorderSide(color: secondaryColor),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(8),

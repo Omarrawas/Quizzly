@@ -107,15 +107,38 @@ class _SubjectHubScreenState extends State<SubjectHubScreen> {
     } catch (_) {
       // Fallback to cache if primary check fails or times out
       try {
-        final cachedDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('active_subjects')
+        final cachedSubject = await FirebaseFirestore.instance
+            .collection('subjects')
             .doc(targetSubjectId)
             .get(const GetOptions(source: Source.cache));
-        active = cachedDoc.exists;
+        final subjectActivationType = cachedSubject.data()?['activationType']?.toString() ?? 'free';
+        final price = (cachedSubject.data()?['paidPrice'] as num?)?.toDouble() ??
+                      (cachedSubject.data()?['price'] as num?)?.toDouble() ??
+                      0.0;
+        
+        if (subjectActivationType == 'free' || price <= 0) {
+          active = true;
+        } else {
+          final cachedDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('active_subjects')
+              .doc(targetSubjectId)
+              .get(const GetOptions(source: Source.cache));
+          active = cachedDoc.exists && cachedDoc.data()?['isActivated'] == true;
+        }
       } catch (_) {
-        active = false;
+        try {
+          final cachedDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('active_subjects')
+              .doc(targetSubjectId)
+              .get(const GetOptions(source: Source.cache));
+          active = cachedDoc.exists && cachedDoc.data()?['isActivated'] == true;
+        } catch (_) {
+          active = false;
+        }
       }
     }
     if (mounted && targetSubjectId == widget.subjectId) {
