@@ -485,10 +485,10 @@ class _QuestionPreviewEditDialogState extends State<QuestionPreviewEditDialog> {
                                   return Chip(
                                     label: Text(
                                       _selectedTopicNames[idx],
-                                      style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white),
+                                      style: GoogleFonts.tajawal(fontSize: 11, color: const Color(0xFFD4CFFF)),
                                     ),
-                                    color: const WidgetStatePropertyAll(Color(0xFF18191D)),
-                                    side: const BorderSide(color: borderColor),
+                                    color: const WidgetStatePropertyAll(Color(0xFF29254D)),
+                                    side: const BorderSide(color: Color(0xFF3D357A)),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -781,15 +781,22 @@ class _QuestionPreviewEditDialogState extends State<QuestionPreviewEditDialog> {
                                           return Chip(
                                             label: Text(
                                               name,
-                                              style: GoogleFonts.tajawal(fontSize: 11, color: Colors.white),
+                                              style: GoogleFonts.tajawal(
+                                                fontSize: 11,
+                                                color: const Color(0xFFD4CFFF),
+                                              ),
                                             ),
-                                            deleteIcon: const Icon(Icons.close, size: 12, color: Colors.white70),
+                                            deleteIcon: const Icon(
+                                              Icons.close,
+                                              size: 12,
+                                              color: Color(0xFFD4CFFF),
+                                            ),
                                             onDeleted: () => setState(() {
                                               _selectedTopicIds.removeAt(idx);
                                               _selectedTopicNames.removeAt(idx);
                                             }),
-                                            color: WidgetStatePropertyAll(primaryColor.withValues(alpha: 0.15)),
-                                            side: const BorderSide(color: borderColor),
+                                            color: const WidgetStatePropertyAll(Color(0xFF29254D)),
+                                            side: const BorderSide(color: Color(0xFF3D357A)),
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(8),
                                             ),

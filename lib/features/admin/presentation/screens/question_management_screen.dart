@@ -1317,7 +1317,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: 'الوقت المقدر (بالثواني)',
-                          labelStyle: GoogleFonts.cairo(),
+                          labelStyle: GoogleFonts.tajawal(),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1327,7 +1327,7 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                       const SizedBox(height: 24),
                       Text(
                         'المواضيع المرتبطة',
-                        style: GoogleFonts.cairo(
+                        style: GoogleFonts.tajawal(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1343,17 +1343,22 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                             return Chip(
                               label: Text(
                                 name,
-                                style: GoogleFonts.cairo(fontSize: 12),
+                                style: GoogleFonts.tajawal(
+                                  fontSize: 11,
+                                  color: const Color(0xFFD4CFFF),
+                                ),
                               ),
-                              deleteIcon: const Icon(Icons.close, size: 14),
+                              deleteIcon: const Icon(
+                                Icons.close,
+                                size: 12,
+                                color: Color(0xFFD4CFFF),
+                              ),
                               onDeleted: () => setState(() {
                                 selectedTopicIds.removeAt(idx);
                                 selectedTopicNames.removeAt(idx);
                               }),
-                              color: WidgetStatePropertyAll(AppColors.primaryBlue.withValues(
-                                alpha: 0.1,
-                              )),
-                              side: BorderSide.none,
+                              color: const WidgetStatePropertyAll(Color(0xFF29254D)),
+                              side: const BorderSide(color: Color(0xFF3D357A)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -1362,20 +1367,21 @@ class _QuestionManagementScreenState extends State<QuestionManagementScreen> {
                           ActionChip(
                             label: Text(
                               'إضافة موضوع',
-                              style: GoogleFonts.cairo(
-                                fontSize: 12,
-                                color: AppColors.primaryBlue,
+                              style: GoogleFonts.tajawal(
+                                fontSize: 11,
+                                color: const Color(0xFF6E56FF),
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             avatar: const Icon(
                               Icons.add,
-                              size: 14,
-                              color: AppColors.primaryBlue,
+                              size: 12,
+                              color: Color(0xFF6E56FF),
                             ),
                             onPressed: _showTopicSelectionDialog,
                             color: const WidgetStatePropertyAll(Colors.transparent),
                             side: const BorderSide(
-                              color: AppColors.primaryBlue,
+                              color: Color(0xFF6E56FF),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
