@@ -557,7 +557,6 @@ $examText
 
   List<ExtractedQuestion> _parseResponseJson(String responseText) {
     responseText = responseText.trim();
-    responseText = _escapeRawBackslashes(responseText);
 
     // Extract JSON block robustly by finding the outer-most list or object boundary
     int firstBracket = responseText.indexOf('[');
@@ -581,7 +580,18 @@ $examText
       responseText = responseText.substring(startIdx, endIdx + 1);
     }
 
-    var decoded = jsonDecode(responseText);
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(responseText);
+    } catch (_) {
+      try {
+        final escaped = _escapeRawBackslashes(responseText);
+        decoded = jsonDecode(escaped);
+      } catch (innerError) {
+        rethrow;
+      }
+    }
+
     if (decoded is Map) {
       // Find the first list value in the map (e.g. "questions" list)
       final listKey = decoded.keys.firstWhere(
@@ -948,8 +958,14 @@ $correctAnswer
       if (char == '\\') {
         if (i + 1 < len) {
           final nextChar = jsonStr[i + 1];
+          if (nextChar == '\\') {
+            // Already escaped backslash. Keep it as \\
+            sb.write('\\\\');
+            i++; // skip the second backslash
+            continue;
+          }
           bool isControl = false;
-          if (nextChar == '"' || nextChar == '\\' || nextChar == '/') {
+          if (nextChar == '"' || nextChar == '/') {
             isControl = true;
           } else if (nextChar == 'n') {
             isControl = true;
