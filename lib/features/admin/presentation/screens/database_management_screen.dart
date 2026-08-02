@@ -374,7 +374,11 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -919,8 +923,13 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     return InputDecoration(
       labelText: label,
       labelStyle: GoogleFonts.cairo(
-        color: isDark ? Colors.white60 : Colors.black54,
+        color: isDark ? Colors.white60 : AppColors.textSecondary,
         fontSize: 14,
+      ),
+      floatingLabelStyle: GoogleFonts.cairo(
+        color: AppColors.primaryBlue,
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
       ),
       prefixIcon: Icon(icon, color: AppColors.primaryBlue, size: 20),
       filled: true,
@@ -931,7 +940,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[200]!),
+        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[300]!),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -955,7 +964,10 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      style: GoogleFonts.cairo(fontSize: 14),
+      style: GoogleFonts.cairo(
+        fontSize: 14,
+        color: isDark ? Colors.white : AppColors.textPrimary,
+      ),
       decoration: _premiumInputDecoration(label: label, icon: icon, isDark: isDark),
     );
   }

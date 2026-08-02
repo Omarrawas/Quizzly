@@ -67,13 +67,41 @@ class AppTheme {
           fontSize: 24,
           fontWeight: FontWeight.w700,
         ),
+        titleLarge: GoogleFonts.tajawal(
+          color: textColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        titleMedium: GoogleFonts.tajawal(
+          color: textColor,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+        titleSmall: GoogleFonts.tajawal(
+          color: textColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
         bodyLarge: GoogleFonts.tajawal(
           color: textColor,
           fontSize: 16,
         ),
         bodyMedium: GoogleFonts.tajawal(
-          color: textSecondaryColor,
+          color: textColor,
           fontSize: 14,
+        ),
+        bodySmall: GoogleFonts.tajawal(
+          color: textSecondaryColor,
+          fontSize: 12,
+        ),
+        labelLarge: GoogleFonts.tajawal(
+          color: textColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        labelMedium: GoogleFonts.tajawal(
+          color: textSecondaryColor,
+          fontSize: 12,
         ),
       ),
       appBarTheme: AppBarTheme(

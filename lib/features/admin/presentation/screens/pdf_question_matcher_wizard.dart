@@ -281,6 +281,7 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
   }
 
   void _manualSearch(String query) {
+    _manualSearchQuery = query;
     if (query.trim().isEmpty) {
       setState(() => _manualSearchResults = []);
       return;
@@ -562,7 +563,7 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
       return _buildManualSearchSection(cardColor, borderColor, primaryColor);
     }
 
-    if (_suggestions.isEmpty) {
+    if (_suggestions.isEmpty && _selectedMatch == null) {
       return Container(
         decoration: BoxDecoration(
           color: cardColor,
@@ -614,8 +615,11 @@ class _PDFQuestionMatcherWizardState extends State<PDFQuestionMatcherWizard> {
       );
     }
 
-    // Suggestions exist - show best suggestion or let user pick another
-    final bestMatch = _selectedMatch ?? _suggestions.first;
+    // Suggestions exist or manual match was selected - show best suggestion or manual pick
+    final bestMatch = _selectedMatch ?? (_suggestions.isNotEmpty ? _suggestions.first : null);
+    if (bestMatch == null) {
+      return Container();
+    }
     final similarity = bestMatch['_similarity'] is double
         ? bestMatch['_similarity'] as double
         : _compareQuestions(q, bestMatch);
