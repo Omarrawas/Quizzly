@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:quizzly/features/admin/domain/services/notification_service.dart';
+import 'package:quizzly/core/services/telegram_service.dart';
+
 
 class SendNotificationScreen extends StatefulWidget {
   const SendNotificationScreen({super.key});
@@ -53,6 +55,12 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
           imageUrl: _imageUrlController.text.trim(),
           actionUrl: _actionUrlController.text.trim(),
           route: _routeController.text.trim(),
+        );
+
+        // Send Telegram Broadcast Notification (Phase 9)
+        TelegramService.notifyBroadcastAnnouncement(
+          _titleController.text.trim(),
+          _bodyController.text.trim(),
         );
       } else {
         await _notifService.sendSubjectNotification(

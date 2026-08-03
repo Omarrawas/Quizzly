@@ -5,6 +5,8 @@ import 'package:quizzly/core/theme/app_colors.dart';
 import 'package:intl/intl.dart' as intl;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:quizzly/core/services/telegram_service.dart';
+
 
 class PendingRechargesScreen extends StatefulWidget {
   const PendingRechargesScreen({super.key});
@@ -366,6 +368,9 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
         });
       });
 
+      // Send Telegram Notification (Phase 9)
+      TelegramService.notifyActivationApproved(userId, 'تم شحن رصيد بمبلغ $amount ل.س بنجاح إلى حسابك.');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -398,7 +403,7 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
     }
   }
 
-  Future<void> _handleReject(String docId) async {
+  Future<void> _handleReject(String docId, {String? userId}) async {
     setState(() {
       _isProcessing = true;
       _processingId = docId;
@@ -409,6 +414,11 @@ class _PendingRechargesScreenState extends State<PendingRechargesScreen> {
         'status': 'rejected',
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Send Telegram Notification if userId is available (Phase 9)
+      if (userId != null && userId.isNotEmpty) {
+        TelegramService.notifyPaymentRejected(userId, 'تم رفض طلب الشحن من قبل المشرف.');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

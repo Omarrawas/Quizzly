@@ -7,6 +7,7 @@ import 'package:quizzly/features/settings/presentation/screens/download_manageme
 import 'package:quizzly/features/settings/presentation/screens/user_profile_screen.dart';
 import 'package:quizzly/features/auth/domain/services/auth_service.dart';
 import 'package:quizzly/features/auth/presentation/screens/splash_screen.dart';
+
 import 'package:quizzly/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/teacher_dashboard_screen.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,8 @@ import 'package:quizzly/features/settings/presentation/screens/sales_locations_s
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
@@ -243,8 +246,16 @@ class AppDrawer extends StatelessWidget {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _launchURL(context, supportBotUrl),
                             borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              final uid = context.read<AuthService>().user?.uid;
+                              final deepLink = (uid != null && uid.isNotEmpty)
+                                  ? (supportBotUrl.contains('?')
+                                      ? '$supportBotUrl&start=$uid'
+                                      : '$supportBotUrl?start=$uid')
+                                  : supportBotUrl;
+                              _launchURL(context, deepLink);
+                            },
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Row(

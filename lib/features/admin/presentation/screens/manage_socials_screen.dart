@@ -21,6 +21,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
   final TextEditingController _facebookController = TextEditingController();
   final TextEditingController _instagramController = TextEditingController();
   final TextEditingController _supportBotController = TextEditingController();
+  final TextEditingController _supportBotTokenController = TextEditingController();
 
   bool _telegramEnabled = true;
   bool _whatsappEnabled = true;
@@ -42,6 +43,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
     _facebookController.dispose();
     _instagramController.dispose();
     _supportBotController.dispose();
+    _supportBotTokenController.dispose();
     super.dispose();
   }
 
@@ -56,7 +58,8 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
           _youtubeController.text = data['youtubeUrl'] ?? 'https://youtube.com/';
           _facebookController.text = data['facebookUrl'] ?? 'https://facebook.com/';
           _instagramController.text = data['instagramUrl'] ?? 'https://instagram.com/';
-          _supportBotController.text = data['supportBotUrl'] ?? 'https://t.me/QuizzlySupportBot';
+          _supportBotController.text = data['supportBotUrl'] ?? 'https://t.me/QuizzlySuportBot';
+          _supportBotTokenController.text = data['telegramBotToken'] ?? '';
 
           _telegramEnabled = data['telegramEnabled'] ?? true;
           _whatsappEnabled = data['whatsappEnabled'] ?? true;
@@ -71,7 +74,8 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
         _youtubeController.text = 'https://youtube.com/';
         _facebookController.text = 'https://facebook.com/';
         _instagramController.text = 'https://instagram.com/';
-        _supportBotController.text = 'https://t.me/QuizzlySupportBot';
+        _supportBotController.text = 'https://t.me/QuizzlySuportBot';
+        _supportBotTokenController.text = '';
       }
     } catch (e) {
       debugPrint('Error loading socials: $e');
@@ -90,6 +94,7 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
         'facebookUrl': _facebookController.text.trim(),
         'instagramUrl': _instagramController.text.trim(),
         'supportBotUrl': _supportBotController.text.trim(),
+        'telegramBotToken': _supportBotTokenController.text.trim(),
 
         'telegramEnabled': _telegramEnabled,
         'whatsappEnabled': _whatsappEnabled,
@@ -149,12 +154,24 @@ class _ManageSocialsScreenState extends State<ManageSocialsScreen> {
                   const SizedBox(height: 12),
                   _buildCard(
                     isDark: isDark,
-                    child: _buildTextField(
-                      controller: _supportBotController,
-                      label: 'رابط بوت التلغرام (الدعم الفني المباشر)',
-                      hint: 'مثال: https://t.me/QuizzlySupportBot',
-                      icon: Icons.smart_toy_rounded,
-                      isDark: isDark,
+                    child: Column(
+                      children: [
+                        _buildTextField(
+                          controller: _supportBotController,
+                          label: 'رابط بوت التلغرام (الدعم الفني المباشر)',
+                          hint: 'مثال: https://t.me/QuizzlySuportBot',
+                          icon: Icons.smart_toy_rounded,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _supportBotTokenController,
+                          label: 'رمز توكن البوت (Telegram Bot Token)',
+                          hint: 'مثال: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ',
+                          icon: Icons.vpn_key_rounded,
+                          isDark: isDark,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),

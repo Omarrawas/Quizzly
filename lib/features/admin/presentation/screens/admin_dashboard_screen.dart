@@ -13,6 +13,8 @@ import 'package:quizzly/features/admin/presentation/screens/manage_socials_scree
 import 'package:quizzly/features/admin/presentation/screens/manage_sales_locations_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/ai_settings_screen.dart';
 import 'package:quizzly/features/admin/presentation/screens/pending_recharges_screen.dart';
+import 'package:quizzly/features/admin/presentation/screens/support_tickets_screen.dart';
+
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -333,6 +335,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const UserManagementScreen(),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+            _buildActionTile(
+              icon: Icons.confirmation_number_rounded,
+              title: 'تذاكر الدعم الفني (Support Tickets)',
+              subtitle: 'مراجعة وتتبع شكاوى الطلاب والرد عبر تليجرام',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SupportTicketsScreen(),
                   ),
                 );
               },
