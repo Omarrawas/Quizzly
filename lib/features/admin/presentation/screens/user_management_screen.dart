@@ -302,8 +302,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                         const SizedBox(height: 12),
                                         
                                         _buildInfoSectionTitle('المعلومات الدراسية', isDark),
-                                        _buildDetailRow(Icons.account_balance, 'الجامعة', defaults['universityName'] ?? 'غير متوفر', isDark),
-                                        _buildDetailRow(Icons.school, 'الكلية', defaults['collegeName'] ?? 'غير متوفر', isDark),
+                                        _buildDetailRow(Icons.account_balance, 'المرحلة / الجامعة', defaults['universityName'] ?? 'غير متوفر', isDark),
+                                        _buildDetailRow(Icons.school, 'الكلية أو المدرسة', defaults['collegeName'] ?? 'غير متوفر', isDark),
                                         _buildDetailRow(Icons.category, 'القسم', defaults['departmentName'] ?? 'غير متوفر', isDark),
                                         _buildDetailRow(Icons.calendar_today, 'السنة', defaults['yearName'] ?? 'غير متوفر', isDark),
 

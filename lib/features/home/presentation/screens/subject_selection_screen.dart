@@ -24,8 +24,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   String? _selectedDepartmentId;
   String? _selectedYearId;
 
-  String _universityName = 'الجامعة';
-  String _collegeName = 'الكلية';
+  String _universityName = 'المرحلة';
+  String _collegeName = 'الكلية أو المدرسة';
   String _departmentName = 'القسم';
   String _yearName = 'السنة';
 
@@ -46,8 +46,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
           _selectedCollegeId = defaults['collegeId'];
           _selectedDepartmentId = defaults['departmentId'];
           
-          _universityName = defaults['universityName'] ?? 'الجامعة';
-          _collegeName = defaults['collegeName'] ?? 'الكلية';
+          _universityName = defaults['universityName'] ?? 'المرحلة';
+          _collegeName = defaults['collegeName'] ?? 'الكلية أو المدرسة';
           _departmentName = defaults['departmentName'] ?? 'القسم';
         });
       }
@@ -80,8 +80,8 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
       _selectedDepartmentId = null;
       _selectedYearId = null;
       
-      _universityName = 'الجامعة';
-      _collegeName = 'الكلية';
+      _universityName = 'المرحلة';
+      _collegeName = 'الكلية أو المدرسة';
       _departmentName = 'القسم';
       _yearName = 'السنة';
     });
@@ -207,7 +207,7 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
                           _buildBreadcrumb(_universityName, () {
                             setState(() {
                               _selectedCollegeId = null;
-                              _collegeName = 'الكلية';
+                              _collegeName = 'الكلية أو المدرسة';
                               _selectedDepartmentId = null;
                               _departmentName = 'القسم';
                               _selectedYearId = null;
@@ -294,11 +294,11 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     if (_selectedUniversityId == null) {
       return _buildHierarchyList(
         stream: contentService.getUniversities(),
-        title: 'اختر الجامعة',
+        title: 'اختر المرحلة',
         onTap: (doc) => setState(() {
           _selectedUniversityId = doc.id;
           final data = doc.data() as Map<String, dynamic>?;
-          _universityName = data?['name'] ?? 'الجامعة';
+          _universityName = data?['name'] ?? 'المرحلة';
         }),
       );
     }
@@ -306,11 +306,11 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
     if (_selectedCollegeId == null) {
       return _buildHierarchyList(
         stream: contentService.getColleges(_selectedUniversityId!),
-        title: 'اختر الكلية',
+        title: 'اختر الكلية أو المدرسة',
         onTap: (doc) => setState(() {
           _selectedCollegeId = doc.id;
           final data = doc.data() as Map<String, dynamic>?;
-          _collegeName = data?['name'] ?? 'الكلية';
+          _collegeName = data?['name'] ?? 'الكلية أو المدرسة';
         }),
       );
     }

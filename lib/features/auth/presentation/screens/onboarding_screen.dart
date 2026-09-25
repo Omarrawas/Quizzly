@@ -21,8 +21,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _selectedCollegeId;
   String? _selectedDepartmentId;
 
-  String _universityName = 'الجامعة';
-  String _collegeName = 'الكلية';
+  String _universityName = 'المرحلة';
+  String _collegeName = 'الكلية أو المدرسة';
   String _departmentName = 'القسم';
 
   bool _isLoading = false;
@@ -222,11 +222,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_selectedUniversityId == null) {
       return _buildHierarchyList(
         stream: contentService.getUniversities(),
-        title: 'اختر الجامعة',
+        title: 'اختر المرحلة',
         onTap: (doc) => setState(() {
           _selectedUniversityId = doc.id;
           final data = doc.data() as Map<String, dynamic>?;
-          _universityName = data?['name'] ?? 'الجامعة';
+          _universityName = data?['name'] ?? 'المرحلة';
         }),
       );
     }
@@ -234,11 +234,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_selectedCollegeId == null) {
       return _buildHierarchyList(
         stream: contentService.getColleges(_selectedUniversityId!),
-        title: 'اختر الكلية',
+        title: 'اختر الكلية أو المدرسة',
         onTap: (doc) => setState(() {
           _selectedCollegeId = doc.id;
           final data = doc.data() as Map<String, dynamic>?;
-          _collegeName = data?['name'] ?? 'الكلية';
+          _collegeName = data?['name'] ?? 'الكلية أو المدرسة';
         }),
       );
     }

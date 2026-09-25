@@ -75,8 +75,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
   String _getPageTitle() {
     switch (_currentLevel) {
-      case ManagementLevel.university: return 'الجامعات';
-      case ManagementLevel.college: return 'الكليات';
+      case ManagementLevel.university: return 'المراحل والجامعات';
+      case ManagementLevel.college: return 'الكليات والمدارس';
       case ManagementLevel.department: return 'الأقسام';
       case ManagementLevel.year: return 'السنوات الدراسية';
       case ManagementLevel.semester: return 'الفصول الدراسية';
@@ -194,6 +194,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               index: index,
               title: name,
               subtitle: data['description'] ?? data['subtitle'] ?? '',
+              categoryType: data['type'] as String?,
               basePrice: basePrice,
               finalPrice: finalPrice,
               discount: discount,
@@ -344,6 +345,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     required int index,
     required String title, 
     required String subtitle, 
+    String? categoryType,
     double? basePrice,
     double? finalPrice,
     double? discount,
@@ -352,6 +354,8 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     required VoidCallback onEdit, 
     required VoidCallback onDelete
   }) {
+    final bool isTransitional = (categoryType == 'transitional' || categoryType == 'صفوف انتقالية');
+
     return Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 12),
@@ -372,15 +376,59 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_currentLevel == ManagementLevel.university) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isTransitional
+                              ? Colors.orange.withValues(alpha: 0.15)
+                              : AppColors.primaryBlue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isTransitional
+                                ? Colors.orange.withValues(alpha: 0.3)
+                                : AppColors.primaryBlue.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isTransitional ? Icons.auto_stories_rounded : Icons.account_balance_rounded,
+                              size: 13,
+                              color: isTransitional ? Colors.orange[700] : AppColors.primaryBlue,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isTransitional ? 'صفوف انتقالية' : 'جامعة',
+                              style: GoogleFonts.cairo(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isTransitional
+                                    ? (isDark ? Colors.orange[300] : Colors.orange[800])
+                                    : (isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -538,6 +586,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     }
     final nameController = TextEditingController(text: currentData['name']);
     final descController = TextEditingController(text: currentData['description'] ?? currentData['subtitle']);
+    String selectedType = currentData['type'] ?? 'university';
     String? referenceSubjectId = currentData['referenceSubjectId'];
     List<String> teacherIds = List<String>.from(currentData['teacherIds'] ?? []);
     if (teacherIds.isEmpty && currentData['teacherId'] != null) {
@@ -631,6 +680,103 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (_currentLevel == ManagementLevel.university) ...[
+                            Text(
+                              'نوع المرحلة / المؤسسة:',
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.blue[300] : AppColors.primaryBlue,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setDialogState(() => selectedType = 'university'),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: selectedType == 'university'
+                                            ? AppColors.primaryBlue.withValues(alpha: 0.15)
+                                            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedType == 'university' ? AppColors.primaryBlue : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.account_balance_rounded,
+                                            size: 16,
+                                            color: selectedType == 'university' ? AppColors.primaryBlue : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'جامعة',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: selectedType == 'university'
+                                                  ? (isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue)
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setDialogState(() => selectedType = 'transitional'),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: selectedType == 'transitional'
+                                            ? Colors.orange.withValues(alpha: 0.15)
+                                            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedType == 'transitional' ? Colors.orange : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.auto_stories_rounded,
+                                            size: 16,
+                                            color: selectedType == 'transitional' ? Colors.orange : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'صفوف انتقالية',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: selectedType == 'transitional'
+                                                  ? (isDark ? Colors.orange[300] : Colors.orange[800])
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           _buildPremiumTextField(
                             controller: nameController,
                             label: 'الاسم',
@@ -863,6 +1009,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                                 onPressed: () async {
                                   final updatedData = {
                                     'name': nameController.text.trim(),
+                                    if (_currentLevel == ManagementLevel.university) 'type': selectedType,
                                     if (_currentLevel == ManagementLevel.college) 'subtitle': descController.text.trim()
                                     else 'description': descController.text.trim(),
                                     if (_currentLevel == ManagementLevel.subject || _currentLevel == ManagementLevel.semester) ...{
@@ -1162,16 +1309,16 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
   }
 
   void _showSemesterSelectionDialog() {
-    final semesters = ['الفصل الأول', 'الفصل الثاني', 'الفصل الثالث'];
+    final semesters = ['الفصل الأول', 'الفصل الثاني', 'الفصل الثالث', 'عام'];
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('إضافة فصل جديد', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        title: Text('إضافة فصل أو تصنيف دراسي', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: semesters.map((sem) => ListTile(
-            title: Text(sem, style: GoogleFonts.cairo()),
+            title: Text(sem, style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
             onTap: () async {
               await _performAdd(sem, '');
               if (context.mounted) Navigator.pop(context);
@@ -1224,6 +1371,7 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
     
     final nameController = TextEditingController();
     final descController = TextEditingController();
+    String selectedType = 'university';
     double? price;
     double? discount;
     String? referenceSubjectId;
@@ -1266,7 +1414,105 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (_currentLevel == ManagementLevel.university) ...[
+                            Text(
+                              'نوع المرحلة / المؤسسة:',
+                              style: GoogleFonts.cairo(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.blue[300] : AppColors.primaryBlue,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setDialogState(() => selectedType = 'university'),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: selectedType == 'university'
+                                            ? AppColors.primaryBlue.withValues(alpha: 0.15)
+                                            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedType == 'university' ? AppColors.primaryBlue : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.account_balance_rounded,
+                                            size: 16,
+                                            color: selectedType == 'university' ? AppColors.primaryBlue : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'جامعة',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: selectedType == 'university'
+                                                  ? (isDark ? const Color(0xFF60A5FA) : AppColors.primaryBlue)
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setDialogState(() => selectedType = 'transitional'),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: selectedType == 'transitional'
+                                            ? Colors.orange.withValues(alpha: 0.15)
+                                            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedType == 'transitional' ? Colors.orange : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.auto_stories_rounded,
+                                            size: 16,
+                                            color: selectedType == 'transitional' ? Colors.orange : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'صفوف انتقالية',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: selectedType == 'transitional'
+                                                  ? (isDark ? Colors.orange[300] : Colors.orange[800])
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           _buildPremiumTextField(controller: nameController, label: 'الاسم', icon: Icons.title, isDark: isDark),
                           const SizedBox(height: 16),
                           _buildPremiumTextField(controller: descController, label: 'الوصف (اختياري)', icon: Icons.description, isDark: isDark),
@@ -1395,7 +1641,15 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
                               onPressed: () async {
                                 final name = nameController.text.trim();
                                 if (name.isNotEmpty) {
-                                  await _performAdd(name, descController.text.trim(), price: price, discount: discount, referenceSubjectId: referenceSubjectId, teacherIds: teacherIds);
+                                  await _performAdd(
+                                    name, 
+                                    descController.text.trim(), 
+                                    type: selectedType,
+                                    price: price, 
+                                    discount: discount, 
+                                    referenceSubjectId: referenceSubjectId, 
+                                    teacherIds: teacherIds,
+                                  );
                                   if (context.mounted) Navigator.pop(context);
                                 }
                               },
@@ -1422,19 +1676,20 @@ class _DatabaseManagementScreenState extends State<DatabaseManagementScreen> {
 
   String _getAddLabel() {
     switch (_currentLevel) {
-      case ManagementLevel.university: return 'جامعة';
-      case ManagementLevel.college: return 'كلية';
-      case ManagementLevel.department: return 'قسم';
-      case ManagementLevel.year: return 'سنة دراسية';
+      case ManagementLevel.university: return 'مرحلة / جامعة';
+      case ManagementLevel.college: return 'كلية / مدرسة';
+      case ManagementLevel.department: return 'قسم / تخصص';
+      case ManagementLevel.year: return 'سنة / صف دراسي';
       case ManagementLevel.semester: return 'فصل دراسي';
       case ManagementLevel.subject: return 'مادة';
       case ManagementLevel.section: return 'قسم المادة';
     }
   }
 
-  Future<void> _performAdd(String name, String desc, {double? price, double? discount, String? referenceSubjectId, List<String>? teacherIds}) async {
+  Future<void> _performAdd(String name, String desc, {String? type, double? price, double? discount, String? referenceSubjectId, List<String>? teacherIds}) async {
     final Map<String, dynamic> data = {
       'name': name,
+      if (_currentLevel == ManagementLevel.university) 'type': type ?? 'university',
       _currentLevel == ManagementLevel.college ? 'subtitle' : 'description': desc,
       if (_currentLevel == ManagementLevel.subject) ...{
         'price': price,

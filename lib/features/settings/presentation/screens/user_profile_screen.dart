@@ -183,13 +183,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       _buildSectionTitle('التخصص الدراسي', isDark),
                       const SizedBox(height: 16),
                       
-                      // University
+                      // University / Stage
                       _buildSelectionTile(
-                        label: 'الجامعة',
-                        value: _universityName.isEmpty ? 'اختر الجامعة' : _universityName,
+                        label: 'المرحلة / الجامعة',
+                        value: _universityName.isEmpty ? 'اختر المرحلة' : _universityName,
                         icon: Icons.account_balance_rounded,
                         onTap: () => _showHierarchyPicker(
-                          title: 'اختر الجامعة',
+                          title: 'اختر المرحلة',
                           stream: contentService.getUniversities(),
                           onSelected: (doc) {
                             setState(() {
@@ -211,11 +211,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       if (_selectedUniversityId != null) ...[
                         const SizedBox(height: 12),
                         _buildSelectionTile(
-                          label: 'الكلية',
-                          value: _collegeName.isEmpty ? 'اختر الكلية' : _collegeName,
+                          label: 'الكلية أو المدرسة',
+                          value: _collegeName.isEmpty ? 'اختر الكلية أو المدرسة' : _collegeName,
                           icon: Icons.school_rounded,
                           onTap: () => _showHierarchyPicker(
-                            title: 'اختر الكلية',
+                            title: 'اختر الكلية أو المدرسة',
                             stream: contentService.getColleges(_selectedUniversityId!),
                             onSelected: (doc) {
                               setState(() {
