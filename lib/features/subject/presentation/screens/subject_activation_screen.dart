@@ -235,7 +235,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                     const SizedBox(height: 24),
                   ],
                   // Price Section
-                  if (widget.basePrice != null && widget.basePrice! > 0) 
+                  if ((widget.basePrice ?? 0) > 0) 
                     _buildPriceSection(),
                   const SizedBox(height: 32),
                   // Options Section
@@ -245,13 +245,14 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                       final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
                       final int balance = userData['balance'] as int? ?? 0;
                       
+                      final double basePrice = widget.basePrice ?? 0;
                       final double discount = widget.discount ?? 0;
-                      final int finalPrice = (widget.basePrice! * (1 - discount / 100)).round();
+                      final int finalPrice = (basePrice * (1 - discount / 100)).round();
                       final bool canAfford = balance >= finalPrice;
 
                       return Column(
                         children: [
-                          if (widget.basePrice != null && widget.basePrice! > 0) ...[
+                          if (basePrice > 0) ...[
                             _buildActivationOption(
                               title: 'اشتراك مدفوع',
                               subtitle: canAfford 
@@ -274,7 +275,9 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
 
                           _buildActivationOption(
                             title: 'تفعيل مجاني',
-                            subtitle: 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',
+                            subtitle: (basePrice == 0)
+                                ? 'هذه المادة مجانية بالكامل، انقر للتفعيل والبدء فوراً'
+                                : 'فعل المادة مجاناً لتجربة بعض الامتحانات المجانية',
                             icon: Icons.auto_awesome_rounded,
                             color: Colors.amber,
                             isDark: isDark,
@@ -306,8 +309,9 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
   }
 
   Widget _buildPriceSection() {
+    final double basePrice = widget.basePrice ?? 0;
     final double discount = widget.discount ?? 0;
-    final double finalPrice = widget.basePrice! * (1 - discount / 100);
+    final double finalPrice = basePrice * (1 - discount / 100);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -331,7 +335,7 @@ class _SubjectActivationScreenState extends State<SubjectActivationScreen> {
                 children: [
                   if (discount > 0) ...[
                     Text(
-                      '${widget.basePrice!.toStringAsFixed(0)} ل.س',
+                      '${basePrice.toStringAsFixed(0)} ل.س',
                       style: GoogleFonts.cairo(
                         fontSize: 14,
                         color: Colors.grey,
